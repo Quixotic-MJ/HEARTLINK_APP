@@ -1,18 +1,20 @@
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import {
-  X,
-  Shield,
-  Calendar,
   AlertTriangle,
-  CheckCircle2,
   Ban,
-  Loader2,
+  Calendar,
+  CheckCircle2,
   ChevronDown,
-  Trash2,
+  ChevronRight,
   Crown,
+  Loader2,
+  Shield,
+  Trash2,
+  X,
 } from "lucide-react";
 import { formatUserRef } from "../../utils/formatUserRef";
+import { useDialogFocus } from "../../hooks/useDialogFocus";
 
 const DISABLE_REASONS = [
   "Suspicious activity",
@@ -28,13 +30,31 @@ const PREMIUM_DAYS = [
   { days: 365, label: "1 year" },
 ];
 
-const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus, onChangePlan, canDelete, onDeleteUser }) => {
+const AccountActionModal = ({
+  isOpen,
+  onClose,
+  user,
+  onToggleStatus,
+  onChangePlan,
+  canDelete,
+  onDeleteUser,
+}) => {
   const [isConfirming, setIsConfirming] = useState(false);
   const [selectedReason, setSelectedReason] = useState("");
   const [customReason, setCustomReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [premiumDays, setPremiumDays] = useState(30);
   const [isPlanSaving, setIsPlanSaving] = useState(false);
+  const dialogRef = useRef(null);
+
+  const handleClose = () => {
+    setIsConfirming(false);
+    setSelectedReason("");
+    setCustomReason("");
+    onClose();
+  };
+
+  useDialogFocus(isOpen, dialogRef, isSubmitting || isPlanSaving ? null : handleClose);
 
   if (!isOpen || !user) return null;
 
@@ -87,301 +107,341 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus, onChangePla
   };
 
   const premiumUntilLabel = user.premiumUntil
-    ? new Date(user.premiumUntil).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    ? new Date(user.premiumUntil).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
     : "";
-
-  const handleClose = () => {
-    setIsConfirming(false);
-    setSelectedReason("");
-    setCustomReason("");
-    onClose();
-  };
 
   const canSubmitDisable =
     selectedReason &&
     (selectedReason !== "Other" || customReason.trim().length > 0);
 
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
-        {/* Backdrop */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          className="fixed inset-0 bg-black/60 backdrop-blur-xs"
-          onClick={handleClose}
-        />
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 font-cal-sans">
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-cal-ink/40 transition-opacity"
+        onClick={!isSubmitting ? handleClose : undefined}
+      />
 
-        {/* Modal */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          transition={{ type: "spring", damping: 26, stiffness: 350 }}
-          className="relative w-full max-w-md bg-ds-canvas rounded-2xl shadow-2xl border border-ds-hairline overflow-hidden text-ds-ink z-10"
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4.5 border-b border-ds-hairline bg-ds-canvas">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-[8px] bg-ds-tint flex items-center justify-center text-ds-on-tint border border-ds-tint shrink-0">
-                <Shield size={16} />
-              </div>
-              <div>
-                <h3 className="text-[16px] font-bold text-ds-ink leading-tight">
-                  Account Governance
-                </h3>
-                <p className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider mt-0.5">
-                  User access controls
-                </p>
-              </div>
+      {/* Modal */}
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="account-governance-title"
+        tabIndex={-1}
+        className="relative z-10 w-full max-w-md overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas text-cal-ink shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3 border-b border-cal-hairline bg-cal-canvas px-6 py-4.5">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-soft text-cal-ink">
+              <Shield size={16} />
+            </span>
+            <div>
+              <h3
+                id="account-governance-title"
+                className="font-cal-display text-[20px] font-semibold tracking-[-0.4px] leading-[1.2] text-cal-ink"
+              >
+                Account governance
+              </h3>
+              <p className="mt-0.5 text-[12.5px] text-cal-muted">
+                Patient access controls and plan management.
+              </p>
             </div>
-            <button
-              onClick={handleClose}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-ds-slate hover:text-ds-ink hover:bg-ds-surface transition-colors cursor-pointer"
-            >
-              <X size={16} />
-            </button>
           </div>
+          <button
+            type="button"
+            onClick={handleClose}
+            aria-label="Close modal"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-hairline bg-cal-canvas text-cal-muted hover:text-cal-ink transition-colors cursor-pointer"
+          >
+            <X size={15} />
+          </button>
+        </div>
 
-          {/* User Info */}
-          <div className="px-6 py-5">
-            <div className="flex items-center gap-3.5 mb-4.5">
-              <div className="w-11 h-11 rounded-full bg-ds-tint text-ds-on-tint border border-ds-tint flex items-center justify-center font-bold text-base shrink-0">
-                {user.name?.charAt(0) || "P"}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[15px] font-bold text-ds-ink truncate">
+        {/* User Info */}
+        <div className="space-y-4 px-6 py-5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-soft text-[13px] font-semibold text-cal-ink">
+                {(user.name?.charAt(0) || "P").toUpperCase()}
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-[15px] font-semibold text-cal-ink">
                   {user.name}
                 </p>
-                <p className="text-[11px] text-ds-slate mt-0.5">
+                <p className="mt-0.5 font-cal-mono text-[12px] text-cal-muted">
                   {formatUserRef(user.id)}
                 </p>
               </div>
             </div>
 
-            {/* Details grid */}
-            <div className="grid grid-cols-2 gap-3 p-3.5 rounded-[8px] bg-ds-surface/60 border border-ds-hairline">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-ds-steel mb-1">
-                  Account Status
-                </p>
-                {isActive ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[11px] font-bold uppercase tracking-wider bg-ds-mint text-ds-charcoal border border-ds-mint">
-                    <CheckCircle2 size={10} /> Active
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[11px] font-bold uppercase tracking-wider bg-ds-rose text-ds-ink border border-ds-rose">
-                    <Ban size={10} /> Disabled
-                  </span>
+            <Link
+              to={`/users/${user.id}`}
+              onClick={handleClose}
+              className="inline-flex shrink-0 items-center gap-1 rounded-[8px] border border-cal-hairline bg-cal-canvas px-2.5 py-1.5 text-[12px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors"
+            >
+              <span>Profile</span>
+              <ChevronRight size={13} />
+            </Link>
+          </div>
+
+          {/* Details grid */}
+          <div className="grid grid-cols-2 gap-3 rounded-[10px] border border-cal-hairline bg-cal-surface-soft p-3.5">
+            <div>
+              <p className="mb-1 text-[11.5px] font-medium text-cal-muted">
+                Account status
+              </p>
+              {isActive ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-cal-success/25 bg-cal-success/10 px-2.5 py-0.5 text-[11.5px] font-medium text-cal-ink">
+                  <span className="h-1.5 w-1.5 rounded-full bg-cal-success" />
+                  <span>Active</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-cal-error/25 bg-cal-error/10 px-2.5 py-0.5 text-[11.5px] font-medium text-cal-ink">
+                  <span className="h-1.5 w-1.5 rounded-full bg-cal-error" />
+                  <span>Disabled</span>
+                </span>
+              )}
+            </div>
+            <div>
+              <p className="mb-1 text-[11.5px] font-medium text-cal-muted">
+                Registered
+              </p>
+              <p className="mt-1 flex items-center gap-1.5 font-cal-mono text-[12.5px] font-medium text-cal-ink">
+                <Calendar size={12.5} className="text-cal-muted" />
+                <span>{user.regDate}</span>
+              </p>
+            </div>
+          </div>
+
+          {/* HL-084: plan */}
+          {onChangePlan && (
+            <div className="rounded-[10px] border border-cal-hairline bg-cal-canvas p-3.5">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="mb-1 text-[11.5px] font-medium text-cal-muted">Plan</p>
+                  {user.isPremium ? (
+                    <p className="m-0 flex items-center gap-1.5 text-[13px] font-semibold text-cal-ink">
+                      <Crown size={13.5} className="text-cal-badge-orange" />
+                      <span>
+                        {user.premiumSource === "trial" ? "Premium trial" : "Premium"} until{" "}
+                        <span className="font-cal-mono text-[12.5px]">
+                          {premiumUntilLabel}
+                        </span>
+                      </span>
+                    </p>
+                  ) : (
+                    <p className="m-0 text-[13px] font-semibold text-cal-ink">Free</p>
+                  )}
+                </div>
+
+                {user.isPremium && (
+                  <button
+                    type="button"
+                    onClick={() => changePlan(false)}
+                    disabled={isPlanSaving}
+                    className="h-8 rounded-[8px] border border-cal-hairline bg-cal-canvas px-3 text-[12px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    Remove Premium
+                  </button>
                 )}
               </div>
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-ds-steel mb-1">
-                  Registered
-                </p>
-                <p className="text-[12px] font-semibold text-ds-ink flex items-center gap-1 mt-0.5">
-                  <Calendar size={11} className="text-ds-steel" />
-                  {user.regDate}
-                </p>
-              </div>
-            </div>
 
-            {/* HL-084: plan */}
-            {onChangePlan && (
-              <div className="mt-3.5 p-3.5 rounded-[8px] border border-ds-hairline">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-ds-steel mb-1">Plan</p>
-                    {user.isPremium ? (
-                      <p className="text-[13px] font-semibold text-ds-ink flex items-center gap-1.5 m-0">
-                        <Crown size={13} className="text-ds-warm-text" />
-                        {user.premiumSource === "trial" ? "Premium trial" : "Premium"} until {premiumUntilLabel}
-                      </p>
-                    ) : (
-                      <p className="text-[13px] font-semibold text-ds-ink m-0">Free</p>
-                    )}
-                  </div>
-                  {user.isPremium ? (
-                    <button
-                      type="button"
-                      onClick={() => changePlan(false)}
-                      disabled={isPlanSaving}
-                      className="px-3 py-2 text-[12px] font-semibold text-ds-ink bg-ds-canvas hover:bg-ds-surface border border-ds-hairline-strong rounded-[8px] transition-colors cursor-pointer disabled:opacity-50"
-                    >
-                      Remove Premium
-                    </button>
-                  ) : null}
-                </div>
-                <div className="mt-3 flex items-center gap-2">
-                  <label htmlFor="premium-days" className="sr-only">Premium length</label>
+              <div className="mt-3 flex items-center gap-2">
+                <label htmlFor="premium-days" className="sr-only">
+                  Premium length
+                </label>
+                <div className="relative flex-1">
                   <select
                     id="premium-days"
                     value={premiumDays}
                     onChange={(e) => setPremiumDays(Number(e.target.value))}
-                    className="flex-1 px-3 py-2 text-[12px] font-semibold text-ds-ink bg-ds-canvas border border-ds-hairline-strong rounded-[8px] focus:outline-none focus:border-ds-line cursor-pointer"
+                    className="h-9 w-full appearance-none rounded-[8px] border border-cal-hairline bg-cal-canvas pl-3 pr-8 text-[13px] font-medium text-cal-ink focus:border-cal-ink focus:outline-none cursor-pointer"
                   >
                     {PREMIUM_DAYS.map((o) => (
-                      <option key={o.days} value={o.days}>{o.label}</option>
+                      <option key={o.days} value={o.days}>
+                        {o.label}
+                      </option>
                     ))}
                   </select>
-                  <button
-                    type="button"
-                    onClick={() => changePlan(true)}
-                    disabled={isPlanSaving}
-                    className="px-3.5 py-2 text-[12px] font-semibold text-ds-warm-text bg-ds-yellow hover:bg-ds-yellow-bold border border-ds-yellow-bold rounded-[8px] transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
-                  >
-                    {isPlanSaving ? <Loader2 size={13} className="animate-spin" /> : <Crown size={13} />}
-                    {user.isPremium ? "Add time" : "Give Premium"}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Deactivation reason (if disabled) */}
-            {!isActive && user.deactivationReason && (
-              <div className="mt-3.5 p-3 rounded-[8px] flex items-start gap-2 bg-ds-rose border border-ds-rose">
-                <AlertTriangle
-                  size={14}
-                  className="text-ds-danger mt-0.5 shrink-0"
-                />
-                <div>
-                  <p className="text-[11px] font-bold text-ds-danger uppercase tracking-wider mb-0.5">
-                    Disabled Reason
-                  </p>
-                  <p className="text-[11.5px] text-ds-danger leading-relaxed font-medium">
-                    {user.deactivationReason}
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Action area */}
-          <div className="px-6 py-4 border-t border-ds-hairline bg-ds-canvas">
-            {!isConfirming ? (
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={handleClose}
-                  className="px-3.5 py-2 text-[12px] font-semibold text-ds-ink bg-ds-surface hover:bg-ds-hairline border border-ds-hairline rounded-[8px] transition-colors cursor-pointer"
-                >
-                  Close
-                </button>
-                {isActive ? (
-                  <button
-                    onClick={handleDisableClick}
-                    disabled={isSubmitting}
-                    className="flex-1 px-3.5 py-2 text-[12px] font-semibold text-white bg-ds-warm-text hover:bg-ds-warm-text rounded-[8px] transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
-                  >
-                    <Ban size={13} /> Disable Account
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleEnable}
-                    disabled={isSubmitting}
-                    className="flex-1 px-3.5 py-2 text-[12px] font-semibold text-white bg-ds-primary hover:bg-ds-primary rounded-[8px] transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
-                  >
-                    {isSubmitting ? (
-                      <Loader2 size={13} className="animate-spin" />
-                    ) : (
-                      <CheckCircle2 size={13} />
-                    )}
-                    Re-enable Account
-                  </button>
-                )}
-                {canDelete && (
-                  <button
-                    onClick={handleDelete}
-                    disabled={isSubmitting}
-                    className="px-3 py-2 text-[12px] font-semibold text-white bg-ds-danger hover:bg-ds-danger rounded-[8px] transition-colors cursor-pointer flex items-center justify-center gap-1 disabled:opacity-50"
-                  >
-                    <Trash2 size={13} />
-                    Delete
-                  </button>
-                )}
-              </div>
-            ) : (
-              /* Disable confirmation with reason */
-              <div className="space-y-3">
-                <div className="flex items-start gap-2 p-2.5 rounded-[8px] bg-ds-rose border border-ds-rose">
-                  <AlertTriangle
-                    size={13}
-                    className="text-ds-danger mt-0.5 shrink-0"
+                  <ChevronDown
+                    size={14}
+                    className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-cal-muted"
                   />
-                  <p className="text-[11.5px] text-ds-danger leading-relaxed font-medium">
-                    This will immediately revoke access. The user will not be able to log in until re-enabled.
-                  </p>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => changePlan(true)}
+                  disabled={isPlanSaving}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-3.5 text-[13px] font-semibold text-cal-on-primary transition-colors cursor-pointer disabled:bg-cal-primary-disabled disabled:text-cal-muted"
+                >
+                  {isPlanSaving ? (
+                    <Loader2 size={13.5} className="animate-spin" />
+                  ) : (
+                    <Crown size={13.5} />
+                  )}
+                  <span>{user.isPremium ? "Add time" : "Give Premium"}</span>
+                </button>
+              </div>
+            </div>
+          )}
 
-                <div>
-                  <label className="text-[11px] font-semibold uppercase tracking-wider text-ds-steel mb-1.5 block">
-                    Reason for disabling *
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={selectedReason}
-                      onChange={(e) => setSelectedReason(e.target.value)}
-                      className="w-full pl-3 pr-7 py-2 text-[12.5px] font-medium text-ds-ink bg-ds-canvas border border-ds-hairline-strong rounded-[8px] appearance-none cursor-pointer transition-colors focus:outline-none focus:border-ds-line"
-                    >
-                      <option value="" disabled>
-                        Select a reason…
+          {/* Deactivation reason (if disabled) */}
+          {!isActive && user.deactivationReason && (
+            <div className="flex items-start gap-2.5 rounded-[10px] border border-cal-error/25 bg-cal-error/10 p-3.5">
+              <AlertTriangle size={15} className="mt-0.5 shrink-0 text-cal-error" />
+              <div>
+                <p className="text-[11.5px] font-semibold text-cal-ink">
+                  Disabled reason
+                </p>
+                <p className="mt-0.5 text-[12.5px] leading-[1.45] text-cal-body">
+                  {user.deactivationReason}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Action area */}
+        <div className="border-t border-cal-hairline bg-cal-canvas px-6 py-4">
+          {!isConfirming ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={handleClose}
+                className="h-9 rounded-[8px] border border-cal-hairline bg-cal-canvas px-3.5 text-[13px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+              {isActive ? (
+                <button
+                  type="button"
+                  onClick={handleDisableClick}
+                  disabled={isSubmitting}
+                  className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-[8px] border border-cal-hairline bg-cal-surface-soft px-3.5 text-[13px] font-semibold text-cal-ink hover:bg-cal-surface-card transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  <Ban size={13.5} />
+                  <span>Disable account</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleEnable}
+                  disabled={isSubmitting}
+                  className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-3.5 text-[13px] font-semibold text-cal-on-primary transition-colors cursor-pointer disabled:bg-cal-primary-disabled disabled:text-cal-muted"
+                >
+                  {isSubmitting ? (
+                    <Loader2 size={13.5} className="animate-spin" />
+                  ) : (
+                    <CheckCircle2 size={13.5} />
+                  )}
+                  <span>Re-enable account</span>
+                </button>
+              )}
+              {canDelete && (
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={isSubmitting}
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-[8px] bg-cal-error hover:opacity-90 px-3.5 text-[13px] font-semibold text-cal-on-primary transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  <Trash2 size={13.5} />
+                  <span>Delete</span>
+                </button>
+              )}
+            </div>
+          ) : (
+            /* Disable confirmation with reason */
+            <div className="space-y-3">
+              <div className="flex items-start gap-2 rounded-[8px] border border-cal-warning/35 bg-cal-warning/10 p-3">
+                <AlertTriangle size={14} className="mt-0.5 shrink-0 text-cal-ink" />
+                <p className="m-0 text-[12.5px] leading-[1.45] text-cal-ink">
+                  This immediately revokes sign-in access until an administrator re-enables the account.
+                </p>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="disable-reason-select"
+                  className="mb-1.5 block text-[12.5px] font-semibold text-cal-ink"
+                >
+                  Reason for disabling <span className="text-cal-error">*</span>
+                </label>
+                <div className="relative">
+                  <select
+                    id="disable-reason-select"
+                    value={selectedReason}
+                    onChange={(e) => setSelectedReason(e.target.value)}
+                    className="h-9 w-full appearance-none rounded-[8px] border border-cal-hairline bg-cal-canvas pl-3 pr-8 text-[13px] font-medium text-cal-ink focus:border-cal-ink focus:outline-none cursor-pointer"
+                  >
+                    <option value="" disabled>
+                      Select a reason…
+                    </option>
+                    {DISABLE_REASONS.map((reason) => (
+                      <option key={reason} value={reason}>
+                        {reason}
                       </option>
-                      {DISABLE_REASONS.map((reason) => (
-                        <option key={reason} value={reason}>
-                          {reason}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown
-                      size={13}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-ds-steel"
-                    />
-                  </div>
-                </div>
-
-                {selectedReason === "Other" && (
-                  <div>
-                    <label className="text-[11px] font-semibold uppercase tracking-wider text-ds-steel mb-1 block">
-                      Custom Reason *
-                    </label>
-                    <textarea
-                      value={customReason}
-                      onChange={(e) => setCustomReason(e.target.value)}
-                      placeholder="Describe the reason for disabling this account…"
-                      rows={2}
-                      className="w-full px-3 py-2 text-[12.5px] rounded-[8px] bg-ds-canvas border border-ds-hairline-strong text-ds-ink placeholder:text-ds-steel resize-none focus:outline-none focus:border-ds-line"
-                    />
-                  </div>
-                )}
-
-                <div className="flex gap-2 pt-1">
-                  <button
-                    onClick={() => setIsConfirming(false)}
-                    disabled={isSubmitting}
-                    className="flex-1 px-3 py-2 text-[12px] font-semibold text-ds-ink bg-ds-surface hover:bg-ds-hairline border border-ds-hairline rounded-[8px] transition-colors cursor-pointer disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleConfirmDisable}
-                    disabled={isSubmitting || !canSubmitDisable}
-                    className="flex-1 px-3 py-2 text-[12px] font-semibold text-white bg-ds-danger hover:bg-ds-danger rounded-[8px] transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
-                  >
-                    {isSubmitting ? (
-                      <Loader2 size={13} className="animate-spin" />
-                    ) : (
-                      <Ban size={13} />
-                    )}
-                    {isSubmitting ? "Disabling…" : "Confirm Disable"}
-                  </button>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    size={14}
+                    className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-cal-muted"
+                  />
                 </div>
               </div>
-            )}
-          </div>
-        </motion.div>
+
+              {selectedReason === "Other" && (
+                <div>
+                  <label
+                    htmlFor="disable-custom-reason"
+                    className="mb-1.5 block text-[12.5px] font-semibold text-cal-ink"
+                  >
+                    Custom reason <span className="text-cal-error">*</span>
+                  </label>
+                  <textarea
+                    id="disable-custom-reason"
+                    value={customReason}
+                    onChange={(e) => setCustomReason(e.target.value)}
+                    placeholder="Describe why this account is being disabled…"
+                    rows={2}
+                    className="w-full resize-none rounded-[8px] border border-cal-hairline bg-cal-canvas px-3 py-2 text-[13px] text-cal-ink placeholder:text-cal-muted focus:border-cal-ink focus:outline-none"
+                  />
+                </div>
+              )}
+
+              <div className="flex gap-2.5 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsConfirming(false)}
+                  disabled={isSubmitting}
+                  className="h-9 flex-1 rounded-[8px] border border-cal-hairline bg-cal-canvas px-3 text-[13px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDisable}
+                  disabled={isSubmitting || !canSubmitDisable}
+                  className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-[8px] bg-cal-error hover:opacity-90 px-3 text-[13px] font-semibold text-cal-on-primary transition-colors cursor-pointer disabled:bg-cal-primary-disabled disabled:text-cal-muted"
+                >
+                  {isSubmitting ? (
+                    <Loader2 size={13.5} className="animate-spin" />
+                  ) : (
+                    <Ban size={13.5} />
+                  )}
+                  <span>{isSubmitting ? "Disabling…" : "Confirm disable"}</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-    </AnimatePresence>
+    </div>
   );
 };
 

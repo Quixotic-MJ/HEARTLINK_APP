@@ -6,8 +6,8 @@ export const RecipeImage = ({
   alt = "Recipe image",
   className = "w-full h-full object-cover",
   fallbackIconSize = 15,
-  containerClassName = "w-9 h-9 rounded-full flex items-center justify-center shrink-0 overflow-hidden bg-ds-peach",
-  fallbackIconClassName = "text-ds-charcoal",
+  containerClassName = "flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-[8px] border border-cal-hairline bg-cal-surface-soft",
+  fallbackIconClassName = "text-cal-muted",
 }) => {
   const [failedSrc, setFailedSrc] = useState(null);
   const hasError = !!src && failedSrc === src;
@@ -16,8 +16,8 @@ export const RecipeImage = ({
 
   if (showFallback) {
     return (
-      <div 
-        className={containerClassName} 
+      <div
+        className={containerClassName}
         title={alt}
         role="img"
         aria-label={alt}

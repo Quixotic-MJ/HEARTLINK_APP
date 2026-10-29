@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Eye, EyeOff, Loader2, Check, Circle } from "lucide-react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "../../contexts/useAuth";
 import { apiFetch } from "../../api";
-import { HeartLogoIcon, LoginBackdrop, ErrorBanner, FieldError } from "./login";
+import { HeartLogoIcon, ErrorBanner, FieldError } from "./login";
 import { inputBase, inputState, labelText, primaryButton, textLink, focusRing } from "./authStyles";
 
 // HL-044: staff created by an admin start with a one-time temporary password and land here
@@ -33,10 +33,10 @@ function PasswordInput({ id, label, value, onChange, autoComplete, hasError, des
         <button
           type="button"
           onClick={() => setVisible((v) => !v)}
-          className={`absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-lg text-ds-steel hover:text-ds-charcoal transition-colors cursor-pointer ${focusRing}`}
+          className={`absolute right-1 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-[6px] border-0 bg-transparent text-cal-muted active:bg-cal-surface-soft cursor-pointer ${focusRing}`}
           aria-label={visible ? "Hide password" : "Show password"}
         >
-          {visible ? <EyeOff size={17} /> : <Eye size={17} />}
+          {visible ? <EyeOff size={16} /> : <Eye size={16} />}
         </button>
       </div>
     </div>
@@ -45,8 +45,12 @@ function PasswordInput({ id, label, value, onChange, autoComplete, hasError, des
 
 function Rule({ met, children }) {
   return (
-    <li className={`flex items-center gap-2 text-[13px] ${met ? "text-ds-charcoal" : "text-ds-slate"}`}>
-      {met ? <Check size={14} className="shrink-0" aria-hidden="true" /> : <Circle size={10} className="shrink-0 mx-[2px]" aria-hidden="true" />}
+    <li className={`flex items-center gap-2 text-[13px] ${met ? "text-cal-ink font-medium" : "text-cal-muted"}`}>
+      {met ? (
+        <Check size={14} className="shrink-0 text-cal-success" aria-hidden="true" />
+      ) : (
+        <Circle size={10} className="mx-[2px] shrink-0 text-cal-muted-soft" aria-hidden="true" />
+      )}
       <span>{children}</span>
       <span className="sr-only">{met ? "(done)" : "(not yet)"}</span>
     </li>
@@ -97,13 +101,22 @@ export default function SetPassword() {
     } catch (err) {
       const detail = typeof err?.data?.detail === "string" ? err.data.detail : "";
       if (err?.status === 400 && detail.toLowerCase().includes("current password")) {
-        setError({ title: "Temporary password is incorrect", message: "Check the password your administrator gave you and try again." });
+        setError({
+          title: "Temporary password is incorrect",
+          message: "Check the password your administrator gave you and try again.",
+        });
       } else if (err?.status === 422 || err?.status === 400) {
-        setError({ title: "Password not accepted", message: detail || "Choose a password that meets every rule below." });
+        setError({
+          title: "Password not accepted",
+          message: detail || "Choose a password that meets every rule below.",
+        });
       } else if (err?.status === 429) {
         setError({ title: "Too many attempts", message: "Wait a minute, then try again." });
       } else {
-        setError({ title: "Couldn't save your password", message: "Check your connection and try again." });
+        setError({
+          title: "Couldn't save your password",
+          message: "Check your connection and try again.",
+        });
       }
     } finally {
       setSaving(false);
@@ -111,25 +124,36 @@ export default function SetPassword() {
   };
 
   return (
-    <div
-      className="relative isolate overflow-hidden min-h-screen w-full flex flex-col bg-ds-surface text-ds-ink selection:bg-ds-primary selection:text-white"
-      style={{ fontFamily: "'Inter', sans-serif" }}
-    >
-      <LoginBackdrop />
-
-      <main className="relative flex-1 flex items-center justify-center px-4 py-12 sm:py-16">
-        <div className="w-full max-w-[400px]">
-          <div className="flex flex-col items-center text-center">
-            <span className="relative flex h-12 w-12 items-center justify-center rounded-xl border border-ds-hairline/70 bg-ds-canvas/90 backdrop-blur ring-1 ring-ds-hairline/70 shadow-[0_8px_20px_-6px_rgba(46,154,232,0.35)]">
-              <HeartLogoIcon size={28} />
+    <div className="min-h-screen w-full flex flex-col bg-cal-surface-soft font-cal-sans text-cal-ink selection:bg-cal-ink selection:text-cal-on-primary">
+      <header className="border-b border-cal-hairline bg-cal-canvas">
+        <div className="mx-auto flex h-16 max-w-[1200px] items-center justify-between px-6">
+          <Link
+            to="/"
+            className={`flex items-center gap-2.5 rounded-[6px] text-cal-ink no-underline ${focusRing}`}
+          >
+            <HeartLogoIcon size={26} />
+            <span className="font-cal-display text-[19px] font-semibold tracking-[-0.4px] text-cal-ink">
+              HeartLink
             </span>
-            <h1 className="mt-6 text-[24px] leading-8 font-semibold tracking-[-0.02em]">Set your password</h1>
-            <p className="mt-2 text-[14px] text-ds-slate">
-              You signed in with a temporary password. Choose your own to continue.
+          </Link>
+          <span className="rounded-full bg-cal-surface-card px-3 py-1 text-[13px] font-medium text-cal-ink">
+            First-time setup
+          </span>
+        </div>
+      </header>
+
+      <main className="flex flex-1 items-center justify-center px-4 py-12 sm:py-16">
+        <div className="w-full max-w-[420px]">
+          <div className="text-center">
+            <h1 className="m-0 font-cal-display text-[28px] font-semibold leading-[1.2] tracking-[-0.5px] text-cal-ink sm:text-[32px]">
+              Set your password
+            </h1>
+            <p className="mt-2 mb-0 text-[14px] leading-[1.5] text-cal-muted">
+              You signed in with a temporary password. Choose your own to continue to the portal.
             </p>
           </div>
 
-          <div className="hl-glow-border relative mt-8 rounded-2xl border border-ds-hairline/70 bg-ds-canvas/80 p-6 sm:p-8 backdrop-blur-xl shadow-[0_1px_3px_rgba(15,23,42,0.05),0_30px_70px_-28px_rgba(46,154,232,0.45)] ring-1 ring-ds-hairline/70">
+          <div className="mt-8 rounded-[12px] border border-cal-hairline bg-cal-canvas p-6 shadow-[0_4px_12px_rgba(0,0,0,0.08)] sm:p-8">
             <form onSubmit={onSubmit} className="space-y-5" noValidate>
               <div>
                 <PasswordInput
@@ -141,7 +165,10 @@ export default function SetPassword() {
                   hasError={submitted && !current}
                   describedBy={submitted && !current ? "current-error" : undefined}
                 />
-                <FieldError id="current-error" message={submitted && !current ? "Enter the temporary password you were given." : ""} />
+                <FieldError
+                  id="current-error"
+                  message={submitted && !current ? "Enter the temporary password you were given." : ""}
+                />
               </div>
 
               <div>
@@ -154,7 +181,11 @@ export default function SetPassword() {
                   hasError={submitted && !Object.values(rules).every(Boolean)}
                   describedBy="password-rules"
                 />
-                <ul id="password-rules" className="mt-2.5 space-y-1.5" aria-label="Password rules">
+                <ul
+                  id="password-rules"
+                  className="mt-3 space-y-1.5 rounded-[8px] bg-cal-surface-card p-3.5 list-none"
+                  aria-label="Password rules"
+                >
                   <Rule met={rules.length}>At least 16 characters</Rule>
                   <Rule met={rules.number}>At least one number</Rule>
                   <Rule met={rules.special}>At least one special character (like ! or #)</Rule>
@@ -172,7 +203,10 @@ export default function SetPassword() {
                   hasError={submitted && !matches}
                   describedBy={submitted && !matches ? "confirm-error" : undefined}
                 />
-                <FieldError id="confirm-error" message={submitted && !matches ? "The passwords don't match." : ""} />
+                <FieldError
+                  id="confirm-error"
+                  message={submitted && !matches ? "The passwords don't match." : ""}
+                />
               </div>
 
               <ErrorBanner error={error} />
@@ -190,9 +224,9 @@ export default function SetPassword() {
             </form>
           </div>
 
-          <p className="mt-6 text-center text-[13.5px] text-ds-slate">
+          <p className="mt-6 text-center text-[13px] text-cal-muted">
             Not you?{" "}
-            <button type="button" onClick={logout} className={textLink}>
+            <button type="button" onClick={logout} className={`border-0 bg-transparent p-0 text-[13px] ${textLink}`}>
               Sign out
             </button>
           </p>

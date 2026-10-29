@@ -1,17 +1,16 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import {
-  User,
-  ShieldCheck,
-  ShieldAlert,
   Ban,
   CheckCircle2,
-  Users as UsersIcon,
-  Trash2,
-  RefreshCw,
+  ChevronDown,
   Crown,
+  RefreshCw,
+  ShieldAlert,
+  ShieldCheck,
+  Trash2,
+  User,
 } from "lucide-react";
 import { useAuth } from "../../../contexts/useAuth";
 import AdminLayout from "../../../components/layouts/adminLayout";
@@ -24,8 +23,6 @@ import StaffFormModal from "../../../components/modals/StaffFormModal";
 import AccountActionModal from "../../../components/modals/AccountActionModal";
 import ConfirmActionModal from "../../../components/modals/ConfirmActionModal";
 import TempPasswordModal from "../../../components/modals/TempPasswordModal";
-import { UI, FONTS } from "../../../styles/tokens";
-import { PageHeader } from "../../../styles/designSystem";
 
 // Patients as the directory shows them, from /api/users/ (HL-035: loaded through React Query)
 const NO_USERS = [];
@@ -41,10 +38,10 @@ const toPatients = (patientsData) => {
         phone: r.phone || "",
         regDate: r.created_at
           ? new Date(r.created_at).toLocaleDateString("en-US", {
-              month: "short",
-              day: "2-digit",
-              year: "numeric",
-            })
+            month: "short",
+            day: "2-digit",
+            year: "numeric",
+          })
           : "N/A",
         status: r.account_status === "active" ? "Active" : "Disabled",
         deactivationReason: r.deactivation_reason || "",
@@ -54,7 +51,10 @@ const toPatients = (patientsData) => {
         activityStatus: r.activity_status,
         reviewStatus: r.review_status,
         // HL-084: Premium counts only until its end date
-        isPremium: r.plan === "premium" && !!r.premium_until && new Date(r.premium_until) > new Date(),
+        isPremium:
+          r.plan === "premium" &&
+          !!r.premium_until &&
+          new Date(r.premium_until) > new Date(),
         premiumUntil: r.premium_until || null,
         premiumSource: r.premium_source || null,
       };
@@ -68,8 +68,7 @@ const Users = () => {
   const [activeTab, setActiveTab] = useState("app_users");
   const navigate = useNavigate();
   const [newStaffCredentials, setNewStaffCredentials] = useState(null);
-  const [searchParams] = useSearchParams();
-
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -106,18 +105,29 @@ const Users = () => {
   });
   const appUsers = patientsQuery.data ?? NO_USERS;
   const systemStaff = staffQuery.data ?? NO_USERS;
-  const loading = patientsQuery.isPending || (staffQuery.isEnabled && staffQuery.isPending);
   const refreshing = patientsQuery.isFetching || staffQuery.isFetching;
-  const fetchError = patientsQuery.isError || staffQuery.isError;
-  const fetchUsers = () => Promise.all([patientsQuery.refetch(), staffQuery.isEnabled && staffQuery.refetch()]);
+  const fetchUsers = () =>
+    Promise.all([
+      patientsQuery.refetch(),
+      staffQuery.isEnabled && staffQuery.refetch(),
+    ]);
 
   // A ?search= link (e.g. from a notification) fills the search box; noticed during render, not in an effect
   const searchParam = searchParams.get("search");
   const [seenSearchParam, setSeenSearchParam] = useState(null);
-  if (searchParam !== null && searchParam !== seenSearchParam) {
+  if (searchParam !== seenSearchParam) {
     setSeenSearchParam(searchParam);
-    setSearchQuery(searchParam);
+    if (searchParam !== null) {
+      setSearchQuery(searchParam);
+    }
   }
+
+  const clearSearch = () => {
+    setSearchQuery("");
+    if (searchParams.has("search")) {
+      setSearchParams({});
+    }
+  };
 
   const handleOpenUser = (u) => {
     if (currentUserRole === "admin") {
@@ -154,12 +164,12 @@ const Users = () => {
 
     setConfirmConfig({
       isOpen: true,
-      title: willDisable ? "Disable Staff Account" : "Activate Staff Account",
+      title: willDisable ? "Disable staff account?" : "Activate staff account?",
       subtitle: staff.name,
       description: willDisable
-        ? "Disabling this staff member will immediately prevent them from logging in and executing administrative actions."
-        : "Re-activating this account will restore full access to their designated staff role features.",
-      confirmText: willDisable ? "Disable Account" : "Activate Account",
+        ? "Disabling this staff member will immediately prevent them from signing in and performing administrative or clinical actions."
+        : "Re-activating this account restores full access to their assigned staff permissions.",
+      confirmText: willDisable ? "Disable account" : "Activate account",
       variant: willDisable ? "warning" : "success",
       icon: willDisable ? Ban : CheckCircle2,
       entityInfo: {
@@ -170,14 +180,14 @@ const Users = () => {
       },
       impactDetails: willDisable
         ? [
-            "Active session tokens will be invalidated.",
-            "Account status set to inactive.",
-            "Can be re-enabled at any time by an admin.",
-          ]
+          "Active session tokens will be invalidated.",
+          "Account status set to inactive.",
+          "Can be re-enabled at any time by an administrator.",
+        ]
         : [
-            "User credentials and login access will be immediately restored.",
-            "Role privileges reactivated.",
-          ],
+          "Sign-in credentials and access will be restored immediately.",
+          "Assigned role privileges reactivated.",
+        ],
       onConfirm: async () => {
         try {
           await apiFetch(`/api/admin/users/${staff.id}/status`, {
@@ -205,10 +215,10 @@ const Users = () => {
 
     setConfirmConfig({
       isOpen: true,
-      title: "Confirm Role Reassignment",
+      title: "Confirm role reassignment",
       subtitle: `${currentRole} → ${isTargetExpert ? "Expert Reviewer" : "System Admin"}`,
-      description: `Reassigning permissions for ${staffObj?.name || "this staff member"}. This modification updates authorization boundaries immediately.`,
-      confirmText: "Update Role",
+      description: `Reassigning permissions for ${staffObj?.name || "this staff member"}. Authorization boundaries update immediately.`,
+      confirmText: "Update role",
       variant: "warning",
       icon: ShieldAlert,
       isTargetExpert,
@@ -220,13 +230,13 @@ const Users = () => {
       },
       impactDetails: isTargetExpert
         ? [
-            "Grants clinical case evaluation, meal plan and exercise validation access.",
-            "Revokes system configuration & administrative account provisioning rights.",
-          ]
+          "Grants clinical case evaluation, meal plan, and exercise validation access.",
+          "Revokes system configuration and administrative account provisioning rights.",
+        ]
         : [
-            "Grants system administration, audit log visibility, and support permissions.",
-            "Removes direct clinical decision signing.",
-          ],
+          "Grants system administration, audit log visibility, and support permissions.",
+          "Removes direct clinical decision signing.",
+        ],
       onConfirm: async () => {
         if (isTargetExpert && (!reassignExpertType || !reassignExpertType.trim())) {
           toast.error("Please select an expert specialization.");
@@ -242,7 +252,10 @@ const Users = () => {
             body: JSON.stringify(bodyPayload),
           });
           toast.success(
-            `Role updated to ${isTargetExpert ? `Expert Reviewer (${reassignExpertType})` : "System Admin"}.`
+            `Role updated to ${isTargetExpert
+              ? `Expert Reviewer (${reassignExpertType})`
+              : "System Admin"
+            }.`
           );
           closeModal();
           closeConfirmModal();
@@ -261,10 +274,10 @@ const Users = () => {
   const requestDeleteStaff = (staffId, staffName, staffObj) => {
     setConfirmConfig({
       isOpen: true,
-      title: "Permanently Delete Staff Account",
+      title: "Permanently delete staff account?",
       subtitle: staffName,
-      description: `Are you sure you want to permanently delete the staff record for "${staffName}"? This action is permanent and cannot be undone.`,
-      confirmText: "Delete Permanently",
+      description: `Are you sure you want to permanently delete the staff record for "${staffName}"? This action cannot be undone.`,
+      confirmText: "Delete permanently",
       variant: "danger",
       icon: Trash2,
       entityInfo: {
@@ -295,28 +308,28 @@ const Users = () => {
   };
 
   // 4. Delete Patient Account (with confirmation)
-  const requestDeleteUser = (userId, userName) => {
+  const requestDeleteUser = (targetUserId, userName) => {
     setConfirmConfig({
       isOpen: true,
-      title: "Permanently Delete Patient Account",
+      title: "Permanently delete patient account?",
       subtitle: userName,
       description: `Are you sure you want to permanently purge all data for "${userName}"? All patient telemetry, health scores, and records will be deleted.`,
-      confirmText: "Delete Patient Record",
+      confirmText: "Delete patient record",
       variant: "danger",
       icon: Trash2,
       entityInfo: {
         name: userName,
-        id: userId,
+        id: targetUserId,
         badge: "Patient",
       },
       impactDetails: [
-        "All recorded heart vitals, symptom logs, and ECG snapshots will be purged.",
-        "Supabase Auth identity and patient profile permanently removed.",
+        "All recorded heart vitals, symptom logs, and check-ins will be purged.",
+        "Authentication identity and patient profile permanently removed.",
         "This operation cannot be reversed.",
       ],
       onConfirm: async () => {
         try {
-          await apiFetch(`/api/admin/users/${userId}`, {
+          await apiFetch(`/api/admin/users/${targetUserId}`, {
             method: "DELETE",
           });
           toast.success(`Patient record for ${userName} has been purged.`);
@@ -365,14 +378,17 @@ const Users = () => {
     if (premium) return savePlan(entity.id, true, days);
     setConfirmConfig({
       isOpen: true,
-      title: "Remove Premium",
+      title: "Remove Premium?",
       subtitle: entity.name,
       description: `${entity.name} goes back to the free plan straight away. Their logs and safety features aren't affected.`,
       confirmText: "Remove Premium",
       variant: "danger",
       icon: Crown,
       entityInfo: { name: entity.name, id: entity.id, badge: "Patient" },
-      impactDetails: ["Premium features stop working for this patient now.", "They can start Premium again from the app."],
+      impactDetails: [
+        "Premium features stop working for this patient now.",
+        "They can start Premium again from the mobile app.",
+      ],
       onConfirm: () => savePlan(entity.id, false),
     });
   };
@@ -385,10 +401,20 @@ const Users = () => {
         method: "PUT",
         body: JSON.stringify({ verified }),
       });
-      toast.success(verified ? `${staff.name} is now a verified clinician.` : `Verification removed for ${staff.name}.`);
-      setActiveEntity((prev) => (prev && prev.id === staff.id
-        ? { ...prev, is_verified_clinician: verified, clinician_verified_at: verified ? new Date().toISOString() : null }
-        : prev));
+      toast.success(
+        verified
+          ? `${staff.name} is now a verified clinician.`
+          : `Verification removed for ${staff.name}.`
+      );
+      setActiveEntity((prev) =>
+        prev && prev.id === staff.id
+          ? {
+            ...prev,
+            is_verified_clinician: verified,
+            clinician_verified_at: verified ? new Date().toISOString() : null,
+          }
+          : prev
+      );
     } catch (e) {
       toast.error(e.data?.detail || "Couldn't update the clinician verification.");
     }
@@ -402,8 +428,9 @@ const Users = () => {
         body: JSON.stringify(staffData),
       });
       const isExpert = staffData.role?.toLowerCase().includes("expert");
-      toast.success("Staff Account Provisioned Successfully", {
-        description: `${staffData.name} has been enrolled as a ${isExpert ? "Medical Expert" : "System Admin"}.`,
+      toast.success("Staff account provisioned", {
+        description: `${staffData.name} has been enrolled as a ${isExpert ? "Medical Expert" : "System Admin"
+          }.`,
       });
       closeModal();
       // HL-044: the one-time temporary password is only available in this response
@@ -426,11 +453,11 @@ const Users = () => {
 
   const handleTabSwitch = (tab) => {
     if (tab === "system_staff" && currentUserRole !== "admin") {
-      toast.error("Access Denied: Only admins can view or modify System Staff records.");
+      toast.error("Access denied: Only admins can view or modify System Staff records.");
       return;
     }
     setActiveTab(tab);
-    setSearchQuery("");
+    clearSearch();
   };
 
   const filteredUsers = appUsers.filter((u) => {
@@ -440,101 +467,121 @@ const Users = () => {
       (u.phone || "").toLowerCase().includes(searchQuery.toLowerCase());
     const matchStatus =
       filterStatus === "all" ||
-      (filterStatus === "premium" ? u.isPremium : filterStatus === "free" ? !u.isPremium : (u.status || "").toLowerCase() === filterStatus);
+      (filterStatus === "premium"
+        ? u.isPremium
+        : filterStatus === "free"
+          ? !u.isPremium
+          : (u.status || "").toLowerCase() === filterStatus);
     return matchSearch && matchStatus;
   });
 
   return (
     <AdminLayout>
-      <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>
-        {/* ── PAGE HEAD ── */}
-        <PageHeader
-          eyebrow="User governance"
-          eyebrowIcon={UsersIcon}
-          title="User & staff directory"
-          description="Manage patient health access, account authorization states, and medical review permissions."
-          actions={
-            <button
-              onClick={fetchUsers}
-              disabled={refreshing}
-              className={UI.button.secondary}
-            >
-              <RefreshCw size={13} className={refreshing ? "animate-spin text-ds-primary" : ""} />
-              <span>Refresh Directory</span>
-            </button>
-          }
-        />
+      <div className="mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
+        {/* ─── 1. EDITORIAL PAGE HEADER ─────────────────────────────────────── */}
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <div className="mb-2.5 inline-flex items-center gap-2 rounded-full border border-cal-hairline bg-cal-canvas px-3 py-1 text-[12px] font-medium text-cal-muted">
+              <ShieldCheck size={13.5} className="text-cal-ink" />
+              <span>User governance · Accounts &amp; permissions</span>
+            </div>
+            <h2 className="font-cal-display text-[28px] sm:text-[32px] font-semibold tracking-[-0.8px] leading-[1.15] text-cal-ink">
+              User &amp; staff directory
+            </h2>
+            <p className="mt-1.5 max-w-[64ch] text-[14px] leading-[1.5] text-cal-muted">
+              Manage patient mobile access, Premium entitlements, staff provisioning, and clinician verification states.
+            </p>
+          </div>
 
-        {/* ── SEGMENTED TAB BUTTONS ── */}
-        <div className="bg-ds-canvas p-1 rounded-xl inline-flex flex-wrap border border-ds-hairline mb-6 ">
           <button
-            onClick={() => handleTabSwitch("app_users")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-[7px] text-[12.5px] font-semibold transition-all cursor-pointer ${
-              activeTab === "app_users" 
-                ? "bg-ds-ink text-white " 
-                : "text-ds-slate hover:text-ds-ink hover:bg-ds-surface"
-            }`}
+            type="button"
+            onClick={fetchUsers}
+            disabled={refreshing}
+            className="inline-flex h-10 items-center gap-2 rounded-[8px] border border-cal-hairline bg-cal-canvas px-4 text-[14px] font-semibold text-cal-ink hover:bg-cal-surface-card transition-colors cursor-pointer disabled:opacity-50"
           >
-            <User size={14} />
-            <span>User accounts ({appUsers.length})</span>
+            <RefreshCw size={15} className={refreshing ? "animate-spin" : ""} />
+            <span>Refresh directory</span>
+          </button>
+        </div>
+
+        {/* ─── 2. DIRECTORY MODE SWITCHER (CAL.COM NAV-PILL-GROUP) ──────────── */}
+        <div
+          role="tablist"
+          aria-label="Directory section"
+          className="inline-flex flex-wrap items-center gap-1 rounded-full border border-cal-hairline bg-cal-canvas p-1 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "app_users"}
+            onClick={() => handleTabSwitch("app_users")}
+            className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-[13.5px] font-medium transition-all cursor-pointer ${activeTab === "app_users"
+              ? "bg-cal-primary text-cal-on-primary font-semibold"
+              : "text-cal-muted hover:text-cal-ink"
+              }`}
+          >
+            <User size={14.5} />
+            <span>User accounts</span>
+            <span
+              className={`font-cal-mono text-[11.5px] tabular-nums ${activeTab === "app_users" ? "text-cal-on-primary/80" : "text-cal-muted-soft"
+                }`}
+            >
+              {patientsQuery.isPending ? "—" : appUsers.length}
+            </span>
           </button>
 
           {currentUserRole === "admin" && (
             <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "system_staff"}
               onClick={() => handleTabSwitch("system_staff")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-[7px] text-[12.5px] font-semibold transition-all cursor-pointer ${
-                activeTab === "system_staff" 
-                  ? "bg-ds-ink text-white " 
-                  : "text-ds-slate hover:text-ds-ink hover:bg-ds-surface"
-              }`}
+              className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-[13.5px] font-medium transition-all cursor-pointer ${activeTab === "system_staff"
+                ? "bg-cal-primary text-cal-on-primary font-semibold"
+                : "text-cal-muted hover:text-cal-ink"
+                }`}
             >
-              <ShieldCheck size={14} />
-              <span>System staff ({systemStaff.length})</span>
+              <ShieldCheck size={14.5} />
+              <span>System staff</span>
+              <span
+                className={`font-cal-mono text-[11.5px] tabular-nums ${activeTab === "system_staff"
+                  ? "text-cal-on-primary/80"
+                  : "text-cal-muted-soft"
+                  }`}
+              >
+                {staffQuery.isPending ? "—" : systemStaff.length}
+              </span>
             </button>
           )}
         </div>
 
-        {/* ── TAB CONTENT ── */}
-        <AnimatePresence mode="wait">
-          {activeTab === "app_users" && (
-            <motion.div
-              key="tab_users"
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.15 }}
-            >
-              <UserListView
-                users={filteredUsers}
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                filterStatus={filterStatus}
-                onFilterChange={setFilterStatus}
-                onOpenUser={handleOpenUser}
-                loading={loading}
-              />
-            </motion.div>
-          )}
+        {/* ─── 3. TAB CONTENT ───────────────────────────────────────────────── */}
+        {activeTab === "app_users" && (
+          <UserListView
+            users={filteredUsers}
+            allUsers={appUsers}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onClearSearch={clearSearch}
+            filterStatus={filterStatus}
+            onFilterChange={setFilterStatus}
+            onOpenUser={handleOpenUser}
+            loading={patientsQuery.isPending}
+            error={patientsQuery.isError}
+            onRetry={fetchUsers}
+          />
+        )}
 
-          {activeTab === "system_staff" && currentUserRole === "admin" && (
-            <motion.div
-              key="tab_staff"
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.15 }}
-            >
-              <StaffListView
-                staffList={systemStaff}
-                loading={loading}
-                error={fetchError}
-                onRetry={fetchUsers}
-                onOpenStaff={handleOpenStaff}
-                onCreateStaff={handleCreateStaff}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {activeTab === "system_staff" && currentUserRole === "admin" && (
+          <StaffListView
+            staffList={systemStaff}
+            loading={staffQuery.isPending}
+            error={staffQuery.isError}
+            onRetry={fetchUsers}
+            onOpenStaff={handleOpenStaff}
+            onCreateStaff={handleCreateStaff}
+          />
+        )}
 
         {/* User Account Actions Modal */}
         <AccountActionModal
@@ -594,19 +641,29 @@ const Users = () => {
         >
           {confirmConfig.isTargetExpert && (
             <div className="my-4 text-left">
-              <label className="block text-[13px] font-medium text-ds-ink mb-1.5">
-                Expert Specialization <span className="text-ds-danger">*</span>
-              </label>
-              <select
-                value={reassignExpertType}
-                onChange={(e) => setReassignExpertType(e.target.value)}
-                className="w-full px-3.5 py-2.5 text-[13px] font-semibold text-ds-ink bg-ds-canvas border border-ds-hairline-strong focus:border-ds-line rounded-[8px] focus:outline-none cursor-pointer"
+              <label
+                htmlFor="reassign-expert-specialization"
+                className="mb-1.5 block text-[13px] font-semibold text-cal-ink"
               >
-                <option value="">Select Specialization...</option>
-                <option value="Physical Therapist">Physical Therapist</option>
-                <option value="Dietitian">Dietitian</option>
-                <option value="Cardiologist">Cardiologist</option>
-              </select>
+                Expert specialization <span className="text-cal-error">*</span>
+              </label>
+              <div className="relative">
+                <select
+                  id="reassign-expert-specialization"
+                  value={reassignExpertType}
+                  onChange={(e) => setReassignExpertType(e.target.value)}
+                  className="h-10 w-full appearance-none rounded-[8px] border border-cal-hairline bg-cal-canvas pl-3.5 pr-9 text-[13.5px] font-medium text-cal-ink focus:border-cal-ink focus:outline-none cursor-pointer"
+                >
+                  <option value="">Select specialization…</option>
+                  <option value="Physical Therapist">Physical Therapist</option>
+                  <option value="Dietitian">Dietitian</option>
+                  <option value="Cardiologist">Cardiologist</option>
+                </select>
+                <ChevronDown
+                  size={15}
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cal-muted"
+                />
+              </div>
             </div>
           )}
         </ConfirmActionModal>

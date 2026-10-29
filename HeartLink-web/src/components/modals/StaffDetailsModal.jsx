@@ -1,5 +1,35 @@
-import { motion, AnimatePresence } from "framer-motion";
-import { X, ShieldCheck, CheckCircle2, Ban, ShieldAlert, KeyRound, Trash2, Stethoscope, BadgeCheck } from "lucide-react";
+import { useRef } from "react";
+import {
+  BadgeCheck,
+  Ban,
+  CheckCircle2,
+  KeyRound,
+  ShieldAlert,
+  ShieldCheck,
+  Stethoscope,
+  Trash2,
+  X,
+} from "lucide-react";
+import { useDialogFocus } from "../../hooks/useDialogFocus";
+
+const PILL =
+  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11.5px] font-medium whitespace-nowrap";
+
+const EXPERT_BADGE = {
+  Cardiologist: "border-cal-badge-orange/35 bg-cal-badge-orange/15 text-cal-ink",
+  Dietitian: "border-cal-badge-emerald/35 bg-cal-badge-emerald/15 text-cal-ink",
+  "Physical Therapist": "border-cal-badge-pink/30 bg-cal-badge-pink/10 text-cal-ink",
+};
+
+const getAvatarSurface = (staff) => {
+  if (staff.role === "System Admin" || staff.db_role === "admin") {
+    return "bg-cal-badge-violet/15 text-cal-ink";
+  }
+  if (staff.expert_type === "Cardiologist") return "bg-cal-badge-orange/20 text-cal-ink";
+  if (staff.expert_type === "Dietitian") return "bg-cal-badge-emerald/20 text-cal-ink";
+  if (staff.expert_type === "Physical Therapist") return "bg-cal-badge-pink/15 text-cal-ink";
+  return "bg-cal-surface-card text-cal-ink";
+};
 
 const StaffDetailsModal = ({
   isOpen,
@@ -12,6 +42,9 @@ const StaffDetailsModal = ({
   onDeleteStaff,
   onToggleClinician,
 }) => {
+  const dialogRef = useRef(null);
+  useDialogFocus(isOpen, dialogRef, onClose);
+
   if (!isOpen || !staff) return null;
 
   // HL-074: all admins are equal; another admin can be disabled but not deleted
@@ -26,209 +59,297 @@ const StaffDetailsModal = ({
     }
   };
 
-  const getStatusBadge = (status) => {
-    const norm = status?.toLowerCase();
-    if (norm === "active")
-      return (
-        <span className="bg-ds-mint text-ds-charcoal border border-ds-mint px-2 py-0.5 rounded-[4px] text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 w-fit">
-          <CheckCircle2 size={10} /> Active
-        </span>
-      );
-    return (
-      <span className="bg-ds-rose text-ds-ink border border-ds-rose px-2 py-0.5 rounded-[4px] text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 w-fit">
-        <Ban size={10} /> Disabled
-      </span>
-    );
-  };
+  const isStatusActive =
+    (staff.account_status || staff.status)?.toLowerCase() === "active";
+  const isExpert =
+    staff.role === "Authorized Medical Expert" || staff.db_role === "medical_expert";
+  const canVerify = currentUserRole === "admin" && isExpert && onToggleClinician;
+  const targetRoleLabel =
+    staff.role === "System Admin" || staff.role === "admin"
+      ? "Authorized Medical Expert"
+      : "System Admin";
+
+  const initials =
+    (staff.name || "S")
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((p) => p[0])
+      .join("")
+      .toUpperCase() || "S";
 
   const getRoleBadge = (role) => {
-    let classes = "bg-ds-surface text-ds-ink border-ds-hairline";
-    let icon = <ShieldCheck size={11} />;
     if (role === "System Admin" || role === "admin") {
-      classes = "bg-ds-tint text-ds-on-tint border-ds-tint";
-      icon = <ShieldCheck size={11} />;
-    } else if (role === "Authorized Medical Expert" || role === "medical_expert" || role === "Expert Reviewer") {
-      classes = "bg-ds-mint text-ds-charcoal border-ds-mint";
-      icon = <Stethoscope size={11} />;
+      return (
+        <span className={`${PILL} border-cal-badge-violet/30 bg-cal-badge-violet/10 text-cal-ink`}>
+          <ShieldCheck size={12} />
+          <span>System Admin</span>
+        </span>
+      );
+    }
+    if (
+      role === "Authorized Medical Expert" ||
+      role === "medical_expert" ||
+      role === "Expert Reviewer"
+    ) {
+      return (
+        <span className={`${PILL} border-cal-hairline bg-cal-surface-soft text-cal-ink`}>
+          <Stethoscope size={12} />
+          <span>Expert Reviewer</span>
+        </span>
+      );
     }
     return (
-      <span className={`px-2 py-0.5 rounded-[4px] text-[11px] font-bold uppercase tracking-wider border inline-flex items-center gap-1 ${classes}`}>
-        {icon}
-        {(role === "Authorized Medical Expert" || role === "medical_expert") ? "Expert Reviewer" : role}
+      <span className={`${PILL} border-cal-hairline bg-cal-surface-card text-cal-ink`}>
+        {role}
       </span>
     );
   };
 
-  const isStatusActive = (staff.account_status || staff.status)?.toLowerCase() === "active";
-  const isExpert = staff.role === "Authorized Medical Expert" || staff.db_role === "medical_expert";
-  const canVerify = currentUserRole === "admin" && isExpert && onToggleClinician;
-  const targetRoleLabel = (staff.role === "System Admin" || staff.role === "admin") ? "Authorized Medical Expert" : "System Admin";
-
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6" style={{ fontFamily: "'Inter', sans-serif" }}>
-        {/* Backdrop */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          className="fixed inset-0 bg-black/60 backdrop-blur-xs"
-          onClick={onClose}
-        />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 font-cal-sans">
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-cal-ink/40 transition-opacity"
+        onClick={onClose}
+      />
 
-        {/* Modal panel */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          transition={{ type: "spring", damping: 26, stiffness: 350 }}
-          className="relative w-full max-w-lg bg-ds-canvas max-h-full rounded-2xl shadow-2xl border border-ds-hairline flex flex-col overflow-hidden text-ds-ink z-10"
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4.5 border-b border-ds-hairline bg-ds-canvas z-10">
-            <div>
-              <h3 className="text-[17px] font-bold text-ds-ink leading-tight">
-                Administrative Staff Details
-              </h3>
-              <p className="text-[11px] text-ds-steel mt-0.5 font-medium">{staff.name}</p>
-            </div>
-            <button
-              onClick={onClose}
-              className="text-ds-slate hover:text-ds-ink p-1.5 rounded-lg hover:bg-ds-surface transition-colors cursor-pointer"
+      {/* Modal panel */}
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="staff-details-title"
+        tabIndex={-1}
+        className="relative z-10 flex max-h-full w-full max-w-lg flex-col overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas text-cal-ink shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 border-b border-cal-hairline bg-cal-canvas px-6 py-4.5">
+          <div>
+            <h3
+              id="staff-details-title"
+              className="font-cal-display text-[20px] font-semibold tracking-[-0.4px] leading-[1.2] text-cal-ink"
             >
-              <X size={16} />
-            </button>
+              Staff account details
+            </h3>
+            <p className="mt-0.5 text-[12.5px] text-cal-muted">
+              Role permissions, verification state, and access status.
+            </p>
           </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close modal"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-hairline bg-cal-canvas text-cal-muted hover:text-cal-ink transition-colors cursor-pointer"
+          >
+            <X size={15} />
+          </button>
+        </div>
 
-          {/* Content area */}
-          <div className="flex-1 overflow-y-auto p-6 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden space-y-4.5">
-            {/* Main profile card */}
-            <div className="bg-ds-surface/60 p-4.5 rounded-xl border border-ds-hairline space-y-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h4 className="text-[17px] font-bold text-ds-ink">
+        {/* Scrollable Content */}
+        <div className="flex-1 space-y-4 overflow-y-auto p-6">
+          {/* Identity Card */}
+          <div className="space-y-3 rounded-[10px] border border-cal-hairline bg-cal-surface-soft p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <span
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-cal-hairline text-[13px] font-semibold ${getAvatarSurface(
+                    staff
+                  )}`}
+                >
+                  {initials}
+                </span>
+                <div className="min-w-0">
+                  <h4 className="truncate text-[15.5px] font-semibold text-cal-ink">
                     {staff.name}
                   </h4>
-                  <p className="text-[11px] text-ds-slate mt-0.5 uppercase tracking-wider font-semibold">ID: {staff.id}</p>
-                </div>
-                {getStatusBadge(staff.account_status || staff.status)}
-              </div>
-
-              {isProtected && (
-                <div className="bg-ds-tint border border-ds-tint text-ds-on-tint px-3 py-1.5 rounded-[6px] text-[11px] font-bold flex items-center gap-1.5 uppercase tracking-wider">
-                  <ShieldAlert size={13} className="text-ds-primary" /> Admin account: disable it instead of deleting
-                </div>
-              )}
-            </div>
-
-            {/* Account Details */}
-            <div className="bg-ds-canvas p-4.5 rounded-xl border border-ds-hairline space-y-3.5">
-              <h5 className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider border-b border-ds-hairline pb-2 flex items-center gap-1.5">
-                <KeyRound size={12} className="text-ds-primary" /> Account Parameters
-              </h5>
-              <div className="grid grid-cols-2 gap-3.5 text-[12px]">
-                <div>
-                  <p className="text-ds-steel font-semibold text-[11px] uppercase tracking-wider">Role Assignment</p>
-                  <div className="mt-1 flex items-center gap-1.5 flex-wrap">
-                    {getRoleBadge(staff.role)}
-                    {staff.expert_type && (
-                      <span className="text-[11px] font-bold text-ds-charcoal bg-ds-mint px-2 py-0.5 rounded border border-ds-mint">
-                        {staff.expert_type}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-ds-steel font-semibold text-[11px] uppercase tracking-wider">Contact Number</p>
-                  <p className="mt-1 font-bold text-ds-ink">{staff.phone || "No Phone"}</p>
-                </div>
-                <div>
-                  <p className="text-ds-steel font-semibold text-[11px] uppercase tracking-wider">Email Address</p>
-                  <p className="mt-1 font-bold text-ds-ink truncate">{staff.email || "N/A"}</p>
-                </div>
-                <div>
-                  <p className="text-ds-steel font-semibold text-[11px] uppercase tracking-wider">Provision Date</p>
-                  <p className="mt-1 font-bold text-ds-ink">
-                    {staff.created_at
-                      ? new Date(staff.created_at).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })
-                      : "N/A"}
+                  <p className="mt-0.5 truncate font-cal-mono text-[11.5px] text-cal-muted">
+                    ID: {staff.id}
                   </p>
                 </div>
               </div>
+
+              {isStatusActive ? (
+                <span className={`${PILL} border-cal-success/25 bg-cal-success/10 text-cal-ink`}>
+                  <span className="h-1.5 w-1.5 rounded-full bg-cal-success" />
+                  <span>Active</span>
+                </span>
+              ) : (
+                <span className={`${PILL} border-cal-error/25 bg-cal-error/10 text-cal-ink`}>
+                  <span className="h-1.5 w-1.5 rounded-full bg-cal-error" />
+                  <span>Disabled</span>
+                </span>
+              )}
             </div>
 
-            {/* HL-058: only reviews by verified clinicians count in Model Check */}
-            {isExpert && (
-              <div className="bg-ds-canvas p-4.5 rounded-xl border border-ds-hairline space-y-2.5">
-                <h5 className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider border-b border-ds-hairline pb-2 flex items-center gap-1.5">
-                  <BadgeCheck size={12} className="text-ds-primary" /> Clinician Verification
-                </h5>
-                <p className={`text-[12.5px] font-semibold m-0 ${staff.is_verified_clinician ? "text-ds-charcoal" : "text-ds-warm-text"}`}>
-                  {staff.is_verified_clinician
-                    ? `Verified clinician${staff.clinician_verified_at ? ` since ${new Date(staff.clinician_verified_at).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })}` : ""}`
-                    : "Not verified: case reviews count as practice"}
-                </p>
-                <p className="text-[11.5px] text-ds-slate m-0">
-                  Verify only after checking their professional license. Only reviews submitted while verified count in Model Check; earlier practice reviews stay practice.
-                </p>
-                {canVerify && (
-                  <button
-                    onClick={() => onToggleClinician(staff)}
-                    className={`px-3.5 py-2 text-[12px] font-semibold rounded-[8px] transition-colors cursor-pointer border ${
-                      staff.is_verified_clinician
-                        ? "text-ds-ink bg-ds-surface hover:bg-ds-hairline border-ds-hairline"
-                        : "text-white bg-ds-primary hover:bg-ds-primary border-ds-success"
-                    }`}
-                  >
-                    {staff.is_verified_clinician ? "Remove verification" : "Mark as verified clinician"}
-                  </button>
-                )}
+            {isProtected && (
+              <div className="flex items-center gap-2 rounded-[8px] border border-cal-hairline bg-cal-canvas px-3 py-2 text-[12px] font-medium text-cal-body">
+                <ShieldAlert size={14} className="shrink-0 text-cal-ink" />
+                <span>Admin account: disable instead of deleting.</span>
               </div>
             )}
           </div>
 
-          {/* Footer actions */}
-          <div className="px-6 py-4 border-t border-ds-hairline bg-ds-canvas flex flex-wrap justify-between items-center gap-2.5 shrink-0">
-            <div className="flex flex-wrap items-center gap-2">
-              {!isProtected && (
-                <>
+          {/* Account Parameters */}
+          <div className="space-y-3.5 rounded-[10px] border border-cal-hairline bg-cal-canvas p-4">
+            <h5 className="flex items-center gap-2 border-b border-cal-hairline pb-2.5 text-[12px] font-semibold text-cal-ink">
+              <KeyRound size={13.5} className="text-cal-muted" />
+              <span>Account parameters</span>
+            </h5>
+            <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 text-[13px]">
+              <div>
+                <p className="text-[11.5px] font-medium text-cal-muted">Role assignment</p>
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  {getRoleBadge(staff.role)}
+                  {staff.expert_type && (
+                    <span
+                      className={`${PILL} ${EXPERT_BADGE[staff.expert_type] ||
+                        "border-cal-hairline bg-cal-surface-card text-cal-ink"
+                        }`}
+                    >
+                      {staff.expert_type}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div>
+                <p className="text-[11.5px] font-medium text-cal-muted">Contact number</p>
+                <p className="mt-1 font-cal-mono text-[13px] font-medium text-cal-ink">
+                  {staff.phone || "No phone"}
+                </p>
+              </div>
+              <div>
+                <p className="text-[11.5px] font-medium text-cal-muted">Email address</p>
+                <p className="mt-1 truncate text-[13px] font-medium text-cal-ink">
+                  {staff.email || "N/A"}
+                </p>
+              </div>
+              <div>
+                <p className="text-[11.5px] font-medium text-cal-muted">Provision date</p>
+                <p className="mt-1 font-cal-mono text-[13px] font-medium text-cal-ink">
+                  {staff.created_at
+                    ? new Date(staff.created_at).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "2-digit",
+                      year: "numeric",
+                    })
+                    : "N/A"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* HL-058: Clinician Verification */}
+          {isExpert && (
+            <div className="space-y-3 rounded-[10px] border border-cal-hairline bg-cal-canvas p-4">
+              <div className="flex items-center justify-between gap-2 border-b border-cal-hairline pb-2.5">
+                <h5 className="flex items-center gap-2 text-[12px] font-semibold text-cal-ink">
+                  <BadgeCheck size={14} className="text-cal-muted" />
+                  <span>Clinician verification</span>
+                </h5>
+                {staff.is_verified_clinician ? (
+                  <span className={`${PILL} border-cal-success/25 bg-cal-success/10 text-cal-ink`}>
+                    <CheckCircle2 size={11.5} className="text-cal-success" />
+                    <span>Verified</span>
+                  </span>
+                ) : (
+                  <span className={`${PILL} border-cal-warning/35 bg-cal-warning/15 text-cal-ink`}>
+                    <span>Practice mode</span>
+                  </span>
+                )}
+              </div>
+
+              <p className="m-0 text-[13px] font-semibold text-cal-ink">
+                {staff.is_verified_clinician
+                  ? `Verified clinician${staff.clinician_verified_at
+                    ? ` since ${new Date(
+                      staff.clinician_verified_at
+                    ).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "2-digit",
+                      year: "numeric",
+                    })}`
+                    : ""
+                  }`
+                  : "Not verified — case reviews currently count as practice"}
+              </p>
+
+              <p className="m-0 text-[12.5px] leading-[1.5] text-cal-muted">
+                Verify only after checking their professional license. Only reviews submitted while verified count in Model Check; earlier practice reviews remain practice.
+              </p>
+
+              {canVerify && (
+                <div>
                   <button
-                    onClick={() => onChangeRole(staff.id, staff.role, targetRoleLabel, staff)}
-                    className="px-3.5 py-2 text-[12px] font-semibold text-ds-ink bg-ds-surface hover:bg-ds-hairline border border-ds-hairline rounded-[8px] transition-colors cursor-pointer"
+                    type="button"
+                    onClick={() => onToggleClinician(staff)}
+                    className={`inline-flex h-9 items-center gap-1.5 rounded-[8px] px-4 text-[13px] font-semibold transition-colors cursor-pointer ${staff.is_verified_clinician
+                      ? "border border-cal-hairline bg-cal-canvas text-cal-ink hover:bg-cal-surface-soft"
+                      : "bg-cal-primary active:bg-cal-primary-active text-cal-on-primary"
+                      }`}
                   >
-                    Change Role
+                    <BadgeCheck size={14} />
+                    <span>
+                      {staff.is_verified_clinician
+                        ? "Remove verification"
+                        : "Mark as verified clinician"}
+                    </span>
                   </button>
-                  <button
-                    onClick={() => onToggleStatus(staff)}
-                    className={`px-3.5 py-2 text-[12px] font-semibold text-white rounded-[8px] transition-colors cursor-pointer ${
-                      isStatusActive ? "bg-ds-warm-text hover:bg-ds-warm-text" : "bg-ds-primary hover:bg-ds-primary"
-                    }`}
-                  >
-                    {isStatusActive ? "Disable" : "Enable"}
-                  </button>
-                </>
-              )}
-              {canDelete && (
-                <button
-                  onClick={handleDelete}
-                  className="px-3 py-2 text-[12px] font-semibold text-white bg-ds-danger hover:bg-ds-danger rounded-[8px] transition-colors cursor-pointer flex items-center gap-1"
-                >
-                  <Trash2 size={13} />
-                  Delete Account
-                </button>
+                </div>
               )}
             </div>
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-[12px] font-semibold text-ds-ink bg-ds-surface hover:bg-ds-hairline border border-ds-hairline rounded-[8px] transition-colors cursor-pointer"
-            >
-              Close
-            </button>
+          )}
+        </div>
+
+        {/* Footer actions */}
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2.5 border-t border-cal-hairline bg-cal-canvas px-6 py-4">
+          <div className="flex flex-wrap items-center gap-2">
+            {!isProtected && (
+              <>
+                <button
+                  type="button"
+                  onClick={() =>
+                    onChangeRole(staff.id, staff.role, targetRoleLabel, staff)
+                  }
+                  className="h-9 rounded-[8px] border border-cal-hairline bg-cal-canvas px-3.5 text-[13px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer"
+                >
+                  Change role
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onToggleStatus(staff)}
+                  className={`inline-flex h-9 items-center gap-1.5 rounded-[8px] px-3.5 text-[13px] font-semibold transition-colors cursor-pointer ${isStatusActive
+                    ? "border border-cal-hairline bg-cal-canvas text-cal-ink hover:bg-cal-surface-soft"
+                    : "bg-cal-primary active:bg-cal-primary-active text-cal-on-primary"
+                    }`}
+                >
+                  {isStatusActive ? <Ban size={13.5} /> : <CheckCircle2 size={13.5} />}
+                  <span>{isStatusActive ? "Disable" : "Enable"}</span>
+                </button>
+              </>
+            )}
+            {canDelete && (
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="inline-flex h-9 items-center gap-1.5 rounded-[8px] bg-cal-error hover:opacity-90 px-3.5 text-[13px] font-semibold text-cal-on-primary transition-colors cursor-pointer"
+              >
+                <Trash2 size={13.5} />
+                <span>Delete account</span>
+              </button>
+            )}
           </div>
-        </motion.div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-9 rounded-[8px] border border-cal-hairline bg-cal-canvas px-4 text-[13px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer"
+          >
+            Close
+          </button>
+        </div>
       </div>
-    </AnimatePresence>
+    </div>
   );
 };
 

@@ -1,10 +1,5 @@
 import { useRef, useState } from "react";
-import {
-  LogOut,
-  X,
-  Loader2,
-  Lock,
-} from "lucide-react";
+import { Loader2, Lock, LogOut, X } from "lucide-react";
 import { useAuth } from "../../contexts/useAuth";
 import { useDialogFocus } from "../../hooks/useDialogFocus";
 
@@ -18,22 +13,32 @@ const LogoutConfirmModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   const role = user?.role || "admin";
+  const expertType = user?.expert_type;
   const userName =
     user?.first_name || user?.last_name
       ? `${user.first_name || ""} ${user.last_name || ""}`.trim()
       : user?.name || user?.email || "Administrator";
-  const userInitials = userName ? userName.substring(0, 2).toUpperCase() : "HL";
+  const userInitials =
+    userName
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase() || "HL";
 
   const getRoleLabel = (r) => {
-    if (r === "admin") return "System admin";
-    if (r === "medical_expert") return "Medical expert";
-    return r ? r.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "Staff user";
+    if (r === "admin") return "System Admin";
+    if (r === "medical_expert") return expertType || "Medical Expert";
+    return r ? r.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "Staff User";
   };
 
-  const getRolePillClass = (r) => {
-    if (r === "admin") return "bg-ds-tint text-ds-primary-pressed border border-ds-tint";
-    if (r === "medical_expert") return "bg-ds-mint text-ds-charcoal border border-ds-mint";
-    return "bg-ds-surface text-ds-slate border border-ds-hairline";
+  const getAvatarSurface = (r) => {
+    if (r === "admin") return "bg-cal-badge-violet/15 text-cal-ink";
+    if (expertType === "Cardiologist") return "bg-cal-badge-orange/20 text-cal-ink";
+    if (expertType === "Dietitian") return "bg-cal-badge-emerald/20 text-cal-ink";
+    if (expertType === "Physical Therapist") return "bg-cal-badge-pink/15 text-cal-ink";
+    return "bg-cal-surface-card text-cal-ink";
   };
 
   const handleConfirmLogout = async () => {
@@ -50,73 +55,75 @@ const LogoutConfirmModal = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      {/* Animated Backdrop */}
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 font-cal-sans">
+      {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+        className="fixed inset-0 bg-cal-ink/40 transition-opacity"
         onClick={!isLoggingOut ? onClose : undefined}
       />
 
-      {/* Modal Dialog */}
+      {/* Modal Dialog (Cal.com 12px Card + Hairline + Subtle Drop Shadow) */}
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="logout-dialog-title"
         tabIndex={-1}
-        className="relative w-full max-w-md bg-ds-canvas rounded-2xl shadow-2xl border border-ds-hairline overflow-hidden text-ds-ink animate-in fade-in zoom-in-95 duration-200 z-10 p-6 sm:p-7 text-center"
-        style={{ fontFamily: "'Inter', sans-serif" }}
+        className="relative z-10 w-full max-w-md overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas p-6 sm:p-7 text-left text-cal-ink shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
       >
         {/* Close Button */}
         <button
+          type="button"
           onClick={onClose}
           disabled={isLoggingOut}
-          className="absolute top-4 right-4 p-2 text-ds-slate hover:text-ds-ink hover:bg-ds-surface rounded-xl transition-all cursor-pointer disabled:opacity-40"
+          className="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-full border border-cal-hairline bg-cal-canvas text-cal-muted hover:text-cal-ink transition-colors cursor-pointer disabled:opacity-40"
           aria-label="Close modal"
         >
           <X size={16} />
         </button>
 
-        {/* Simple Icon Avatar */}
-        <div className="w-12 h-12 rounded-full bg-ds-surface-alt border border-ds-hairline flex items-center justify-center text-ds-slate mx-auto mb-4">
-          <LogOut size={20} className="ml-0.5" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cal-surface-card border border-cal-hairline text-cal-ink mb-4">
+          <LogOut size={18} className="ml-0.5" />
         </div>
 
-        <h3 id="logout-dialog-title" className="text-[17px] font-bold text-ds-ink tracking-tight">
-          Sign Out of HeartLink
+        <h3
+          id="logout-dialog-title"
+          className="font-cal-display text-[22px] font-semibold tracking-[-0.5px] text-cal-ink leading-[1.2]"
+        >
+          Sign out of HeartLink?
         </h3>
-        <p className="text-xs text-ds-slate mt-1.5 leading-relaxed max-w-xs mx-auto">
-          Are you sure you want to end your current session? You will be redirected to the login portal.
+        <p className="mt-1.5 text-[14px] text-cal-muted leading-[1.5]">
+          Your active staff session will be closed and you will be returned to the sign-in portal.
         </p>
 
         {/* User Session Profile Card */}
-        <div className="p-3.5 rounded-xl bg-ds-surface border border-ds-hairline flex items-center gap-3 my-5 text-left">
-          <div className="w-9 h-9 rounded-full bg-ds-tint text-ds-primary-pressed font-bold text-xs flex items-center justify-center shrink-0">
+        <div className="my-5 flex items-center gap-3 rounded-[12px] border border-cal-hairline bg-cal-surface-soft p-3.5">
+          <div
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-cal-hairline text-[12.5px] font-semibold ${getAvatarSurface(
+              role
+            )}`}
+          >
             {userInitials}
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-xs font-bold text-ds-ink truncate">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="truncate text-[13.5px] font-semibold text-cal-ink">
                 {userName}
               </p>
-              <span
-                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${getRolePillClass(
-                  role
-                )}`}
-              >
+              <span className="inline-flex items-center rounded-full bg-cal-surface-card px-2.5 py-0.5 text-[11.5px] font-medium text-cal-ink">
                 {getRoleLabel(role)}
               </span>
             </div>
-            <p className="text-[11px] text-ds-slate truncate mt-0.5">
+            <p className="mt-0.5 truncate text-[12px] text-cal-muted">
               {user?.email || "Authenticated Staff"}
             </p>
           </div>
         </div>
 
         {/* Session Expiry Hint */}
-        <div className="flex items-center gap-2 p-2.5 rounded-lg bg-ds-surface border border-ds-hairline text-[11px] text-ds-slate mb-6 text-left">
-          <Lock size={12} className="shrink-0 text-ds-steel" />
-          <span>Your authentication session will be revoked upon sign out.</span>
+        <div className="mb-6 flex items-center gap-2 rounded-[8px] border border-cal-hairline bg-cal-canvas px-3 py-2.5 text-[12.5px] text-cal-muted">
+          <Lock size={13} className="shrink-0 text-cal-muted" />
+          <span>Your authentication token will be revoked upon sign out.</span>
         </div>
 
         {/* Action Buttons */}
@@ -125,7 +132,7 @@ const LogoutConfirmModal = ({ isOpen, onClose }) => {
             type="button"
             onClick={onClose}
             disabled={isLoggingOut}
-            className="w-1/2 py-2.5 px-4 rounded-lg border border-ds-hairline bg-ds-surface hover:bg-ds-hairline text-xs font-semibold text-ds-ink transition-colors cursor-pointer disabled:opacity-40"
+            className="h-10 w-1/2 rounded-[8px] border border-cal-hairline bg-cal-canvas px-5 text-[14px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer disabled:opacity-40"
           >
             Cancel
           </button>
@@ -133,17 +140,17 @@ const LogoutConfirmModal = ({ isOpen, onClose }) => {
             type="button"
             onClick={handleConfirmLogout}
             disabled={isLoggingOut}
-            className="w-1/2 py-2.5 px-4 rounded-lg bg-ds-primary hover:bg-ds-primary text-white text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-60"
+            className="flex h-10 w-1/2 items-center justify-center gap-2 rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-5 text-[14px] font-semibold text-cal-on-primary transition-colors cursor-pointer disabled:bg-cal-primary-disabled disabled:text-cal-muted"
           >
             {isLoggingOut ? (
               <>
-                <Loader2 size={14} className="animate-spin" />
-                <span>Signing Out…</span>
+                <Loader2 size={15} className="animate-spin" />
+                <span>Signing out…</span>
               </>
             ) : (
               <>
-                <LogOut size={14} />
-                <span>Sign Out</span>
+                <LogOut size={15} />
+                <span>Sign out</span>
               </>
             )}
           </button>

@@ -1,328 +1,468 @@
 import {
+  AlertCircle,
+  CheckCircle2,
+  Crown,
   Search,
   ShieldCheck,
-  Heart,
-  Ban,
-  CheckCircle2,
-  Activity,
-  UserCheck,
-  AlertTriangle,
-  ChevronDown,
   Users,
-  AlertCircle,
-  Crown,
+  X,
 } from "lucide-react";
 import { formatUserRef } from "../../utils/formatUserRef";
 import { Skeleton } from "../ui/Skeleton";
+import LoadError from "../ui/LoadError";
+
+const PILL =
+  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11.5px] font-medium whitespace-nowrap";
+
+const STATUS_TABS = [
+  ["all", "All"],
+  ["active", "Active"],
+  ["disabled", "Disabled"],
+  ["premium", "Premium"],
+  ["free", "Free plan"],
+];
 
 // HL-084: the patient's plan; Premium shows its end date on hover
 const getPlanBadge = (user) =>
   user.isPremium ? (
     <span
-      title={user.premiumUntil ? `Premium until ${new Date(user.premiumUntil).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}` : undefined}
-      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[11px] font-bold uppercase tracking-wider bg-ds-yellow text-ds-warm-text border border-ds-yellow"
+      title={
+        user.premiumUntil
+          ? `Premium until ${new Date(user.premiumUntil).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })}`
+          : undefined
+      }
+      className={`${PILL} border-cal-badge-orange/35 bg-cal-badge-orange/15 text-cal-ink`}
     >
-      <Crown size={10} /> {user.premiumSource === "trial" ? "Trial" : "Premium"}
+      <Crown size={11.5} className="text-cal-ink" />
+      <span>{user.premiumSource === "trial" ? "Trial" : "Premium"}</span>
     </span>
   ) : (
-    <span className="text-[12px] text-ds-steel">Free</span>
+    <span className="text-[13px] text-cal-muted">Free</span>
   );
+
+const getStatusBadge = (status) => {
+  if (status === "Active" || status === "active") {
+    return (
+      <span className={`${PILL} border-cal-success/25 bg-cal-success/10 text-cal-ink`}>
+        <span className="h-1.5 w-1.5 rounded-full bg-cal-success" />
+        <span>Active</span>
+      </span>
+    );
+  }
+  return (
+    <span className={`${PILL} border-cal-error/25 bg-cal-error/10 text-cal-ink`}>
+      <span className="h-1.5 w-1.5 rounded-full bg-cal-error" />
+      <span>Disabled</span>
+    </span>
+  );
+};
+
+const getHssBadge = (score) => {
+  if (score === null || score === undefined) {
+    return <span className="text-[13px] text-cal-muted">N/A</span>;
+  }
+
+  let standardTier;
+  let tone;
+  let dot;
+
+  if (score >= 80) {
+    standardTier = "Stable";
+    tone = "border-cal-success/25 bg-cal-success/10 text-cal-ink";
+    dot = "bg-cal-success";
+  } else if (score >= 60) {
+    standardTier = "Moderate";
+    tone = "border-cal-warning/35 bg-cal-warning/15 text-cal-ink";
+    dot = "bg-cal-warning";
+  } else if (score >= 50) {
+    standardTier = "Elevated Risk";
+    tone = "border-cal-error/25 bg-cal-error/10 text-cal-ink";
+    dot = "bg-cal-error";
+  } else {
+    standardTier = "Critical";
+    tone = "border-cal-error/25 bg-cal-error/10 text-cal-ink";
+    dot = "bg-cal-error";
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="font-cal-mono text-[13.5px] font-semibold tabular-nums text-cal-ink">
+        {score}
+      </span>
+      <span className={`${PILL} ${tone}`}>
+        <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
+        <span>{standardTier}</span>
+      </span>
+    </div>
+  );
+};
+
+const getActivityBadge = (activity) => {
+  if (activity === "Recently Active") {
+    return (
+      <span className={`${PILL} border-cal-success/25 bg-cal-success/10 text-cal-ink`}>
+        <span className="h-1.5 w-1.5 rounded-full bg-cal-success" />
+        <span>Active</span>
+      </span>
+    );
+  }
+  if (activity === "Inactive") {
+    return (
+      <span className={`${PILL} border-cal-warning/35 bg-cal-warning/15 text-cal-ink`}>
+        <span className="h-1.5 w-1.5 rounded-full bg-cal-warning" />
+        <span>Inactive</span>
+      </span>
+    );
+  }
+  if (activity === "Sparse Data" || activity === "Sparse") {
+    return (
+      <span className={`${PILL} border-cal-badge-violet/30 bg-cal-badge-violet/10 text-cal-ink`}>
+        <span className="h-1.5 w-1.5 rounded-full bg-cal-badge-violet" />
+        <span>Sparse</span>
+      </span>
+    );
+  }
+  return (
+    <span className={`${PILL} border-cal-hairline bg-cal-surface-card text-cal-muted`}>
+      <span>New</span>
+    </span>
+  );
+};
+
+const getOnboardingBadge = (status) => {
+  if (status === "Complete" || status === "complete") {
+    return (
+      <span className={`${PILL} border-cal-hairline bg-cal-surface-soft text-cal-ink`}>
+        <CheckCircle2 size={11.5} className="text-cal-success" />
+        <span>Done</span>
+      </span>
+    );
+  }
+  return (
+    <span className={`${PILL} border-cal-warning/35 bg-cal-warning/15 text-cal-ink`}>
+      <span>Pending</span>
+    </span>
+  );
+};
+
+const getReviewBadge = (status) => {
+  if (status === "Evaluated") {
+    return (
+      <span className={`${PILL} border-cal-success/25 bg-cal-success/10 text-cal-ink`}>
+        <ShieldCheck size={11.5} className="text-cal-success" />
+        <span>Evaluated</span>
+      </span>
+    );
+  }
+  return (
+    <span className={`${PILL} border-cal-hairline bg-cal-surface-card text-cal-muted`}>
+      <span>Pending</span>
+    </span>
+  );
+};
 
 const UserListView = ({
   users,
+  allUsers,
   searchQuery,
   onSearchChange,
+  onClearSearch,
   filterStatus,
   onFilterChange,
   onOpenUser,
   loading,
+  error = false,
+  onRetry,
 }) => {
-  const totalUsers = users.length;
-  const activeUsers = users.filter((u) => u.status === "Active" || u.status === "active").length;
-  const elevatedRisk = users.filter((u) => u.hssScore !== null && u.hssScore !== undefined && u.hssScore < 60).length;
-  const evaluated = users.filter((u) => u.reviewStatus === "Evaluated").length;
+  const pool = allUsers || users;
+  const totalUsers = pool.length;
+  const activeUsers = pool.filter(
+    (u) => u.status === "Active" || u.status === "active"
+  ).length;
+  const elevatedRisk = pool.filter(
+    (u) => u.hssScore !== null && u.hssScore !== undefined && u.hssScore < 60
+  ).length;
+  const evaluated = pool.filter((u) => u.reviewStatus === "Evaluated").length;
 
-  const getStatusBadge = (status) => {
-    if (status === "Active" || status === "active") {
-      return (
-        <span className="bg-ds-mint text-ds-charcoal border border-ds-mint px-2 py-0.5 rounded-[4px] text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 w-fit">
-          <CheckCircle2 size={10} /> Active
-        </span>
-      );
-    }
-    return (
-      <span className="bg-ds-rose text-ds-ink border border-ds-rose px-2 py-0.5 rounded-[4px] text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 w-fit">
-        <Ban size={10} /> Disabled
-      </span>
-    );
+  const tabCounts = {
+    all: pool.length,
+    active: activeUsers,
+    disabled: pool.filter((u) => (u.status || "").toLowerCase() === "disabled").length,
+    premium: pool.filter((u) => u.isPremium).length,
+    free: pool.filter((u) => !u.isPremium).length,
   };
 
-  const getHssBadge = (score) => {
-    if (score === null || score === undefined) {
-      return (
-        <span className="bg-ds-surface text-ds-steel border border-ds-hairline px-2 py-0.5 rounded-[4px] text-[11px] font-semibold uppercase tracking-wider w-fit inline-block">
-          N/A
-        </span>
-      );
-    }
-
-    let standardTier;
-    let colorClasses;
-
-    if (score >= 80) {
-      standardTier = "Stable";
-      colorClasses = "bg-ds-mint text-ds-charcoal border-ds-mint";
-    } else if (score >= 60) {
-      standardTier = "Moderate";
-      colorClasses = "bg-ds-yellow text-ds-warm-text border-ds-yellow-bold";
-    } else if (score >= 50) {
-      standardTier = "Elevated Risk";
-      colorClasses = "bg-ds-tint text-ds-on-tint border-ds-tint";
+  const clearSearch = () => {
+    if (onClearSearch) {
+      onClearSearch();
     } else {
-      standardTier = "Critical";
-      colorClasses = "bg-ds-rose text-ds-ink border-ds-rose";
+      onSearchChange("");
     }
-
-    return (
-      <span className={`${colorClasses} border px-2 py-0.5 rounded-[4px] text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 w-fit`}>
-        <Heart size={10} className="fill-current" /> {score} ({standardTier})
-      </span>
-    );
   };
 
-  const getActivityBadge = (activity) => {
-    if (activity === "Recently Active") {
-      return (
-        <span className="bg-ds-mint text-ds-charcoal border border-ds-mint px-2 py-0.5 rounded-[4px] text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 w-fit">
-          <Activity size={10} /> Active
-        </span>
-      );
-    } else if (activity === "Inactive") {
-      return (
-        <span className="bg-ds-yellow text-ds-warm-text border border-ds-yellow-bold px-2 py-0.5 rounded-[4px] text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 w-fit">
-          <AlertTriangle size={10} /> Inactive
-        </span>
-      );
-    } else if (activity === "Sparse Data" || activity === "Sparse") {
-      return (
-        <span className="bg-ds-tint text-ds-on-tint border border-ds-tint px-2 py-0.5 rounded-[4px] text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 w-fit">
-          <AlertTriangle size={10} /> Sparse
-        </span>
-      );
-    }
-    return (
-      <span className="bg-ds-surface text-ds-slate border border-ds-hairline px-2 py-0.5 rounded-[4px] text-[11px] font-semibold uppercase tracking-wider w-fit">
-        New
-      </span>
-    );
-  };
-
-  const getOnboardingBadge = (status) => {
-    if (status === "Complete" || status === "complete") {
-      return (
-        <span className="bg-ds-surface text-ds-ink border border-ds-hairline px-2 py-0.5 rounded-[4px] text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 w-fit">
-          <UserCheck size={10} /> Done
-        </span>
-      );
-    }
-    return (
-      <span className="bg-ds-yellow text-ds-warm-text border border-ds-yellow-bold px-2 py-0.5 rounded-[4px] text-[11px] font-bold uppercase tracking-wider w-fit">
-        Pending
-      </span>
-    );
-  };
-
-  const getReviewBadge = (status) => {
-    if (status === "Evaluated") {
-      return (
-        <span className="bg-ds-mint text-ds-charcoal border border-ds-mint px-2 py-0.5 rounded-[4px] text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 w-fit">
-          <ShieldCheck size={10} /> Evaluated
-        </span>
-      );
-    }
-    return (
-      <span className="bg-ds-yellow text-ds-warm-text border border-ds-yellow-bold px-2 py-0.5 rounded-[4px] text-[11px] font-bold uppercase tracking-wider w-fit">
-        Pending
-      </span>
-    );
+  const resetAll = () => {
+    onFilterChange("all");
+    clearSearch();
   };
 
   return (
-    <div className="space-y-6">
-      {/* ── METRICS ROW ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
-        <div className="bg-ds-canvas border border-ds-hairline rounded-xl p-4 ">
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider">Total Patients</p>
-            <Users size={13} className="text-ds-steel" />
+    <div className="space-y-6 font-cal-sans text-cal-ink">
+      {/* ── 1. KPI METRICS STRIP ────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[12.5px] font-medium text-cal-muted">Total patients</span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-soft text-cal-ink">
+              <Users size={14.5} aria-hidden="true" />
+            </span>
           </div>
-          <p className="text-[26px] font-bold text-ds-ink leading-tight">
-            {loading ? "…" : totalUsers}
-          </p>
+          <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none text-cal-ink">
+            {loading ? "—" : totalUsers}
+          </div>
+          <div className="mt-2 text-[12px] text-cal-muted">Registered mobile accounts</div>
         </div>
 
-        <div className="bg-ds-canvas border border-ds-hairline rounded-xl p-4 ">
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider">Active Accounts</p>
-            <CheckCircle2 size={13} className="text-ds-charcoal" />
+        <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[12.5px] font-medium text-cal-muted">Active accounts</span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-success/25 bg-cal-success/10 text-cal-success">
+              <CheckCircle2 size={14.5} aria-hidden="true" />
+            </span>
           </div>
-          <p className="text-[26px] font-bold text-ds-charcoal leading-tight">
-            {loading ? "…" : activeUsers}
-          </p>
+          <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none text-cal-ink">
+            {loading ? "—" : activeUsers}
+          </div>
+          <div className="mt-2 text-[12px] text-cal-muted">Enabled sign-in access</div>
         </div>
 
-        <div className="bg-ds-canvas border border-ds-hairline rounded-xl p-4 ">
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider">Elevated Risk</p>
-            <AlertCircle size={13} className="text-ds-primary" />
+        <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[12.5px] font-medium text-cal-muted">Elevated risk</span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-error/25 bg-cal-error/10 text-cal-error">
+              <AlertCircle size={14.5} aria-hidden="true" />
+            </span>
           </div>
-          <p className="text-[26px] font-bold text-ds-primary leading-tight">
-            {loading ? "…" : elevatedRisk}
-          </p>
+          <div
+            className={`mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none ${
+              !loading && elevatedRisk > 0 ? "text-cal-error" : "text-cal-ink"
+            }`}
+          >
+            {loading ? "—" : elevatedRisk}
+          </div>
+          <div className="mt-2 text-[12px] text-cal-muted">HSS score under 60</div>
         </div>
 
-        <div className="bg-ds-canvas border border-ds-hairline rounded-xl p-4 ">
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider">Evaluated</p>
-            <ShieldCheck size={13} className="text-ds-ink" />
+        <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[12.5px] font-medium text-cal-muted">Evaluated</span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-soft text-cal-ink">
+              <ShieldCheck size={14.5} aria-hidden="true" />
+            </span>
           </div>
-          <p className="text-[26px] font-bold text-ds-ink leading-tight">
-            {loading ? "…" : evaluated}
-          </p>
+          <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none text-cal-ink">
+            {loading ? "—" : evaluated}
+          </div>
+          <div className="mt-2 text-[12px] text-cal-muted">Completed clinical review</div>
         </div>
       </div>
 
-      {/* ── USERS DIRECTORY TABLE CARD ── */}
-      <div className="bg-ds-canvas rounded-xl border border-ds-hairline flex flex-col overflow-hidden ">
-        {/* Search & Filter bar */}
-        <div className="p-4 border-b border-ds-hairline bg-ds-canvas flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ds-steel pointer-events-none" />
+      {/* ── 2. USERS DIRECTORY TABLE CARD ───────────────────────────────── */}
+      <section className="overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+        {/* Toolbar: Nav-Pill-Group + Search */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cal-hairline bg-cal-canvas px-4 py-3.5 sm:px-5">
+          <div
+            role="group"
+            aria-label="Filter patient accounts"
+            className="inline-flex flex-wrap items-center gap-1 rounded-[16px] sm:rounded-full border border-cal-hairline/80 bg-cal-surface-soft p-1"
+          >
+            {STATUS_TABS.map(([key, label]) => {
+              const active = filterStatus === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => onFilterChange(key)}
+                  className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-all cursor-pointer ${
+                    active
+                      ? "bg-cal-canvas text-cal-ink font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
+                      : "text-cal-muted hover:text-cal-ink"
+                  }`}
+                >
+                  <span>{label}</span>
+                  <span
+                    className={`font-cal-mono text-[11.5px] tabular-nums ${
+                      active ? "text-cal-ink" : "text-cal-muted-soft"
+                    }`}
+                  >
+                    {loading ? "—" : tabCounts[key]}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="relative w-full sm:w-72">
+            <label htmlFor="user-directory-search" className="sr-only">
+              Search user accounts
+            </label>
+            <Search
+              size={14.5}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-cal-muted"
+            />
             <input
+              id="user-directory-search"
               type="text"
               placeholder="Search by ID, name, or phone…"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-[13px] border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-ink transition-colors bg-ds-surface text-ds-ink placeholder:text-ds-steel"
+              className="h-9 w-full rounded-[8px] border border-cal-hairline bg-cal-canvas pl-9 pr-8 text-[13px] text-cal-ink placeholder:text-cal-muted focus:border-cal-ink focus:outline-none transition-colors"
             />
-          </div>
-          <div className="relative">
-            <select
-              value={filterStatus}
-              onChange={(e) => onFilterChange(e.target.value)}
-              className="pl-3 pr-7 py-2 text-[12px] font-semibold text-ds-ink bg-ds-canvas border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-ink appearance-none cursor-pointer hover:border-ds-steel transition-colors"
-            >
-              <option value="all">All Accounts</option>
-              <option value="active">Active</option>
-              <option value="disabled">Disabled</option>
-              <option value="premium">Premium</option>
-              <option value="free">Free plan</option>
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-              <ChevronDown size={12} className="text-ds-steel" />
-            </div>
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={clearSearch}
+                aria-label="Clear search"
+                className="absolute right-2 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-full text-cal-muted hover:bg-cal-surface-card hover:text-cal-ink cursor-pointer"
+              >
+                <X size={13} />
+              </button>
+            )}
           </div>
         </div>
 
         {/* Users Table */}
         <div className="w-full overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[900px]">
-            <thead>
-              <tr className="border-b border-ds-hairline bg-ds-surface/40">
-                <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em]">
-                  Patient Name
+          <table className="w-full min-w-[940px] border-collapse text-left">
+            <thead className="border-b border-cal-hairline bg-cal-surface-soft">
+              <tr>
+                <th scope="col" className="px-5 py-3 text-[12px] font-medium text-cal-muted">
+                  Patient
                 </th>
-                <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em]">
+                <th scope="col" className="px-4 py-3 text-[12px] font-medium text-cal-muted">
                   User ID
                 </th>
-                <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em]">
-                  HSS Score
+                <th scope="col" className="px-4 py-3 text-[12px] font-medium text-cal-muted">
+                  HSS score
                 </th>
-                <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em]">
+                <th scope="col" className="px-4 py-3 text-[12px] font-medium text-cal-muted">
                   Activity
                 </th>
-                <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em]">
+                <th scope="col" className="px-4 py-3 text-[12px] font-medium text-cal-muted">
                   Account
                 </th>
-                <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em]">
+                <th scope="col" className="px-4 py-3 text-[12px] font-medium text-cal-muted">
                   Plan
                 </th>
-                <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em]">
+                <th scope="col" className="px-4 py-3 text-[12px] font-medium text-cal-muted">
                   Onboarding
                 </th>
-                <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em]">
+                <th scope="col" className="px-4 py-3 text-[12px] font-medium text-cal-muted">
                   Review
                 </th>
-                <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em] text-right">
+                <th
+                  scope="col"
+                  className="px-5 py-3 text-right text-[12px] font-medium text-cal-muted"
+                >
                   Action
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-ds-hairline">
+            <tbody className="divide-y divide-cal-hairline">
               {loading ? (
                 [1, 2, 3, 4, 5].map((item) => (
-                  <tr key={item} className="border-t border-ds-hairline/60">
-                    <td className="py-3.5 px-5"><Skeleton className="w-28 h-4 bg-ds-hairline/70 rounded" /></td>
-                    <td className="py-3.5 px-5"><Skeleton className="w-16 h-4 bg-ds-hairline/70 rounded" /></td>
-                    <td className="py-3.5 px-5"><Skeleton className="w-20 h-4 bg-ds-hairline/70 rounded" /></td>
-                    <td className="py-3.5 px-5"><Skeleton className="w-20 h-4 bg-ds-hairline/70 rounded" /></td>
-                    <td className="py-3.5 px-5"><Skeleton className="w-16 h-4 bg-ds-hairline/70 rounded" /></td>
-                    <td className="py-3.5 px-5"><Skeleton className="w-12 h-4 bg-ds-hairline/70 rounded" /></td>
-                    <td className="py-3.5 px-5"><Skeleton className="w-16 h-4 bg-ds-hairline/70 rounded" /></td>
-                    <td className="py-3.5 px-5"><Skeleton className="w-16 h-4 bg-ds-hairline/70 rounded" /></td>
-                    <td className="py-3.5 px-5 text-right"><Skeleton className="w-16 h-7 ml-auto bg-ds-hairline/70 rounded-[6px]" /></td>
+                  <tr key={item}>
+                    <td colSpan={9} className="px-5 py-4">
+                      <Skeleton className="h-9 w-full rounded-[8px] bg-cal-surface-strong/60" />
+                    </td>
                   </tr>
                 ))
+              ) : error ? (
+                <tr>
+                  <td colSpan={9}>
+                    <LoadError what="user accounts" onRetry={onRetry} className="py-12" />
+                  </td>
+                </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan="9" className="py-12 px-5 text-center text-ds-slate text-[13px]">
-                    No user accounts match the search or filter settings.
+                  <td colSpan={9} className="px-5 py-14 text-center">
+                    <p className="text-[14px] font-semibold text-cal-ink">
+                      {pool.length === 0
+                        ? "No user accounts registered yet"
+                        : "No user accounts match these filters"}
+                    </p>
+                    <p className="mt-1 text-[13px] text-cal-muted">
+                      {pool.length === 0
+                        ? "Patient mobile registrations will appear here automatically."
+                        : "Try clearing the search query or switching back to All."}
+                    </p>
+                    {pool.length > 0 && (filterStatus !== "all" || searchQuery) && (
+                      <button
+                        type="button"
+                        onClick={resetAll}
+                        className="mt-4 inline-flex h-9 items-center justify-center rounded-[8px] border border-cal-hairline bg-cal-canvas px-4 text-[13px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer"
+                      >
+                        Reset filters
+                      </button>
+                    )}
                   </td>
                 </tr>
               ) : (
-                users.map((user) => (
+                users.map((u) => (
                   <tr
-                    key={user.id}
-                    className="hover:bg-ds-surface/60 transition-colors group cursor-pointer"
-                    onClick={() => onOpenUser(user)}
+                    key={u.id}
+                    onClick={() => onOpenUser(u)}
+                    className="group hover:bg-cal-surface-soft/80 transition-colors cursor-pointer"
                   >
-                    <td className="py-3.5 px-4 sm:px-5 align-middle">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-ds-tint text-ds-on-tint border border-ds-tint flex items-center justify-center font-bold text-xs shrink-0">
-                          {user.name?.charAt(0) || "P"}
-                        </div>
-                        <p className="text-ds-ink font-semibold text-[13px] group-hover:text-ds-primary transition-colors">
-                          {user.name}
-                        </p>
+                    <td className="px-5 py-3.5 align-middle">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-soft text-[12px] font-semibold text-cal-ink">
+                          {(u.name?.charAt(0) || "P").toUpperCase()}
+                        </span>
+                        <span className="text-[13.5px] font-semibold text-cal-ink group-hover:underline">
+                          {u.name}
+                        </span>
                       </div>
                     </td>
-                    <td className="py-3.5 px-4 sm:px-5 align-middle">
-                      <span className="text-[11px] font-bold bg-ds-surface px-2 py-0.5 rounded-[5px] text-ds-ink border border-ds-hairline uppercase tracking-wider">
-                        {formatUserRef(user.id)}
+
+                    <td className="px-4 py-3.5 align-middle">
+                      <span className="inline-flex items-center rounded-[6px] border border-cal-hairline bg-cal-surface-soft px-2 py-0.5 font-cal-mono text-[12px] font-semibold text-cal-ink">
+                        {formatUserRef(u.id)}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 sm:px-5 align-middle">
-                      {getHssBadge(user.hssScore, user.hssTier)}
+
+                    <td className="px-4 py-3.5 align-middle">
+                      {getHssBadge(u.hssScore, u.hssTier)}
                     </td>
-                    <td className="py-3.5 px-4 sm:px-5 align-middle">
-                      {getActivityBadge(user.activityStatus)}
+
+                    <td className="px-4 py-3.5 align-middle">
+                      {getActivityBadge(u.activityStatus)}
                     </td>
-                    <td className="py-3.5 px-4 sm:px-5 align-middle">
-                      {getStatusBadge(user.status)}
+
+                    <td className="px-4 py-3.5 align-middle">{getStatusBadge(u.status)}</td>
+
+                    <td className="px-4 py-3.5 align-middle">{getPlanBadge(u)}</td>
+
+                    <td className="px-4 py-3.5 align-middle">
+                      {getOnboardingBadge(u.onboardingStatus)}
                     </td>
-                    <td className="py-3.5 px-4 sm:px-5 align-middle">
-                      {getPlanBadge(user)}
+
+                    <td className="px-4 py-3.5 align-middle">
+                      {getReviewBadge(u.reviewStatus)}
                     </td>
-                    <td className="py-3.5 px-4 sm:px-5 align-middle">
-                      {getOnboardingBadge(user.onboardingStatus)}
-                    </td>
-                    <td className="py-3.5 px-4 sm:px-5 align-middle">
-                      {getReviewBadge(user.reviewStatus)}
-                    </td>
-                    <td className="py-3.5 px-4 sm:px-5 align-middle text-right" onClick={(e) => e.stopPropagation()}>
+
+                    <td
+                      className="px-5 py-3.5 text-right align-middle"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <button
-                        onClick={() => onOpenUser(user)}
-                        className="text-[12px] font-semibold px-2.5 py-1 rounded-[6px] border border-ds-hairline bg-ds-surface text-ds-ink hover:bg-ds-hairline transition-colors cursor-pointer"
+                        type="button"
+                        onClick={() => onOpenUser(u)}
+                        className="inline-flex items-center justify-center rounded-[8px] border border-cal-hairline bg-cal-canvas px-3 py-1.5 text-[12.5px] font-semibold text-cal-ink group-hover:border-cal-primary group-hover:bg-cal-primary group-hover:text-cal-on-primary hover:border-cal-primary hover:bg-cal-primary hover:text-cal-on-primary transition-colors cursor-pointer"
                       >
                         Manage
                       </button>
@@ -333,7 +473,7 @@ const UserListView = ({
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
     </div>
   );
 };

@@ -1,35 +1,62 @@
-import React, { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
-  Search,
-  Plus,
-  Dumbbell,
-  CheckCircle2,
+  AlertCircle,
   Archive,
-  Trash2,
+  CheckCircle2,
+  ChevronDown,
   Clock,
+  Dumbbell,
   Edit2,
+  Image as ImageIcon,
   MoreVertical,
   Play,
-  Image,
-  ChevronDown,
+  Plus,
   RotateCcw,
+  Search,
+  ShieldAlert,
+  ShieldCheck,
+  Trash2,
+  X,
 } from "lucide-react";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import ExerciseFormModal from "../../../components/modals/ExerciseFormModal";
 import ConfirmActionModal from "../../../components/modals/ConfirmActionModal";
-import { BulkApproveBar, SelectBox } from "../../../components/modals/BulkApprove";
+import {
+  BulkApproveBar,
+  SelectBox,
+} from "../../../components/modals/BulkApprove";
 import { Skeleton } from "../../../components/ui/Skeleton";
+import LoadError from "../../../components/ui/LoadError";
 import { apiFetch, BASE_URL } from "../../../api";
 import { useApiQuery } from "../../../hooks/useApiQuery";
-import LoadError from "../../../components/ui/LoadError";
 import { useAuth } from "../../../contexts/useAuth";
 import { toast } from "sonner";
-import { UI, FONTS } from "../../../styles/tokens";
-import { PageHeader } from "../../../styles/designSystem";
+
+const HSS_TIER_LABELS = {
+  Stable: "Stable (80-100)",
+  Moderate: "Moderate (60-79)",
+  "Elevated Risk": "Elevated Risk (50-59)",
+  Critical: "Critical (<50)",
+};
+
+const STATUS_TABS = [
+  ["all", "All"],
+  ["published", "Published"],
+  ["draft", "Draft"],
+  ["archived", "Archived"],
+];
+
+const PILL =
+  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11.5px] font-semibold leading-none whitespace-nowrap";
 
 const resolveMediaUrl = (url) => {
   if (!url) return "";
-  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
+  if (
+    url.startsWith("http://") ||
+    url.startsWith("https://") ||
+    url.startsWith("data:")
+  ) {
     return url;
   }
   const cleanBase = BASE_URL.endsWith("/") ? BASE_URL.slice(0, -1) : BASE_URL;
@@ -37,21 +64,60 @@ const resolveMediaUrl = (url) => {
   return `${cleanBase}${cleanPath}`;
 };
 
+function ExerciseMediaThumb({ src, alt }) {
+  const [failedSrc, setFailedSrc] = useState(null);
+  const resolved = resolveMediaUrl(src);
+
+  const ytMatch = resolved.match(
+    /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/
+  );
+  const imgUrl = ytMatch?.[1]
+    ? `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`
+    : resolved;
+
+  const isVideo =
+    !ytMatch &&
+    (resolved.startsWith("data:video") || resolved.endsWith(".mp4"));
+  const hasError = !!imgUrl && failedSrc === imgUrl;
+
+  return (
+    <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-[8px] border border-cal-hairline bg-cal-surface-soft text-cal-muted">
+      {!resolved || hasError ? (
+        <Dumbbell size={15} className="text-cal-muted" />
+      ) : isVideo ? (
+        <video
+          src={resolved}
+          className="h-full w-full object-cover"
+          muted
+          loop
+          autoPlay
+          playsInline
+        />
+      ) : (
+        <img
+          src={imgUrl}
+          alt={alt}
+          className="h-full w-full object-cover"
+          onError={() => setFailedSrc(imgUrl)}
+        />
+      )}
+    </div>
+  );
+}
+
 // The library as the screen shows it, from the API's rows (HL-035: loaded through React Query)
 const NO_EXERCISES = [];
-const toExercises = (data) => {
-  const mapped = data.map((r) => {
-    let hssLabel = "Stable (80-100)";
-    if (r.hss_tier === "Moderate") hssLabel = "Moderate (60-79)";
-    if (r.hss_tier === "Elevated Risk") hssLabel = "Elevated Risk (50-59)";
-    if (r.hss_tier === "Critical") hssLabel = "Critical (<50)";
-    
+const toExercises = (res) => {
+  const list = Array.isArray(res) ? res : res?.data || [];
+  return list.map((r) => {
+    const hssTier = HSS_TIER_LABELS[r.hss_tier] ? r.hss_tier : "Stable";
     return {
       id: r.id,
       name: r.name || "",
       description: r.description || "",
       duration: r.duration_minutes || 0,
-      hssTarget: hssLabel,
+      hssTier,
+      hssTarget: HSS_TIER_LABELS[hssTier],
       mediaUrl: r.media_url || "",
       videoUrl: r.video_url || "",
       guideImages: r.guide_images || [],
@@ -59,7 +125,7 @@ const toExercises = (data) => {
       expertValidated: r.expert_validated || false,
       steps: r.steps || [],
       type: r.type || "General",
-      intensity: r.intensity || "Low",
+      intensity: r.intensity === "Medium" ? "Moderate" : r.intensity || "Low",
       goal: r.goal || "",
       calories: r.calories || 0,
       requirements: r.requirements || [],
@@ -77,24 +143,69 @@ const toExercises = (data) => {
       reviewNote: r.review_note || "",
     };
   });
-  return mapped;
+};
+
+const getHssBadge = (tier, label) => {
+  if (tier === "Stable") {
+    return {
+      tone: "border-cal-success/25 bg-cal-success/10 text-cal-ink",
+      dot: "bg-cal-success",
+      text: label.split(" ")[0],
+    };
+  }
+  if (tier === "Moderate") {
+    return {
+      tone: "border-cal-warning/35 bg-cal-warning/15 text-cal-ink",
+      dot: "bg-cal-warning",
+      text: label.split(" ")[0],
+    };
+  }
+  return {
+    tone: "border-cal-error/25 bg-cal-error/10 text-cal-ink",
+    dot: "bg-cal-error",
+    text: tier,
+  };
+};
+
+const getStatusPill = (status) => {
+  if (status === "published") {
+    return "border-cal-success/25 bg-cal-success/10 text-cal-ink";
+  }
+  if (status === "draft") {
+    return "border-cal-warning/35 bg-cal-warning/15 text-cal-ink";
+  }
+  return "border-cal-hairline bg-cal-surface-card text-cal-muted";
 };
 
 const Exercises = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterHss, setFilterHss] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [filterHss, setFilterHss] = useState("all");
   const [filterType, setFilterType] = useState("all");
   const [filterIntensity, setFilterIntensity] = useState("all");
   const [filterReview, setFilterReview] = useState("all");
+
+  // Support ?search= links cleanly during render
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchParam = searchParams.get("search");
+  const [seenSearchParam, setSeenSearchParam] = useState(null);
+  if (searchParam !== seenSearchParam) {
+    setSeenSearchParam(searchParam);
+    if (searchParam) {
+      setSearchQuery(searchParam);
+    }
+  }
+
   // A save through apiFetch refreshes this list by itself
-  const exercisesQuery = useApiQuery("/api/exercises/", { select: toExercises });
+  const exercisesQuery = useApiQuery("/api/exercises/", {
+    select: toExercises,
+  });
   const exercises = exercisesQuery.data ?? NO_EXERCISES;
   const loading = exercisesQuery.isPending;
 
   const [activeMenuId, setActiveMenuId] = useState(null);
+  const [menuPos, setMenuPos] = useState(null);
 
-  // Animated Confirmation Modal State
   const [confirmConfig, setConfirmConfig] = useState({
     isOpen: false,
     title: "",
@@ -114,26 +225,26 @@ const Exercises = () => {
   };
 
   // The row menu is pinned to the screen next to its button, so the table's scroll box can't cut it off.
-  const [menuPos, setMenuPos] = useState(null);
   const toggleMenu = (e, id) => {
     e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
     const openUp = rect.bottom + 200 > window.innerHeight;
     setMenuPos({
       right: window.innerWidth - rect.right,
-      ...(openUp ? { bottom: window.innerHeight - rect.top + 4 } : { top: rect.bottom + 4 }),
+      ...(openUp
+        ? { bottom: window.innerHeight - rect.top + 4 }
+        : { top: rect.bottom + 4 }),
     });
     setActiveMenuId(activeMenuId === id ? null : id);
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handleOutsideClick = () => setActiveMenuId(null);
     const handleKeyDown = (e) => {
       if (e.key === "Escape") setActiveMenuId(null);
     };
     window.addEventListener("click", handleOutsideClick);
     window.addEventListener("keydown", handleKeyDown);
-    // The menu is pinned to the screen, so it closes when anything scrolls instead of floating away.
     window.addEventListener("scroll", handleOutsideClick, true);
     return () => {
       window.removeEventListener("click", handleOutsideClick);
@@ -142,15 +253,15 @@ const Exercises = () => {
     };
   }, []);
 
-
-  // Modal & Form State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExercise, setEditingExercise] = useState(null);
 
   const { user } = useAuth();
   const userRole = user?.role;
   // Approving several at once: only the Physical Therapist who approves sees the checkboxes (HL-026/037).
-  const canApprove = userRole === "medical_expert" && user?.expert_type === "Physical Therapist";
+  const canApprove =
+    userRole === "medical_expert" && user?.expert_type === "Physical Therapist";
+
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const toggleSelected = (id) =>
     setSelectedIds((prev) => {
@@ -188,6 +299,16 @@ const Exercises = () => {
         guideImages: exercise.guideImages,
         calories: exercise.calories,
         requirements: exercise.requirements,
+        setupSteps: exercise.setupSteps,
+        rounds: exercise.rounds,
+        restSeconds: exercise.restSeconds,
+        position: exercise.position || null,
+        setting: exercise.setting || null,
+        skipIf: exercise.skipIf,
+        stopIf: exercise.stopIf,
+        easierVersion: exercise.easierVersion,
+        effortHint: exercise.effortHint,
+        frequency: exercise.frequency,
       };
 
       await apiFetch(`/api/exercises/${exercise.id}`, {
@@ -196,12 +317,19 @@ const Exercises = () => {
         body: JSON.stringify(payload),
       });
 
-      toast.success(newStatus === "published" ? "Routine Published" : "Routine Updated", {
+      const title =
+        newStatus === "published"
+          ? "Routine published"
+          : newStatus === "archived"
+            ? "Routine archived"
+            : "Routine restored to draft";
+
+      toast.success(title, {
         description: `"${exercise.name}" status updated to ${newStatus}.`,
       });
     } catch (err) {
       console.error("Failed to update status", err);
-      toast.error("Failed to Update Status", {
+      toast.error("Failed to update status", {
         description: err?.data?.detail || "Could not change status.",
       });
     }
@@ -211,17 +339,17 @@ const Exercises = () => {
     if (!exercise) return;
     setConfirmConfig({
       isOpen: true,
-      title: "Archive Exercise Routine?",
-      subtitle: "Hide from Mobile Patients",
-      description: `Archive "${exercise.name}"? This routine will be hidden from mobile patient recommendations while remaining accessible in your admin library.`,
-      confirmText: "Archive Routine",
+      title: "Archive exercise routine?",
+      subtitle: "Hide from mobile patients",
+      description: `Archive "${exercise.name}"? This routine will be hidden from mobile patient recommendations while remaining accessible in your library.`,
+      confirmText: "Archive routine",
       cancelText: "Cancel",
       variant: "warning",
       icon: Archive,
       entityInfo: {
         name: exercise.name,
-        badge: "Published -> Archived",
-        email: `${exercise.type} • ${exercise.hssTarget}`,
+        badge: "Published → Archived",
+        email: `${exercise.type} · ${exercise.hssTarget}`,
         id: exercise.id,
       },
       impactDetails: [
@@ -229,14 +357,7 @@ const Exercises = () => {
         "Can be restored back to Draft status at any time.",
       ],
       onConfirm: async () => {
-        try {
-          await handleUpdateStatus(exercise, "archived");
-          toast.success("Routine Archived", {
-            description: `"${exercise.name}" was moved to archive.`,
-          });
-        } catch (err) {
-          console.error("Failed to archive exercise", err);
-        }
+        await handleUpdateStatus(exercise, "archived");
       },
     });
   };
@@ -245,27 +366,29 @@ const Exercises = () => {
     if (!exercise) return;
     setConfirmConfig({
       isOpen: true,
-      title: "Delete Routine Permanently?",
-      subtitle: "Permanent Database Action",
-      description: `Permanently delete "${exercise.name}"? This action cannot be undone and will remove all movement guides, video links, and instructions.`,
-      confirmText: "Delete Permanently",
+      title: "Delete routine permanently?",
+      subtitle: "Permanent database action",
+      description: `Permanently delete "${exercise.name}"? This action cannot be undone and removes all movement guides, video links, and instructions.`,
+      confirmText: "Delete permanently",
       cancelText: "Cancel",
       variant: "danger",
       icon: Trash2,
       entityInfo: {
         name: exercise.name,
         badge: exercise.status?.toUpperCase() || "EXERCISE",
-        email: `${exercise.type} • ${exercise.hssTarget}`,
+        email: `${exercise.type} · ${exercise.hssTarget}`,
         id: exercise.id,
       },
       impactDetails: [
         "Permanently removed from the exercise library database.",
-        "Historical patient workout logs will retain activity summary only.",
+        "Historical patient workout logs retain activity summary only.",
       ],
       onConfirm: async () => {
         try {
-          await apiFetch(`/api/exercises/${exercise.id}`, { method: "DELETE" });
-          toast.success("Routine Deleted", {
+          await apiFetch(`/api/exercises/${exercise.id}`, {
+            method: "DELETE",
+          });
+          toast.success("Routine deleted", {
             description: `"${exercise.name}" was permanently removed.`,
           });
           if (editingExercise?.id === exercise.id) {
@@ -273,7 +396,7 @@ const Exercises = () => {
           }
         } catch (err) {
           console.error("Failed to delete exercise", err);
-          toast.error("Failed to Delete Routine", {
+          toast.error("Failed to delete routine", {
             description: err?.data?.detail || "Could not delete routine.",
           });
         }
@@ -288,7 +411,33 @@ const Exercises = () => {
     setFilterType("all");
     setFilterIntensity("all");
     setFilterReview("all");
+    if (searchParams.has("search")) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("search");
+      setSearchParams(next, { replace: true });
+    }
   };
+
+  // KPI & Status Counts
+  const statusCounts = useMemo(() => {
+    return {
+      all: exercises.length,
+      published: exercises.filter((r) => r.status === "published").length,
+      draft: exercises.filter((r) => r.status === "draft").length,
+      archived: exercises.filter((r) => r.status === "archived").length,
+    };
+  }, [exercises]);
+
+  const approvedCount = useMemo(
+    () => exercises.filter((r) => r.expertValidated).length,
+    [exercises]
+  );
+  const waitingCount = useMemo(
+    () =>
+      exercises.filter((r) => !r.expertValidated && r.status !== "archived")
+        .length,
+    [exercises]
+  );
 
   // Filter logic
   const filteredExercises = exercises.filter((r) => {
@@ -301,8 +450,12 @@ const Exercises = () => {
 
     const matchesStatus = filterStatus === "all" || r.status === filterStatus;
     const matchesHss = filterHss === "all" || r.hssTarget === filterHss;
-    const matchesType = filterType === "all" || r.type === filterType;
-    const matchesIntensity = filterIntensity === "all" || r.intensity === filterIntensity;
+    const matchesType =
+      filterType === "all" ||
+      r.type === filterType ||
+      (filterType === "Stationary" && r.type === "Stretching");
+    const matchesIntensity =
+      filterIntensity === "all" || r.intensity === filterIntensity;
 
     let matchesReview = true;
     if (filterReview === "validated") {
@@ -311,20 +464,19 @@ const Exercises = () => {
       matchesReview = r.expertValidated === false;
     }
 
-    return matchesSearch && matchesStatus && matchesHss && matchesType && matchesIntensity && matchesReview;
+    return (
+      matchesSearch &&
+      matchesStatus &&
+      matchesHss &&
+      matchesType &&
+      matchesIntensity &&
+      matchesReview
+    );
   });
-  const waitingShown = canApprove ? filteredExercises.filter((x) => !x.expertValidated) : [];
 
-  // HSS Badge Styling
-  const getHssBadgeStyle = (target) => {
-    if (target.includes("Stable"))
-      return "bg-ds-mint text-ds-charcoal border border-ds-mint";
-    if (target.includes("Moderate"))
-      return "bg-ds-yellow text-ds-warm-text border border-ds-yellow-bold";
-    if (target.includes("Elevated"))
-      return "bg-ds-tint text-ds-on-tint border border-ds-tint";
-    return "bg-ds-rose text-ds-ink border border-ds-rose";
-  };
+  const waitingShown = canApprove
+    ? filteredExercises.filter((x) => !x.expertValidated)
+    : [];
 
   const hasActiveFilters =
     Boolean(searchQuery) ||
@@ -334,101 +486,205 @@ const Exercises = () => {
     filterIntensity !== "all" ||
     filterReview !== "all";
 
+  const selectClass =
+    "h-9 w-full md:w-auto appearance-none rounded-[8px] border border-cal-hairline bg-cal-canvas pl-3 pr-8 text-[13px] font-medium text-cal-ink focus:border-cal-ink focus:outline-none transition-colors cursor-pointer";
+
   return (
     <AdminLayout>
-      <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>
-        {/* ── PAGE HEAD ── */}
-        <PageHeader
-          eyebrow="Content library"
-          title="Exercise library"
-          description="Manage workout regimens, movement guides, and clinical HSS targets."
-          actions={
-            <button
-              onClick={() => openModal()}
-              className={UI.button.primary}
-            >
-              <Plus size={15} strokeWidth={2.5} />
-              <span>Create new routine</span>
-            </button>
-          }
-        />
+      <div className="mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
+        {/* ─── 1. EDITORIAL PAGE HEADER ─────────────────────────────────────── */}
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <div className="mb-2.5 inline-flex items-center gap-2 rounded-full border border-cal-hairline bg-cal-canvas px-3 py-1 text-[12px] font-medium text-cal-muted">
+              <Dumbbell size={13.5} className="text-cal-ink" />
+              <span>Clinical &amp; library · Rehabilitation database</span>
+            </div>
+            <h2 className="font-cal-display text-[28px] sm:text-[32px] font-semibold tracking-[-0.8px] leading-[1.15] text-cal-ink">
+              Exercise library
+            </h2>
+            <p className="mt-1.5 max-w-[64ch] text-[14px] leading-[1.5] text-cal-muted">
+              Manage cardiac rehabilitation routines, guided movement steps,
+              clinical HSS suitability tiers, and physical therapist sign-offs.
+            </p>
+          </div>
 
-        {/* ── MAIN CARD: SEARCH, FILTER & TABLE ── */}
-        <div className="bg-ds-canvas border border-ds-hairline rounded-xl overflow-hidden">
-          
-          {/* Search & Filter Toolbar */}
-          <div className="p-4 border-b border-ds-hairline bg-ds-canvas space-y-3">
-            <div className="flex flex-col md:flex-row gap-3">
+          <button
+            type="button"
+            onClick={() => openModal()}
+            className="inline-flex h-10 items-center gap-2 rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-5 text-[14px] font-semibold text-cal-on-primary transition-colors cursor-pointer"
+          >
+            <Plus size={15.5} />
+            <span>Create new routine</span>
+          </button>
+        </div>
+
+        {/* ─── 2. KPI SUMMARY STRIP ─────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[12.5px] font-medium text-cal-muted">
+                Total routines
+              </span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-soft text-cal-ink">
+                <Dumbbell size={14.5} aria-hidden="true" />
+              </span>
+            </div>
+            <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
+              {loading ? "—" : statusCounts.all}
+            </div>
+            <div className="mt-2 text-[12px] text-cal-muted">
+              Breathing, cardio &amp; stationary
+            </div>
+          </div>
+
+          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[12.5px] font-medium text-cal-muted">
+                Published
+              </span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-success/25 bg-cal-success/10 text-cal-success">
+                <CheckCircle2 size={14.5} aria-hidden="true" />
+              </span>
+            </div>
+            <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
+              {loading ? "—" : statusCounts.published}
+            </div>
+            <div className="mt-2 text-[12px] text-cal-muted">
+              Visible in mobile regimens
+            </div>
+          </div>
+
+          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[12.5px] font-medium text-cal-muted">
+                PT approved
+              </span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-badge-emerald/35 bg-cal-badge-emerald/15 text-cal-ink">
+                <ShieldCheck size={14.5} aria-hidden="true" />
+              </span>
+            </div>
+            <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
+              {loading ? "—" : approvedCount}
+            </div>
+            <div className="mt-2 text-[12px] text-cal-muted">
+              Clinically cleared movements
+            </div>
+          </div>
+
+          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[12.5px] font-medium text-cal-muted">
+                Waiting for PT
+              </span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-warning/35 bg-cal-warning/15 text-cal-ink">
+                <ShieldAlert size={14.5} aria-hidden="true" />
+              </span>
+            </div>
+            <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
+              {loading ? "—" : waitingCount}
+            </div>
+            <div className="mt-2 text-[12px] text-cal-muted">
+              Pending therapist sign-off
+            </div>
+          </div>
+        </div>
+
+        {/* ─── 3. MAIN DIRECTORY CARD: FILTERS & TABLE ──────────────────────── */}
+        <section className="overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          {/* Toolbar */}
+          <div className="space-y-3 border-b border-cal-hairline bg-cal-canvas px-4 py-3.5 sm:px-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              {/* Status Nav-Pill-Group */}
+              <div
+                role="group"
+                aria-label="Filter routines by status"
+                className="inline-flex flex-wrap items-center gap-1 rounded-[16px] sm:rounded-full border border-cal-hairline/80 bg-cal-surface-soft p-1"
+              >
+                {STATUS_TABS.map(([key, label]) => {
+                  const active = filterStatus === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setFilterStatus(key)}
+                      className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-all cursor-pointer ${
+                        active
+                          ? "bg-cal-canvas text-cal-ink font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
+                          : "text-cal-muted hover:text-cal-ink"
+                      }`}
+                    >
+                      <span>{label}</span>
+                      <span
+                        className={`font-cal-mono text-[11.5px] tabular-nums ${
+                          active ? "text-cal-ink" : "text-cal-muted-soft"
+                        }`}
+                      >
+                        {loading ? "—" : statusCounts[key]}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
               {/* Search Box */}
-              <div className="relative flex-1">
+              <div className="relative w-full sm:w-80">
                 <Search
-                  size={14}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ds-steel"
+                  size={15}
+                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-cal-muted-soft"
                 />
                 <input
                   type="text"
-                  placeholder="Search exercises, goals, or descriptions…"
+                  aria-label="Search exercise routines"
+                  placeholder="Search routines, goals, or descriptions…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3.5 py-2 text-[13px] border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-ink transition-colors bg-ds-surface text-ds-ink placeholder:text-ds-steel"
+                  className="h-9 w-full rounded-[8px] border border-cal-hairline bg-cal-canvas pl-9 pr-8 text-[13.5px] text-cal-ink placeholder:text-cal-muted-soft focus:border-cal-ink focus:outline-none transition-colors"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    aria-label="Clear search"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-cal-muted hover:text-cal-ink cursor-pointer"
+                  >
+                    <X size={13.5} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Secondary Facet Selects */}
+            <div className="flex flex-wrap items-center gap-2 pt-0.5">
+              {/* HSS Tier */}
+              <div className="relative flex-1 sm:flex-none">
+                <select
+                  aria-label="Filter by HSS tier"
+                  value={filterHss}
+                  onChange={(e) => setFilterHss(e.target.value)}
+                  className={selectClass}
+                >
+                  <option value="all">HSS tier: All</option>
+                  <option value="Stable (80-100)">Stable (80-100)</option>
+                  <option value="Moderate (60-79)">Moderate (60-79)</option>
+                  <option value="Elevated Risk (50-59)">
+                    Elevated Risk (50-59)
+                  </option>
+                  <option value="Critical (<50)">Critical (&lt;50)</option>
+                </select>
+                <ChevronDown
+                  size={13.5}
+                  className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-cal-muted"
                 />
               </div>
 
-              {/* Clear Filters Button */}
-              {hasActiveFilters && (
-                <button
-                  onClick={clearFilters}
-                  className="text-[11px] text-ds-ink font-semibold px-3 py-2 rounded-[8px] border border-ds-rose bg-ds-rose hover:bg-ds-rose transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer"
-                >
-                  <RotateCcw size={12} />
-                  <span>Clear filters</span>
-                </button>
-              )}
-            </div>
-
-            {/* Dropdown Filters Row */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-wrap gap-2 pt-0.5">
-              {/* Status */}
-              <div className="relative">
+              {/* Exercise Type */}
+              <div className="relative flex-1 sm:flex-none">
                 <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-ds-ink bg-ds-canvas border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-ink appearance-none cursor-pointer hover:border-ds-steel transition-colors"
-                >
-                  <option value="all">Status: All</option>
-                  <option value="draft">Draft</option>
-                  <option value="published">Published</option>
-                  <option value="archived">Archived</option>
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                  <ChevronDown size={12} className="text-ds-steel" />
-                </div>
-              </div>
-
-              {/* HSS */}
-              <div className="relative">
-                <select
-                  value={filterHss}
-                  onChange={(e) => setFilterHss(e.target.value)}
-                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-ds-ink bg-ds-canvas border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-ink appearance-none cursor-pointer hover:border-ds-steel transition-colors"
-                >
-                  <option value="all">HSS: All</option>
-                  <option value="Stable (80-100)">Stable (80-100)</option>
-                  <option value="Moderate (60-79)">Moderate (60-79)</option>
-                  <option value="Elevated Risk (50-59)">Elevated Risk (50-59)</option>
-                  <option value="Critical (<50)">Critical (&lt;50)</option>
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                  <ChevronDown size={12} className="text-ds-steel" />
-                </div>
-              </div>
-
-              {/* Type */}
-              <div className="relative">
-                <select
+                  aria-label="Filter by exercise type"
                   value={filterType}
                   onChange={(e) => setFilterType(e.target.value)}
-                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-ds-ink bg-ds-canvas border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-ink appearance-none cursor-pointer hover:border-ds-steel transition-colors"
+                  className={selectClass}
                 >
                   <option value="all">Type: All</option>
                   <option value="Breathing">Breathing</option>
@@ -436,136 +692,186 @@ const Exercises = () => {
                   <option value="Stationary">Stationary</option>
                   <option value="General">General</option>
                 </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                  <ChevronDown size={12} className="text-ds-steel" />
-                </div>
+                <ChevronDown
+                  size={13.5}
+                  className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-cal-muted"
+                />
               </div>
 
               {/* Intensity */}
-              <div className="relative">
+              <div className="relative flex-1 sm:flex-none">
                 <select
+                  aria-label="Filter by intensity"
                   value={filterIntensity}
                   onChange={(e) => setFilterIntensity(e.target.value)}
-                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-ds-ink bg-ds-canvas border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-ink appearance-none cursor-pointer hover:border-ds-steel transition-colors"
+                  className={selectClass}
                 >
                   <option value="all">Intensity: All</option>
                   <option value="None">None</option>
                   <option value="Low">Low</option>
-                  <option value="Medium">Medium</option>
+                  <option value="Moderate">Moderate</option>
                   <option value="High">High</option>
                 </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                  <ChevronDown size={12} className="text-ds-steel" />
-                </div>
+                <ChevronDown
+                  size={13.5}
+                  className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-cal-muted"
+                />
               </div>
 
-              {/* Review */}
-              <div className="relative">
+              {/* Review Status */}
+              <div className="relative flex-1 sm:flex-none">
                 <select
+                  aria-label="Filter by review status"
                   value={filterReview}
                   onChange={(e) => setFilterReview(e.target.value)}
-                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-ds-ink bg-ds-canvas border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-ink appearance-none cursor-pointer hover:border-ds-steel transition-colors"
+                  className={selectClass}
                 >
                   <option value="all">Review: All</option>
                   <option value="validated">PT approved</option>
                   <option value="pending">Waiting for PT</option>
                 </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                  <ChevronDown size={12} className="text-ds-steel" />
-                </div>
+                <ChevronDown
+                  size={13.5}
+                  className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-cal-muted"
+                />
               </div>
+
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-[8px] border border-cal-hairline bg-cal-surface-soft px-3 text-[12.5px] font-semibold text-cal-ink hover:bg-cal-surface-card transition-colors cursor-pointer"
+                >
+                  <RotateCcw size={13} />
+                  <span>Reset filters</span>
+                </button>
+              )}
+
+              <span className="ml-auto hidden lg:inline-block font-cal-mono text-[12px] tabular-nums text-cal-muted">
+                {loading
+                  ? "Loading…"
+                  : `Showing ${filteredExercises.length} of ${exercises.length}`}
+              </span>
             </div>
           </div>
 
-          {/* Table Container */}
+          {/* Table */}
           <div className="w-full overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[850px]">
+            <table className="w-full min-w-[880px] border-collapse text-left">
               <thead>
-                <tr className="border-b border-ds-hairline bg-ds-surface/40">
-{canApprove && (
-                    <th className="py-3 pl-4 sm:pl-5 pr-0 w-10">
+                <tr className="border-b border-cal-hairline bg-cal-surface-soft/70">
+                  {canApprove && (
+                    <th className="w-10 py-3 pl-4 sm:pl-5 pr-0">
                       <SelectBox
                         label="Select every exercise waiting for approval"
-                        checked={waitingShown.length > 0 && waitingShown.every((x) => selectedIds.has(x.id))}
-                        indeterminate={waitingShown.some((x) => selectedIds.has(x.id))}
-                        onChange={(e) => setSelectedIds(e.target.checked ? new Set(waitingShown.map((x) => x.id)) : new Set())}
+                        checked={
+                          waitingShown.length > 0 &&
+                          waitingShown.every((x) => selectedIds.has(x.id))
+                        }
+                        indeterminate={waitingShown.some((x) =>
+                          selectedIds.has(x.id)
+                        )}
+                        onChange={(e) =>
+                          setSelectedIds(
+                            e.target.checked
+                              ? new Set(waitingShown.map((x) => x.id))
+                              : new Set()
+                          )
+                        }
                       />
                     </th>
                   )}
-                  <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em] w-[32%]">
+                  <th className="w-[30%] px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted">
                     Exercise routine
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em]">
-                    Type / Intensity
+                  <th className="px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted">
+                    Type &amp; intensity
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em]">
+                  <th className="px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted">
                     HSS target
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em]">
-                    Duration
+                  <th className="px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted">
+                    Duration &amp; load
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em]">
+                  <th className="px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted">
                     Media
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em]">
-                    Status / Review
+                  <th className="px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted">
+                    Status &amp; review
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em] text-right">
+                  <th className="px-4 py-3 sm:px-5 text-right text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted">
                     Actions
                   </th>
                 </tr>
               </thead>
 
               {loading ? (
-                <tbody>
+                <tbody className="divide-y divide-cal-hairline">
                   {[1, 2, 3, 4, 5].map((item) => (
-                    <tr key={item} className="border-b border-ds-hairline/60">
-                      <td className="py-3.5 px-5">
+                    <tr key={item}>
+                      {canApprove && (
+                        <td className="py-3.5 pl-4 sm:pl-5 pr-0">
+                          <Skeleton className="h-4 w-4 rounded bg-cal-surface-card" />
+                        </td>
+                      )}
+                      <td className="px-4 py-3.5 sm:px-5">
                         <div className="flex items-center gap-3">
-                          <Skeleton className="w-9 h-9 rounded-[8px] shrink-0 bg-ds-hairline/70" />
-                          <div>
-                            <Skeleton className="w-32 h-4 mb-1.5 bg-ds-hairline/70 rounded" />
-                            <Skeleton className="w-44 h-3 bg-ds-hairline/70 rounded" />
+                          <Skeleton className="h-9 w-9 shrink-0 rounded-[8px] bg-cal-surface-card" />
+                          <div className="space-y-1.5">
+                            <Skeleton className="h-4 w-36 rounded bg-cal-surface-card" />
+                            <Skeleton className="h-3 w-48 rounded bg-cal-surface-card" />
                           </div>
                         </div>
                       </td>
-                      <td className="py-3.5 px-5">
-                        <Skeleton className="w-20 h-4 mb-1 bg-ds-hairline/70 rounded" />
-                        <Skeleton className="w-16 h-3 bg-ds-hairline/70 rounded" />
+                      <td className="px-4 py-3.5 sm:px-5">
+                        <Skeleton className="mb-1.5 h-4 w-24 rounded bg-cal-surface-card" />
+                        <Skeleton className="h-3 w-20 rounded bg-cal-surface-card" />
                       </td>
-                      <td className="py-3.5 px-5">
-                        <Skeleton className="w-20 h-5 rounded-full bg-ds-hairline/70" />
+                      <td className="px-4 py-3.5 sm:px-5">
+                        <Skeleton className="h-5 w-24 rounded-full bg-cal-surface-card" />
                       </td>
-                      <td className="py-3.5 px-5">
-                        <Skeleton className="w-16 h-4 bg-ds-hairline/70 rounded" />
+                      <td className="px-4 py-3.5 sm:px-5">
+                        <Skeleton className="mb-1.5 h-4 w-16 rounded bg-cal-surface-card" />
+                        <Skeleton className="h-3 w-20 rounded bg-cal-surface-card" />
                       </td>
-                      <td className="py-3.5 px-5">
-                        <Skeleton className="w-14 h-4 bg-ds-hairline/70 rounded" />
+                      <td className="px-4 py-3.5 sm:px-5">
+                        <Skeleton className="mb-1.5 h-3.5 w-16 rounded bg-cal-surface-card" />
+                        <Skeleton className="h-3.5 w-16 rounded bg-cal-surface-card" />
                       </td>
-                      <td className="py-3.5 px-5">
-                        <Skeleton className="w-16 h-3 mb-1 bg-ds-hairline/70 rounded" />
-                        <Skeleton className="w-20 h-3 bg-ds-hairline/70 rounded" />
+                      <td className="px-4 py-3.5 sm:px-5">
+                        <Skeleton className="mb-1.5 h-5 w-20 rounded-full bg-cal-surface-card" />
+                        <Skeleton className="h-3 w-24 rounded bg-cal-surface-card" />
                       </td>
-                      <td className="py-3.5 px-5 text-right">
-                        <Skeleton className="w-6 h-6 rounded-md bg-ds-hairline/70 ml-auto" />
+                      <td className="px-4 py-3.5 sm:px-5 text-right">
+                        <Skeleton className="ml-auto h-8 w-8 rounded-[8px] bg-cal-surface-card" />
                       </td>
                     </tr>
                   ))}
                 </tbody>
               ) : filteredExercises.length > 0 ? (
-                <tbody className="divide-y divide-ds-hairline">
+                <tbody className="divide-y divide-cal-hairline">
                   {filteredExercises.map((exercise) => {
-                    const badgeClass = getHssBadgeStyle(exercise.hssTarget);
+                    const hss = getHssBadge(
+                      exercise.hssTier,
+                      exercise.hssTarget
+                    );
+                    const guideCount = Array.isArray(exercise.guideImages)
+                      ? exercise.guideImages.length
+                      : 0;
+
                     return (
                       <tr
                         key={exercise.id}
                         onClick={() => openModal(exercise)}
-                        className={`hover:bg-ds-surface/60 transition-colors group cursor-pointer ${
-                          exercise.status === "archived" ? "opacity-60 bg-ds-surface/30" : ""
+                        className={`group cursor-pointer transition-colors hover:bg-cal-surface-soft/70 ${
+                          exercise.status === "archived" ? "opacity-65" : ""
                         }`}
                       >
-{canApprove && (
-                          <td className="py-3.5 pl-4 sm:pl-5 pr-0 align-middle" onClick={(e) => e.stopPropagation()}>
+                        {canApprove && (
+                          <td
+                            className="py-3.5 pl-4 sm:pl-5 pr-0 align-middle"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             {!exercise.expertValidated && (
                               <SelectBox
                                 label={`Select ${exercise.name}`}
@@ -575,207 +881,249 @@ const Exercises = () => {
                             )}
                           </td>
                         )}
-                        {/* 1. EXERCISE */}
-                        <td className="py-3.5 px-4 sm:px-5 align-middle">
+
+                        {/* 1. EXERCISE ROUTINE */}
+                        <td className="px-4 py-3.5 sm:px-5 align-middle">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0 overflow-hidden bg-ds-tint border border-ds-hairline text-ds-on-tint ">
-                              {(() => {
-                                const resolvedUrl = resolveMediaUrl(exercise.mediaUrl);
-                                if (!resolvedUrl) return <Dumbbell size={16} className="text-ds-primary" />;
-                                
-                                const ytMatch = resolvedUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
-                                if (ytMatch && ytMatch[1]) {
-                                  return <img src={`https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`} alt={exercise.name} className="w-full h-full object-cover" />;
-                                }
-                                
-                                if (resolvedUrl.startsWith("data:video") || resolvedUrl.endsWith(".mp4")) {
-                                  return <video src={resolvedUrl} className="w-full h-full object-cover" muted loop autoPlay playsInline />;
-                                }
-                                
-                                return <img src={resolvedUrl} alt={exercise.name} className="w-full h-full object-cover" />;
-                              })()}
-                            </div>
+                            <ExerciseMediaThumb
+                              src={exercise.mediaUrl}
+                              alt={exercise.name}
+                            />
                             <div className="min-w-0 pr-2">
-                              <p className="text-ds-ink font-semibold text-[13px] leading-tight mb-0.5 truncate">
+                              <p className="truncate text-[13.5px] font-semibold leading-tight text-cal-ink">
                                 {exercise.name}
                               </p>
-                              <p className="text-ds-slate text-[11px] font-medium truncate max-w-[240px]">
-                                {exercise.description || exercise.goal || "Physical rehabilitation regimen"}
+                              <p className="mt-0.5 max-w-[260px] truncate text-[12px] text-cal-muted">
+                                {exercise.description ||
+                                  exercise.goal ||
+                                  "Physical rehabilitation regimen"}
                               </p>
                             </div>
                           </div>
                         </td>
 
-                        {/* 2. TYPE / INTENSITY */}
-                        <td className="py-3.5 px-4 sm:px-5 align-middle">
+                        {/* 2. TYPE & INTENSITY */}
+                        <td className="px-4 py-3.5 sm:px-5 align-middle">
                           <div className="flex flex-col">
-                            <span className="text-ds-ink font-semibold text-[12.5px] leading-tight">
+                            <span className="text-[13px] font-semibold leading-tight text-cal-ink">
                               {exercise.type}
                             </span>
-                            <span className="text-ds-slate text-[11px] font-medium mt-0.5">
+                            <span className="mt-0.5 text-[12px] text-cal-muted">
                               {exercise.intensity} intensity
                             </span>
                           </div>
                         </td>
 
                         {/* 3. HSS TARGET */}
-                        <td className="py-3.5 px-4 sm:px-5 align-middle">
-                          <span
-                            className={`inline-flex items-center text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${badgeClass}`}
-                          >
-                            {exercise.hssTarget.split(" ")[0]}
+                        <td className="px-4 py-3.5 sm:px-5 align-middle">
+                          <span className={`${PILL} ${hss.tone}`}>
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${hss.dot}`}
+                            />
+                            <span>{hss.text}</span>
                           </span>
                         </td>
 
-                        {/* 4. DURATION */}
-                        <td className="py-3.5 px-4 sm:px-5 align-middle">
-                          <span className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-ds-ink">
-                            <Clock size={13} className="text-ds-primary" />
-                            {exercise.duration} min
-                          </span>
+                        {/* 4. DURATION & LOAD */}
+                        <td className="px-4 py-3.5 sm:px-5 align-middle">
+                          <div className="flex flex-col">
+                            <span className="inline-flex items-center gap-1.5 font-cal-mono text-[13px] font-semibold tabular-nums text-cal-ink">
+                              <Clock size={13} className="text-cal-muted" />
+                              <span>{exercise.duration} min</span>
+                            </span>
+                            <span className="mt-0.5 font-cal-mono text-[11.5px] tabular-nums text-cal-muted">
+                              {exercise.calories > 0
+                                ? `~${exercise.calories} kcal`
+                                : exercise.rounds > 1
+                                  ? `${exercise.rounds} rounds`
+                                  : `${(exercise.steps || []).length} steps`}
+                            </span>
+                          </div>
                         </td>
 
                         {/* 5. MEDIA */}
-                        <td className="py-3.5 px-4 sm:px-5 align-middle">
-                          <div className="flex flex-col gap-0.5 text-[11px] font-medium">
+                        <td className="px-4 py-3.5 sm:px-5 align-middle">
+                          <div className="flex flex-col gap-0.5 text-[12px]">
                             {exercise.videoUrl ? (
-                              <span className="flex items-center gap-1 text-ds-charcoal font-semibold">
-                                <Play size={11} strokeWidth={2.5} /> Video
+                              <span className="inline-flex items-center gap-1.5 font-medium text-cal-ink">
+                                <Play size={11.5} className="text-cal-ink" />
+                                <span>Video</span>
                               </span>
                             ) : (
-                              <span className="text-ds-steel flex items-center gap-1">— Video</span>
+                              <span className="text-cal-muted-soft">
+                                — Video
+                              </span>
                             )}
-                            {exercise.guideImages && exercise.guideImages.length > 0 ? (
-                              <span className="flex items-center gap-1 text-ds-charcoal font-semibold">
-                                <Image size={11} strokeWidth={2.5} /> {exercise.guideImages.length} Guides
+                            {guideCount > 0 ? (
+                              <span className="inline-flex items-center gap-1.5 font-cal-mono text-[11.5px] font-medium tabular-nums text-cal-ink">
+                                <ImageIcon
+                                  size={11.5}
+                                  className="text-cal-muted"
+                                />
+                                <span>
+                                  {guideCount}{" "}
+                                  {guideCount === 1 ? "guide" : "guides"}
+                                </span>
                               </span>
                             ) : (
-                              <span className="text-ds-steel flex items-center gap-1">— Guides</span>
+                              <span className="text-cal-muted-soft">
+                                — Guides
+                              </span>
                             )}
                           </div>
                         </td>
 
-                        {/* 6. STATUS / REVIEW */}
-                        <td className="py-3.5 px-4 sm:px-5 align-middle">
-                          <div className="flex flex-col gap-1 items-start">
+                        {/* 6. STATUS & REVIEW */}
+                        <td className="px-4 py-3.5 sm:px-5 align-middle">
+                          <div className="flex flex-col items-start gap-1">
                             <span
-                              className={`text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-[5px] ${
-                                exercise.status === "published"
-                                  ? "bg-ds-mint text-ds-charcoal border border-ds-mint"
-                                  : exercise.status === "draft"
-                                  ? "bg-ds-yellow text-ds-warm-text border border-ds-yellow-bold"
-                                  : "bg-ds-surface text-ds-slate border border-ds-hairline"
-                              }`}
+                              className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-[0.05em] ${getStatusPill(
+                                exercise.status
+                              )}`}
                             >
                               {exercise.status}
                             </span>
                             {exercise.expertValidated ? (
-                              <span className="text-[11px] text-ds-charcoal font-semibold flex items-center gap-1">
-                                ✓ PT approved
+                              <span className="inline-flex items-center gap-1 text-[12px] font-medium text-cal-ink">
+                                <ShieldCheck
+                                  size={12.5}
+                                  className="text-cal-success"
+                                />
+                                <span>PT approved</span>
                               </span>
                             ) : (
                               <span
-                                className="text-[11px] text-ds-warm-text font-semibold flex items-center gap-1"
-                                title={exercise.reviewNote ? `Physical therapist's note: ${exercise.reviewNote}` : undefined}
+                                className="inline-flex items-center gap-1 text-[12px] font-medium text-cal-muted"
+                                title={
+                                  exercise.reviewNote
+                                    ? `Physical therapist's note: ${exercise.reviewNote}`
+                                    : undefined
+                                }
                               >
-                                ⚠ {exercise.reviewNote ? "Sent back by PT" : "Waiting for PT"}
+                                <AlertCircle
+                                  size={12.5}
+                                  className="text-cal-warning"
+                                />
+                                <span>
+                                  {exercise.reviewNote
+                                    ? "Sent back by PT"
+                                    : "Waiting for PT"}
+                                </span>
                               </span>
                             )}
                           </div>
                         </td>
 
                         {/* 7. ACTIONS */}
-                        <td 
-                          className="py-3.5 px-4 sm:px-5 align-middle text-right relative" 
+                        <td
+                          className="relative px-4 py-3.5 sm:px-5 text-right align-middle"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <div className="flex items-center justify-end">
                             <button
                               type="button"
-                              className="p-1.5 text-ds-slate hover:text-ds-ink hover:bg-ds-surface rounded-[8px] transition-colors cursor-pointer"
+                              aria-label={`Actions for ${exercise.name}`}
+                              className="flex h-8 w-8 items-center justify-center rounded-[8px] text-cal-muted hover:bg-cal-surface-card hover:text-cal-ink transition-colors cursor-pointer"
                               onClick={(e) => toggleMenu(e, exercise.id)}
                               title="Actions"
                             >
-                              <MoreVertical size={14} />
+                              <MoreVertical size={15} />
                             </button>
                           </div>
 
                           {activeMenuId === exercise.id && (
                             <div
-                              className="fixed w-44 bg-ds-canvas border border-ds-hairline rounded-xl shadow-xl p-1.5 z-50 text-left"
+                              role="menu"
+                              className="fixed z-50 w-44 rounded-[10px] border border-cal-hairline bg-cal-canvas p-1.5 text-left shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
                               style={menuPos || undefined}
                             >
-                              {/* Edit Action */}
                               <button
+                                type="button"
+                                role="menuitem"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setActiveMenuId(null);
                                   openModal(exercise);
                                 }}
-                                className="w-full px-2.5 py-1.5 text-[12px] text-ds-ink hover:bg-ds-surface rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
+                                className="flex w-full items-center gap-2 rounded-[6px] px-2.5 py-2 text-[13px] font-medium text-cal-ink hover:bg-cal-surface-soft cursor-pointer"
                               >
-                                <Edit2 size={13} className="text-ds-primary" />
+                                <Edit2
+                                  size={13.5}
+                                  className="text-cal-muted"
+                                />
                                 <span>Edit routine</span>
                               </button>
 
-                              {/* Publish Action (DRAFT only) */}
                               {exercise.status === "draft" && (
                                 <button
+                                  type="button"
+                                  role="menuitem"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setActiveMenuId(null);
                                     handleUpdateStatus(exercise, "published");
                                   }}
-                                  className="w-full px-2.5 py-1.5 text-[12px] text-ds-ink hover:bg-ds-surface rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
+                                  className="flex w-full items-center gap-2 rounded-[6px] px-2.5 py-2 text-[13px] font-medium text-cal-ink hover:bg-cal-surface-soft cursor-pointer"
                                 >
-                                  <CheckCircle2 size={13} className="text-ds-charcoal" />
+                                  <CheckCircle2
+                                    size={13.5}
+                                    className="text-cal-success"
+                                  />
                                   <span>Publish</span>
                                 </button>
                               )}
 
-                              {/* Archive Action (PUBLISHED only) */}
                               {exercise.status === "published" && (
                                 <button
+                                  type="button"
+                                  role="menuitem"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setActiveMenuId(null);
                                     requestArchiveExercise(exercise);
                                   }}
-                                  className="w-full px-2.5 py-1.5 text-[12px] text-ds-ink hover:bg-ds-surface rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
+                                  className="flex w-full items-center gap-2 rounded-[6px] px-2.5 py-2 text-[13px] font-medium text-cal-ink hover:bg-cal-surface-soft cursor-pointer"
                                 >
-                                  <Archive size={13} className="text-ds-warm-text" />
+                                  <Archive
+                                    size={13.5}
+                                    className="text-cal-muted"
+                                  />
                                   <span>Archive</span>
                                 </button>
                               )}
 
-                              {/* Restore Action (ARCHIVED only) */}
                               {exercise.status === "archived" && (
                                 <button
+                                  type="button"
+                                  role="menuitem"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setActiveMenuId(null);
                                     handleUpdateStatus(exercise, "draft");
                                   }}
-                                  className="w-full px-2.5 py-1.5 text-[12px] text-ds-ink hover:bg-ds-surface rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
+                                  className="flex w-full items-center gap-2 rounded-[6px] px-2.5 py-2 text-[13px] font-medium text-cal-ink hover:bg-cal-surface-soft cursor-pointer"
                                 >
-                                  <CheckCircle2 size={13} className="text-ds-charcoal" />
+                                  <RotateCcw
+                                    size={13.5}
+                                    className="text-cal-muted"
+                                  />
                                   <span>Restore to draft</span>
                                 </button>
                               )}
 
-                              {/* Divider */}
-                              <div className="border-t border-ds-hairline my-1" />
+                              <div className="my-1 border-t border-cal-hairline" />
 
-                              {/* Delete Action */}
                               <button
+                                type="button"
+                                role="menuitem"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setActiveMenuId(null);
                                   requestDeleteExercise(exercise);
                                 }}
-                                className="w-full px-2.5 py-1.5 text-[12px] text-ds-danger hover:bg-ds-rose rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
+                                className="flex w-full items-center gap-2 rounded-[6px] px-2.5 py-2 text-[13px] font-medium text-cal-error hover:bg-cal-error/10 cursor-pointer"
                               >
-                                <Trash2 size={13} />
+                                <Trash2 size={13.5} />
                                 <span>Delete</span>
                               </button>
                             </div>
@@ -788,36 +1136,66 @@ const Exercises = () => {
               ) : null}
             </table>
 
-            {/* Empty State */}
+            {/* Empty / Error States */}
             {!loading && filteredExercises.length === 0 && (
-              <div className="p-12 text-center text-ds-slate text-[13px] flex flex-col items-center justify-center gap-2.5 border-t border-ds-hairline">
+              <div className="flex flex-col items-center justify-center gap-2.5 border-t border-cal-hairline px-6 py-14 text-center">
                 {exercisesQuery.isError ? (
-                  <LoadError what="the exercise library" onRetry={exercisesQuery.refetch} className="py-2" />
+                  <LoadError
+                    what="the exercise library"
+                    onRetry={exercisesQuery.refetch}
+                    className="py-2"
+                  />
                 ) : exercises.length === 0 ? (
-                  <p className="font-medium text-ds-slate">No exercises available in the library.</p>
+                  <>
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-soft text-cal-muted">
+                      <Dumbbell size={18} />
+                    </div>
+                    <p className="text-[14px] font-semibold text-cal-ink">
+                      No exercise routines yet
+                    </p>
+                    <p className="max-w-sm text-[13px] text-cal-muted">
+                      Add your first cardiac rehabilitation routine to begin
+                      building personalized movement regimens.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => openModal()}
+                      className="mt-1.5 inline-flex h-9 items-center gap-1.5 rounded-[8px] bg-cal-primary px-4 text-[13px] font-semibold text-cal-on-primary transition-colors cursor-pointer"
+                    >
+                      <Plus size={14} />
+                      <span>Create new routine</span>
+                    </button>
+                  </>
                 ) : (
                   <>
-                    <p className="font-medium text-ds-ink">No exercise routines match your filter criteria.</p>
+                    <p className="text-[14px] font-semibold text-cal-ink">
+                      No exercise routines match your filters
+                    </p>
+                    <p className="text-[13px] text-cal-muted">
+                      Try clearing your search or adjusting the status and HSS
+                      filters.
+                    </p>
                     <button
+                      type="button"
                       onClick={clearFilters}
-                      className="mt-1 px-3.5 py-1.5 text-[12px] font-semibold text-white bg-ds-primary hover:bg-ds-primary-pressed rounded-[8px] transition-colors cursor-pointer"
+                      className="mt-1 inline-flex h-9 items-center gap-1.5 rounded-[8px] bg-cal-primary px-4 text-[13px] font-semibold text-cal-on-primary transition-colors cursor-pointer"
                     >
-                      Clear filters
+                      <RotateCcw size={13.5} />
+                      <span>Reset filters</span>
                     </button>
                   </>
                 )}
               </div>
             )}
           </div>
-        </div>
+        </section>
 
-        {/* Slide-over Form Modal */}
+        {/* Review & Edit Modal */}
         <ExerciseFormModal
           isOpen={isModalOpen}
           onClose={closeModal}
           exercise={editingExercise}
-          userRole={userRole}
-          isPT={userRole === "medical_expert" && user?.expert_type === "Physical Therapist"}
+          isPT={canApprove}
           onSave={async (data) => {
             try {
               if (editingExercise?.id) {
@@ -826,7 +1204,7 @@ const Exercises = () => {
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify(data),
                 });
-                toast.success("Routine Updated", {
+                toast.success("Routine updated", {
                   description: `"${data.name}" was saved successfully.`,
                 });
               } else {
@@ -835,15 +1213,16 @@ const Exercises = () => {
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify(data),
                 });
-                toast.success("Routine Created", {
+                toast.success("Routine created", {
                   description: `"${data.name}" was added to the exercise library.`,
                 });
               }
               closeModal();
             } catch (err) {
               console.error("Error saving exercise:", err);
-              toast.error("Failed to Save Routine", {
-                description: err?.data?.detail || "Could not save exercise routine.",
+              toast.error("Failed to save routine", {
+                description:
+                  err?.data?.detail || "Could not save exercise routine.",
               });
             }
           }}
@@ -852,7 +1231,7 @@ const Exercises = () => {
           }}
         />
 
-{canApprove && (
+        {canApprove && (
           <BulkApproveBar
             selected={exercises.filter((x) => selectedIds.has(x.id))}
             noun="exercise"

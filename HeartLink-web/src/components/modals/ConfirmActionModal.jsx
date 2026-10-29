@@ -1,37 +1,33 @@
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useRef, useState } from "react";
 import {
   AlertTriangle,
-  X,
+  Info,
   Loader2,
   Trash2,
-  Info,
+  X,
 } from "lucide-react";
+import { useDialogFocus } from "../../hooks/useDialogFocus";
 
 const VARIANTS = {
   danger: {
-    iconBg: "bg-ds-rose border-ds-rose text-ds-ink",
-    pingBg: "bg-ds-rose",
-    accentBar: "bg-gradient-to-r from-ds-danger via-ds-primary to-ds-warm-text",
-    btnColor: "bg-ds-danger hover:bg-ds-danger text-white",
+    iconSurface: "border-cal-error/25 bg-cal-error/10 text-cal-error",
+    btnClass:
+      "bg-cal-error hover:opacity-90 active:opacity-95 text-cal-on-primary",
   },
   warning: {
-    iconBg: "bg-ds-yellow border-ds-yellow-bold text-ds-warm-text",
-    pingBg: "bg-ds-yellow",
-    accentBar: "bg-gradient-to-r from-ds-warm-text via-ds-primary to-ds-primary",
-    btnColor: "bg-ds-primary hover:bg-ds-primary-pressed text-white",
+    iconSurface: "border-cal-warning/35 bg-cal-warning/15 text-cal-ink",
+    btnClass:
+      "bg-cal-primary active:bg-cal-primary-active text-cal-on-primary",
   },
   primary: {
-    iconBg: "bg-ds-tint border-ds-tint text-ds-on-tint",
-    pingBg: "bg-ds-tint",
-    accentBar: "bg-gradient-to-r from-ds-primary via-ds-danger to-ds-primary",
-    btnColor: "bg-ds-ink hover:bg-ds-ink text-white",
+    iconSurface: "border-cal-hairline bg-cal-surface-card text-cal-ink",
+    btnClass:
+      "bg-cal-primary active:bg-cal-primary-active text-cal-on-primary",
   },
   success: {
-    iconBg: "bg-ds-mint border-ds-mint text-ds-charcoal",
-    pingBg: "bg-ds-mint",
-    accentBar: "bg-gradient-to-r from-ds-primary via-ds-primary to-ds-warm-text",
-    btnColor: "bg-ds-primary hover:bg-ds-primary text-white",
+    iconSurface: "border-cal-success/25 bg-cal-success/10 text-cal-success",
+    btnClass:
+      "bg-cal-primary active:bg-cal-primary-active text-cal-on-primary",
   },
 };
 
@@ -51,6 +47,8 @@ const ConfirmActionModal = ({
   children = null,
 }) => {
   const [loading, setLoading] = useState(false);
+  const dialogRef = useRef(null);
+  useDialogFocus(isOpen, dialogRef, loading ? null : onClose);
 
   if (!isOpen) return null;
 
@@ -71,147 +69,140 @@ const ConfirmActionModal = ({
   };
 
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-        {/* Backdrop */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          className="fixed inset-0 bg-black/60 backdrop-blur-xs"
-          onClick={!loading ? onClose : undefined}
-        />
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 font-cal-sans">
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-cal-ink/40 transition-opacity"
+        onClick={!loading ? onClose : undefined}
+      />
 
-        {/* Modal Dialog */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.94, y: 14 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.94, y: 14 }}
-          transition={{ type: "spring", damping: 25, stiffness: 350 }}
-          className="relative w-full max-w-md bg-ds-canvas rounded-2xl shadow-2xl border border-ds-hairline overflow-hidden text-ds-ink z-10"
-          style={{ fontFamily: "'Inter', sans-serif" }}
+      {/* Modal Dialog (Cal.com 12px Card + Hairline + Whisper Shadow) */}
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-action-dialog-title"
+        tabIndex={-1}
+        className="relative z-10 w-full max-w-md overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas p-6 sm:p-7 text-left text-cal-ink shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
+      >
+        {/* Close button */}
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={loading}
+          className="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-full border border-cal-hairline bg-cal-canvas text-cal-muted hover:text-cal-ink transition-colors cursor-pointer disabled:opacity-40"
+          aria-label="Close modal"
         >
-          {/* Top glowing line */}
-          <div className={`h-1 w-full ${currentVariant.accentBar}`} />
+          <X size={16} />
+        </button>
 
-          {/* Close button */}
-          <button
-            onClick={onClose}
-            disabled={loading}
-            className="absolute top-3.5 right-3.5 p-1.5 text-ds-slate hover:text-ds-ink hover:bg-ds-surface rounded-lg transition-colors cursor-pointer disabled:opacity-40"
-            aria-label="Close modal"
+        {/* Action Icon */}
+        <div
+          className={`mb-4 flex h-10 w-10 items-center justify-center rounded-full border ${currentVariant.iconSurface}`}
+        >
+          <IconComponent size={18} />
+        </div>
+
+        {/* Title & Subtitle */}
+        <div>
+          {subtitle && (
+            <p className="mb-1 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted">
+              {subtitle}
+            </p>
+          )}
+          <h3
+            id="confirm-action-dialog-title"
+            className="font-cal-display text-[22px] font-semibold tracking-[-0.5px] leading-[1.2] text-cal-ink pr-8"
           >
-            <X size={16} />
-          </button>
+            {title}
+          </h3>
+          {description && (
+            <p className="mt-1.5 text-[14px] leading-[1.5] text-cal-muted">
+              {description}
+            </p>
+          )}
+        </div>
 
-          <div className="p-6 sm:p-7">
-            {/* Action Icon */}
-            <div
-              className={`relative w-14 h-14 rounded-2xl border flex items-center justify-center mx-auto mb-4 ${currentVariant.iconBg}`}
-            >
-              <div
-                className={`absolute inset-0 rounded-2xl animate-ping opacity-30 pointer-events-none ${currentVariant.pingBg}`}
-              />
-              <IconComponent size={24} className="relative z-10" />
-            </div>
-
-            {/* Title & Subtitle */}
-            <div className="text-center">
-              <h3 className="text-xl font-bold text-ds-ink tracking-tight">
-                {title}
-              </h3>
-              {subtitle && (
-                <p className="text-[11px] text-ds-primary font-semibold mt-0.5 uppercase tracking-wider">
-                  {subtitle}
-                </p>
-              )}
-              {description && (
-                <p className="text-xs text-ds-slate mt-2 leading-relaxed max-w-sm mx-auto">
-                  {description}
-                </p>
-              )}
-            </div>
-
-            {/* Target Entity Card */}
-            {entityInfo && (
-              <div className="p-3.5 rounded-xl bg-ds-surface border border-ds-hairline flex items-center gap-3 my-4 text-left">
-                {entityInfo.avatar ? (
-                  entityInfo.avatar
-                ) : (
-                  <div className="w-9 h-9 rounded-full bg-ds-tint text-ds-primary-pressed font-bold text-xs flex items-center justify-center shrink-0">
-                    {(entityInfo.name || "U").substring(0, 2).toUpperCase()}
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-xs font-bold text-ds-ink truncate">
-                      {entityInfo.name}
-                    </p>
-                    {entityInfo.badge && (
-                      <span className="text-[11px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-ds-hairline bg-ds-canvas text-ds-slate">
-                        {entityInfo.badge}
-                      </span>
-                    )}
-                  </div>
-                  {entityInfo.email && (
-                    <p className="text-[11px] text-ds-slate truncate mt-0.5">
-                      {entityInfo.email}
-                    </p>
-                  )}
-                  {entityInfo.id && (
-                    <p className="text-[11px] text-ds-steel truncate">
-                      ID: {entityInfo.id}
-                    </p>
-                  )}
-                </div>
+        {/* Target Entity Card */}
+        {entityInfo && (
+          <div className="my-4 flex items-center gap-3 rounded-[12px] border border-cal-hairline bg-cal-surface-soft p-3.5 text-left">
+            {entityInfo.avatar ? (
+              entityInfo.avatar
+            ) : (
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-card text-[12px] font-semibold text-cal-ink">
+                {(entityInfo.name || "U").substring(0, 2).toUpperCase()}
               </div>
             )}
-
-            {/* Impact Details Box */}
-            {impactDetails.length > 0 && (
-              <div className="p-3 rounded-lg bg-ds-surface/60 border border-ds-hairline space-y-1.5 my-4">
-                {impactDetails.map((detail, idx) => (
-                  <div key={idx} className="flex items-start gap-2 text-[11px] text-ds-slate leading-snug">
-                    <Info size={13} className="text-ds-primary shrink-0 mt-0.5" />
-                    <span>{detail}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {children}
-
-            {/* Action Buttons */}
-            <div className="flex items-center justify-end gap-2.5 mt-6">
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={loading}
-                className="flex-1 py-2.5 px-4 rounded-lg text-xs font-semibold bg-ds-surface hover:bg-ds-hairline text-ds-ink border border-ds-hairline transition-colors cursor-pointer disabled:opacity-50"
-              >
-                {cancelText}
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirm}
-                disabled={loading}
-                className={`flex-1 py-2.5 px-4 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 ${currentVariant.btnColor}`}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" />
-                    <span>Processing...</span>
-                  </>
-                ) : (
-                  <span>{confirmText}</span>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="truncate text-[13.5px] font-semibold text-cal-ink">
+                  {entityInfo.name}
+                </p>
+                {entityInfo.badge && (
+                  <span className="inline-flex items-center rounded-full border border-cal-hairline bg-cal-canvas px-2.5 py-0.5 text-[11px] font-medium text-cal-muted">
+                    {entityInfo.badge}
+                  </span>
                 )}
-              </button>
+              </div>
+              {entityInfo.email && (
+                <p className="mt-0.5 truncate text-[12px] text-cal-muted">
+                  {entityInfo.email}
+                </p>
+              )}
+              {entityInfo.id && (
+                <p className="mt-0.5 truncate font-cal-mono text-[11.5px] text-cal-muted-soft">
+                  ID: {entityInfo.id}
+                </p>
+              )}
             </div>
           </div>
-        </motion.div>
+        )}
+
+        {/* Impact Details Box */}
+        {impactDetails.length > 0 && (
+          <div className="my-4 space-y-2 rounded-[10px] border border-cal-hairline bg-cal-surface-soft p-3.5">
+            {impactDetails.map((detail, idx) => (
+              <div
+                key={idx}
+                className="flex items-start gap-2 text-[12.5px] leading-[1.45] text-cal-body"
+              >
+                <Info size={14} className="mt-0.5 shrink-0 text-cal-muted" />
+                <span>{detail}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {children}
+
+        {/* Action Buttons */}
+        <div className="mt-6 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="h-10 flex-1 rounded-[8px] border border-cal-hairline bg-cal-canvas px-4 text-[14px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer disabled:opacity-40"
+          >
+            {cancelText}
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirm}
+            disabled={loading}
+            className={`flex h-10 flex-1 items-center justify-center gap-2 rounded-[8px] px-4 text-[14px] font-semibold transition-colors cursor-pointer disabled:bg-cal-primary-disabled disabled:text-cal-muted ${currentVariant.btnClass}`}
+          >
+            {loading ? (
+              <>
+                <Loader2 size={15} className="animate-spin" />
+                <span>Processing…</span>
+              </>
+            ) : (
+              <span>{confirmText}</span>
+            )}
+          </button>
+        </div>
       </div>
-    </AnimatePresence>
+    </div>
   );
 };
 

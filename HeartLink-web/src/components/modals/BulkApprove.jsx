@@ -13,6 +13,7 @@ export function SelectBox({ checked, indeterminate = false, onChange, label }) {
   useEffect(() => {
     if (ref.current) ref.current.indeterminate = indeterminate && !checked;
   }, [indeterminate, checked]);
+
   return (
     <input
       ref={ref}
@@ -21,7 +22,7 @@ export function SelectBox({ checked, indeterminate = false, onChange, label }) {
       onChange={onChange}
       onClick={(e) => e.stopPropagation()}
       aria-label={label}
-      className="w-4 h-4 accent-ds-line cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ds-line"
+      className="h-4 w-4 rounded border-cal-hairline accent-cal-primary cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cal-ink"
     />
   );
 }
@@ -37,9 +38,21 @@ export function BulkApproveBar({ selected, noun, approve, onClear, onDone }) {
     const results = await Promise.allSettled(selected.map((item) => approve(item)));
     const failed = results.filter((r) => r.status === "rejected").length;
     const ok = n - failed;
-    if (ok) toast.success(`${ok} ${ok === 1 ? noun : `${noun}s`} approved`, { description: "Patients can see them now." });
-    if (failed) toast.error(`${failed} couldn't be approved`, { description: "They're still selected. Try again." });
-    onDone(results.map((r, i) => (r.status === "rejected" ? selected[i] : null)).filter(Boolean));
+    if (ok) {
+      toast.success(`${ok} ${ok === 1 ? noun : `${noun}s`} approved`, {
+        description: "Patients can see them now.",
+      });
+    }
+    if (failed) {
+      toast.error(`${failed} couldn't be approved`, {
+        description: "They're still selected. Try again.",
+      });
+    }
+    onDone(
+      results
+        .map((r, i) => (r.status === "rejected" ? selected[i] : null))
+        .filter(Boolean)
+    );
   };
 
   return (
@@ -49,24 +62,28 @@ export function BulkApproveBar({ selected, noun, approve, onClear, onDone }) {
       <div
         role="region"
         aria-label="Selected items"
-        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 pl-4 pr-2 py-2 rounded-xl bg-ds-ink text-white shadow-2xl"
+        className="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full border border-cal-surface-dark-elevated bg-cal-surface-dark py-2 pl-4 pr-2 font-cal-sans text-cal-on-dark shadow-[0_8px_28px_rgba(0,0,0,0.22)]"
       >
-        <span className="text-[14px] font-medium mr-1">
-          {n} {nouns} selected
+        <span className="mr-1 flex items-center gap-2 text-[13.5px] font-medium">
+          <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-cal-surface-dark-elevated px-1.5 font-cal-mono text-[11.5px] font-semibold tabular-nums text-cal-on-dark">
+            {n}
+          </span>
+          <span>{nouns} selected</span>
         </span>
         <button
           type="button"
           onClick={onClear}
-          className="h-10 px-3 rounded-[8px] text-[14px] text-white/80 hover:text-white hover:bg-white/10 cursor-pointer"
+          className="h-9 rounded-full px-3 text-[13px] font-medium text-cal-on-dark-soft hover:bg-cal-surface-dark-elevated hover:text-cal-on-dark transition-colors cursor-pointer"
         >
           Clear
         </button>
         <button
           type="button"
           onClick={() => setConfirmOpen(true)}
-          className="h-10 px-4 rounded-[8px] bg-ds-primary hover:bg-ds-primary-pressed text-[14px] font-medium cursor-pointer"
+          className="inline-flex h-9 items-center gap-1.5 rounded-full bg-cal-canvas px-4 text-[13px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer"
         >
-          Approve for patients
+          <ShieldCheck size={14.5} />
+          <span>Approve for patients</span>
         </button>
       </div>
 
@@ -81,9 +98,12 @@ export function BulkApproveBar({ selected, noun, approve, onClear, onDone }) {
         variant="primary"
         icon={ShieldCheck}
       >
-        <ul className="mt-4 max-h-48 overflow-y-auto rounded-[8px] border border-ds-hairline divide-y divide-ds-hairline-soft text-left">
+        <ul className="mt-4 max-h-48 divide-y divide-cal-hairline overflow-y-auto rounded-[10px] border border-cal-hairline bg-cal-surface-soft text-left">
           {selected.map((item) => (
-            <li key={item.id} className="px-3 py-2 text-[14px] text-ds-ink">
+            <li
+              key={item.id}
+              className="px-3.5 py-2.5 text-[13.5px] font-medium text-cal-ink"
+            >
               {item.name}
             </li>
           ))}

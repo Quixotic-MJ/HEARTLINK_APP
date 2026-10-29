@@ -1,18 +1,21 @@
 import React, { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
-  Search,
-  Plus,
-  CheckCircle2,
-  ShieldCheck,
-  ShieldAlert,
   Archive,
-  Activity,
-  Trash2,
+  CheckCircle2,
+  ChevronDown,
   Edit2,
   MoreVertical,
-  ChevronDown,
+  Plus,
   RotateCcw,
+  Search,
+  ShieldAlert,
+  ShieldCheck,
+  Trash2,
+  Utensils,
+  X,
 } from "lucide-react";
+import { toast } from "sonner";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import FoodFormModal from "../../../components/modals/FoodFormModal";
 import ConfirmActionModal from "../../../components/modals/ConfirmActionModal";
@@ -23,9 +26,6 @@ import { useApiQuery } from "../../../hooks/useApiQuery";
 import LoadError from "../../../components/ui/LoadError";
 import RecipeImage from "../../../components/ui/RecipeImage";
 import { useAuth } from "../../../contexts/useAuth";
-import { toast } from "sonner";
-import { UI, FONTS } from "../../../styles/tokens";
-import { PageHeader } from "../../../styles/designSystem";
 
 // Database hss_tier -> the label the recipe form uses
 const HSS_TIER_LABELS = {
@@ -35,9 +35,21 @@ const HSS_TIER_LABELS = {
   Critical: "Critical (<50)",
 };
 
+const STATUS_TABS = [
+  ["all", "All"],
+  ["published", "Published"],
+  ["draft", "Draft"],
+  ["archived", "Archived"],
+];
+
+const PILL =
+  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11.5px] font-medium whitespace-nowrap";
+
 // HL-030: an "Others" recipe shows the name typed for it
 const categoryLabel = (recipe) =>
-  recipe.category === "Others" && recipe.categoryOther ? recipe.categoryOther : recipe.category;
+  recipe.category === "Others" && recipe.categoryOther
+    ? recipe.categoryOther
+    : recipe.category;
 
 // The library as the screen shows it, from the API's rows (HL-035: loaded through React Query)
 const NO_RECIPES = [];
@@ -78,6 +90,38 @@ const toRecipes = (res) => {
   return mapped;
 };
 
+const getHssBadge = (tier, label) => {
+  if (tier === "Stable") {
+    return {
+      tone: "border-cal-success/25 bg-cal-success/10 text-cal-ink",
+      dot: "bg-cal-success",
+      text: label,
+    };
+  }
+  if (tier === "Moderate") {
+    return {
+      tone: "border-cal-warning/35 bg-cal-warning/15 text-cal-ink",
+      dot: "bg-cal-warning",
+      text: label,
+    };
+  }
+  return {
+    tone: "border-cal-error/25 bg-cal-error/10 text-cal-ink",
+    dot: "bg-cal-error",
+    text: label,
+  };
+};
+
+const getStatusPill = (status) => {
+  if (status === "published") {
+    return "border-cal-success/25 bg-cal-success/10 text-cal-ink";
+  }
+  if (status === "draft") {
+    return "border-cal-warning/35 bg-cal-warning/15 text-cal-ink";
+  }
+  return "border-cal-hairline bg-cal-surface-card text-cal-muted";
+};
+
 const Foods = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -85,6 +129,18 @@ const Foods = () => {
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterFoodSource, setFilterFoodSource] = useState("all");
   const [filterReview, setFilterReview] = useState("all");
+
+  // Support ?search= links cleanly during render
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchParam = searchParams.get("search");
+  const [seenSearchParam, setSeenSearchParam] = useState(null);
+  if (searchParam !== seenSearchParam) {
+    setSeenSearchParam(searchParam);
+    if (searchParam !== null) {
+      setSearchQuery(searchParam);
+    }
+  }
+
   // A save through apiFetch refreshes this list by itself
   const recipesQuery = useApiQuery("/api/recipes", { select: toRecipes });
   const recipes = recipesQuery.data ?? NO_RECIPES;
@@ -92,7 +148,7 @@ const Foods = () => {
 
   const [activeMenuRecipeId, setActiveMenuRecipeId] = useState(null);
 
-  // Animated Confirmation Modal State
+  // Confirmation Modal State
   const [confirmConfig, setConfirmConfig] = useState({
     isOpen: false,
     title: "",
@@ -119,7 +175,9 @@ const Foods = () => {
     const openUp = rect.bottom + 200 > window.innerHeight;
     setMenuPos({
       right: window.innerWidth - rect.right,
-      ...(openUp ? { bottom: window.innerHeight - rect.top + 4 } : { top: rect.bottom + 4 }),
+      ...(openUp
+        ? { bottom: window.innerHeight - rect.top + 4 }
+        : { top: rect.bottom + 4 }),
     });
     setActiveMenuRecipeId(activeMenuRecipeId === id ? null : id);
   };
@@ -128,7 +186,6 @@ const Foods = () => {
   React.useEffect(() => {
     const handleDocumentClick = () => setActiveMenuRecipeId(null);
     document.addEventListener("click", handleDocumentClick);
-    // The menu is pinned to the screen, so it closes when anything scrolls instead of floating away.
     window.addEventListener("scroll", handleDocumentClick, true);
     return () => {
       document.removeEventListener("click", handleDocumentClick);
@@ -164,12 +221,15 @@ const Foods = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      toast.success(newStatus === "published" ? "Recipe Published" : "Recipe Restored to Draft", {
-        description: `"${recipe.name}" status updated to ${newStatus}.`,
-      });
+      toast.success(
+        newStatus === "published" ? "Recipe published" : "Recipe restored to draft",
+        {
+          description: `"${recipe.name}" status updated to ${newStatus}.`,
+        }
+      );
     } catch (err) {
       console.error("Failed to update status", err);
-      toast.error("Failed to Update Status", {
+      toast.error("Failed to update status", {
         description: err?.data?.detail || "Could not change status.",
       });
     }
@@ -179,17 +239,17 @@ const Foods = () => {
     if (!recipe) return;
     setConfirmConfig({
       isOpen: true,
-      title: "Archive Recipe?",
-      subtitle: "Hide from Mobile Patients",
-      description: `Archive "${recipe.name}"? This recipe will be hidden from mobile patient recommendations while remaining accessible in your admin library.`,
-      confirmText: "Archive Recipe",
+      title: "Archive recipe?",
+      subtitle: "Hide from mobile patients",
+      description: `Archive "${recipe.name}"? This recipe will be hidden from mobile patient recommendations while remaining accessible in your library.`,
+      confirmText: "Archive recipe",
       cancelText: "Cancel",
       variant: "warning",
       icon: Archive,
       entityInfo: {
         name: recipe.name,
-        badge: "Published -> Archived",
-        email: `${categoryLabel(recipe)} • ${recipe.hssTarget}`,
+        badge: "Published → Archived",
+        email: `${categoryLabel(recipe)} · ${recipe.hssTarget}`,
         id: recipe.id,
       },
       impactDetails: [
@@ -224,12 +284,12 @@ const Foods = () => {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
           });
-          toast.success("Recipe Archived", {
+          toast.success("Recipe archived", {
             description: `"${recipe.name}" has been moved to archive.`,
           });
         } catch (err) {
           console.error("Failed to archive recipe", err);
-          toast.error("Failed to Archive Recipe", {
+          toast.error("Failed to archive recipe", {
             description: err?.data?.detail || "Could not archive recipe.",
           });
         }
@@ -241,27 +301,27 @@ const Foods = () => {
     if (!recipe) return;
     setConfirmConfig({
       isOpen: true,
-      title: "Delete Recipe Permanently?",
-      subtitle: "Permanent Database Action",
-      description: `Permanently delete "${recipe.name}"? This action cannot be undone and will remove all nutritional profiles, ingredients, and steps.`,
-      confirmText: "Delete Permanently",
+      title: "Delete recipe permanently?",
+      subtitle: "Permanent database action",
+      description: `Permanently delete "${recipe.name}"? This action cannot be undone and removes all nutritional profiles, ingredients, and steps.`,
+      confirmText: "Delete permanently",
       cancelText: "Cancel",
       variant: "danger",
       icon: Trash2,
       entityInfo: {
         name: recipe.name,
         badge: recipe.status?.toUpperCase() || "RECIPE",
-        email: `${categoryLabel(recipe)} • ${recipe.hssTarget}`,
+        email: `${categoryLabel(recipe)} · ${recipe.hssTarget}`,
         id: recipe.id,
       },
       impactDetails: [
         "Permanently removed from the nutritional database.",
-        "Patient meal plan logs referencing this recipe will retain historical logs only.",
+        "Patient meal plan logs referencing this recipe retain historical logs only.",
       ],
       onConfirm: async () => {
         try {
           await apiFetch(`/api/recipes/${recipe.id}`, { method: "DELETE" });
-          toast.success("Recipe Deleted", {
+          toast.success("Recipe deleted", {
             description: `"${recipe.name}" was permanently removed.`,
           });
           if (editingRecipe?.id === recipe.id) {
@@ -269,14 +329,13 @@ const Foods = () => {
           }
         } catch (err) {
           console.error("Failed to delete recipe", err);
-          toast.error("Failed to Delete Recipe", {
+          toast.error("Failed to delete recipe", {
             description: err?.data?.detail || "Could not delete recipe.",
           });
         }
       },
     });
   };
-
 
   // Modal & Form State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -285,7 +344,8 @@ const Foods = () => {
   const { user } = useAuth();
   const userRole = user?.role;
   // Approving several at once: only the Dietitian who approves sees the checkboxes (HL-026/037).
-  const canApprove = userRole === "medical_expert" && user?.expert_type === "Dietitian";
+  const canApprove =
+    userRole === "medical_expert" && user?.expert_type === "Dietitian";
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const toggleSelected = (id) =>
     setSelectedIds((prev) => {
@@ -305,14 +365,31 @@ const Foods = () => {
     setEditingRecipe(null);
   };
 
-  const clearFilters = () => {
+  const clearSearch = () => {
     setSearchQuery("");
+    if (searchParams.has("search")) {
+      setSearchParams({});
+    }
+  };
+
+  const clearFilters = () => {
+    clearSearch();
     setFilterStatus("all");
     setFilterHss("all");
     setFilterCategory("all");
     setFilterFoodSource("all");
     setFilterReview("all");
   };
+
+  // KPI & Tab Counts
+  const statusCounts = {
+    all: recipes.length,
+    published: recipes.filter((r) => r.status === "published").length,
+    draft: recipes.filter((r) => r.status === "draft").length,
+    archived: recipes.filter((r) => r.status === "archived").length,
+  };
+  const approvedCount = recipes.filter((r) => r.expertValidated).length;
+  const waitingCount = recipes.filter((r) => !r.expertValidated).length;
 
   // Filter Logic
   const filteredRecipes = recipes.filter((r) => {
@@ -325,8 +402,10 @@ const Foods = () => {
 
     const matchesStatus = filterStatus === "all" || r.status === filterStatus;
     const matchesHss = filterHss === "all" || r.hssTier === filterHss;
-    const matchesCategory = filterCategory === "all" || r.category === filterCategory;
-    const matchesFoodSource = filterFoodSource === "all" || r.foodSourceType === filterFoodSource;
+    const matchesCategory =
+      filterCategory === "all" || r.category === filterCategory;
+    const matchesFoodSource =
+      filterFoodSource === "all" || r.foodSourceType === filterFoodSource;
 
     let matchesReview = true;
     if (filterReview === "reviewed") {
@@ -335,22 +414,20 @@ const Foods = () => {
       matchesReview = r.expertValidated === false;
     }
 
-    return matchesSearch && matchesStatus && matchesHss && matchesCategory && matchesFoodSource && matchesReview;
+    return (
+      matchesSearch &&
+      matchesStatus &&
+      matchesHss &&
+      matchesCategory &&
+      matchesFoodSource &&
+      matchesReview
+    );
   });
-  const waitingShown = canApprove ? filteredRecipes.filter((x) => !x.expertValidated) : [];
+  const waitingShown = canApprove
+    ? filteredRecipes.filter((x) => !x.expertValidated)
+    : [];
 
-  // HSS Badge Styling
-  const getHssBadgeStyle = (target) => {
-    if (target.includes("Stable"))
-      return "bg-ds-mint text-ds-charcoal border border-ds-mint";
-    if (target.includes("Moderate"))
-      return "bg-ds-yellow text-ds-warm-text border border-ds-yellow-bold";
-    if (target.includes("Elevated"))
-      return "bg-ds-tint text-ds-on-tint border border-ds-tint";
-    return "bg-ds-rose text-ds-ink border border-ds-rose";
-  };
-
-  const hasActiveFilters = 
+  const hasActiveFilters =
     Boolean(searchQuery) ||
     filterStatus !== "all" ||
     filterHss !== "all" ||
@@ -358,226 +435,383 @@ const Foods = () => {
     filterFoodSource !== "all" ||
     filterReview !== "all";
 
+  const selectClass =
+    "h-9 w-full md:w-auto appearance-none rounded-[8px] border border-cal-hairline bg-cal-canvas pl-3 pr-8 text-[13px] font-medium text-cal-ink focus:border-cal-ink focus:outline-none transition-colors cursor-pointer";
+
   return (
     <AdminLayout>
-      <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>
-        {/* ── PAGE HEAD ── */}
-        <PageHeader
-          eyebrow="Content library"
-          title="Food & recipe library"
-          description="Manage nutritional databases, heart-healthy recipes, and clinical HSS targets."
-          actions={
-            <button
-              onClick={() => openModal()}
-              className={UI.button.primary}
-            >
-              <Plus size={15} strokeWidth={2.5} />
-              <span>Create new entry</span>
-            </button>
-          }
-        />
+      <div className="mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
+        {/* ─── 1. EDITORIAL PAGE HEADER ─────────────────────────────────────── */}
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <div className="mb-2.5 inline-flex items-center gap-2 rounded-full border border-cal-hairline bg-cal-canvas px-3 py-1 text-[12px] font-medium text-cal-muted">
+              <Utensils size={13.5} className="text-cal-ink" />
+              <span>Clinical &amp; library · Nutritional database</span>
+            </div>
+            <h2 className="font-cal-display text-[28px] sm:text-[32px] font-semibold tracking-[-0.8px] leading-[1.15] text-cal-ink">
+              Food &amp; recipe library
+            </h2>
+            <p className="mt-1.5 max-w-[64ch] text-[14px] leading-[1.5] text-cal-muted">
+              Manage heart-healthy meals, nutritional macros, clinical HSS suitability tiers, and dietitian sign-offs.
+            </p>
+          </div>
 
-        {/* ── MAIN CARD: SEARCH, FILTER & TABLE ── */}
-        <div className="bg-ds-canvas border border-ds-hairline rounded-xl overflow-hidden">
-          
-          {/* Filter Bar */}
-          <div className="p-4 border-b border-ds-hairline bg-ds-canvas space-y-3">
-            <div className="flex flex-col md:flex-row gap-3">
-              {/* Search Box */}
-              <div className="relative flex-1">
+          <button
+            type="button"
+            onClick={() => openModal()}
+            className="inline-flex h-10 items-center gap-2 rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-5 text-[14px] font-semibold text-cal-on-primary transition-colors cursor-pointer"
+          >
+            <Plus size={15.5} />
+            <span>Create new entry</span>
+          </button>
+        </div>
+
+        {/* ─── 2. KPI SUMMARY STRIP ─────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[12.5px] font-medium text-cal-muted">Total entries</span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-soft text-cal-ink">
+                <Utensils size={14.5} aria-hidden="true" />
+              </span>
+            </div>
+            <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none text-cal-ink">
+              {loading ? "—" : statusCounts.all}
+            </div>
+            <div className="mt-2 text-[12px] text-cal-muted">Recipes, chains &amp; raw items</div>
+          </div>
+
+          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[12.5px] font-medium text-cal-muted">Published</span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-success/25 bg-cal-success/10 text-cal-success">
+                <CheckCircle2 size={14.5} aria-hidden="true" />
+              </span>
+            </div>
+            <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none text-cal-ink">
+              {loading ? "—" : statusCounts.published}
+            </div>
+            <div className="mt-2 text-[12px] text-cal-muted">Visible in mobile meal plans</div>
+          </div>
+
+          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[12.5px] font-medium text-cal-muted">Dietitian approved</span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-badge-emerald/35 bg-cal-badge-emerald/15 text-cal-ink">
+                <ShieldCheck size={14.5} aria-hidden="true" />
+              </span>
+            </div>
+            <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none text-cal-ink">
+              {loading ? "—" : approvedCount}
+            </div>
+            <div className="mt-2 text-[12px] text-cal-muted">Clinically validated nutrition</div>
+          </div>
+
+          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[12.5px] font-medium text-cal-muted">Waiting for dietitian</span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-warning/35 bg-cal-warning/15 text-cal-ink">
+                <ShieldAlert size={14.5} aria-hidden="true" />
+              </span>
+            </div>
+            <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none text-cal-ink">
+              {loading ? "—" : waitingCount}
+            </div>
+            <div className="mt-2 text-[12px] text-cal-muted">Pending nutritional sign-off</div>
+          </div>
+        </div>
+
+        {/* ─── 3. MAIN DIRECTORY CARD: FILTERS & TABLE ──────────────────────── */}
+        <section className="overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          {/* Primary Toolbar: Status Nav-Pill-Group + Search */}
+          <div className="space-y-3 border-b border-cal-hairline bg-cal-canvas px-4 py-3.5 sm:px-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div
+                role="group"
+                aria-label="Filter recipes by status"
+                className="inline-flex flex-wrap items-center gap-1 rounded-[16px] sm:rounded-full border border-cal-hairline/80 bg-cal-surface-soft p-1"
+              >
+                {STATUS_TABS.map(([key, label]) => {
+                  const active = filterStatus === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setFilterStatus(key)}
+                      className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-all cursor-pointer ${
+                        active
+                          ? "bg-cal-canvas text-cal-ink font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
+                          : "text-cal-muted hover:text-cal-ink"
+                      }`}
+                    >
+                      <span>{label}</span>
+                      <span
+                        className={`font-cal-mono text-[11.5px] tabular-nums ${
+                          active ? "text-cal-ink" : "text-cal-muted-soft"
+                        }`}
+                      >
+                        {loading ? "—" : statusCounts[key]}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="relative w-full sm:w-80">
+                <label htmlFor="recipe-search" className="sr-only">
+                  Search recipes, categories, or tags
+                </label>
                 <Search
-                  size={14}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ds-steel"
+                  size={14.5}
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-cal-muted"
                 />
                 <input
+                  id="recipe-search"
                   type="text"
                   placeholder="Search recipes, categories, or tags…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3.5 py-2 text-[13px] border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-ink transition-colors bg-ds-surface text-ds-ink placeholder:text-ds-steel"
+                  className="h-9 w-full rounded-[8px] border border-cal-hairline bg-cal-canvas pl-9 pr-8 text-[13px] text-cal-ink placeholder:text-cal-muted focus:border-cal-ink focus:outline-none transition-colors"
                 />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={clearSearch}
+                    aria-label="Clear search"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-full text-cal-muted hover:bg-cal-surface-card hover:text-cal-ink cursor-pointer"
+                  >
+                    <X size={13} />
+                  </button>
+                )}
               </div>
-
-              {/* Clear Filters Button */}
-              {hasActiveFilters && (
-                <button
-                  onClick={clearFilters}
-                  className="text-[11px] text-ds-ink font-semibold px-3 py-2 rounded-[8px] border border-ds-rose bg-ds-rose hover:bg-ds-rose transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer"
-                >
-                  <RotateCcw size={12} />
-                  <span>Clear filters</span>
-                </button>
-              )}
             </div>
 
-            {/* Dropdown Filters Row */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-wrap gap-2 pt-0.5">
-              {/* Status */}
-              <div className="relative">
-                <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-ds-ink bg-ds-canvas border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-ink appearance-none cursor-pointer hover:border-ds-steel transition-colors"
-                >
-                  <option value="all">All status</option>
-                  <option value="published">Published</option>
-                  <option value="draft">Draft</option>
-                  <option value="archived">Archived</option>
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                  <ChevronDown size={12} className="text-ds-steel" />
+            {/* Secondary Facet Row */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+              <div className="grid w-full grid-cols-2 gap-2 sm:grid-cols-4 md:flex md:w-auto md:flex-wrap">
+                {/* HSS Tier */}
+                <div className="relative">
+                  <label htmlFor="filter-hss" className="sr-only">
+                    Filter by HSS tier
+                  </label>
+                  <select
+                    id="filter-hss"
+                    value={filterHss}
+                    onChange={(e) => setFilterHss(e.target.value)}
+                    className={selectClass}
+                  >
+                    <option value="all">All HSS tiers</option>
+                    <option value="Stable">Stable</option>
+                    <option value="Moderate">Moderate</option>
+                    <option value="Elevated Risk">Elevated Risk</option>
+                    <option value="Critical">Critical</option>
+                  </select>
+                  <ChevronDown
+                    size={13.5}
+                    className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-cal-muted"
+                  />
+                </div>
+
+                {/* Category */}
+                <div className="relative">
+                  <label htmlFor="filter-category" className="sr-only">
+                    Filter by meal category
+                  </label>
+                  <select
+                    id="filter-category"
+                    value={filterCategory}
+                    onChange={(e) => setFilterCategory(e.target.value)}
+                    className={selectClass}
+                  >
+                    <option value="all">All categories</option>
+                    <option value="Breakfast">Breakfast</option>
+                    <option value="Lunch">Lunch</option>
+                    <option value="Dinner">Dinner</option>
+                    <option value="Snack">Snack</option>
+                    <option value="Others">Others</option>
+                  </select>
+                  <ChevronDown
+                    size={13.5}
+                    className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-cal-muted"
+                  />
+                </div>
+
+                {/* Food Source */}
+                <div className="relative">
+                  <label htmlFor="filter-food-source" className="sr-only">
+                    Filter by food source
+                  </label>
+                  <select
+                    id="filter-food-source"
+                    value={filterFoodSource}
+                    onChange={(e) => setFilterFoodSource(e.target.value)}
+                    className={selectClass}
+                  >
+                    <option value="all">All food sources</option>
+                    <option value="Home Recipe">Home Recipe</option>
+                    <option value="Fast Food Chain">Fast Food Chain</option>
+                    <option value="Local Carenderia">Local Carenderia</option>
+                    <option value="Raw Ingredient">Raw Ingredient</option>
+                  </select>
+                  <ChevronDown
+                    size={13.5}
+                    className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-cal-muted"
+                  />
+                </div>
+
+                {/* Review Status */}
+                <div className="relative">
+                  <label htmlFor="filter-review" className="sr-only">
+                    Filter by review status
+                  </label>
+                  <select
+                    id="filter-review"
+                    value={filterReview}
+                    onChange={(e) => setFilterReview(e.target.value)}
+                    className={selectClass}
+                  >
+                    <option value="all">All review status</option>
+                    <option value="reviewed">Dietitian approved</option>
+                    <option value="pending">Waiting for dietitian</option>
+                  </select>
+                  <ChevronDown
+                    size={13.5}
+                    className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-cal-muted"
+                  />
                 </div>
               </div>
 
-              {/* HSS Tier */}
-              <div className="relative">
-                <select
-                  value={filterHss}
-                  onChange={(e) => setFilterHss(e.target.value)}
-                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-ds-ink bg-ds-canvas border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-ink appearance-none cursor-pointer hover:border-ds-steel transition-colors"
-                >
-                  <option value="all">All HSS tiers</option>
-                  <option value="Stable">Stable</option>
-                  <option value="Moderate">Moderate</option>
-                  <option value="Elevated Risk">Elevated Risk</option>
-                  <option value="Critical">Critical</option>
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                  <ChevronDown size={12} className="text-ds-steel" />
-                </div>
-              </div>
-
-              {/* Category */}
-              <div className="relative">
-                <select
-                  value={filterCategory}
-                  onChange={(e) => setFilterCategory(e.target.value)}
-                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-ds-ink bg-ds-canvas border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-ink appearance-none cursor-pointer hover:border-ds-steel transition-colors"
-                >
-                  <option value="all">All categories</option>
-                  <option value="Breakfast">Breakfast</option>
-                  <option value="Lunch">Lunch</option>
-                  <option value="Dinner">Dinner</option>
-                  <option value="Snack">Snack</option>
-                  <option value="Others">Others</option>
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                  <ChevronDown size={12} className="text-ds-steel" />
-                </div>
-              </div>
-
-              {/* Food Source */}
-              <div className="relative">
-                <select
-                  value={filterFoodSource}
-                  onChange={(e) => setFilterFoodSource(e.target.value)}
-                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-ds-ink bg-ds-canvas border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-ink appearance-none cursor-pointer hover:border-ds-steel transition-colors"
-                >
-                  <option value="all">All food sources</option>
-                  <option value="Home Recipe">Home Recipe</option>
-                  <option value="Fast Food Chain">Fast Food Chain</option>
-                  <option value="Local Carenderia">Local Carenderia</option>
-                  <option value="Raw Ingredient">Raw Ingredient</option>
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                  <ChevronDown size={12} className="text-ds-steel" />
-                </div>
-              </div>
-
-              {/* Review Status */}
-              <div className="relative">
-                <select
-                  value={filterReview}
-                  onChange={(e) => setFilterReview(e.target.value)}
-                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-ds-ink bg-ds-canvas border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-ink appearance-none cursor-pointer hover:border-ds-steel transition-colors"
-                >
-                  <option value="all">All review status</option>
-                  <option value="reviewed">Dietitian approved</option>
-                  <option value="pending">Waiting for dietitian</option>
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                  <ChevronDown size={12} className="text-ds-steel" />
-                </div>
+              <div className="flex items-center gap-2.5">
+                {hasActiveFilters && (
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="inline-flex h-8 items-center gap-1.5 rounded-[8px] border border-cal-hairline bg-cal-surface-soft px-3 text-[12px] font-semibold text-cal-ink hover:bg-cal-surface-card transition-colors cursor-pointer"
+                  >
+                    <RotateCcw size={12} />
+                    <span>Reset filters</span>
+                  </button>
+                )}
+                {!loading && !recipesQuery.isError && (
+                  <span className="font-cal-mono text-[12px] text-cal-muted">
+                    {filteredRecipes.length} of {recipes.length}
+                  </span>
+                )}
               </div>
             </div>
           </div>
 
           {/* Directory Table */}
           <div className="w-full overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[720px]">
-              <thead>
-                <tr className="border-b border-ds-hairline bg-ds-surface/40">
-{canApprove && (
-                    <th className="py-3 pl-4 sm:pl-5 pr-0 w-10">
+            <table className="w-full min-w-[820px] border-collapse text-left">
+              <thead className="border-b border-cal-hairline bg-cal-surface-soft">
+                <tr>
+                  {canApprove && (
+                    <th scope="col" className="w-10 py-3 pl-4 pr-0 sm:pl-5">
                       <SelectBox
                         label="Select every recipe waiting for approval"
-                        checked={waitingShown.length > 0 && waitingShown.every((x) => selectedIds.has(x.id))}
+                        checked={
+                          waitingShown.length > 0 &&
+                          waitingShown.every((x) => selectedIds.has(x.id))
+                        }
                         indeterminate={waitingShown.some((x) => selectedIds.has(x.id))}
-                        onChange={(e) => setSelectedIds(e.target.checked ? new Set(waitingShown.map((x) => x.id)) : new Set())}
+                        onChange={(e) =>
+                          setSelectedIds(
+                            e.target.checked
+                              ? new Set(waitingShown.map((x) => x.id))
+                              : new Set()
+                          )
+                        }
                       />
                     </th>
                   )}
-                  <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em] w-1/3">
-                    Food / meal name
+                  <th
+                    scope="col"
+                    className="w-[36%] px-5 py-3 text-[12px] font-medium text-cal-muted"
+                  >
+                    Food / meal
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em]">
+                  <th scope="col" className="px-4 py-3 text-[12px] font-medium text-cal-muted">
                     HSS suitability
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em]">
+                  <th scope="col" className="px-4 py-3 text-[12px] font-medium text-cal-muted">
                     Nutrition snapshot
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em] text-center">
-                    Expert review
+                  <th scope="col" className="px-4 py-3 text-[12px] font-medium text-cal-muted">
+                    Dietitian review
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em] text-right">
+                  <th
+                    scope="col"
+                    className="px-5 py-3 text-right text-[12px] font-medium text-cal-muted"
+                  >
                     Actions
                   </th>
                 </tr>
               </thead>
 
-              {loading ? (
-                <tbody>
-                  {[1, 2, 3, 4, 5].map((item) => (
-                    <tr key={item} className="border-b border-ds-hairline/60">
-                      <td className="py-3.5 px-5">
-                        <div className="flex items-center gap-3">
-                          <Skeleton className="w-9 h-9 rounded-[8px] shrink-0 bg-ds-hairline/70" />
-                          <div>
-                            <Skeleton className="w-32 h-4 mb-1.5 bg-ds-hairline/70 rounded" />
-                            <Skeleton className="w-20 h-3 bg-ds-hairline/70 rounded" />
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-5">
-                        <Skeleton className="w-24 h-5 rounded-full bg-ds-hairline/70" />
-                      </td>
-                      <td className="py-3.5 px-5">
-                        <Skeleton className="w-20 h-4 mb-1 bg-ds-hairline/70 rounded" />
-                        <Skeleton className="w-16 h-3 bg-ds-hairline/70 rounded" />
-                      </td>
-                      <td className="py-3.5 px-5 flex justify-center">
-                        <Skeleton className="w-7 h-7 rounded-full bg-ds-hairline/70" />
-                      </td>
-                      <td className="py-3.5 px-5 text-right">
-                        <Skeleton className="w-6 h-6 rounded-md bg-ds-hairline/70 ml-auto" />
+              <tbody className="divide-y divide-cal-hairline">
+                {loading ? (
+                  [1, 2, 3, 4, 5].map((item) => (
+                    <tr key={item}>
+                      <td colSpan={canApprove ? 6 : 5} className="px-5 py-4">
+                        <Skeleton className="h-10 w-full rounded-[8px] bg-cal-surface-strong/60" />
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              ) : filteredRecipes.length > 0 ? (
-                <tbody className="divide-y divide-ds-hairline">
-                  {filteredRecipes.map((recipe) => {
-                    const badgeClass = getHssBadgeStyle(recipe.hssTarget);
+                  ))
+                ) : recipesQuery.isError ? (
+                  <tr>
+                    <td colSpan={canApprove ? 6 : 5}>
+                      <LoadError
+                        what="the recipe library"
+                        onRetry={recipesQuery.refetch}
+                        className="py-12"
+                      />
+                    </td>
+                  </tr>
+                ) : filteredRecipes.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={canApprove ? 6 : 5}
+                      className="px-5 py-14 text-center"
+                    >
+                      <p className="text-[14px] font-semibold text-cal-ink">
+                        {recipes.length === 0
+                          ? "No recipes in the library yet"
+                          : "No recipes match these filters"}
+                      </p>
+                      <p className="mt-1 text-[13px] text-cal-muted">
+                        {recipes.length === 0
+                          ? "Create your first heart-healthy recipe or nutritional entry to populate mobile meal plans."
+                          : "Try resetting one or more active filters or clearing your search query."}
+                      </p>
+                      {recipes.length > 0 && hasActiveFilters && (
+                        <button
+                          type="button"
+                          onClick={clearFilters}
+                          className="mt-4 inline-flex h-9 items-center justify-center rounded-[8px] border border-cal-hairline bg-cal-canvas px-4 text-[13px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer"
+                        >
+                          Reset filters
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredRecipes.map((recipe) => {
+                    const hss = getHssBadge(recipe.hssTier, recipe.hssTarget);
                     return (
                       <tr
                         key={recipe.id}
                         onClick={() => openModal(recipe)}
-                        className={`hover:bg-ds-surface/60 transition-colors group cursor-pointer ${
-                          recipe.status === "archived" ? "opacity-60 bg-ds-surface/30" : ""
+                        className={`group hover:bg-cal-surface-soft/80 transition-colors cursor-pointer ${
+                          recipe.status === "archived" ? "opacity-65 bg-cal-surface-soft/40" : ""
                         }`}
                       >
-{canApprove && (
-                          <td className="py-3.5 pl-4 sm:pl-5 pr-0 align-middle" onClick={(e) => e.stopPropagation()}>
+                        {canApprove && (
+                          <td
+                            className="py-3.5 pl-4 pr-0 align-middle sm:pl-5"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             {!recipe.expertValidated && (
                               <SelectBox
                                 label={`Select ${recipe.name}`}
@@ -587,158 +821,182 @@ const Foods = () => {
                             )}
                           </td>
                         )}
+
                         {/* Food Name & Image */}
-                        <td className="py-3.5 px-4 sm:px-5 align-middle">
-                          <div className="flex items-center gap-3">
+                        <td className="px-5 py-3.5 align-middle">
+                          <div className="flex items-center gap-3.5">
                             <RecipeImage
                               src={recipe.mediaUrl}
                               alt={recipe.name}
-                              containerClassName="w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0 overflow-hidden bg-ds-tint border border-ds-hairline text-ds-on-tint "
+                              containerClassName="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[8px] border border-cal-hairline bg-cal-surface-soft"
                               fallbackIconSize={16}
-                              fallbackIconClassName="text-ds-primary"
+                              fallbackIconClassName="text-cal-muted"
                             />
                             <div className="min-w-0 pr-2">
-                              <p className="text-ds-ink font-semibold text-[13px] leading-tight mb-0.5 truncate">
-                                {recipe.name}
-                              </p>
-                              <p className="text-ds-slate text-[11px] font-medium truncate">
-                                {categoryLabel(recipe)} · <span className="capitalize">{recipe.status}</span>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="truncate text-[13.5px] font-semibold text-cal-ink group-hover:underline">
+                                  {recipe.name}
+                                </p>
+                                <span
+                                  className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10.5px] font-medium capitalize ${getStatusPill(
+                                    recipe.status
+                                  )}`}
+                                >
+                                  {recipe.status}
+                                </span>
+                              </div>
+                              <p className="mt-0.5 truncate text-[12px] text-cal-muted">
+                                {categoryLabel(recipe)} · {recipe.foodSourceType}
                               </p>
                             </div>
                           </div>
                         </td>
 
-                        {/* HSS Badge */}
-                        <td className="py-3.5 px-4 sm:px-5 align-middle">
-                          <span
-                            className={`inline-flex items-center text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${badgeClass}`}
-                          >
-                            {recipe.hssTarget}
+                        {/* HSS Suitability */}
+                        <td className="px-4 py-3.5 align-middle">
+                          <span className={`${PILL} ${hss.tone}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${hss.dot}`} />
+                            <span>{hss.text}</span>
                           </span>
                         </td>
 
                         {/* Nutrition */}
-                        <td className="py-3.5 px-4 sm:px-5 align-middle">
-                          <p className="text-ds-ink text-[12.5px] font-semibold flex items-center gap-1.5 m-0 leading-tight">
-                            <Activity size={13} className="text-ds-primary shrink-0" />
-                            {recipe.sodium}mg{" "}
-                            <span className="text-[11px] text-ds-slate font-normal">
-                              Sodium
+                        <td className="px-4 py-3.5 align-middle">
+                          <p className="m-0 font-cal-mono text-[13px] font-semibold tabular-nums text-cal-ink">
+                            {recipe.sodium}{" "}
+                            <span className="font-cal-sans text-[11.5px] font-normal text-cal-muted">
+                              mg sodium
                             </span>
                           </p>
-                          <p className="text-ds-slate text-[11px] font-medium mt-0.5 ml-[18px]">
-                            {recipe.calories} kcal
+                          <p className="mt-0.5 font-cal-mono text-[12px] tabular-nums text-cal-muted">
+                            {recipe.calories} kcal · {recipe.prepTimeMinutes} min
                           </p>
                         </td>
 
                         {/* Expert Review Status */}
-                        <td className="py-3.5 px-4 sm:px-5 align-middle text-center">
+                        <td className="px-4 py-3.5 align-middle">
                           {recipe.expertValidated ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[6px] bg-ds-mint text-ds-charcoal text-[11.5px] font-semibold whitespace-nowrap">
-                              <ShieldCheck size={13} aria-hidden="true" /> Approved
+                            <span
+                              className={`${PILL} border-cal-success/25 bg-cal-success/10 text-cal-ink`}
+                            >
+                              <ShieldCheck
+                                size={12.5}
+                                className="text-cal-success"
+                                aria-hidden="true"
+                              />
+                              <span>Approved</span>
                             </span>
                           ) : (
                             <span
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[6px] bg-ds-yellow text-ds-warm-text border border-ds-yellow-bold text-[11.5px] font-semibold whitespace-nowrap"
-                              title={recipe.reviewNote ? `Dietitian's note: ${recipe.reviewNote}` : undefined}
+                              className={`${PILL} border-cal-warning/35 bg-cal-warning/15 text-cal-ink`}
+                              title={
+                                recipe.reviewNote
+                                  ? `Dietitian's note: ${recipe.reviewNote}`
+                                  : undefined
+                              }
                             >
-                              <ShieldAlert size={13} aria-hidden="true" /> {recipe.reviewNote ? "Sent back" : "Waiting"}
+                              <ShieldAlert
+                                size={12.5}
+                                className="text-cal-ink"
+                                aria-hidden="true"
+                              />
+                              <span>{recipe.reviewNote ? "Sent back" : "Waiting"}</span>
                             </span>
                           )}
                         </td>
 
                         {/* Actions Menu */}
-                        <td 
-                          className="py-3.5 px-4 sm:px-5 align-middle text-right relative" 
+                        <td
+                          className="relative px-5 py-3.5 text-right align-middle"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <div className="flex items-center justify-end">
                             <button
                               type="button"
-                              className="p-1.5 text-ds-slate hover:text-ds-ink hover:bg-ds-surface rounded-[8px] transition-colors cursor-pointer"
                               onClick={(e) => toggleMenu(e, recipe.id)}
                               title="Actions"
+                              aria-label={`Actions for ${recipe.name}`}
+                              className="flex h-8 w-8 items-center justify-center rounded-[8px] border border-transparent text-cal-muted hover:border-cal-hairline hover:bg-cal-canvas hover:text-cal-ink transition-colors cursor-pointer"
                             >
-                              <MoreVertical size={14} />
+                              <MoreVertical size={15} />
                             </button>
                           </div>
 
                           {activeMenuRecipeId === recipe.id && (
                             <div
-                              className="fixed w-44 bg-ds-canvas border border-ds-hairline rounded-xl shadow-xl p-1.5 z-50 text-left"
+                              className="fixed z-50 w-44 rounded-[10px] border border-cal-hairline bg-cal-canvas p-1.5 text-left shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
                               style={menuPos || undefined}
                             >
-                              {/* Edit Action */}
                               <button
+                                type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setActiveMenuRecipeId(null);
                                   openModal(recipe);
                                 }}
-                                className="w-full px-2.5 py-1.5 text-[12px] text-ds-ink hover:bg-ds-surface rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
+                                className="flex w-full items-center gap-2 rounded-[6px] px-2.5 py-2 text-[12.5px] font-medium text-cal-ink hover:bg-cal-surface-soft cursor-pointer"
                               >
-                                <Edit2 size={13} className="text-ds-primary" />
+                                <Edit2 size={13.5} className="text-cal-muted" />
                                 <span>Edit recipe</span>
                               </button>
 
-                              {/* Publish Action (DRAFT only) */}
                               {recipe.status === "draft" && (
                                 <button
+                                  type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setActiveMenuRecipeId(null);
                                     handleUpdateStatus(recipe, "published");
                                   }}
-                                  className="w-full px-2.5 py-1.5 text-[12px] text-ds-ink hover:bg-ds-surface rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
+                                  className="flex w-full items-center gap-2 rounded-[6px] px-2.5 py-2 text-[12.5px] font-medium text-cal-ink hover:bg-cal-surface-soft cursor-pointer"
                                 >
-                                  <CheckCircle2 size={13} className="text-ds-charcoal" />
+                                  <CheckCircle2 size={13.5} className="text-cal-success" />
                                   <span>Publish</span>
                                 </button>
                               )}
 
-                              {/* Archive Action (PUBLISHED only) */}
                               {recipe.status === "published" && (
                                 <button
+                                  type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setActiveMenuRecipeId(null);
                                     requestArchiveRecipe(recipe);
                                   }}
-                                  className="w-full px-2.5 py-1.5 text-[12px] text-ds-ink hover:bg-ds-surface rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
+                                  className="flex w-full items-center gap-2 rounded-[6px] px-2.5 py-2 text-[12.5px] font-medium text-cal-ink hover:bg-cal-surface-soft cursor-pointer"
                                 >
-                                  <Archive size={13} className="text-ds-warm-text" />
+                                  <Archive size={13.5} className="text-cal-muted" />
                                   <span>Archive</span>
                                 </button>
                               )}
 
-                              {/* Restore Action (ARCHIVED only) */}
                               {recipe.status === "archived" && (
                                 <button
+                                  type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setActiveMenuRecipeId(null);
                                     handleUpdateStatus(recipe, "draft");
                                   }}
-                                  className="w-full px-2.5 py-1.5 text-[12px] text-ds-ink hover:bg-ds-surface rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
+                                  className="flex w-full items-center gap-2 rounded-[6px] px-2.5 py-2 text-[12.5px] font-medium text-cal-ink hover:bg-cal-surface-soft cursor-pointer"
                                 >
-                                  <CheckCircle2 size={13} className="text-ds-charcoal" />
+                                  <CheckCircle2 size={13.5} className="text-cal-muted" />
                                   <span>Restore to draft</span>
                                 </button>
                               )}
 
-                              {/* Divider */}
-                              <div className="border-t border-ds-hairline my-1" />
+                              <div className="my-1 border-t border-cal-hairline" />
 
-                              {/* Delete Action */}
                               <button
+                                type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setActiveMenuRecipeId(null);
                                   requestDeleteRecipe(recipe);
                                 }}
-                                className="w-full px-2.5 py-1.5 text-[12px] text-ds-danger hover:bg-ds-rose rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
+                                className="flex w-full items-center gap-2 rounded-[6px] px-2.5 py-2 text-[12.5px] font-medium text-cal-error hover:bg-cal-error/10 cursor-pointer"
                               >
-                                <Trash2 size={13} />
+                                <Trash2 size={13.5} />
                                 <span>Delete</span>
                               </button>
                             </div>
@@ -746,33 +1004,12 @@ const Foods = () => {
                         </td>
                       </tr>
                     );
-                  })}
-                </tbody>
-              ) : null}
-            </table>
-
-            {/* Empty State */}
-            {!loading && filteredRecipes.length === 0 && (
-              <div className="p-12 text-center text-ds-slate text-[13px] flex flex-col items-center justify-center gap-2.5 border-t border-ds-hairline">
-                {recipesQuery.isError ? (
-                  <LoadError what="the recipe library" onRetry={recipesQuery.refetch} className="py-2" />
-                ) : recipes.length === 0 ? (
-                  <p className="font-medium text-ds-slate">No recipes available in the library.</p>
-                ) : (
-                  <>
-                    <p className="font-medium text-ds-ink">No recipes match your filter criteria.</p>
-                    <button
-                      onClick={clearFilters}
-                      className="mt-1 px-3.5 py-1.5 text-[12px] font-semibold text-white bg-ds-primary hover:bg-ds-primary-pressed rounded-[8px] transition-colors cursor-pointer"
-                    >
-                      Clear filters
-                    </button>
-                  </>
+                  })
                 )}
-              </div>
-            )}
+              </tbody>
+            </table>
           </div>
-        </div>
+        </section>
 
         {/* Modal Component for Create / Edit */}
         <FoodFormModal
@@ -780,7 +1017,9 @@ const Foods = () => {
           onClose={closeModal}
           recipe={editingRecipe}
           userRole={userRole}
-          isDietitian={userRole === "medical_expert" && user?.expert_type === "Dietitian"}
+          isDietitian={
+            userRole === "medical_expert" && user?.expert_type === "Dietitian"
+          }
           onSave={async (formData) => {
             try {
               if (editingRecipe?.id) {
@@ -789,7 +1028,7 @@ const Foods = () => {
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify(formData),
                 });
-                toast.success("Recipe Updated", {
+                toast.success("Recipe updated", {
                   description: `"${formData.name}" was saved successfully.`,
                 });
               } else {
@@ -798,14 +1037,15 @@ const Foods = () => {
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify(formData),
                 });
-                toast.success("Recipe Created", {
+                toast.success("Recipe created", {
                   description: `"${formData.name}" was added to the food library.`,
                 });
               }
             } catch (err) {
               console.error("Error saving recipe:", err);
-              toast.error("Failed to Save Recipe", {
-                description: err?.data?.detail || "Could not save recipe to database.",
+              toast.error("Failed to save recipe", {
+                description:
+                  err?.data?.detail || "Could not save recipe to database.",
               });
             }
           }}
@@ -814,7 +1054,7 @@ const Foods = () => {
           }}
         />
 
-{canApprove && (
+        {canApprove && (
           <BulkApproveBar
             selected={recipes.filter((x) => selectedIds.has(x.id))}
             noun="recipe"

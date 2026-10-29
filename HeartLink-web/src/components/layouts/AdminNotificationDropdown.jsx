@@ -1,24 +1,25 @@
-import { useState, useEffect, useRef } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
-import { 
-  Bell, 
-  MessageSquare, 
-  UserPlus, 
-  ShieldAlert, 
-  Settings, 
-  CheckCheck,
-  Info,
-  RotateCw,
+import { useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import {
   AlertCircle,
-  ExternalLink,
+  Bell,
+  CheckCheck,
   ClipboardCheck,
-  StickyNote
-} from 'lucide-react';
-import { apiFetch } from '../../api';
-import { useApiQuery } from '../../hooks/useApiQuery';
-import { useLiveNotifications } from '../../hooks/useLiveNotifications';
-import { markNotificationsRead } from '../../utils/notificationCache';
+  ExternalLink,
+  Info,
+  MessageSquare,
+  RotateCw,
+  Settings,
+  ShieldAlert,
+  StickyNote,
+  UserPlus,
+  X,
+} from "lucide-react";
+import { apiFetch } from "../../api";
+import { useApiQuery } from "../../hooks/useApiQuery";
+import { useLiveNotifications } from "../../hooks/useLiveNotifications";
+import { markNotificationsRead } from "../../utils/notificationCache";
 
 const BELL_PATH = "/api/admin/notifications";
 const BELL_KEY = ["api", BELL_PATH];
@@ -64,7 +65,6 @@ export default function AdminNotificationDropdown({ userId }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen]);
 
-
   const handleToggle = () => {
     const nextState = !isOpen;
     setIsOpen(nextState);
@@ -84,7 +84,7 @@ export default function AdminNotificationDropdown({ userId }) {
 
     try {
       await apiFetch(`/api/admin/notifications/${id}/read`, { method: "PUT" });
-      
+
       if (route) {
         navigate(route);
         setIsOpen(false);
@@ -110,15 +110,27 @@ export default function AdminNotificationDropdown({ userId }) {
   };
 
   const getIcon = (type, severity) => {
-    switch(type) {
-      case 'feedback': return <MessageSquare size={14} className={severity === 'warning' ? "text-ds-warm-text" : "text-ds-charcoal"} />;
-      case 'staff': return <UserPlus size={14} className={severity === 'warning' ? "text-ds-primary" : "text-ds-charcoal"} />;
-      case 'security': return <ShieldAlert size={14} className="text-ds-danger" />;
-      case 'system': return <Settings size={14} className="text-ds-slate" />;
+    switch (type) {
+      case "feedback":
+        return (
+          <MessageSquare
+            size={14}
+            className={severity === "warning" ? "text-cal-warning" : "text-cal-ink"}
+          />
+        );
+      case "staff":
+        return <UserPlus size={14} className="text-cal-ink" />;
+      case "security":
+        return <ShieldAlert size={14} className="text-cal-error" />;
+      case "system":
+        return <Settings size={14} className="text-cal-muted" />;
       // HL-082: experts' notifications
-      case 'content': return <ClipboardCheck size={14} className="text-ds-primary" />;
-      case 'notes': return <StickyNote size={14} className="text-ds-charcoal" />;
-      default: return <Info size={14} className="text-ds-steel" />;
+      case "content":
+        return <ClipboardCheck size={14} className="text-cal-ink" />;
+      case "notes":
+        return <StickyNote size={14} className="text-cal-ink" />;
+      default:
+        return <Info size={14} className="text-cal-muted" />;
     }
   };
 
@@ -138,76 +150,86 @@ export default function AdminNotificationDropdown({ userId }) {
   };
 
   return (
-    <div className="relative" ref={dropdownRef} style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="relative font-cal-sans" ref={dropdownRef}>
       <button
+        type="button"
         onClick={handleToggle}
         aria-label="Notifications"
         aria-expanded={isOpen}
         aria-haspopup="true"
-        className="relative flex items-center justify-center rounded-[8px] w-[36px] h-[36px] bg-ds-canvas border border-ds-hairline text-ds-slate hover:text-ds-ink hover:border-ds-steel transition-colors cursor-pointer"
-        title="Notifications"
+        title={unreadCount > 0 ? `Notifications (${unreadCount} unread)` : "Notifications"}
+        className={`relative flex h-9 w-9 items-center justify-center rounded-[8px] border bg-cal-canvas transition-colors cursor-pointer ${
+          isOpen
+            ? "border-cal-ink text-cal-ink bg-cal-surface-soft"
+            : "border-cal-hairline text-cal-body hover:bg-cal-surface-soft hover:text-cal-ink"
+        }`}
       >
-        <Bell size={15} strokeWidth={2} className={unreadCount > 0 ? "text-ds-primary" : ""} />
+        <Bell
+          size={15}
+          strokeWidth={1.95}
+          className={unreadCount > 0 ? "text-cal-ink" : ""}
+        />
         {unreadCount > 0 && (
-          <span 
-            className="absolute top-1.5 right-1.5 flex h-2 w-2 rounded-full bg-ds-primary ring-1.5 ring-white"
-          />
+          <span className="absolute top-1.5 right-1.5 flex h-2 w-2 rounded-full bg-cal-primary ring-2 ring-cal-canvas" />
         )}
       </button>
 
       {isOpen && (
-        <div 
-          className="absolute right-0 mt-2 z-50 rounded-xl overflow-hidden flex flex-col shadow-xl bg-ds-canvas border border-ds-hairline w-[calc(100vw-2rem)] max-w-[340px] sm:w-[340px] text-ds-ink"
+        <div
+          className="absolute right-0 mt-2 z-50 flex w-[calc(100vw-2rem)] max-w-[356px] sm:w-[356px] flex-col overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas text-cal-ink shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
           style={{ maxHeight: 480 }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 bg-ds-canvas border-b border-ds-hairline">
+          <div className="flex items-center justify-between border-b border-cal-hairline bg-cal-canvas px-4 py-3">
             <div className="flex items-center gap-2">
-              <h3 className="text-[13px] font-semibold text-ds-ink">Notifications</h3>
+              <h3 className="text-[14px] font-semibold text-cal-ink">Notifications</h3>
               {unreadCount > 0 && (
-                <span className="px-1.5 py-0.2 rounded bg-ds-tint text-ds-on-tint text-[11px] font-bold">
-                  {unreadCount} NEW
+                <span className="rounded-full bg-cal-surface-card px-2 py-0.5 font-cal-mono text-[11px] font-medium text-cal-ink">
+                  {unreadCount} new
                 </span>
               )}
             </div>
             {unreadCount > 0 && (
-              <button 
+              <button
+                type="button"
                 onClick={markAllAsRead}
-                className="flex items-center gap-1 text-[11px] font-medium text-ds-primary hover:text-ds-primary-pressed transition-colors cursor-pointer"
+                className="flex items-center gap-1 text-[12px] font-semibold text-cal-ink hover:underline cursor-pointer"
               >
                 <CheckCheck size={13} />
-                Mark all read
+                <span>Mark all read</span>
               </button>
             )}
           </div>
 
           {/* Action Error Banner */}
           {actionError && (
-            <div className="flex items-center justify-between px-3.5 py-2 bg-ds-rose border-b border-ds-rose text-[11px] text-ds-ink font-medium">
+            <div className="flex items-center justify-between border-b border-cal-error/20 bg-cal-error/5 px-3.5 py-2 text-[12px] font-medium text-cal-ink">
               <div className="flex items-center gap-1.5">
-                <AlertCircle size={13} className="text-ds-danger shrink-0" />
+                <AlertCircle size={13} className="shrink-0 text-cal-error" />
                 <span>{actionError}</span>
               </div>
-              <button 
-                onClick={() => setActionError(null)} 
-                className="text-ds-danger font-bold text-xs cursor-pointer ml-2"
+              <button
+                type="button"
+                onClick={() => setActionError(null)}
+                className="ml-2 text-cal-muted hover:text-cal-ink cursor-pointer"
                 aria-label="Dismiss error"
               >
-                ✕
+                <X size={13} />
               </button>
             </div>
           )}
 
           {/* Background Refresh Warning */}
           {fetchError && notifications.length > 0 && (
-            <div className="flex items-center justify-between px-3.5 py-1.5 bg-ds-yellow border-b border-ds-yellow-bold text-[11px] text-ds-warm-text font-medium">
+            <div className="flex items-center justify-between border-b border-cal-warning/25 bg-cal-warning/10 px-3.5 py-2 text-[12px] font-medium text-cal-ink">
               <div className="flex items-center gap-1.5">
-                <AlertCircle size={12} className="text-ds-warm-text shrink-0" />
+                <AlertCircle size={13} className="shrink-0 text-cal-warning" />
                 <span>Unable to refresh latest updates.</span>
               </div>
-              <button 
+              <button
+                type="button"
                 onClick={handleRetry}
-                className="text-ds-primary hover:text-ds-primary-pressed font-semibold underline ml-2 cursor-pointer"
+                className="ml-2 font-semibold text-cal-ink underline cursor-pointer"
               >
                 Retry
               </button>
@@ -215,58 +237,81 @@ export default function AdminNotificationDropdown({ userId }) {
           )}
 
           {/* List */}
-          <div className="overflow-y-auto flex-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden" style={{ maxHeight: 380 }}>
+          <div
+            className="flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+            style={{ maxHeight: 376 }}
+          >
             {isLoading && notifications.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10">
-                <div className="w-5 h-5 border-2 border-ds-hairline border-t-ds-line rounded-full animate-spin mb-3"></div>
-                <p className="text-[11px] text-ds-slate font-medium">Loading notifications...</p>
+              <div className="flex flex-col items-center justify-center py-11">
+                <div className="mb-3 h-5 w-5 animate-spin rounded-full border-2 border-cal-hairline border-t-cal-ink" />
+                <p className="text-[12.5px] font-medium text-cal-muted">Loading notifications…</p>
               </div>
             ) : fetchError && notifications.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                <div className="w-10 h-10 bg-ds-rose rounded-full flex items-center justify-center mb-2.5 border border-ds-rose text-ds-ink">
-                  <AlertCircle size={18} />
+              <div className="flex flex-col items-center justify-center px-5 py-11 text-center">
+                <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-card text-cal-error">
+                  <AlertCircle size={16} />
                 </div>
-                <p className="text-[12.5px] font-semibold text-ds-ink">Unable to load notifications.</p>
-                <p className="text-[11px] text-ds-slate mt-0.5 mb-3">Please check your network connection.</p>
+                <p className="text-[13.5px] font-semibold text-cal-ink">
+                  Unable to load notifications
+                </p>
+                <p className="mt-1 mb-3.5 text-[12.5px] text-cal-muted">
+                  Please check your network connection and try again.
+                </p>
                 <button
+                  type="button"
                   onClick={handleRetry}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-ds-primary hover:bg-ds-primary-pressed text-white text-[11px] font-medium transition-colors cursor-pointer"
+                  className="inline-flex h-9 items-center gap-1.5 rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-3.5 text-[13px] font-semibold text-cal-on-primary transition-colors cursor-pointer"
                 >
-                  <RotateCw size={12} />
+                  <RotateCw size={13} />
                   <span>Retry</span>
                 </button>
               </div>
             ) : notifications.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                <div className="w-10 h-10 bg-ds-surface rounded-full flex items-center justify-center mb-2.5 border border-ds-hairline">
-                  <Bell size={16} className="text-ds-steel" />
+              <div className="flex flex-col items-center justify-center px-5 py-11 text-center">
+                <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-card text-cal-muted">
+                  <Bell size={16} />
                 </div>
-                <p className="text-[12.5px] font-medium text-ds-ink">You're all caught up!</p>
-                <p className="text-[11px] text-ds-slate mt-0.5">No new notifications right now.</p>
+                <p className="text-[13.5px] font-semibold text-cal-ink">You&apos;re all caught up</p>
+                <p className="mt-0.5 text-[12.5px] text-cal-muted">
+                  No new notifications right now.
+                </p>
               </div>
             ) : (
-              <div className="flex flex-col divide-y divide-ds-hairline">
+              <div className="flex flex-col divide-y divide-cal-hairline">
                 {notifications.map((n) => {
                   const isRead = n.read_by?.includes(userId);
                   return (
                     <button
                       key={n.id}
+                      type="button"
                       onClick={() => markAsRead(n.id, n.route)}
-                      className={`text-left w-full px-4 py-3 transition-colors flex items-start gap-3 relative cursor-pointer ${isRead ? 'bg-ds-canvas hover:bg-ds-surface' : 'bg-ds-surface-alt hover:bg-ds-hairline'}`}
+                      className={`relative flex w-full items-start gap-3 px-4 py-3 text-left transition-colors cursor-pointer ${
+                        isRead
+                          ? "bg-cal-canvas hover:bg-cal-surface-soft"
+                          : "bg-cal-surface-soft hover:bg-cal-surface-card"
+                      }`}
                     >
-                      {!isRead && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-ds-primary rounded-r-full" />}
-                      <div className={`mt-0.5 p-1.5 rounded-[7px] shrink-0 ${isRead ? 'bg-ds-surface border border-ds-hairline' : 'bg-ds-canvas border border-ds-hairline '}`}>
+                      {!isRead && (
+                        <div className="absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full bg-cal-primary" />
+                      )}
+                      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-cal-hairline bg-cal-canvas">
                         {getIcon(n.type, n.severity)}
                       </div>
-                      <div className="flex-1 min-w-0 pr-1">
-                        <p className={`text-[12.5px] leading-snug mb-0.5 truncate ${isRead ? 'font-medium text-ds-slate' : 'font-semibold text-ds-ink'}`}>
-                          {n.title}
-                        </p>
-                        <p className="text-[11px] text-ds-slate line-clamp-2 leading-relaxed">
+                      <div className="min-w-0 flex-1 pr-1">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <p
+                            className={`truncate text-[13px] leading-snug ${
+                              isRead ? "font-medium text-cal-body" : "font-semibold text-cal-ink"
+                            }`}
+                          >
+                            {n.title}
+                          </p>
+                          <span className="shrink-0 font-cal-mono text-[11px] text-cal-muted">
+                            {formatTime(n.created_at)}
+                          </span>
+                        </div>
+                        <p className="mt-0.5 line-clamp-2 text-[12px] leading-relaxed text-cal-muted">
                           {n.message}
-                        </p>
-                        <p className="text-[11px] text-ds-steel mt-1 font-medium tracking-wide uppercase">
-                          {formatTime(n.created_at)}
                         </p>
                       </div>
                     </button>
@@ -277,17 +322,18 @@ export default function AdminNotificationDropdown({ userId }) {
           </div>
 
           {/* Footer Action: Jump to full inbox */}
-          <div className="px-4 py-2.5 border-t border-ds-hairline bg-ds-surface/50 flex items-center justify-between text-[11px]">
-            <span className="text-ds-steel font-medium">Real-time alerts</span>
+          <div className="flex items-center justify-between border-t border-cal-hairline bg-cal-surface-soft px-4 py-2.5 text-[12px]">
+            <span className="font-medium text-cal-muted">Real-time alerts</span>
             <button
+              type="button"
               onClick={() => {
                 setIsOpen(false);
-                navigate('/notifications');
+                navigate("/notifications");
               }}
-              className="font-semibold text-ds-primary hover:text-ds-primary-pressed flex items-center gap-1 transition-colors cursor-pointer"
+              className="flex items-center gap-1 font-semibold text-cal-ink hover:underline cursor-pointer"
             >
               <span>View full inbox</span>
-              <ExternalLink size={11} />
+              <ExternalLink size={12} />
             </button>
           </div>
         </div>

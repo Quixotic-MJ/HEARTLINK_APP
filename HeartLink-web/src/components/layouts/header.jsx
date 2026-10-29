@@ -1,40 +1,112 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-  Menu,
-  Search,
-  Zap,
   ChevronDown,
-  Megaphone,
-  UserPlus,
-  LayoutDashboard,
-  ClipboardList,
+  ChevronRight,
   Clock,
+  Database,
+  HeartPulse,
+  ListChecks,
+  Megaphone,
+  PanelLeft,
+  Search,
+  UserPlus,
+  X,
+  Zap,
 } from "lucide-react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/useAuth";
+import { canAccess } from "../../app/access";
 import AdminNotificationDropdown from "./AdminNotificationDropdown";
 
-export default function Header({ 
-  setSidebarOpen, 
+const DESKTOP = "(min-width: 1024px)";
+
+function resolveRouteMeta(pathname, expertType) {
+  const patientsLabel = expertType === "Cardiologist" ? "Cardiologist dashboard" : "Patients";
+
+  if (pathname === "/dashboard") {
+    return { section: "Overview", title: "Dashboard" };
+  }
+  if (pathname === "/analytics") {
+    return { section: "Overview", title: "Analytics" };
+  }
+  if (pathname === "/cases") {
+    return { section: "Clinical & Library", title: "Case Review" };
+  }
+  if (pathname.startsWith("/cases/")) {
+    return { section: "Case Review", sectionPath: "/cases", title: "Evaluation Detail" };
+  }
+  if (pathname === "/calibration") {
+    return { section: "Clinical & Library", title: "Model Check" };
+  }
+  if (pathname === "/patients") {
+    return { section: "Care Team", title: patientsLabel };
+  }
+  // HL-039: a patient page's last segment is the patient's id, which must never be shown
+  if (pathname.startsWith("/patients/")) {
+    return { section: patientsLabel, sectionPath: "/patients", title: "Patient Record" };
+  }
+  if (pathname === "/foods") {
+    return { section: "Clinical & Library", title: "Food & Recipes" };
+  }
+  if (pathname === "/exercises") {
+    return { section: "Clinical & Library", title: "Exercise Library" };
+  }
+  if (pathname === "/users") {
+    return { section: "Administration", title: "Users" };
+  }
+  if (pathname.startsWith("/users/")) {
+    return { section: "Users", sectionPath: "/users", title: "Wellness Profile" };
+  }
+  if (pathname === "/feedbacks") {
+    return { section: "Support", title: "Get Help" };
+  }
+  if (pathname === "/premium") {
+    return { section: "Governance", title: "Premium" };
+  }
+  if (pathname === "/broadcasts") {
+    return { section: "Governance", title: "Announcements" };
+  }
+  if (pathname === "/activity-log") {
+    return { section: "Governance", title: "Activity Log" };
+  }
+  if (pathname === "/notifications") {
+    return { section: "Inbox", title: "Notifications" };
+  }
+  if (pathname === "/settings") {
+    return { section: "System", title: "Settings" };
+  }
+
+  const fallbackSegment = pathname.split("/").filter(Boolean).pop() || "dashboard";
+  const fallbackTitle = fallbackSegment
+    .split(/[-_]/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+
+  return { section: "Portal", title: fallbackTitle };
+}
+
+export default function Header({
+  setSidebarOpen,
+  collapsed,
+  setCollapsed,
   title: propTitle,
 }) {
   const location = useLocation();
-  const pathSegment = location.pathname.split("/").filter(Boolean).pop() || "dashboard";
-  const defaultTitle = pathSegment
-    .split(/[-_]/)
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-  // A patient page's last segment is the patient's id, which must not be shown (HL-039)
-  const title = propTitle || (location.pathname.startsWith("/patients/") ? "Patient" : defaultTitle);
-
   const navigate = useNavigate();
   const { user, userId } = useAuth();
-  const [quickActionsOpen, setQuickActionsOpen] = useState(false);
+
+  const [qaState, setQaState] = useState({ open: false, path: "" });
   const [searchQuery, setSearchQuery] = useState("");
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState(() => new Date());
+
   const qaMenuRef = useRef(null);
+  const searchInputRef = useRef(null);
 
   const userRole = user?.role;
+  const expertType = user?.expert_type;
+  const routeMeta = resolveRouteMeta(location.pathname, expertType);
+  const title = propTitle || routeMeta.title;
+  const quickActionsOpen = qaState.open && qaState.path === location.pathname;
 
   // Live Clock Tick
   useEffect(() => {
@@ -46,11 +118,13 @@ export default function Header({
   useEffect(() => {
     if (!quickActionsOpen) return;
     function handleKeyDown(event) {
-      if (event.key === "Escape") setQuickActionsOpen(false);
+      if (event.key === "Escape") {
+        setQaState({ open: false, path: "" });
+      }
     }
     function handleClickOutside(event) {
       if (qaMenuRef.current && !qaMenuRef.current.contains(event.target)) {
-        setQuickActionsOpen(false);
+        setQaState({ open: false, path: "" });
       }
     }
     window.addEventListener("keydown", handleKeyDown);
@@ -60,6 +134,36 @@ export default function Header({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [quickActionsOpen]);
+
+  // Press "/" anywhere outside text inputs to focus the header search bar
+  useEffect(() => {
+    function handleSlashFocus(event) {
+      if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) return;
+      const active = document.activeElement;
+      const tag = active?.tagName;
+      if (
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        tag === "SELECT" ||
+        active?.isContentEditable
+      ) {
+        return;
+      }
+      event.preventDefault();
+      searchInputRef.current?.focus();
+    }
+    window.addEventListener("keydown", handleSlashFocus);
+    return () => window.removeEventListener("keydown", handleSlashFocus);
+  }, []);
+
+  const handleSidebarToggle = () => {
+    const isDesktop = window.matchMedia(DESKTOP).matches;
+    if (isDesktop && setCollapsed) {
+      setCollapsed((prev) => !prev);
+    } else if (setSidebarOpen) {
+      setSidebarOpen(true);
+    }
+  };
 
   const handleSearch = (e) => {
     if (e.key === "Enter") {
@@ -72,134 +176,202 @@ export default function Header({
       } else {
         navigate(`/users?search=${encodeURIComponent(trimmedQuery)}`);
       }
-      setSearchQuery(""); 
+      setSearchQuery("");
+      searchInputRef.current?.blur();
+    } else if (e.key === "Escape") {
+      setSearchQuery("");
+      searchInputRef.current?.blur();
     }
   };
 
-  const searchPlaceholder = userRole === "medical_expert"
-    ? "Find a patient (USR-…) or case (CASE-…)"
-    : "Search profiles or content...";
+  const searchPlaceholder =
+    userRole === "medical_expert"
+      ? "Find patient (USR-…) or case (CASE-…)"
+      : "Search profiles or content…";
+
+  const actionItems =
+    userRole === "admin"
+      ? [
+        { label: "Send announcement", path: "/broadcasts", icon: Megaphone },
+        { label: "Provision staff account", path: "/users", icon: UserPlus },
+      ]
+      : [
+        canAccess(user, "/patients") && {
+          label: expertType === "Cardiologist" ? "Cardiologist roster" : "Patient roster",
+          path: "/patients",
+          icon: HeartPulse,
+        },
+        canAccess(user, "/cases") && {
+          label: "Review HSS cases",
+          path: "/cases",
+          icon: ListChecks,
+        },
+        canAccess(user, "/calibration") && {
+          label: "Run model check",
+          path: "/calibration",
+          icon: Database,
+        },
+      ].filter(Boolean);
 
   return (
-    <header
-      className="sticky top-0 z-30 grid grid-cols-[auto_1fr_auto] items-center shrink-0 px-5 sm:px-6 bg-ds-canvas border-b border-ds-hairline h-[60px] select-none gap-4"
-      style={{ fontFamily: "'Inter', sans-serif" }}
-    >
-      {/* ═════════════════════════════════════════════════════════════════════════
-          COLUMN 1: Mobile Toggle & Locked-Width Page Title Area
-      ═════════════════════════════════════════════════════════════════════════ */}
-      <div className="flex items-center gap-4">
+    <header className="sticky top-0 z-30 flex h-14 sm:h-[60px] shrink-0 items-center justify-between gap-3 border-b border-cal-hairline bg-cal-canvas px-4 sm:px-6 font-cal-sans text-cal-ink select-none">
+      {/* ─── Left: Sidebar Trigger + Hairline Divider + Breadcrumb Title ──── */}
+      <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
         <button
-          aria-label="Open sidebar"
-          className="lg:hidden p-1.5 rounded-[8px] bg-ds-surface border border-ds-hairline text-ds-slate hover:text-ds-ink transition-colors cursor-pointer"
-          onClick={() => setSidebarOpen(true)}
+          type="button"
+          onClick={handleSidebarToggle}
+          aria-label={collapsed ? "Expand sidebar" : "Toggle sidebar"}
+          title={collapsed ? "Expand sidebar" : "Toggle sidebar"}
+          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] text-cal-muted hover:bg-cal-surface-soft hover:text-cal-ink transition-colors cursor-pointer ${setCollapsed ? "" : "lg:hidden"
+            }`}
         >
-          <Menu size={16} />
+          <PanelLeft size={16} strokeWidth={1.9} />
         </button>
 
-        {/* Fixed minimum width lane so title changes never push the search bar */}
-        <div className="hidden md:flex items-center gap-5 min-w-[210px]">
-          <h1 className="text-[12px] font-bold uppercase tracking-[0.15em] text-ds-ink truncate">
+        <div className="h-4 w-px shrink-0 bg-cal-hairline" aria-hidden="true" />
+
+        <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5">
+          {routeMeta.section && (
+            <>
+              {routeMeta.sectionPath ? (
+                <Link
+                  to={routeMeta.sectionPath}
+                  className="hidden md:inline truncate text-[13.5px] font-medium text-cal-muted hover:text-cal-ink transition-colors"
+                >
+                  {routeMeta.section}
+                </Link>
+              ) : (
+                <span className="hidden md:inline truncate text-[13.5px] font-medium text-cal-muted">
+                  {routeMeta.section}
+                </span>
+              )}
+              <ChevronRight
+                size={14}
+                className="hidden md:inline shrink-0 text-cal-muted-soft"
+                aria-hidden="true"
+              />
+            </>
+          )}
+          <h1 className="truncate text-[14px] font-semibold leading-tight text-cal-ink">
             {title}
           </h1>
-          <div className="w-px h-5 bg-ds-hairline ml-auto" />
-        </div>
+        </nav>
       </div>
 
-      {/* ═════════════════════════════════════════════════════════════════════════
-          COLUMN 2: Steady, Non-Shifting Search Bar
-      ═════════════════════════════════════════════════════════════════════════ */}
-      <div className="flex items-center">
-        <div className="flex items-center gap-2 bg-ds-surface border border-ds-hairline rounded-[6px] px-2.5 h-[32px] w-full max-w-[320px] focus-within:bg-ds-canvas focus-within:border-ds-line focus-within:ring-2 focus-within:ring-ds-line/10 transition-all">
-          <Search size={13} className="text-ds-slate shrink-0" />
+      {/* ─── Right Cluster: Search Input, Monospace Clock, Actions & Bell ─── */}
+      <div className="flex items-center justify-end gap-2.5">
+        {/* Cal.com Hairline Search Input */}
+        <div className="group flex h-9 w-[170px] sm:w-[240px] lg:w-[290px] items-center gap-2 rounded-[8px] border border-cal-hairline bg-cal-surface-soft px-3 transition-colors focus-within:border-cal-ink focus-within:bg-cal-canvas">
+          <Search
+            size={14}
+            className="shrink-0 text-cal-muted group-focus-within:text-cal-ink transition-colors"
+          />
           <input
+            ref={searchInputRef}
             type="text"
             placeholder={searchPlaceholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={handleSearch}
-            className="w-full bg-transparent border-none outline-none text-[13px] text-ds-ink placeholder:text-ds-steel h-full font-medium"
+            aria-label={searchPlaceholder}
+            className="h-full w-full bg-transparent text-[13px] font-normal text-cal-ink placeholder:text-cal-muted outline-none"
           />
+          {searchQuery ? (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery("");
+                searchInputRef.current?.focus();
+              }}
+              aria-label="Clear search"
+              className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-cal-muted hover:text-cal-ink cursor-pointer"
+            >
+              <X size={12} />
+            </button>
+          ) : (
+            <kbd className="hidden sm:inline-flex h-5 shrink-0 items-center justify-center rounded-[4px] border border-cal-hairline bg-cal-canvas px-1.5 font-cal-mono text-[11px] font-medium text-cal-muted">
+              /
+            </kbd>
+          )}
         </div>
-      </div>
 
-      {/* ═════════════════════════════════════════════════════════════════════════
-          COLUMN 3: Live Clock, Quick Actions & Notifications
-      ═════════════════════════════════════════════════════════════════════════ */}
-      <div className="flex items-center gap-3 justify-end">
-        
-        {/* Live Clock Widget */}
-        <div className="hidden xl:flex items-center gap-1.5 text-[11.5px] font-medium text-ds-slate bg-ds-surface border border-ds-hairline px-2.5 h-[32px] rounded-[6px]">
-          <Clock size={13} className="text-ds-primary" />
-          <span>{currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+        {/* Live Tabular Clock Widget (JetBrains Mono) */}
+        <div
+          className="hidden xl:flex h-9 items-center gap-1.5 rounded-[8px] border border-cal-hairline bg-cal-surface-soft px-3 text-[12px] text-cal-muted"
+          title="Portal server local time"
+        >
+          <Clock size={13.5} className="shrink-0 text-cal-muted" />
+          <span className="font-cal-mono font-medium text-cal-ink tabular-nums">
+            {currentTime.toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+            })}
+          </span>
         </div>
 
-        {/* Quick Actions Dropdown */}
+        {/* Quick Actions Dropdown (Cal.com Secondary Button + 12px Popover) */}
         <div className="relative hidden md:block" ref={qaMenuRef}>
           <button
-            onClick={() => setQuickActionsOpen(prev => !prev)}
+            type="button"
+            onClick={() =>
+              setQaState((prev) => ({
+                open: !(prev.open && prev.path === location.pathname),
+                path: location.pathname,
+              }))
+            }
             aria-expanded={quickActionsOpen}
+            aria-haspopup="menu"
             aria-label="Quick actions"
-            className="flex items-center gap-1.5 bg-ds-canvas hover:bg-ds-surface border border-ds-hairline-strong text-ds-ink rounded-[8px] px-3 h-9 text-[13px] font-medium transition-colors cursor-pointer"
+            className={`flex h-9 items-center gap-1.5 rounded-[8px] border bg-cal-canvas px-3 text-[13.5px] font-semibold text-cal-ink transition-colors cursor-pointer ${quickActionsOpen
+                ? "border-cal-ink bg-cal-surface-soft"
+                : "border-cal-hairline hover:bg-cal-surface-soft"
+              }`}
           >
-            <Zap size={13} strokeWidth={2.5} />
+            <Zap size={13.5} strokeWidth={2} className="text-cal-ink" />
             <span>Actions</span>
             <ChevronDown
-              size={11}
-              strokeWidth={2.5}
-              className={`transition-transform duration-150 ${quickActionsOpen ? "rotate-180" : "rotate-0"}`}
+              size={13}
+              strokeWidth={2}
+              className={`text-cal-muted transition-transform duration-150 ${quickActionsOpen ? "rotate-180" : "rotate-0"
+                }`}
             />
           </button>
 
           {quickActionsOpen && (
-            <div className="absolute right-0 top-[calc(100%+8px)] w-[210px] bg-ds-canvas border border-ds-hairline rounded-xl shadow-lg p-1.5 z-50">
-              {userRole === "admin" ? (
-                <>
-                  <div className="text-[11px] font-semibold text-ds-steel px-2.5 pt-2 pb-1 uppercase tracking-wider">
-                    System actions
-                  </div>
-                  <button
-                    onClick={() => { navigate('/broadcasts'); setQuickActionsOpen(false); }}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[12.5px] font-medium text-ds-ink hover:bg-ds-surface transition-colors text-left cursor-pointer"
-                  >
-                    <Megaphone size={14} className="text-ds-primary shrink-0" />
-                    <span>Send announcement</span>
-                  </button>
-                  <button
-                    onClick={() => { navigate('/users'); setQuickActionsOpen(false); }}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[12.5px] font-medium text-ds-ink hover:bg-ds-surface transition-colors text-left cursor-pointer"
-                  >
-                    <UserPlus size={14} className="text-ds-primary shrink-0" />
-                    <span>Provision staff account</span>
-                  </button>
-                </>
-              ) : (
-                <>
-                  <div className="text-[11px] font-semibold text-ds-steel px-2.5 pt-2 pb-1 uppercase tracking-wider">
-                    Evaluation actions
-                  </div>
-                  <button
-                    onClick={() => { navigate('/dashboard'); setQuickActionsOpen(false); }}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[12.5px] font-medium text-ds-ink hover:bg-ds-surface transition-colors text-left cursor-pointer"
-                  >
-                    <LayoutDashboard size={14} className="text-ds-primary shrink-0" />
-                    <span>View Dashboard</span>
-                  </button>
-                  <button
-                    onClick={() => { navigate('/cases'); setQuickActionsOpen(false); }}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[12.5px] font-medium text-ds-ink hover:bg-ds-surface transition-colors text-left cursor-pointer"
-                  >
-                    <ClipboardList size={14} className="text-ds-primary shrink-0" />
-                    <span>Review cases</span>
-                  </button>
-                </>
-              )}
+            <div
+              role="menu"
+              aria-label="Quick actions menu"
+              className="absolute right-0 top-[calc(100%+8px)] z-50 w-[224px] rounded-[12px] border border-cal-hairline bg-cal-canvas p-1.5 shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
+            >
+              <div className="px-2.5 py-1.5 text-[11.5px] font-medium text-cal-muted">
+                {userRole === "admin" ? "System actions" : "Clinical actions"}
+              </div>
+              <div className="space-y-0.5">
+                {actionItems.map((item) => {
+                  const ItemIcon = item.icon;
+                  return (
+                    <button
+                      key={item.path + item.label}
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setQaState({ open: false, path: "" });
+                        navigate(item.path);
+                      }}
+                      className="flex w-full items-center gap-2.5 rounded-[6px] px-2.5 py-2 text-left text-[13px] font-medium text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer"
+                    >
+                      <ItemIcon size={15} className="shrink-0 text-cal-muted" />
+                      <span className="truncate">{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
 
-        {/* Notifications */}
-        {/* HL-082: medical experts have their own bell */}
+        {/* Notifications Bell (HL-082: medical experts have their own bell) */}
         {(userRole === "admin" || userRole === "medical_expert") && (
           <AdminNotificationDropdown userId={userId || user?.id} />
         )}

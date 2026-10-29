@@ -1,9 +1,21 @@
 // Shared labels and badge styles for Case Review (HL-054 / HL-055 / HL-056).
 
 export const LANES = {
-  urgent: { label: "Urgent", className: "bg-ds-rose text-ds-ink border-ds-rose" },
-  rereview: { label: "Re-review", className: "bg-ds-lavender text-ds-charcoal border-ds-lavender" },
-  sample: { label: "Sample", className: "bg-ds-tint text-ds-primary-pressed border-ds-tint" },
+  urgent: {
+    label: "Urgent",
+    className: "bg-cal-error/10 text-cal-ink border-cal-error/25",
+    dotClass: "bg-cal-error",
+  },
+  rereview: {
+    label: "Re-review",
+    className: "bg-cal-badge-violet/15 text-cal-ink border-cal-badge-violet/25",
+    dotClass: "bg-cal-badge-violet",
+  },
+  sample: {
+    label: "Sample",
+    className: "bg-cal-surface-card text-cal-ink border-cal-hairline",
+    dotClass: "bg-cal-muted",
+  },
 };
 
 export const SECTION_LABELS = {
@@ -18,15 +30,15 @@ export const SECTION_EXPERT = {
   exercise: "Physical Therapist",
 };
 
-export const DONE_CHIP = "bg-ds-mint text-ds-charcoal border-ds-mint";
-export const WAITING_CHIP = "bg-ds-yellow text-ds-warm-text border-ds-yellow-bold";
-export const NOT_NEEDED_CHIP = "bg-ds-surface-alt text-ds-charcoal border-ds-hairline";
+export const DONE_CHIP = "bg-cal-success/10 text-cal-ink border-cal-success/25";
+export const WAITING_CHIP = "bg-cal-warning/12 text-cal-ink border-cal-warning/30";
+export const NOT_NEEDED_CHIP = "bg-cal-surface-soft text-cal-muted border-cal-hairline";
 
 // done / waiting / not_needed (a food or exercise check with nothing recommended)
 export const PROGRESS = {
-  done: { label: "Done", className: DONE_CHIP },
-  waiting: { label: "Waiting", className: WAITING_CHIP },
-  not_needed: { label: "Not needed", className: NOT_NEEDED_CHIP },
+  done: { label: "Done", className: DONE_CHIP, dotClass: "bg-cal-success" },
+  waiting: { label: "Waiting", className: WAITING_CHIP, dotClass: "bg-cal-warning" },
+  not_needed: { label: "Not needed", className: NOT_NEEDED_CHIP, dotClass: "bg-cal-muted-soft" },
 };
 
 export const TIERS = ["Stable", "Moderate", "Elevated Risk", "Critical"];
@@ -63,9 +75,18 @@ export const SCORERS = {
 };
 
 export const AGREEMENT = {
-  agree: { label: "Agrees with the app", className: "bg-ds-mint text-ds-charcoal border-ds-mint" },
-  under: { label: "App too low (under-call)", className: "bg-ds-yellow text-ds-warm-text border-ds-yellow-bold" },
-  over: { label: "App too high (over-call)", className: "bg-ds-tint text-ds-primary-pressed border-ds-tint" },
+  agree: {
+    label: "Agrees with the app",
+    className: "bg-cal-success/10 text-cal-ink border-cal-success/25",
+  },
+  under: {
+    label: "App too low (under-call)",
+    className: "bg-cal-warning/12 text-cal-ink border-cal-warning/30",
+  },
+  over: {
+    label: "App too high (over-call)",
+    className: "bg-cal-surface-card text-cal-ink border-cal-hairline",
+  },
 };
 
 export const labelOf = (list, code) => (list.find((o) => o.code === code) || {}).label || code;
