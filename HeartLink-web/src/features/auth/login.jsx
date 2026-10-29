@@ -9,7 +9,7 @@ import {
   CheckCircle2,
   X,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/useAuth";
 import { apiFetch } from "../../api";
 import { useForm } from "react-hook-form";
@@ -698,10 +698,10 @@ export default function HeartLinkAdminLogin() {
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
       <main className="flex-1 min-w-0 flex flex-col justify-between gap-14 px-5 py-8 sm:px-12 xl:px-24">
-        <div className="flex items-center gap-2.5">
+        <Link to="/" className={`flex w-fit items-center gap-2.5 rounded-[4px] text-ds-ink no-underline ${focusRing}`}>
           <HeartLogoIcon size={32} />
           <span className="text-[18px] font-semibold tracking-[-0.01em]">HeartLink</span>
-        </div>
+        </Link>
 
         <div className="w-full max-w-[400px]">
           <AnimatePresence mode="wait" initial={false}>

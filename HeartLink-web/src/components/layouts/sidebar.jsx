@@ -153,7 +153,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
       onLogoutClick();
     } else {
       logout();
-      navigate("/");
+      navigate("/login");
     }
   };
 

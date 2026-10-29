@@ -64,7 +64,7 @@ export default function SetPassword() {
   const [error, setError] = useState(null);
 
   if (loading) return null;
-  if (!isAuthenticated) return <Navigate to="/" replace />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (!user?.mustChangePassword) return <Navigate to={homeFor(user?.role)} replace />;
 
   const rules = {

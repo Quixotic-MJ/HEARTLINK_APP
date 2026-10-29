@@ -48,7 +48,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setIsAuthenticated(false);
     purgeLegacyStorage();
-    window.location.href = '/';
+    window.location.href = '/login';
   };
 
   useEffect(() => {

@@ -14,6 +14,7 @@ import Foods from "../features/pages/management/food";
 import Analytics from "../features/pages/overview/analytics";
 import Dashboard from "../features/pages/overview/dashboard";
 import Login from "../features/auth/login";
+import Landing from "../features/landing/landing";
 import SetPassword from "../features/auth/set_password";
 import UserWellnessProfile from "../features/pages/system & support/UserWellnessProfile";
 import ActivityLog from "../features/pages/system & support/ActivityLog";
@@ -36,7 +37,7 @@ const RoleRoute = ({ children }) => {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   // HL-044: a temporary password must be replaced before any page can be used
@@ -59,9 +60,10 @@ export default function App() {
       <Toaster position="top-right" expand={false} richColors />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Login />} />
-          <Route path="/login" element={<Navigate to="/" replace />} />
-          <Route path="/two-factor" element={<Navigate to="/" replace />} />
+          {/* The public home page; staff sign in at /login */}
+          <Route path="/" element={<Landing />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/two-factor" element={<Navigate to="/login" replace />} />
           <Route path="/set-password" element={<SetPassword />} />
           
           {/* Administrative & Shared Routes */}
@@ -87,7 +89,7 @@ export default function App() {
           <Route path="/patients" element={<RoleRoute><Patients /></RoleRoute>} />
           <Route path="/patients/:id" element={<RoleRoute><PatientDetail /></RoleRoute>} />
           
-          {/* Catch-all route to redirect unknown paths to login */}
+          {/* Unknown paths go to the home page */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
