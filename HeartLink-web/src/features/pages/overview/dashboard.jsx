@@ -339,7 +339,7 @@ const Dashboard = () => {
               <ListChecks size={15} />
               <span>Review cases</span>
               {pendingEvaluations > 0 && (
-                <span className="ml-0.5 rounded-full bg-cal-surface-dark-elevated px-2 py-0.5 font-cal-mono text-[11px] font-medium text-cal-on-primary">
+                <span className="ml-0.5 inline-flex items-center justify-center rounded-full bg-white/20 border border-white/20 px-2 py-0.5 font-cal-mono text-[11px] font-semibold text-white">
                   {pendingEvaluations}
                 </span>
               )}

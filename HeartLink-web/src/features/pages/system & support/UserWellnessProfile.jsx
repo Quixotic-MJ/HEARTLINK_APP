@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
   Activity,
   AlertTriangle,
@@ -187,7 +188,7 @@ const UserWellnessProfile = () => {
           <div className="lg:w-60 shrink-0">
             <nav
               aria-label="Wellness profile sections"
-              className="sticky top-6 space-y-1 rounded-[12px] border border-cal-hairline bg-cal-canvas p-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+              className="sticky top-6 space-y-1 rounded-[12px] border border-cal-hairline bg-cal-canvas p-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] select-none"
             >
               {tabs.map((t) => {
                 const Icon = t.icon;
@@ -197,14 +198,30 @@ const UserWellnessProfile = () => {
                     key={t.id}
                     type="button"
                     onClick={() => setActiveTab(t.id)}
-                    className={`flex w-full items-center gap-2.5 rounded-[8px] px-3.5 py-2.5 text-left text-[13px] transition-colors cursor-pointer ${
+                    className={`group relative flex w-full items-center gap-2.5 rounded-[8px] px-3.5 py-2.5 text-left text-[13px] transition-colors cursor-pointer select-none ${
                       active
-                        ? "bg-cal-primary text-cal-on-primary font-semibold"
-                        : "font-medium text-cal-muted hover:bg-cal-surface-soft hover:text-cal-ink"
+                        ? "text-white font-semibold"
+                        : "font-medium text-cal-muted hover:bg-cal-surface-soft hover:text-cal-ink active:scale-[0.98]"
                     }`}
                   >
-                    <Icon size={15} />
-                    <span>{t.label}</span>
+                    {active && (
+                      <motion.div
+                        layoutId="wellness-drawer-active-tab"
+                        className="absolute inset-0 rounded-[8px] bg-cal-primary shadow-[0_1px_3px_rgba(59,130,246,0.35)]"
+                        transition={{
+                          type: "spring",
+                          stiffness: 400,
+                          damping: 32,
+                        }}
+                      />
+                    )}
+                    <Icon
+                      size={15}
+                      className={`relative z-10 shrink-0 transition-transform duration-200 ${
+                        active ? "scale-105 text-white" : "text-cal-muted group-hover:text-cal-ink"
+                      }`}
+                    />
+                    <span className="relative z-10">{t.label}</span>
                   </button>
                 );
               })}

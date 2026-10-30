@@ -1,30 +1,37 @@
 import { Bug, Lightbulb, UserCircle, HelpCircle } from "lucide-react";
 
+const PILL =
+  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11.5px] font-semibold leading-none whitespace-nowrap";
+
 const getCategoryConfig = (category) => {
   switch (category) {
     case "Bug Report":
       return {
-        label: "Bug",
+        label: "Bug Report",
         icon: Bug,
-        className: "bg-ds-rose text-ds-ink border-ds-rose",
+        iconCls: "text-cal-error",
+        className: "border-cal-error/25 bg-cal-error/10 text-cal-ink",
       };
     case "UI/UX Suggestion":
       return {
         label: "Suggestion",
         icon: Lightbulb,
-        className: "bg-ds-yellow text-ds-warm-text border-ds-yellow-bold",
+        iconCls: "text-cal-warning",
+        className: "border-cal-warning/35 bg-cal-warning/15 text-cal-ink",
       };
     case "Account Issue":
       return {
-        label: "Account",
+        label: "Account Issue",
         icon: UserCircle,
-        className: "bg-ds-mint text-ds-charcoal border-ds-mint",
+        iconCls: "text-cal-badge-violet",
+        className: "border-cal-badge-violet/30 bg-cal-badge-violet/15 text-cal-ink",
       };
     default:
       return {
         label: "Question",
         icon: HelpCircle,
-        className: "bg-ds-surface text-ds-slate border-ds-hairline",
+        iconCls: "text-cal-brand-accent",
+        className: "border-cal-brand-accent/25 bg-cal-brand-accent/10 text-cal-ink",
       };
   }
 };
@@ -33,8 +40,9 @@ const FeedbackCategoryBadge = ({ category }) => {
   const config = getCategoryConfig(category);
   const Icon = config.icon;
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[11px] font-bold uppercase tracking-wider border whitespace-nowrap ${config.className}`}>
-      <Icon size={10} /> {config.label}
+    <span className={`${PILL} ${config.className}`}>
+      <Icon size={11} className={config.iconCls} aria-hidden="true" />
+      <span>{config.label}</span>
     </span>
   );
 };

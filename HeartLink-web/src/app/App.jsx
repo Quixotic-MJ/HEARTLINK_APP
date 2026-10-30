@@ -57,7 +57,34 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <Toaster position="top-right" expand={false} richColors />
+      <Toaster
+        position="top-right"
+        expand={false}
+        closeButton
+        duration={4200}
+        offset={18}
+        gap={8}
+        toastOptions={{
+          className:
+            "group font-cal-sans rounded-[10px] border border-cal-hairline bg-cal-canvas text-cal-ink shadow-[0_8px_30px_rgba(0,0,0,0.08)] py-3 px-3.5 flex items-start gap-3 select-none",
+          classNames: {
+            title:
+              "font-cal-sans text-[13.5px] font-semibold text-cal-ink leading-tight",
+            description:
+              "text-[12.5px] text-cal-muted leading-relaxed mt-0.5",
+            actionButton:
+              "rounded-[6px] bg-cal-primary active:bg-cal-primary-active text-cal-on-primary font-semibold text-[12px] px-3 py-1.5 transition-colors cursor-pointer",
+            cancelButton:
+              "rounded-[6px] border border-cal-hairline bg-cal-canvas text-cal-ink font-semibold text-[12px] px-3 py-1.5 hover:bg-cal-surface-soft transition-colors cursor-pointer",
+            closeButton:
+              "border border-cal-hairline bg-cal-canvas text-cal-muted hover:text-cal-ink hover:bg-cal-surface-soft transition-colors",
+            success: "!border-cal-hairline !bg-cal-canvas !text-cal-ink",
+            error: "!border-cal-error/30 !bg-cal-canvas !text-cal-ink",
+            warning: "!border-cal-warning/40 !bg-cal-canvas !text-cal-ink",
+            info: "!border-cal-brand-accent/30 !bg-cal-canvas !text-cal-ink",
+          },
+        }}
+      />
       <BrowserRouter>
         <Routes>
           {/* The public home page; staff sign in at /login */}

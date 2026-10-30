@@ -1,16 +1,15 @@
 import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
   Activity,
   Bell,
   ChartColumn,
-  ChevronUp,
   CircleHelp,
   CornerDownLeft,
   Crown,
   Database,
   Dumbbell,
-  Ellipsis,
   EllipsisVertical,
   Gauge,
   HeartPulse,
@@ -42,7 +41,6 @@ const subscribeToWidth = (onChange) => {
 const isDesktopWidth = () => window.matchMedia(DESKTOP).matches;
 
 const BELL_PATH = "/api/admin/notifications";
-const MORE_PATHS = ["/premium", "/broadcasts", "/activity-log"];
 
 // ─── Brand Logo Emblem (Exempted Brand Gradient Stops) ────────────────────────
 function HeartLogoIcon({ size = 20 }) {
@@ -112,17 +110,25 @@ function getAvatarSurface(role, expertType) {
 
 // ─── Section Label ────────────────────────────────────────────────────────────
 function SectionLabel({ label, collapsed }) {
-  if (collapsed) {
-    return <div className="mx-2 my-2 border-t border-cal-hairline" aria-hidden="true" />;
-  }
   return (
-    <div className="px-2.5 pt-4 pb-1.5 text-[12px] font-medium text-cal-muted select-none">
-      {label}
+    <div className="relative">
+      <div
+        className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] ${
+          collapsed ? "max-h-0 opacity-0 my-0 py-0" : "max-h-12 opacity-100 px-2.5 pt-4 pb-1.5"
+        }`}
+      >
+        <div className="text-[12px] font-medium text-cal-muted select-none truncate whitespace-nowrap">
+          {label}
+        </div>
+      </div>
+      {collapsed && (
+        <div className="mx-2 my-2 border-t border-cal-hairline transition-opacity duration-300" aria-hidden="true" />
+      )}
     </div>
   );
 }
 
-// ─── Nav Item (Cal.com Category-Tab Spec) ─────────────────────────────────────
+// ─── Nav Item (Cal.com Category-Tab Spec + Sliding Active Animation) ─────────
 function NavItem({
   path,
   icon: Icon,
@@ -140,30 +146,70 @@ function NavItem({
       to={path}
       onClick={onNavigate}
       title={collapsed ? label : undefined}
-      className={`group flex items-center rounded-[8px] text-[13.5px] leading-[1.4] transition-colors select-none ${
+      className={`group relative flex items-center rounded-[8px] text-[13.5px] leading-[1.4] select-none transition-colors duration-150 ${
         collapsed ? "mx-auto h-9 w-9 justify-center p-0" : "gap-2.5 px-2.5 py-[7px]"
       } ${
         active
-          ? "bg-cal-canvas text-cal-ink font-semibold border border-cal-hairline shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
-          : "border border-transparent text-cal-body font-medium hover:bg-cal-surface-card hover:text-cal-ink"
+          ? "text-cal-ink font-semibold"
+          : "text-cal-body font-medium hover:bg-cal-surface-card hover:text-cal-ink active:scale-[0.98]"
       }`}
     >
+      {/* ─── Sliding Active Indicator Pill (Motion Layout) ─── */}
+      {active && (
+        <motion.div
+          layoutId="sidebar-active-pill"
+          className="absolute inset-0 rounded-[8px] bg-cal-canvas border border-cal-hairline shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+          transition={{
+            type: "spring",
+            stiffness: 380,
+            damping: 32,
+          }}
+        />
+      )}
+
+      {/* ─── Sliding Primary Accent Bar on Left Edge ─── */}
+      {active && !collapsed && (
+        <motion.div
+          layoutId="sidebar-active-indicator"
+          className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-cal-primary"
+          transition={{
+            type: "spring",
+            stiffness: 380,
+            damping: 32,
+          }}
+        />
+      )}
+
       <Icon
         size={16}
         strokeWidth={active ? 2.1 : 1.85}
-        className={`shrink-0 transition-colors ${
-          active ? "text-cal-ink" : "text-cal-muted group-hover:text-cal-ink"
+        className={`relative z-10 shrink-0 transition-transform duration-200 group-hover:scale-110 ${
+          active ? "text-cal-primary" : "text-cal-muted group-hover:text-cal-ink"
         }`}
       />
 
-      {!collapsed && (
-        <span className="flex-1 truncate">{label}</span>
-      )}
+      <div
+        className={`relative z-10 overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] ${
+          collapsed
+            ? "max-w-0 opacity-0 pointer-events-none"
+            : "flex-1 max-w-[170px] opacity-100"
+        }`}
+      >
+        <span className="truncate whitespace-nowrap block">{label}</span>
+      </div>
 
-      {!collapsed && badge !== null && badge > 0 && (
-        <span className="ml-auto inline-flex items-center justify-center rounded-full bg-cal-surface-card px-2 py-0.5 font-cal-mono text-[11px] font-medium text-cal-ink">
-          {badge}
-        </span>
+      {badge !== null && badge > 0 && (
+        <div
+          className={`relative z-10 overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] ${
+            collapsed
+              ? "max-w-0 opacity-0 pointer-events-none"
+              : "ml-auto max-w-[50px] opacity-100"
+          }`}
+        >
+          <span className="inline-flex items-center justify-center rounded-full bg-cal-surface-card px-2 py-0.5 font-cal-mono text-[11px] font-medium text-cal-ink whitespace-nowrap">
+            {badge}
+          </span>
+        </div>
       )}
     </Link>
   );
@@ -335,7 +381,6 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
 
   const [quickCreateState, setQuickCreateState] = useState({ open: false, path: "" });
   const [userMenuState, setUserMenuState] = useState({ open: false, path: "" });
-  const [moreToggled, setMoreToggled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
   const isDesktop = useSyncExternalStore(subscribeToWidth, isDesktopWidth);
@@ -369,11 +414,6 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
   const roleLabel = getRoleLabel(role, expertType);
   const userSubline = user?.email || roleLabel;
   const avatarSurface = getAvatarSurface(role, expertType);
-
-  const isInMoreRoute = MORE_PATHS.some(
-    (p) => location.pathname === p || location.pathname.startsWith(`${p}/`)
-  );
-  const showMoreItems = moreToggled || isInMoreRoute;
 
   // Close popovers on outside click or Escape
   useEffect(() => {
@@ -489,7 +529,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
     canOpen("/premium") && { label: "Premium", path: "/premium", section: "Governance", icon: Crown },
     canOpen("/broadcasts") && { label: "Announcements", path: "/broadcasts", section: "Governance", icon: Megaphone },
     canOpen("/activity-log") && { label: "Activity Log", path: "/activity-log", section: "Governance", icon: Activity },
-    canOpen("/feedbacks") && { label: "Feedback & Help", path: "/feedbacks", section: "Support", icon: CircleHelp },
+    canOpen("/feedbacks") && { label: "Feedback & Reports", path: "/feedbacks", section: "Support", icon: CircleHelp },
     canOpen("/notifications") && { label: "Notifications", path: "/notifications", section: "Inbox", icon: Bell },
     canOpen("/settings") && { label: "Settings", path: "/settings", section: "System", icon: Settings },
   ].filter(Boolean);
@@ -498,13 +538,13 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
 
   return (
     <>
-      {/* Mobile overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-cal-ink/40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      {/* Mobile overlay with smooth fade + blur */}
+      <div
+        className={`fixed inset-0 z-40 bg-cal-ink/40 backdrop-blur-[2px] transition-opacity duration-300 ease-out lg:hidden ${
+          sidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
+        onClick={() => setSidebarOpen(false)}
+      />
 
       {/* Sidebar container (Cal.com Surface Soft + 1px Hairline) */}
       <aside
@@ -514,7 +554,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
         aria-modal={isMobileMenu && sidebarOpen ? "true" : undefined}
         // Off screen on a phone-sized window: keep its links out of Tab and screen readers until it's opened
         inert={isMobileMenu && !sidebarOpen}
-        className={`fixed lg:sticky top-0 left-0 z-50 flex h-screen shrink-0 flex-col border-r border-cal-hairline bg-cal-surface-soft font-cal-sans text-cal-ink transition-[width,transform] duration-200 select-none ${
+        className={`fixed lg:sticky top-0 left-0 z-50 flex h-screen shrink-0 flex-col border-r border-cal-hairline bg-cal-surface-soft font-cal-sans text-cal-ink transition-[width,transform] duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] will-change-[width,transform] select-none ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
         style={{
@@ -533,22 +573,26 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
               }
             }}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className={`group flex h-10 items-center rounded-[8px] border border-cal-hairline/80 bg-cal-surface-card/70 hover:bg-cal-surface-card transition-colors cursor-pointer ${
+            className={`group flex h-10 items-center rounded-[8px] border border-cal-hairline/80 bg-cal-surface-card/70 hover:bg-cal-surface-card active:scale-[0.98] transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] cursor-pointer ${
               collapsed ? "mx-auto w-10 justify-center px-0" : "w-full gap-2.5 px-2.5 text-left"
             }`}
           >
-            <HeartLogoIcon size={20} />
-            {!collapsed && (
-              <>
-                <span className="font-cal-display text-[15.5px] font-semibold tracking-[-0.5px] text-cal-ink leading-none truncate">
-                  HeartLink
-                </span>
-                <PanelLeftClose
-                  size={15}
-                  className="ml-auto hidden shrink-0 text-cal-muted opacity-0 group-hover:opacity-100 transition-opacity lg:block"
-                />
-              </>
-            )}
+            <div className="shrink-0 transition-transform duration-200 group-hover:scale-105">
+              <HeartLogoIcon size={20} />
+            </div>
+            <div
+              className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] ${
+                collapsed ? "max-w-0 opacity-0 pointer-events-none" : "flex flex-1 items-center justify-between max-w-[180px] opacity-100"
+              }`}
+            >
+              <span className="font-cal-display text-[15.5px] font-semibold tracking-[-0.5px] text-cal-ink leading-none truncate whitespace-nowrap">
+                HeartLink
+              </span>
+              <PanelLeftClose
+                size={15}
+                className="ml-auto hidden shrink-0 text-cal-muted opacity-0 group-hover:opacity-100 transition-opacity lg:block"
+              />
+            </div>
           </button>
 
           {isMobileMenu && !collapsed && (
@@ -556,7 +600,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
               type="button"
               onClick={() => setSidebarOpen(false)}
               aria-label="Close sidebar"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] border border-cal-hairline bg-cal-canvas text-cal-muted hover:text-cal-ink lg:hidden cursor-pointer"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] border border-cal-hairline bg-cal-canvas text-cal-muted hover:text-cal-ink active:scale-95 transition-all lg:hidden cursor-pointer"
             >
               <X size={16} />
             </button>
@@ -565,7 +609,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
 
         {/* ─── 2. Quick Create CTA + Inbox Action Row ───────────────────────── */}
         <div className="relative px-3 pb-2.5" ref={quickCreateRef}>
-          <div className={collapsed ? "flex flex-col items-center gap-1.5" : "flex items-center gap-2"}>
+          <div className={`flex items-center transition-all duration-300 ${collapsed ? "flex-col gap-1.5" : "gap-2"}`}>
             <button
               type="button"
               onClick={() =>
@@ -577,14 +621,20 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
               aria-expanded={quickCreateOpen}
               aria-haspopup="menu"
               title={collapsed ? "Quick Create" : undefined}
-              className={`flex h-9 items-center rounded-[8px] bg-cal-primary active:bg-cal-primary-active text-cal-on-primary text-[13.5px] font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-colors cursor-pointer ${
+              className={`group flex h-9 items-center rounded-[8px] bg-cal-primary active:bg-cal-primary-active active:scale-[0.98] text-cal-on-primary text-[13.5px] font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] cursor-pointer ${
                 collapsed ? "w-9 justify-center px-0" : "flex-1 gap-2 px-3 text-left"
               }`}
             >
-              <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-cal-on-primary text-cal-primary">
+              <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-cal-on-primary text-cal-primary transition-transform duration-200 group-hover:rotate-90">
                 <Plus size={11} strokeWidth={3} />
               </span>
-              {!collapsed && <span className="truncate">Quick Create</span>}
+              <div
+                className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] ${
+                  collapsed ? "max-w-0 opacity-0 pointer-events-none" : "max-w-[120px] opacity-100"
+                }`}
+              >
+                <span className="truncate whitespace-nowrap block">Quick Create</span>
+              </div>
             </button>
 
             {canOpen("/notifications") && (
@@ -597,15 +647,15 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
                     ? `Notifications (${unreadCount} unread)`
                     : "Notifications"
                 }
-                className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] border bg-cal-canvas transition-colors ${
+                className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] border bg-cal-canvas active:scale-[0.96] transition-all duration-200 ${
                   isNotificationsActive
                     ? "border-cal-ink text-cal-ink shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
                     : "border-cal-hairline text-cal-body hover:bg-cal-surface-card hover:text-cal-ink"
                 }`}
               >
-                <Mail size={15} strokeWidth={1.9} />
+                <Mail size={15} strokeWidth={1.9} className="transition-transform duration-200 hover:scale-105" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-cal-primary ring-2 ring-cal-canvas" />
+                  <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-cal-primary ring-2 ring-cal-canvas animate-pulse" />
                 )}
               </Link>
             )}
@@ -616,7 +666,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
             <div
               role="menu"
               aria-label="Quick create actions"
-              className={`absolute z-50 rounded-[12px] border border-cal-hairline bg-cal-canvas p-1.5 shadow-[0_4px_12px_rgba(0,0,0,0.08)] ${
+              className={`absolute z-50 rounded-[12px] border border-cal-hairline bg-cal-canvas p-1.5 shadow-[0_4px_12px_rgba(0,0,0,0.08)] animate-cal-popover ${
                 collapsed ? "left-[calc(100%+8px)] top-0 w-[232px]" : "left-3 right-3 top-[calc(100%+2px)]"
               }`}
             >
@@ -738,60 +788,34 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
                 />
               )}
 
-              {/* Expandable More Items for Admin Governance */}
-              {role === "admin" && (
-                <>
-                  {showMoreItems ? (
-                    <>
-                      <NavItem
-                        path="/premium"
-                        icon={Crown}
-                        label="Premium"
-                        collapsed={collapsed}
-                        onNavigate={closeMobileIfNeeded}
-                      />
-                      <NavItem
-                        path="/broadcasts"
-                        icon={Megaphone}
-                        label="Announcements"
-                        collapsed={collapsed}
-                        onNavigate={closeMobileIfNeeded}
-                      />
-                      <NavItem
-                        path="/activity-log"
-                        icon={Activity}
-                        label="Activity Log"
-                        collapsed={collapsed}
-                        onNavigate={closeMobileIfNeeded}
-                      />
-                      {!isInMoreRoute && (
-                        <button
-                          type="button"
-                          onClick={() => setMoreToggled(false)}
-                          title={collapsed ? "Show less" : undefined}
-                          className={`group flex w-full items-center rounded-[8px] border border-transparent text-[13.5px] font-medium text-cal-muted hover:bg-cal-surface-card hover:text-cal-ink transition-colors cursor-pointer ${
-                            collapsed ? "mx-auto h-9 w-9 justify-center p-0" : "gap-2.5 px-2.5 py-[7px] text-left"
-                          }`}
-                        >
-                          <ChevronUp size={16} strokeWidth={1.85} className="shrink-0" />
-                          {!collapsed && <span className="truncate">Less</span>}
-                        </button>
-                      )}
-                    </>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setMoreToggled(true)}
-                      title={collapsed ? "More" : undefined}
-                      className={`group flex w-full items-center rounded-[8px] border border-transparent text-[13.5px] font-medium text-cal-muted hover:bg-cal-surface-card hover:text-cal-ink transition-colors cursor-pointer ${
-                        collapsed ? "mx-auto h-9 w-9 justify-center p-0" : "gap-2.5 px-2.5 py-[7px] text-left"
-                      }`}
-                    >
-                      <Ellipsis size={16} strokeWidth={1.85} className="shrink-0" />
-                      {!collapsed && <span className="truncate">More</span>}
-                    </button>
-                  )}
-                </>
+              {canOpen("/premium") && (
+                <NavItem
+                  path="/premium"
+                  icon={Crown}
+                  label="Premium"
+                  collapsed={collapsed}
+                  onNavigate={closeMobileIfNeeded}
+                />
+              )}
+
+              {canOpen("/broadcasts") && (
+                <NavItem
+                  path="/broadcasts"
+                  icon={Megaphone}
+                  label="Announcements"
+                  collapsed={collapsed}
+                  onNavigate={closeMobileIfNeeded}
+                />
+              )}
+
+              {canOpen("/activity-log") && (
+                <NavItem
+                  path="/activity-log"
+                  icon={Activity}
+                  label="Activity Log"
+                  collapsed={collapsed}
+                  onNavigate={closeMobileIfNeeded}
+                />
               )}
             </div>
           )}
@@ -812,7 +836,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
               <NavItem
                 path="/feedbacks"
                 icon={CircleHelp}
-                label="Get Help"
+                label="Feedback & Reports"
                 collapsed={collapsed}
                 onNavigate={closeMobileIfNeeded}
               />
@@ -837,21 +861,23 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
                 setSearchOpen(true);
               }}
               title={collapsed ? "Search (Ctrl+K)" : undefined}
-              className={`group flex w-full items-center rounded-[8px] border border-transparent text-[13.5px] font-medium text-cal-body hover:bg-cal-surface-card hover:text-cal-ink transition-colors cursor-pointer ${
-                collapsed ? "mx-auto h-9 w-9 justify-center p-0" : "gap-2.5 px-2.5 py-[7px] text-left"
+              className={`group flex items-center rounded-[8px] border border-transparent text-[13.5px] font-medium text-cal-body hover:bg-cal-surface-card hover:text-cal-ink active:scale-[0.98] transition-all duration-200 cursor-pointer ${
+                collapsed ? "mx-auto h-9 w-9 justify-center p-0" : "w-full gap-2.5 px-2.5 py-[7px] text-left"
               }`}
             >
               <Search
                 size={16}
                 strokeWidth={1.85}
-                className="shrink-0 text-cal-muted group-hover:text-cal-ink transition-colors"
+                className="shrink-0 text-cal-muted group-hover:text-cal-ink transition-all duration-200 group-hover:scale-110"
               />
-              {!collapsed && (
-                <>
-                  <span className="flex-1 truncate">Search</span>
-                  <span className="font-cal-mono text-[11px] text-cal-muted">Ctrl K</span>
-                </>
-              )}
+              <div
+                className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] ${
+                  collapsed ? "max-w-0 opacity-0 pointer-events-none" : "flex flex-1 items-center justify-between max-w-[180px] opacity-100"
+                }`}
+              >
+                <span className="truncate whitespace-nowrap">Search</span>
+                <span className="font-cal-mono text-[11px] text-cal-muted whitespace-nowrap">Ctrl K</span>
+              </div>
             </button>
           </div>
         </nav>
@@ -869,33 +895,35 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
             aria-expanded={userMenuOpen}
             aria-haspopup="menu"
             title={collapsed ? `${userName} (${userSubline})` : undefined}
-            className={`group flex items-center rounded-[8px] transition-colors hover:bg-cal-surface-card cursor-pointer ${
+            className={`group flex items-center rounded-[8px] transition-all duration-200 hover:bg-cal-surface-card active:scale-[0.98] cursor-pointer ${
               collapsed ? "mx-auto h-10 w-10 justify-center p-0" : "w-full gap-2.5 p-1.5 text-left"
             }`}
           >
             {/* Cal.com 36px Circular Avatar */}
             <div
-              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-cal-hairline text-[12.5px] font-semibold ${avatarSurface}`}
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-cal-hairline text-[12.5px] font-semibold transition-transform duration-200 group-hover:scale-105 ${avatarSurface}`}
             >
               {userInitials}
             </div>
 
-            {!collapsed && (
-              <>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-[13.5px] font-semibold leading-tight text-cal-ink">
-                    {userName}
-                  </div>
-                  <div className="mt-0.5 truncate text-[12px] leading-tight text-cal-muted">
-                    {userSubline}
-                  </div>
+            <div
+              className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] ${
+                collapsed ? "max-w-0 opacity-0 pointer-events-none" : "flex flex-1 min-w-0 items-center justify-between max-w-[180px] opacity-100"
+              }`}
+            >
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[13.5px] font-semibold leading-tight text-cal-ink whitespace-nowrap">
+                  {userName}
                 </div>
-                <EllipsisVertical
-                  size={16}
-                  className="shrink-0 text-cal-muted group-hover:text-cal-ink transition-colors"
-                />
-              </>
-            )}
+                <div className="mt-0.5 truncate text-[12px] leading-tight text-cal-muted whitespace-nowrap">
+                  {userSubline}
+                </div>
+              </div>
+              <EllipsisVertical
+                size={16}
+                className="shrink-0 text-cal-muted group-hover:text-cal-ink transition-colors ml-1"
+              />
+            </div>
           </button>
 
           {/* User Account Popover Menu */}
@@ -903,7 +931,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
             <div
               role="menu"
               aria-label="Account menu"
-              className={`absolute z-50 rounded-[12px] border border-cal-hairline bg-cal-canvas p-1.5 shadow-[0_4px_12px_rgba(0,0,0,0.08)] ${
+              className={`absolute z-50 rounded-[12px] border border-cal-hairline bg-cal-canvas p-1.5 shadow-[0_4px_12px_rgba(0,0,0,0.08)] animate-cal-popover ${
                 collapsed
                   ? "bottom-2.5 left-[calc(100%+8px)] w-[244px]"
                   : "bottom-[calc(100%+6px)] left-2.5 right-2.5"

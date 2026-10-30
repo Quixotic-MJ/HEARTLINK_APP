@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import {
   Activity,
   AlertCircle,
@@ -725,7 +726,7 @@ const ExerciseFormModal = ({
             <div
               role="tablist"
               aria-label="Exercise sections"
-              className="mt-4 inline-flex flex-wrap items-center gap-1 rounded-[16px] sm:rounded-full border border-cal-hairline/80 bg-cal-surface-soft p-1"
+              className="relative mt-4 inline-flex flex-wrap items-center gap-1 rounded-[16px] sm:rounded-full border border-cal-hairline/80 bg-cal-surface-soft p-1 select-none"
             >
               {TABS.map(([id, label]) => {
                 const active = tab === id;
@@ -736,21 +737,32 @@ const ExerciseFormModal = ({
                     role="tab"
                     aria-selected={active}
                     onClick={() => setTab(id)}
-                    className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap transition-all cursor-pointer ${
+                    className={`group relative flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors cursor-pointer select-none ${
                       active
-                        ? "bg-cal-canvas text-cal-ink font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
-                        : "text-cal-muted hover:text-cal-ink"
+                        ? "text-white font-semibold"
+                        : "text-cal-muted hover:text-cal-ink active:scale-[0.98]"
                     }`}
                   >
-                    <span>{label}</span>
+                    {active && (
+                      <motion.div
+                        layoutId="exercise-form-active-tab"
+                        className="absolute inset-0 rounded-full bg-cal-primary shadow-[0_1px_3px_rgba(59,130,246,0.35)]"
+                        transition={{
+                          type: "spring",
+                          stiffness: 420,
+                          damping: 34,
+                        }}
+                      />
+                    )}
+                    <span className="relative z-10">{label}</span>
                     {tabsWithErrors.has(id) && (
-                      <>
+                      <span className="relative z-10 flex items-center">
                         <span
-                          className="h-1.5 w-1.5 rounded-full bg-cal-error"
+                          className={`h-1.5 w-1.5 rounded-full ${active ? "bg-white" : "bg-cal-error"}`}
                           aria-hidden="true"
                         />
                         <span className="sr-only"> (needs fixing)</span>
-                      </>
+                      </span>
                     )}
                   </button>
                 );

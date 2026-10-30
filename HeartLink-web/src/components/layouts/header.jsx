@@ -222,10 +222,16 @@ export default function Header({
           onClick={handleSidebarToggle}
           aria-label={collapsed ? "Expand sidebar" : "Toggle sidebar"}
           title={collapsed ? "Expand sidebar" : "Toggle sidebar"}
-          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] text-cal-muted hover:bg-cal-surface-soft hover:text-cal-ink transition-colors cursor-pointer ${setCollapsed ? "" : "lg:hidden"
+          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] text-cal-muted hover:bg-cal-surface-soft hover:text-cal-ink active:scale-95 transition-all duration-200 cursor-pointer ${setCollapsed ? "" : "lg:hidden"
             }`}
         >
-          <PanelLeft size={16} strokeWidth={1.9} />
+          <PanelLeft
+            size={16}
+            strokeWidth={1.9}
+            className={`transition-transform duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] ${
+              collapsed ? "rotate-180" : "rotate-0"
+            }`}
+          />
         </button>
 
         <div className="h-4 w-px shrink-0 bg-cal-hairline" aria-hidden="true" />

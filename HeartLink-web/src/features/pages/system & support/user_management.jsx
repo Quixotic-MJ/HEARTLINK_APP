@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Ban,
   CheckCircle2,
@@ -508,23 +509,38 @@ const Users = () => {
         <div
           role="tablist"
           aria-label="Directory section"
-          className="inline-flex flex-wrap items-center gap-1 rounded-full border border-cal-hairline bg-cal-canvas p-1 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+          className="relative inline-flex flex-wrap items-center gap-1 rounded-full border border-cal-hairline bg-cal-canvas p-1 shadow-[0_1px_2px_rgba(0,0,0,0.04)] select-none"
         >
           <button
             type="button"
             role="tab"
             aria-selected={activeTab === "app_users"}
             onClick={() => handleTabSwitch("app_users")}
-            className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-[13.5px] font-medium transition-all cursor-pointer ${activeTab === "app_users"
-              ? "bg-cal-primary text-cal-on-primary font-semibold"
-              : "text-cal-muted hover:text-cal-ink"
-              }`}
+            className={`group relative flex items-center gap-2 rounded-full px-4 py-1.5 text-[13.5px] font-medium transition-colors cursor-pointer select-none ${
+              activeTab === "app_users"
+                ? "text-white font-semibold"
+                : "text-cal-muted hover:text-cal-ink active:scale-[0.98]"
+            }`}
           >
-            <User size={14.5} />
-            <span>User accounts</span>
+            {activeTab === "app_users" && (
+              <motion.div
+                layoutId="user-dir-active-tab"
+                className="absolute inset-0 rounded-full bg-cal-primary shadow-[0_1px_3px_rgba(59,130,246,0.35)]"
+                transition={{
+                  type: "spring",
+                  stiffness: 420,
+                  damping: 34,
+                }}
+              />
+            )}
+            <User size={14.5} className="relative z-10 shrink-0" />
+            <span className="relative z-10">User accounts</span>
             <span
-              className={`font-cal-mono text-[11.5px] tabular-nums ${activeTab === "app_users" ? "text-cal-on-primary/80" : "text-cal-muted-soft"
-                }`}
+              className={`relative z-10 font-cal-mono text-[11.5px] tabular-nums rounded-full px-2 py-0.5 transition-colors ${
+                activeTab === "app_users"
+                  ? "bg-white/20 text-white font-medium border border-white/20"
+                  : "bg-cal-surface-card text-cal-muted-soft"
+              }`}
             >
               {patientsQuery.isPending ? "—" : appUsers.length}
             </span>
@@ -536,18 +552,31 @@ const Users = () => {
               role="tab"
               aria-selected={activeTab === "system_staff"}
               onClick={() => handleTabSwitch("system_staff")}
-              className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-[13.5px] font-medium transition-all cursor-pointer ${activeTab === "system_staff"
-                ? "bg-cal-primary text-cal-on-primary font-semibold"
-                : "text-cal-muted hover:text-cal-ink"
-                }`}
+              className={`group relative flex items-center gap-2 rounded-full px-4 py-1.5 text-[13.5px] font-medium transition-colors cursor-pointer select-none ${
+                activeTab === "system_staff"
+                  ? "text-white font-semibold"
+                  : "text-cal-muted hover:text-cal-ink active:scale-[0.98]"
+              }`}
             >
-              <ShieldCheck size={14.5} />
-              <span>System staff</span>
+              {activeTab === "system_staff" && (
+                <motion.div
+                  layoutId="user-dir-active-tab"
+                  className="absolute inset-0 rounded-full bg-cal-primary shadow-[0_1px_3px_rgba(59,130,246,0.35)]"
+                  transition={{
+                    type: "spring",
+                    stiffness: 420,
+                    damping: 34,
+                  }}
+                />
+              )}
+              <ShieldCheck size={14.5} className="relative z-10 shrink-0" />
+              <span className="relative z-10">System staff</span>
               <span
-                className={`font-cal-mono text-[11.5px] tabular-nums ${activeTab === "system_staff"
-                  ? "text-cal-on-primary/80"
-                  : "text-cal-muted-soft"
-                  }`}
+                className={`relative z-10 font-cal-mono text-[11.5px] tabular-nums rounded-full px-2 py-0.5 transition-colors ${
+                  activeTab === "system_staff"
+                    ? "bg-white/20 text-white font-medium border border-white/20"
+                    : "bg-cal-surface-card text-cal-muted-soft"
+                }`}
               >
                 {staffQuery.isPending ? "—" : systemStaff.length}
               </span>
@@ -556,32 +585,50 @@ const Users = () => {
         </div>
 
         {/* ─── 3. TAB CONTENT ───────────────────────────────────────────────── */}
-        {activeTab === "app_users" && (
-          <UserListView
-            users={filteredUsers}
-            allUsers={appUsers}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            onClearSearch={clearSearch}
-            filterStatus={filterStatus}
-            onFilterChange={setFilterStatus}
-            onOpenUser={handleOpenUser}
-            loading={patientsQuery.isPending}
-            error={patientsQuery.isError}
-            onRetry={fetchUsers}
-          />
-        )}
+        <AnimatePresence mode="wait">
+          {activeTab === "app_users" && (
+            <motion.div
+              key="app_users"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
+            >
+              <UserListView
+                users={filteredUsers}
+                allUsers={appUsers}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                onClearSearch={clearSearch}
+                filterStatus={filterStatus}
+                onFilterChange={setFilterStatus}
+                onOpenUser={handleOpenUser}
+                loading={patientsQuery.isPending}
+                error={patientsQuery.isError}
+                onRetry={fetchUsers}
+              />
+            </motion.div>
+          )}
 
-        {activeTab === "system_staff" && currentUserRole === "admin" && (
-          <StaffListView
-            staffList={systemStaff}
-            loading={staffQuery.isPending}
-            error={staffQuery.isError}
-            onRetry={fetchUsers}
-            onOpenStaff={handleOpenStaff}
-            onCreateStaff={handleCreateStaff}
-          />
-        )}
+          {activeTab === "system_staff" && currentUserRole === "admin" && (
+            <motion.div
+              key="system_staff"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
+            >
+              <StaffListView
+                staffList={systemStaff}
+                loading={staffQuery.isPending}
+                error={staffQuery.isError}
+                onRetry={fetchUsers}
+                onOpenStaff={handleOpenStaff}
+                onCreateStaff={handleCreateStaff}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* User Account Actions Modal */}
         <AccountActionModal

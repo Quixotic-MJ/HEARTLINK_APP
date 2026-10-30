@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -328,11 +329,11 @@ function ChangesTable({ events = [] }) {
         </div>
 
         {events.length > 0 && (
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-0.5">
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-0.5 select-none">
             <div
               role="group"
               aria-label="Filter Premium activity"
-              className="inline-flex flex-wrap items-center gap-1 rounded-[16px] sm:rounded-full border border-cal-hairline/80 bg-cal-surface-soft p-1"
+              className="relative inline-flex flex-wrap items-center gap-1 rounded-[16px] sm:rounded-full border border-cal-hairline/80 bg-cal-surface-soft p-1 select-none"
             >
               {EVENT_FILTERS.map(([key, label]) => {
                 const active = filterKind === key;
@@ -342,16 +343,29 @@ function ChangesTable({ events = [] }) {
                     type="button"
                     aria-pressed={active}
                     onClick={() => setFilterKind(key)}
-                    className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-all cursor-pointer ${
+                    className={`group relative flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors cursor-pointer select-none ${
                       active
-                        ? "bg-cal-canvas text-cal-ink font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
-                        : "text-cal-muted hover:text-cal-ink"
+                        ? "text-white font-semibold"
+                        : "text-cal-muted hover:text-cal-ink active:scale-[0.98]"
                     }`}
                   >
-                    <span>{label}</span>
+                    {active && (
+                      <motion.div
+                        layoutId="premium-filter-active-tab"
+                        className="absolute inset-0 rounded-full bg-cal-primary shadow-[0_1px_3px_rgba(59,130,246,0.35)]"
+                        transition={{
+                          type: "spring",
+                          stiffness: 420,
+                          damping: 34,
+                        }}
+                      />
+                    )}
+                    <span className="relative z-10">{label}</span>
                     <span
-                      className={`font-cal-mono text-[11.5px] tabular-nums ${
-                        active ? "text-cal-ink" : "text-cal-muted-soft"
+                      className={`relative z-10 font-cal-mono text-[11.5px] tabular-nums rounded-full px-1.5 py-0.5 transition-colors ${
+                        active
+                          ? "bg-white/20 text-white font-medium border border-white/20"
+                          : "bg-cal-surface-card text-cal-muted-soft"
                       }`}
                     >
                       {counts[key]}

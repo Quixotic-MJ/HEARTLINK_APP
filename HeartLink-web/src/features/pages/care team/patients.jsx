@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   AlertTriangle,
@@ -175,7 +176,7 @@ export default function Patients() {
             <div
               role="group"
               aria-label="Filter patients"
-              className="inline-flex flex-wrap items-center gap-1 rounded-[16px] sm:rounded-full border border-cal-hairline/80 bg-cal-surface-soft p-1"
+              className="relative inline-flex flex-wrap items-center gap-1 rounded-[16px] sm:rounded-full border border-cal-hairline/80 bg-cal-surface-soft p-1"
             >
               {FILTERS.map(([key, label]) => {
                 const active = filter === key;
@@ -185,16 +186,23 @@ export default function Patients() {
                     type="button"
                     aria-pressed={active}
                     onClick={() => setFilter(key)}
-                    className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-all cursor-pointer ${
+                    className={`relative flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors cursor-pointer select-none ${
                       active
-                        ? "bg-cal-canvas text-cal-ink font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
+                        ? "text-white font-semibold"
                         : "text-cal-muted hover:text-cal-ink"
                     }`}
                   >
-                    <span>{label}</span>
+                    {active && (
+                      <motion.div
+                        layoutId="patients-filter-tab"
+                        className="absolute inset-0 rounded-full bg-cal-primary shadow-xs"
+                        transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                      />
+                    )}
+                    <span className="relative z-10">{label}</span>
                     <span
-                      className={`font-cal-mono text-[11.5px] tabular-nums ${
-                        active ? "text-cal-ink" : "text-cal-muted-soft"
+                      className={`relative z-10 font-cal-mono text-[11.5px] tabular-nums ${
+                        active ? "text-white/90 font-medium" : "text-cal-muted-soft"
                       }`}
                     >
                       {loading ? "—" : counts[key]}

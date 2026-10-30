@@ -1,153 +1,137 @@
-import { useState, useCallback } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
-  User,
-  Mail,
-  Hash,
-  ShieldCheck,
-  Lock,
+  Activity,
+  BadgeCheck,
+  Check,
+  CheckCircle2,
   Eye,
   EyeOff,
-  CheckCircle2,
-  XCircle,
-  Loader2,
-  BadgeCheck,
+  Hash,
   Info,
   KeyRound,
-  Check,
+  Loader2,
+  Lock,
+  Mail,
+  Shield,
+  ShieldCheck,
+  User,
+  XCircle,
 } from "lucide-react";
+import { toast } from "sonner";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import { useAuth } from "../../../contexts/useAuth";
 import { apiFetch } from "../../../api";
 import { useApiQuery } from "../../../hooks/useApiQuery";
-import { UI, FONTS } from "../../../styles/tokens";
-import { PageHeader, KpiCard } from "../../../styles/designSystem";
 
-// ─── Shared primitives ────────────────────────────────────────────────────────
+const PILL =
+  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11.5px] font-semibold leading-none whitespace-nowrap";
 
-/** A read-only information row inside an info card */
-function InfoRow({ icon: Icon, label, value, mono = false, pill = null }) {
+// ─── Role Display Helpers ─────────────────────────────────────────────────────
+
+function getRoleLabel(role, expertType) {
+  if (role === "admin") return "System Admin";
+  if (role === "medical_expert") return expertType || "Medical Expert";
+  return role
+    ? role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+    : "Staff User";
+}
+
+function RoleBadge({ role, expertType }) {
+  if (role === "admin") {
+    return (
+      <span
+        className={`${PILL} border-cal-badge-violet/30 bg-cal-badge-violet/15 text-cal-ink`}
+      >
+        <Shield size={11} className="text-cal-badge-violet" aria-hidden="true" />
+        <span>System Admin</span>
+      </span>
+    );
+  }
+  if (role === "medical_expert") {
+    return (
+      <span
+        className={`${PILL} border-cal-brand-accent/25 bg-cal-brand-accent/10 text-cal-ink`}
+      >
+        <Activity
+          size={11}
+          className="text-cal-brand-accent"
+          aria-hidden="true"
+        />
+        <span>{expertType || "Medical Expert"}</span>
+      </span>
+    );
+  }
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-3.5 border-b border-ds-hairline last:border-0">
-      <div className="flex items-center gap-3">
-        <div className="flex-shrink-0 w-8 h-8 rounded-[8px] bg-ds-surface border border-ds-hairline flex items-center justify-center text-ds-slate">
-          <Icon size={14} />
-        </div>
-        <p className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider">
-          {label}
-        </p>
-      </div>
-      <div className="pl-11 sm:pl-0">
-        {pill ? (
-          <span
-            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[4px] text-[11px] font-bold uppercase tracking-wider ${pill.cls}`}
-          >
-            {pill.dot && (
-              <span className="w-1.5 h-1.5 rounded-full bg-current opacity-80" />
-            )}
-            {pill.label}
-          </span>
-        ) : (
-          <p
-            className={`text-[12.5px] font-semibold text-ds-ink ${
-              mono ? "text-ds-slate" : ""
-            }`}
-          >
-            {value ?? "—"}
-          </p>
-        )}
-      </div>
-    </div>
+    <span
+      className={`${PILL} border-cal-hairline bg-cal-surface-soft text-cal-ink`}
+    >
+      <BadgeCheck size={11} className="text-cal-muted" aria-hidden="true" />
+      <span>{getRoleLabel(role, expertType)}</span>
+    </span>
   );
 }
 
-/** Section card wrapper matching the HeartLink light paper aesthetic */
-function Card({ title, subtitle, icon: Icon, action, children, className = "" }) {
+function StatusBadge({ status = "active" }) {
+  const isActive = status === "active";
+  if (isActive) {
+    return (
+      <span
+        className={`${PILL} border-cal-success/25 bg-cal-success/10 text-cal-ink`}
+      >
+        <CheckCircle2
+          size={11}
+          className="text-cal-success"
+          aria-hidden="true"
+        />
+        <span>Active</span>
+      </span>
+    );
+  }
   return (
-    <div
-      className={`bg-ds-canvas rounded-xl border border-ds-hairline overflow-hidden ${className}`}
+    <span
+      className={`${PILL} border-cal-error/25 bg-cal-error/10 text-cal-ink`}
     >
-      <div className="px-6 py-4 border-b border-ds-hairline bg-ds-canvas flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {Icon && (
-            <div className="w-8 h-8 rounded-[8px] bg-ds-tint border border-ds-tint flex items-center justify-center text-ds-on-tint">
-              <Icon size={15} />
-            </div>
-          )}
-          <div>
-            <h4 className="text-[15px] font-bold text-ds-ink">
-              {title}
-            </h4>
-            {subtitle && (
-              <p className="text-[11px] text-ds-steel mt-0.5 font-medium">
-                {subtitle}
-              </p>
-            )}
+      <XCircle size={11} className="text-cal-error" aria-hidden="true" />
+      <span>{status || "Disabled"}</span>
+    </span>
+  );
+}
+
+// ─── Shared Section Card ──────────────────────────────────────────────────────
+
+function SettingsCard({ title, subtitle, icon: Icon, children, className = "" }) {
+  return (
+    <section
+      className={`overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas shadow-[0_1px_2px_rgba(0,0,0,0.04)] ${className}`}
+    >
+      <div className="flex items-center gap-3 border-b border-cal-hairline bg-cal-canvas px-6 py-4">
+        {Icon && (
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-soft text-cal-ink">
+            <Icon size={15} aria-hidden="true" />
           </div>
+        )}
+        <div>
+          <h3 className="font-cal-display text-[17px] font-semibold tracking-[-0.3px] leading-[1.2] text-cal-ink">
+            {title}
+          </h3>
+          {subtitle && (
+            <p className="mt-0.5 text-[12.5px] text-cal-muted">{subtitle}</p>
+          )}
         </div>
-        {action && <div>{action}</div>}
       </div>
       <div className="p-6">{children}</div>
-    </div>
+    </section>
   );
 }
 
-// ─── Role display helpers ─────────────────────────────────────────────────────
+// ─── Password Field Eye Toggle ────────────────────────────────────────────────
 
-function getRoleLabel(role) {
-  if (role === "admin") return "System Admin";
-  if (role === "medical_expert") return "Authorized Medical Expert";
-  return role ? role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "Unknown";
-}
-
-function getRolePill(role) {
-  if (role === "admin")
-    return {
-      label: "System Admin",
-      cls: "bg-ds-tint text-ds-on-tint border border-ds-tint",
-      dot: true,
-    };
-  if (role === "medical_expert")
-    return {
-      label: "Medical Expert",
-      cls: "bg-ds-mint text-ds-charcoal border border-ds-mint",
-      dot: true,
-    };
-  return {
-    label: getRoleLabel(role),
-    cls: "bg-ds-surface text-ds-slate border border-ds-hairline",
-    dot: false,
-  };
-}
-
-function getStatusPill(status) {
-  if (status === "active")
-    return {
-      label: "Active",
-      cls: "bg-ds-mint text-ds-charcoal border border-ds-mint",
-      dot: true,
-    };
-  if (status === "disabled")
-    return {
-      label: "Disabled",
-      cls: "bg-ds-rose text-ds-ink border border-ds-rose",
-      dot: true,
-    };
-  return {
-    label: status ?? "Unknown",
-    cls: "bg-ds-surface text-ds-slate border border-ds-hairline",
-    dot: false,
-  };
-}
-
-// ─── Tab: My Account ─────────────────────────────────────────────────────────
-
-/** Show/hide button inside a password field. */
 function ToggleEye({ shown, onToggle }) {
   return (
     <button
       type="button"
       onClick={onToggle}
-      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ds-steel hover:text-ds-ink transition-colors cursor-pointer"
+      className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-cal-muted hover:text-cal-ink transition-colors cursor-pointer"
       tabIndex={-1}
       aria-label={shown ? "Hide password" : "Show password"}
     >
@@ -156,17 +140,26 @@ function ToggleEye({ shown, onToggle }) {
   );
 }
 
+// ─── Account & Credentials Panel ──────────────────────────────────────────────
+
 function AccountTab({ user, userId }) {
   const role = user?.role;
+  const expertType = user?.expert_type;
   const status = user?.account_status ?? "active";
   const fullName =
     user?.first_name && user?.last_name
       ? `${user.first_name} ${user.last_name}`.trim()
       : user?.first_name ?? user?.name ?? "Administrator";
 
-  // ── Password change state ──────────────────────────────────────────────────
+  const avatarInitial = fullName !== "—" ? fullName.charAt(0).toUpperCase() : "A";
+
+  // Password change state
   const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
-  const [showPw, setShowPw] = useState({ current: false, next: false, confirm: false });
+  const [showPw, setShowPw] = useState({
+    current: false,
+    next: false,
+    confirm: false,
+  });
   const [pwState, setPwState] = useState("idle"); // idle | loading | success | error
   const [pwError, setPwError] = useState(null);
 
@@ -185,7 +178,7 @@ function AccountTab({ user, userId }) {
       return;
     }
     if (pwForm.next.length < 16) {
-      setPwError("New password must be at least 16 characters.");
+      setPwError("New password must be at least 16 characters long.");
       return;
     }
     if (!/\d/.test(pwForm.next)) {
@@ -201,7 +194,7 @@ function AccountTab({ user, userId }) {
       return;
     }
     if (pwForm.next === pwForm.current) {
-      setPwError("New password must be different from the current password.");
+      setPwError("New password must be different from your current password.");
       return;
     }
 
@@ -215,135 +208,205 @@ function AccountTab({ user, userId }) {
           new_password: pwForm.next,
         }),
       });
-      // Clear sensitive fields immediately after success
       setPwForm({ current: "", next: "", confirm: "" });
       setPwState("success");
+      toast.success("Password updated successfully", {
+        description: "Your administrator password has been updated securely.",
+      });
     } catch (err) {
-      let errorMsg = err?.data?.detail ?? "Password change failed. Please check your current password and try again.";
+      let errorMsg =
+        err?.data?.detail ??
+        "Password update failed. Please verify your current password and try again.";
       if (Array.isArray(err?.data?.detail)) {
         errorMsg = err.data.detail[0].msg;
       }
       errorMsg = errorMsg.replace(/^Value error,\s*/i, "");
       setPwError(errorMsg);
-      // Clear current password on failure
       setPwForm((prev) => ({ ...prev, current: "" }));
       setPwState("error");
+      toast.error("Failed to update password", {
+        description: errorMsg,
+      });
     }
   };
 
-  const handleCancelPw = () => clearPwForm();
+  const toggleShow = (field) =>
+    setShowPw((prev) => ({ ...prev, [field]: !prev[field] }));
 
-  const toggleShow = (field) => setShowPw((prev) => ({ ...prev, [field]: !prev[field] }));
+  // Dynamic Password Validation
+  const hasMinLength = pwForm.next.length >= 16;
+  const hasNumber = /\d/.test(pwForm.next);
+  const hasSpecial = /[^A-Za-z0-9\s]/.test(pwForm.next);
+  const passwordsMatch = Boolean(
+    pwForm.confirm && pwForm.next === pwForm.confirm
+  );
 
-  const getPasswordStrength = (pw) => {
-    if (!pw) return { label: "", color: "", width: "0%" };
-    if (pw.length < 8) return { label: "Too Short", color: "bg-ds-danger text-ds-danger", width: "25%" };
-    if (pw.length < 12) return { label: "Fair", color: "bg-ds-warm-text text-ds-warm-text", width: "65%" };
-    return { label: "Strong", color: "bg-ds-primary text-ds-charcoal", width: "100%" };
-  };
+  const strengthScore = useMemo(() => {
+    let score = 0;
+    if (pwForm.next.length >= 8) score += 1;
+    if (pwForm.next.length >= 16) score += 1;
+    if (/\d/.test(pwForm.next)) score += 1;
+    if (/[^A-Za-z0-9\s]/.test(pwForm.next)) score += 1;
+    return score;
+  }, [pwForm.next]);
 
-  const strength = getPasswordStrength(pwForm.next);
+  const strengthLabel = useMemo(() => {
+    if (!pwForm.next) return { label: "", color: "bg-cal-hairline" };
+    if (strengthScore <= 1) return { label: "Weak", color: "bg-cal-error" };
+    if (strengthScore <= 3) return { label: "Moderate", color: "bg-cal-warning" };
+    return { label: "Strong", color: "bg-cal-success" };
+  }, [pwForm.next, strengthScore]);
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      {/* ── Profile Information ─────────────────────────────────────────── */}
-      <Card
+    <div className="space-y-6">
+      {/* ── 1. Profile Information ────────────────────────────────────────── */}
+      <SettingsCard
         title="Account Profile"
-        subtitle="Your personal details and assigned role"
+        subtitle="Your identity details and role permissions"
         icon={User}
       >
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4.5 pb-5 mb-4 border-b border-ds-hairline">
-          <div className="w-14 h-14 rounded-full bg-ds-tint text-ds-on-tint border border-ds-tint flex items-center justify-center text-xl font-bold flex-shrink-0">
-            {fullName !== "—" ? fullName.charAt(0).toUpperCase() : "A"}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <h3 className="text-[18px] font-bold text-ds-ink tracking-tight">
-                {fullName}
-              </h3>
-              {getRolePill(role) && (
-                <span
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[4px] text-[11px] font-bold uppercase tracking-wider ${getRolePill(role).cls}`}
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-current opacity-80" />
-                  {getRolePill(role).label}
-                </span>
-              )}
+        {/* Profile Banner */}
+        <div className="flex flex-col gap-4 border-b border-cal-hairline pb-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-cal-badge-violet/30 bg-cal-badge-violet/15 font-cal-display text-[22px] font-semibold text-cal-ink">
+              {avatarInitial}
             </div>
-            <p className="text-[12px] text-ds-slate mt-0.5">
-              {user?.email || "No email on record"}
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h4 className="font-cal-display text-[19px] font-semibold tracking-[-0.3px] text-cal-ink">
+                  {fullName}
+                </h4>
+                <RoleBadge role={role} expertType={expertType} />
+              </div>
+              <p className="mt-0.5 text-[13px] text-cal-muted">
+                {user?.email || "No email on record"}
+              </p>
+            </div>
+          </div>
+
+          <StatusBadge status={status} />
+        </div>
+
+        {/* 2-Column Hairline Metadata Grid */}
+        <div className="mt-5 grid grid-cols-1 gap-px overflow-hidden rounded-[10px] border border-cal-hairline bg-cal-hairline sm:grid-cols-2">
+          <div className="bg-cal-canvas p-4">
+            <div className="flex items-center gap-2 text-cal-muted">
+              <Mail size={13.5} />
+              <span className="text-[12px] font-medium">Email address</span>
+            </div>
+            <p className="mt-1 text-[13.5px] font-semibold text-cal-ink">
+              {user?.email || "—"}
             </p>
           </div>
+
+          <div className="bg-cal-canvas p-4">
+            <div className="flex items-center gap-2 text-cal-muted">
+              <Hash size={13.5} />
+              <span className="text-[12px] font-medium">Administrator ID</span>
+            </div>
+            <p className="mt-1 font-cal-mono text-[13px] font-semibold tabular-nums text-cal-ink">
+              {userId || "—"}
+            </p>
+          </div>
+
+          <div className="bg-cal-canvas p-4">
+            <div className="flex items-center gap-2 text-cal-muted">
+              <BadgeCheck size={13.5} />
+              <span className="text-[12px] font-medium">Access scope</span>
+            </div>
+            <div className="mt-1">
+              <RoleBadge role={role} expertType={expertType} />
+            </div>
+          </div>
+
+          <div className="bg-cal-canvas p-4">
+            <div className="flex items-center gap-2 text-cal-muted">
+              <CheckCircle2 size={13.5} />
+              <span className="text-[12px] font-medium">Directory status</span>
+            </div>
+            <div className="mt-1">
+              <StatusBadge status={status} />
+            </div>
+          </div>
         </div>
 
-        <div className="divide-y divide-ds-hairline">
-          <InfoRow icon={Mail} label="Email Address" value={user?.email} />
-          <InfoRow icon={Hash} label="Admin Account ID" value={userId} mono />
-          <InfoRow icon={BadgeCheck} label="Access Role" pill={getRolePill(role)} />
-          <InfoRow icon={CheckCircle2} label="Account Status" pill={getStatusPill(status)} />
-        </div>
-
-        <div className="mt-5 p-3 rounded-[8px] bg-ds-surface/60 border border-ds-hairline flex items-start gap-2.5 text-ds-slate">
-          <Info size={14} className="mt-0.5 flex-shrink-0 text-ds-charcoal" />
-          <p className="text-[11.5px] leading-relaxed">
-            Roles and account statuses are managed by admins in the{" "}
-            <span className="text-ds-ink font-semibold">User & Staff Directory</span>.
+        {/* Notice */}
+        <div className="mt-5 flex items-start gap-2.5 rounded-[10px] border border-cal-hairline bg-cal-surface-soft p-3.5 text-cal-muted">
+          <Info size={15} className="mt-0.5 shrink-0 text-cal-ink" />
+          <p className="text-[12.5px] leading-relaxed">
+            Roles, directory permissions, and expert assignments are managed in
+            the{" "}
+            <span className="font-semibold text-cal-ink">
+              Users &amp; Staff Directory
+            </span>
+            .
           </p>
         </div>
-      </Card>
+      </SettingsCard>
 
-      {/* ── 2FA status ──────────────────────────────────────────────────── */}
-      <Card
-        title="Login Settings"
-        subtitle="How you sign in to your administrator account"
+      {/* ── 2. Login Security Method ──────────────────────────────────────── */}
+      <SettingsCard
+        title="Login Security"
+        subtitle="Current authentication method for your staff account"
         icon={ShieldCheck}
       >
         <div className="flex items-start gap-3.5">
-          <div className="flex-shrink-0 w-9 h-9 rounded-[8px] bg-ds-mint border border-ds-mint flex items-center justify-center text-ds-charcoal">
-            <ShieldCheck size={18} />
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-cal-success/25 bg-cal-success/10 text-cal-success">
+            <ShieldCheck size={18} aria-hidden="true" />
           </div>
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <h4 className="text-[13px] font-bold text-ds-ink">
-                Email & Password Login
+            <div className="flex flex-wrap items-center gap-2">
+              <h4 className="text-[14px] font-semibold text-cal-ink">
+                Email &amp; Password Authentication
               </h4>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] bg-ds-mint text-ds-charcoal border border-ds-mint text-[11px] font-bold uppercase tracking-wider">
-                <span className="w-1.5 h-1.5 rounded-full bg-current opacity-80" />
-                Active
+              <span
+                className={`${PILL} border-cal-success/25 bg-cal-success/10 text-cal-ink`}
+              >
+                <CheckCircle2
+                  size={10.5}
+                  className="text-cal-success"
+                  aria-hidden="true"
+                />
+                <span>Active</span>
               </span>
-              <span className="inline-flex items-center px-2 py-0.5 rounded-[4px] bg-ds-surface text-ds-slate border border-ds-hairline text-[11px] font-semibold uppercase tracking-wider">
-                No Phone Code Required
+              <span
+                className={`${PILL} border-cal-hairline bg-cal-surface-soft text-cal-muted`}
+              >
+                Single-factor portal access
               </span>
             </div>
-            <p className="text-[12px] text-ds-slate leading-relaxed max-w-2xl">
-              You can securely log in to the staff portal using just your email and password. A phone verification code is not needed.
+            <p className="mt-1 text-[13px] leading-relaxed text-cal-muted">
+              You are signed in using direct credentials. Session tokens are
+              secured via HTTP-only authentication and verified against the
+              clinical backend.
             </p>
           </div>
         </div>
-      </Card>
+      </SettingsCard>
 
-      {/* ── Change password ─────────────────────────────────────────────── */}
-      <Card
+      {/* ── 3. Change Password ────────────────────────────────────────────── */}
+      <SettingsCard
         title="Change Password"
-        subtitle="Update the password you use to sign in"
+        subtitle="Update your administrator login credentials"
         icon={KeyRound}
       >
         {pwState === "success" ? (
-          <div className="p-4 rounded-[8px] bg-ds-mint border border-ds-mint flex items-start gap-3.5">
-            <div className="flex-shrink-0 w-9 h-9 rounded-[8px] bg-ds-mint text-ds-charcoal flex items-center justify-center">
+          <div className="flex items-start gap-3.5 rounded-[10px] border border-cal-success/25 bg-cal-success/10 p-5">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-cal-success/25 bg-cal-canvas text-cal-success">
               <CheckCircle2 size={18} />
             </div>
             <div className="flex-1">
-              <h4 className="text-[14px] font-bold text-ds-ink mb-0.5">
-                Password Updated Successfully
+              <h4 className="font-cal-display text-[16px] font-semibold text-cal-ink">
+                Password updated successfully
               </h4>
-              <p className="text-[12px] text-ds-charcoal leading-relaxed mb-3 font-medium">
-                Your administrative password has been updated securely. Your current console session remains authenticated.
+              <p className="mt-1 text-[13px] leading-relaxed text-cal-body">
+                Your administrator password has been updated securely. Your
+                current web console session remains authenticated.
               </p>
               <button
                 type="button"
                 onClick={clearPwForm}
-                className="text-[12px] font-semibold text-ds-ink bg-ds-canvas hover:bg-ds-surface border border-ds-hairline px-3.5 py-1.5 rounded-[6px] transition-colors cursor-pointer"
+                className="mt-3.5 inline-flex h-9 items-center justify-center rounded-[8px] border border-cal-hairline bg-cal-canvas px-3.5 text-[13px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer"
               >
                 Change password again
               </button>
@@ -353,63 +416,69 @@ function AccountTab({ user, userId }) {
           <form
             onSubmit={handlePwChange}
             autoComplete="off"
-            id="settings-password-form"
             className="space-y-4"
           >
-            <p className="text-[12px] text-ds-slate leading-relaxed">
-              Your new password must be at least 16 characters long. We recommend using a mix of letters, numbers, and symbols to keep your account secure.
+            <p className="text-[13px] leading-relaxed text-cal-muted">
+              Choose a strong, unique password with at least 16 characters. Mix
+              letters, numbers, and symbols to ensure maximum account security.
             </p>
 
             {pwError && (
-              <div
-                id="settings-pw-error"
-                className="flex items-start gap-2 p-3 rounded-[8px] bg-ds-rose border border-ds-rose text-ds-ink"
-              >
-                <XCircle size={14} className="text-ds-danger flex-shrink-0 mt-0.5" />
-                <p className="text-[12px] font-semibold leading-relaxed">
+              <div className="flex items-start gap-2.5 rounded-[10px] border border-cal-error/25 bg-cal-error/10 p-3.5 text-cal-ink">
+                <XCircle size={15} className="mt-0.5 shrink-0 text-cal-error" />
+                <p className="text-[12.5px] font-medium leading-relaxed">
                   {pwError}
                 </p>
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
-              {/* Current password */}
-              <div className="md:col-span-2">
-                <label
-                  htmlFor="pw-current"
-                  className="block text-[13px] font-medium text-ds-ink mb-1"
-                >
-                  Current Password
-                </label>
-                <div className="relative">
-                  <Lock size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ds-steel" />
-                  <input
-                    id="pw-current"
-                    type={showPw.current ? "text" : "password"}
-                    value={pwForm.current}
-                    onChange={(e) =>
-                      setPwForm((prev) => ({ ...prev, current: e.target.value }))
-                    }
-                    autoComplete="current-password"
-                    required
-                    disabled={pwState === "loading"}
-                    className="w-full pl-9 pr-9 py-2 text-[13px] bg-ds-surface border border-ds-hairline rounded-[8px] text-ds-ink placeholder:text-ds-steel focus:outline-none focus:border-ds-ink transition-colors disabled:opacity-50"
-                    placeholder="Enter current password"
-                  />
-                  <ToggleEye shown={showPw.current} onToggle={() => toggleShow("current")} />
-                </div>
+            {/* Current Password */}
+            <div>
+              <label
+                htmlFor="pw-current"
+                className="mb-1.5 block text-[13px] font-medium text-cal-ink"
+              >
+                Current password <span className="text-cal-error">*</span>
+              </label>
+              <div className="relative">
+                <Lock
+                  size={14}
+                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-cal-muted"
+                />
+                <input
+                  id="pw-current"
+                  type={showPw.current ? "text" : "password"}
+                  value={pwForm.current}
+                  onChange={(e) =>
+                    setPwForm((prev) => ({ ...prev, current: e.target.value }))
+                  }
+                  autoComplete="current-password"
+                  required
+                  disabled={pwState === "loading"}
+                  className="h-10 w-full rounded-[8px] border border-cal-hairline bg-cal-canvas pl-9 pr-10 text-[13.5px] text-cal-ink placeholder:text-cal-muted-soft focus:border-cal-ink focus:outline-none transition-colors disabled:opacity-50"
+                  placeholder="Enter your current password"
+                />
+                <ToggleEye
+                  shown={showPw.current}
+                  onToggle={() => toggleShow("current")}
+                />
               </div>
+            </div>
 
-              {/* New password */}
+            {/* New Password & Confirm Password (2 Columns) */}
+            <div className="grid grid-cols-1 gap-4 pt-1 sm:grid-cols-2">
               <div>
                 <label
                   htmlFor="pw-new"
-                  className="block text-[13px] font-medium text-ds-ink mb-1"
+                  className="mb-1.5 block text-[13px] font-medium text-cal-ink"
                 >
-                  New Password
+                  New password <span className="text-cal-error">*</span>
                 </label>
                 <div className="relative">
-                  <Lock size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ds-steel" />
+                  <Lock
+                    size={14}
+                    className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-cal-muted"
+                  />
                   <input
                     id="pw-new"
                     type={showPw.next ? "text" : "password"}
@@ -419,157 +488,325 @@ function AccountTab({ user, userId }) {
                     }
                     autoComplete="new-password"
                     required
-                    minLength={8}
                     disabled={pwState === "loading"}
-                    className="w-full pl-9 pr-9 py-2 text-[13px] bg-ds-surface border border-ds-hairline rounded-[8px] text-ds-ink placeholder:text-ds-steel focus:outline-none focus:border-ds-ink transition-colors disabled:opacity-50"
-                    placeholder="Minimum 8 characters"
+                    className="h-10 w-full rounded-[8px] border border-cal-hairline bg-cal-canvas pl-9 pr-10 text-[13.5px] text-cal-ink placeholder:text-cal-muted-soft focus:border-cal-ink focus:outline-none transition-colors disabled:opacity-50"
+                    placeholder="Minimum 16 characters"
                   />
-                  <ToggleEye shown={showPw.next} onToggle={() => toggleShow("next")} />
+                  <ToggleEye
+                    shown={showPw.next}
+                    onToggle={() => toggleShow("next")}
+                  />
                 </div>
+
+                {/* Password Strength Indicator */}
                 {pwForm.next.length > 0 && (
-                  <div className="mt-1.5 space-y-0.5">
-                    <div className="h-1 w-full bg-ds-hairline rounded-full overflow-hidden">
+                  <div className="mt-2 space-y-1">
+                    <div className="flex h-1.5 w-full gap-1 overflow-hidden rounded-full bg-cal-hairline">
                       <div
-                        className={`h-full transition-all duration-300 ${strength.color.split(" ")[0]}`}
-                        style={{ width: strength.width }}
+                        className={`h-full flex-1 rounded-full transition-colors ${
+                          strengthScore >= 1
+                            ? strengthLabel.color
+                            : "bg-transparent"
+                        }`}
+                      />
+                      <div
+                        className={`h-full flex-1 rounded-full transition-colors ${
+                          strengthScore >= 2
+                            ? strengthLabel.color
+                            : "bg-transparent"
+                        }`}
+                      />
+                      <div
+                        className={`h-full flex-1 rounded-full transition-colors ${
+                          strengthScore >= 3
+                            ? strengthLabel.color
+                            : "bg-transparent"
+                        }`}
+                      />
+                      <div
+                        className={`h-full flex-1 rounded-full transition-colors ${
+                          strengthScore >= 4
+                            ? strengthLabel.color
+                            : "bg-transparent"
+                        }`}
                       />
                     </div>
-                    <div className="flex justify-between items-center text-[11px]">
-                      <span className="text-ds-steel">Strength</span>
-                      <span className={`font-bold ${strength.color.split(" ")[1]}`}>
-                        {strength.label}
+                    <div className="flex items-center justify-between text-[11.5px]">
+                      <span className="text-cal-muted">Strength</span>
+                      <span className="font-semibold text-cal-ink">
+                        {strengthLabel.label}
                       </span>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Confirm new password */}
               <div>
                 <label
                   htmlFor="pw-confirm"
-                  className="block text-[13px] font-medium text-ds-ink mb-1"
+                  className="mb-1.5 block text-[13px] font-medium text-cal-ink"
                 >
-                  Confirm New Password
+                  Confirm new password <span className="text-cal-error">*</span>
                 </label>
                 <div className="relative">
-                  <Lock size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ds-steel" />
+                  <Lock
+                    size={14}
+                    className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-cal-muted"
+                  />
                   <input
                     id="pw-confirm"
                     type={showPw.confirm ? "text" : "password"}
                     value={pwForm.confirm}
                     onChange={(e) =>
-                      setPwForm((prev) => ({ ...prev, confirm: e.target.value }))
+                      setPwForm((prev) => ({
+                        ...prev,
+                        confirm: e.target.value,
+                      }))
                     }
                     autoComplete="new-password"
                     required
                     disabled={pwState === "loading"}
-                    className={`w-full pl-9 pr-9 py-2 text-[13px] bg-ds-surface border rounded-[8px] text-ds-ink placeholder:text-ds-steel focus:outline-none transition-colors disabled:opacity-50 ${
+                    className={`h-10 w-full rounded-[8px] border bg-cal-canvas pl-9 pr-10 text-[13.5px] text-cal-ink placeholder:text-cal-muted-soft focus:outline-none transition-colors disabled:opacity-50 ${
                       pwForm.confirm && pwForm.next !== pwForm.confirm
-                        ? "border-ds-danger text-ds-danger"
-                        : "border-ds-hairline focus:border-ds-ink"
+                        ? "border-cal-error focus:border-cal-error"
+                        : "border-cal-hairline focus:border-cal-ink"
                     }`}
                     placeholder="Re-enter new password"
                   />
-                  <ToggleEye shown={showPw.confirm} onToggle={() => toggleShow("confirm")} />
+                  <ToggleEye
+                    shown={showPw.confirm}
+                    onToggle={() => toggleShow("confirm")}
+                  />
                 </div>
+
                 {pwForm.confirm && pwForm.next !== pwForm.confirm && (
-                  <p className="text-[11px] text-ds-danger mt-1 font-medium flex items-center gap-1">
-                    <XCircle size={11} /> Passwords do not match
+                  <p className="mt-1 flex items-center gap-1 text-[11.5px] font-medium text-cal-error">
+                    <XCircle size={12} />
+                    <span>Passwords do not match</span>
                   </p>
                 )}
-                {pwForm.confirm && pwForm.next === pwForm.confirm && pwForm.confirm.length >= 8 && (
-                  <p className="text-[11px] text-ds-charcoal mt-1 font-medium flex items-center gap-1">
-                    <Check size={11} /> Passwords match
+                {pwForm.confirm && passwordsMatch && (
+                  <p className="mt-1 flex items-center gap-1 text-[11.5px] font-medium text-cal-success">
+                    <Check size={12} />
+                    <span>Passwords match</span>
                   </p>
                 )}
               </div>
             </div>
 
+            {/* Checklist */}
+            <div className="rounded-[10px] border border-cal-hairline bg-cal-surface-soft p-3.5">
+              <span className="mb-2 block text-[12px] font-semibold text-cal-ink">
+                Security requirements
+              </span>
+              <ul className="grid grid-cols-1 gap-1.5 text-[12px] sm:grid-cols-2">
+                <li
+                  className={`flex items-center gap-2 ${
+                    hasMinLength ? "text-cal-ink font-medium" : "text-cal-muted"
+                  }`}
+                >
+                  {hasMinLength ? (
+                    <Check size={13} className="text-cal-success" />
+                  ) : (
+                    <span className="h-1.5 w-1.5 rounded-full bg-cal-muted" />
+                  )}
+                  <span>At least 16 characters</span>
+                </li>
+
+                <li
+                  className={`flex items-center gap-2 ${
+                    hasNumber ? "text-cal-ink font-medium" : "text-cal-muted"
+                  }`}
+                >
+                  {hasNumber ? (
+                    <Check size={13} className="text-cal-success" />
+                  ) : (
+                    <span className="h-1.5 w-1.5 rounded-full bg-cal-muted" />
+                  )}
+                  <span>Contains at least one number</span>
+                </li>
+
+                <li
+                  className={`flex items-center gap-2 ${
+                    hasSpecial ? "text-cal-ink font-medium" : "text-cal-muted"
+                  }`}
+                >
+                  {hasSpecial ? (
+                    <Check size={13} className="text-cal-success" />
+                  ) : (
+                    <span className="h-1.5 w-1.5 rounded-full bg-cal-muted" />
+                  )}
+                  <span>Contains a special symbol</span>
+                </li>
+
+                <li
+                  className={`flex items-center gap-2 ${
+                    passwordsMatch
+                      ? "text-cal-ink font-medium"
+                      : "text-cal-muted"
+                  }`}
+                >
+                  {passwordsMatch ? (
+                    <Check size={13} className="text-cal-success" />
+                  ) : (
+                    <span className="h-1.5 w-1.5 rounded-full bg-cal-muted" />
+                  )}
+                  <span>Passwords match exactly</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Form Actions */}
             <div className="flex items-center gap-2.5 pt-2">
               <button
-                id="settings-pw-submit"
                 type="submit"
-                disabled={pwState === "loading" || (pwForm.confirm && pwForm.next !== pwForm.confirm)}
-                className="flex items-center gap-1.5 bg-ds-primary hover:bg-ds-primary-pressed text-white font-semibold text-[12.5px] px-4 py-2 rounded-[8px] transition-colors cursor-pointer disabled:opacity-50"
+                disabled={
+                  pwState === "loading" ||
+                  !hasMinLength ||
+                  !hasNumber ||
+                  !hasSpecial ||
+                  !passwordsMatch
+                }
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-5 text-[13.5px] font-semibold text-cal-on-primary transition-colors cursor-pointer disabled:bg-cal-primary-disabled disabled:text-cal-muted disabled:cursor-not-allowed"
               >
                 {pwState === "loading" ? (
                   <>
-                    <Loader2 size={13} className="animate-spin" />
+                    <Loader2 size={14} className="animate-spin" />
                     <span>Updating…</span>
                   </>
                 ) : (
                   <>
-                    <KeyRound size={13} />
-                    <span>Update Password</span>
+                    <KeyRound size={14} />
+                    <span>Update password</span>
                   </>
                 )}
               </button>
+
               <button
-                id="settings-pw-cancel"
                 type="button"
-                onClick={handleCancelPw}
+                onClick={clearPwForm}
                 disabled={pwState === "loading"}
-                className="px-3.5 py-2 text-[12.5px] font-semibold text-ds-slate hover:text-ds-ink hover:bg-ds-surface rounded-[8px] transition-colors cursor-pointer disabled:opacity-40"
+                className="inline-flex h-10 items-center justify-center rounded-[8px] border border-cal-hairline bg-cal-canvas px-4 text-[13.5px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer disabled:opacity-40"
               >
                 Clear
               </button>
             </div>
           </form>
         )}
-      </Card>
+      </SettingsCard>
     </div>
   );
 }
 
-// ─── Main Settings component ──────────────────────────────────────────────────
+// ─── Main Settings Component ──────────────────────────────────────────────────
 
 const Settings = () => {
   const { user, userId } = useAuth();
 
-  // Derive role from context
   const role = user?.role || "admin";
+  const expertType = user?.expert_type;
 
-  // The fuller profile from the backend; the sign-in details show until it loads, or if it can't
-  const profileQuery = useApiQuery(userId ? `/api/users/${userId}/profile` : null);
+  // Fetch full profile when userId is present
+  const profileQuery = useApiQuery(
+    userId ? `/api/users/${userId}/profile` : null
+  );
   const profile = profileQuery.data?.profile || user;
 
   return (
     <AdminLayout>
-      <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>
-        {/* ── Page Header ─────────────────────────────────────────────────── */}
-        <PageHeader
-          eyebrow="My Account"
-          eyebrowIcon={User}
-          title="Settings & Preferences"
-          description="Manage your administrator profile and security credentials."
-        />
-
-        {/* ── Quick KPI / Status Row ───────────────────────────────────────── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <KpiCard
-            label="Active Role"
-            value={getRoleLabel(role)}
-            icon={BadgeCheck}
-            iconBg="bg-ds-tint"
-            iconColor="text-ds-primary"
-            iconBorder="border-ds-tint"
-          />
-          <KpiCard
-            label="Login Security"
-            value="Active"
-            icon={ShieldCheck}
-            iconBg="bg-ds-mint"
-            iconColor="text-ds-charcoal"
-            iconBorder="border-ds-mint"
-            valueColor="text-ds-charcoal"
-          />
+      <div className="mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
+        {/* ─── 1. EDITORIAL PAGE HEADER ─────────────────────────────────────── */}
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <div className="mb-2.5 inline-flex items-center gap-2 rounded-full border border-cal-hairline bg-cal-canvas px-3 py-1 text-[12px] font-medium text-cal-muted">
+              <User size={13.5} className="text-cal-ink" />
+              <span>My account · Profile &amp; security credentials</span>
+            </div>
+            <h2 className="font-cal-display text-[28px] sm:text-[32px] font-semibold tracking-[-0.8px] leading-[1.15] text-cal-ink">
+              Settings &amp; preferences
+            </h2>
+            <p className="mt-1.5 max-w-[64ch] text-[14px] leading-[1.5] text-cal-muted">
+              Manage your administrator profile details, review assigned role
+              permissions, and update account credentials.
+            </p>
+          </div>
         </div>
 
-        {/* ── Content ──────────────────────────────────────────────────── */}
-        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <AccountTab user={profile} userId={userId} />
+        {/* ─── 2. KPI / STATUS SUMMARY STRIP ─────────────────────────────────── */}
+        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[12.5px] font-medium text-cal-muted">
+                Active role
+              </span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-badge-violet/30 bg-cal-badge-violet/15 text-cal-ink">
+                <BadgeCheck size={14.5} aria-hidden="true" />
+              </span>
+            </div>
+            <div className="mt-2 truncate font-cal-display text-[22px] sm:text-[24px] font-semibold tracking-[-0.5px] leading-none text-cal-ink">
+              {getRoleLabel(role, expertType)}
+            </div>
+            <div className="mt-2 text-[12px] text-cal-muted">
+              {role === "admin"
+                ? "Full administrative scope"
+                : "Clinical expert permissions"}
+            </div>
+          </div>
+
+          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[12.5px] font-medium text-cal-muted">
+                Account status
+              </span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-success/25 bg-cal-success/10 text-cal-success">
+                <CheckCircle2 size={14.5} aria-hidden="true" />
+              </span>
+            </div>
+            <div className="mt-2 font-cal-display text-[26px] font-semibold tracking-[-0.5px] leading-none text-cal-ink">
+              Active
+            </div>
+            <div className="mt-2 text-[12px] text-cal-muted">
+              Authorized clinical session
+            </div>
+          </div>
+
+          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[12.5px] font-medium text-cal-muted">
+                Login security
+              </span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-soft text-cal-ink">
+                <ShieldCheck size={14.5} aria-hidden="true" />
+              </span>
+            </div>
+            <div className="mt-2 truncate font-cal-display text-[22px] sm:text-[24px] font-semibold tracking-[-0.5px] leading-none text-cal-ink">
+              Direct Auth
+            </div>
+            <div className="mt-2 text-[12px] text-cal-muted">
+              Encrypted password verification
+            </div>
+          </div>
+
+          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[12.5px] font-medium text-cal-muted">
+                Staff identifier
+              </span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-soft text-cal-ink">
+                <Hash size={14.5} aria-hidden="true" />
+              </span>
+            </div>
+            <div className="mt-2 truncate font-cal-mono text-[16px] sm:text-[18px] font-semibold tabular-nums text-cal-ink">
+              {userId ? userId.slice(0, 12) + "…" : "—"}
+            </div>
+            <div className="mt-2 text-[12px] text-cal-muted">
+              Immutable staff database record
+            </div>
+          </div>
         </div>
+
+        {/* ─── 3. ACCOUNT SETTINGS CONTENT ───────────────────────────────────── */}
+        <AccountTab user={profile} userId={userId} />
       </div>
     </AdminLayout>
   );

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 import { AlertTriangle, ArrowLeft, Info, ShieldCheck } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -814,11 +815,11 @@ const CaseReviewDetail = () => {
                 className="overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas shadow-[0_1px_2px_rgba(0,0,0,0.04)] xl:col-span-7"
               >
                 {/* Section Switcher Header (Cal.com Nav-Pill-Group) */}
-                <div className="border-b border-cal-hairline bg-cal-canvas px-5 py-3.5">
+                <div className="border-b border-cal-hairline bg-cal-canvas px-5 py-3.5 select-none">
                   <div
                     role="tablist"
                     aria-label="Review sections"
-                    className="inline-flex flex-wrap items-center gap-1 rounded-full border border-cal-hairline/80 bg-cal-surface-soft p-1"
+                    className="relative inline-flex flex-wrap items-center gap-1 rounded-full border border-cal-hairline/80 bg-cal-surface-soft p-1 select-none"
                   >
                     {Object.keys(SECTION_LABELS).map((s) => {
                       const progress = PROGRESS[data.progress?.[s]] || PROGRESS.waiting;
@@ -830,18 +831,37 @@ const CaseReviewDetail = () => {
                           role="tab"
                           aria-selected={selected}
                           onClick={() => setTab(s)}
-                          className={`flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-all cursor-pointer ${
+                          className={`group relative flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors cursor-pointer select-none ${
                             selected
-                              ? "bg-cal-canvas font-semibold text-cal-ink shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
-                              : "text-cal-muted hover:text-cal-ink"
+                              ? "text-white font-semibold"
+                              : "text-cal-muted hover:text-cal-ink active:scale-[0.98]"
                           }`}
                         >
-                          <span>{SECTION_LABELS[s]}</span>
+                          {selected && (
+                            <motion.div
+                              layoutId="case-review-active-tab"
+                              className="absolute inset-0 rounded-full bg-cal-primary shadow-[0_1px_3px_rgba(59,130,246,0.35)]"
+                              transition={{
+                                type: "spring",
+                                stiffness: 420,
+                                damping: 34,
+                              }}
+                            />
+                          )}
+                          <span className="relative z-10">{SECTION_LABELS[s]}</span>
                           <span
-                            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${progress.className}`}
+                            className={`relative z-10 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium transition-colors ${
+                              selected
+                                ? "bg-white/20 text-white border border-white/20"
+                                : `border ${progress.className}`
+                            }`}
                           >
                             {progress.dotClass && (
-                              <span className={`h-1.5 w-1.5 rounded-full ${progress.dotClass}`} />
+                              <span
+                                className={`h-1.5 w-1.5 rounded-full ${
+                                  selected ? "bg-white" : progress.dotClass
+                                }`}
+                              />
                             )}
                             {progress.label}
                           </span>

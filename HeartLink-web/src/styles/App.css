@@ -202,8 +202,8 @@
   --font-cal-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-cal-mono: 'JetBrains Mono', ui-monospace, monospace;
 
-  --color-cal-primary: #111111;
-  --color-cal-primary-active: #242424;
+  --color-cal-primary: #3b82f6;
+  --color-cal-primary-active: #2563eb;
   --color-cal-primary-disabled: #e5e7eb;
   --color-cal-ink: #111111;
   --color-cal-body: #374151;
@@ -271,4 +271,97 @@ input:focus:-webkit-autofill {
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: var(--color-ds-steel);
+}
+
+
+/* ─── Cal.com Design System Toast (Sonner) ─── */
+[data-sonner-toaster] {
+  font-family: var(--font-cal-sans) !important;
+}
+
+[data-sonner-toast] {
+  border-radius: 10px !important;
+  font-family: var(--font-cal-sans) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08) !important;
+  border-color: var(--color-cal-hairline) !important;
+  background: var(--color-cal-canvas) !important;
+  color: var(--color-cal-ink) !important;
+}
+
+[data-sonner-toast] [data-title] {
+  font-family: var(--font-cal-sans) !important;
+  font-weight: 600 !important;
+  font-size: 13.5px !important;
+  color: var(--color-cal-ink) !important;
+}
+
+[data-sonner-toast] [data-description] {
+  font-family: var(--font-cal-sans) !important;
+  font-size: 12.5px !important;
+  color: var(--color-cal-muted) !important;
+}
+
+[data-sonner-toast][data-type="success"] [data-icon] {
+  color: var(--color-cal-success) !important;
+}
+
+[data-sonner-toast][data-type="error"] {
+  border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+[data-sonner-toast][data-type="error"] [data-icon] {
+  color: var(--color-cal-error) !important;
+}
+
+[data-sonner-toast][data-type="warning"] {
+  border-color: rgba(245, 158, 11, 0.35) !important;
+}
+
+[data-sonner-toast][data-type="warning"] [data-icon] {
+  color: var(--color-cal-warning) !important;
+}
+
+[data-sonner-toast][data-type="info"] {
+  border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+[data-sonner-toast][data-type="info"] [data-icon] {
+  color: var(--color-cal-brand-accent) !important;
+}
+
+[data-sonner-toast] [data-close-button] {
+  border-color: var(--color-cal-hairline) !important;
+  background: var(--color-cal-canvas) !important;
+  color: var(--color-cal-muted) !important;
+  transition: all 0.15s ease !important;
+}
+
+[data-sonner-toast] [data-close-button]:hover {
+  background: var(--color-cal-surface-soft) !important;
+  color: var(--color-cal-ink) !important;
+}
+
+[data-sonner-toast] [data-button] {
+  background: var(--color-cal-primary) !important;
+  color: var(--color-cal-on-primary) !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  border-radius: 6px !important;
+}
+
+
+/* ─── Cal.com Smooth Popover Entrance ─── */
+@keyframes calPopoverIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-cal-popover {
+  animation: calPopoverIn 160ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

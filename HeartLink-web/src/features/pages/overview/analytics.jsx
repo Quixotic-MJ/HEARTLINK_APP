@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Users,
   Activity,
@@ -21,6 +22,12 @@ import { useApiQuery } from "../../../hooks/useApiQuery";
 import LoadError from "../../../components/ui/LoadError";
 import { UI, FONTS, COLORS } from "../../../styles/tokens";
 import { PageHeader } from "../../../styles/designSystem";
+
+const TABS = [
+  { id: "adoption", label: "User adoption", icon: Users },
+  { id: "outcomes", label: "HSS trends", icon: HeartPulse },
+  { id: "content", label: "Content usage", icon: Globe },
+];
 
 // ─── Custom Light Tooltip for Recharts ────────────────────────────────────────
 const CustomLightTooltip = ({ active, payload, label }) => {
@@ -132,52 +139,59 @@ const Analytics = () => {
         />
 
         {/* ── TABS ── */}
-        <div className="inline-flex gap-1 bg-ds-canvas border border-ds-hairline rounded-xl p-1 mb-5 ">
-          <button
-            type="button"
-            onClick={() => setActiveTab("adoption")}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-[7px] border-none text-[12.5px] font-semibold cursor-pointer transition-colors ${
-              activeTab === "adoption"
-                ? "bg-ds-ink text-white "
-                : "bg-transparent text-ds-slate hover:bg-ds-surface hover:text-ds-ink"
-            }`}
-          >
-            <Users size={14} />
-            <span>User adoption</span>
-          </button>
-          
-          <button
-            type="button"
-            onClick={() => setActiveTab("outcomes")}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-[7px] border-none text-[12.5px] font-semibold cursor-pointer transition-colors ${
-              activeTab === "outcomes"
-                ? "bg-ds-ink text-white "
-                : "bg-transparent text-ds-slate hover:bg-ds-surface hover:text-ds-ink"
-            }`}
-          >
-            <HeartPulse size={14} />
-            <span>HSS trends</span>
-          </button>
+        <div className="relative inline-flex items-center gap-1 bg-cal-canvas border border-cal-hairline rounded-xl p-1 mb-5 select-none shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+          {TABS.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`group relative flex items-center gap-2 px-3.5 py-2 rounded-[7px] text-[12.5px] font-semibold cursor-pointer select-none transition-colors duration-150 ${
+                  isActive
+                    ? "text-white"
+                    : "text-cal-muted hover:text-cal-ink hover:bg-cal-surface-soft active:scale-[0.98]"
+                }`}
+              >
+                {/* ─── Sliding Active Primary Pill (#3b82f6) ─── */}
+                {isActive && (
+                  <motion.div
+                    layoutId="analytics-active-tab"
+                    className="absolute inset-0 rounded-[7px] bg-cal-primary shadow-[0_1px_3px_rgba(59,130,246,0.35)]"
+                    transition={{
+                      type: "spring",
+                      stiffness: 420,
+                      damping: 34,
+                    }}
+                  />
+                )}
 
-          <button
-            type="button"
-            onClick={() => setActiveTab("content")}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-[7px] border-none text-[12.5px] font-semibold cursor-pointer transition-colors ${
-              activeTab === "content"
-                ? "bg-ds-ink text-white "
-                : "bg-transparent text-ds-slate hover:bg-ds-surface hover:text-ds-ink"
-            }`}
-          >
-            <Globe size={14} />
-            <span>Content usage</span>
-          </button>
+                <Icon
+                  size={14}
+                  className={`relative z-10 shrink-0 transition-transform duration-200 ${
+                    isActive ? "scale-105" : "group-hover:scale-105"
+                  }`}
+                />
+                <span className="relative z-10 whitespace-nowrap">{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* ═══════════════════════════════════════════════════════════ */}
         {/* TAB 1: USER ADOPTION                                       */}
         {/* ═══════════════════════════════════════════════════════════ */}
-        {activeTab === "adoption" && (
-          <div className="space-y-5 animate-in fade-in duration-200">
+        <AnimatePresence mode="wait">
+          {activeTab === "adoption" && (
+            <motion.div
+              key="adoption"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.22, ease: [0.25, 1, 0.5, 1] }}
+              className="space-y-5"
+            >
             {/* Stat Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
               {/* Total Sign-ups */}
@@ -305,14 +319,21 @@ const Analytics = () => {
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* ═══════════════════════════════════════════════════════════ */}
         {/* TAB 2: HSS TRENDS                                          */}
         {/* ═══════════════════════════════════════════════════════════ */}
         {activeTab === "outcomes" && (
-          <div className="space-y-5 animate-in fade-in duration-200">
+          <motion.div
+            key="outcomes"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.22, ease: [0.25, 1, 0.5, 1] }}
+            className="space-y-5"
+          >
             {/* Stacked HSS Chart */}
             <div className="bg-ds-canvas border border-ds-hairline rounded-xl p-5 ">
               <h3 className="text-[13.5px] font-semibold text-ds-ink mb-0.5">
@@ -392,14 +413,21 @@ const Analytics = () => {
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* ═══════════════════════════════════════════════════════════ */}
         {/* TAB 3: CONTENT USAGE                                       */}
         {/* ═══════════════════════════════════════════════════════════ */}
         {activeTab === "content" && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 animate-in fade-in duration-200">
+          <motion.div
+            key="content"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.22, ease: [0.25, 1, 0.5, 1] }}
+            className="grid grid-cols-1 lg:grid-cols-2 gap-3.5"
+          >
             {/* Most Logged Recipes */}
             <div className="bg-ds-canvas border border-ds-hairline rounded-xl p-5 ">
               <div className="flex items-center gap-2.5 mb-4">
@@ -477,8 +505,9 @@ const Analytics = () => {
                 )}
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
+      </AnimatePresence>
       </div>
     </AdminLayout>
   );

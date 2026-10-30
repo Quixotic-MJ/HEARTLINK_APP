@@ -1,53 +1,205 @@
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
-  Bell,
-  MessageSquare,
-  UserPlus,
-  ShieldAlert,
-  Settings,
-  CheckCheck,
-  Info,
-  RotateCw,
-  Search,
-  ChevronLeft,
-  ChevronRight,
-  ExternalLink,
-  Check,
-  Clock,
   Activity,
   AlertCircle,
+  Bell,
+  Check,
+  CheckCheck,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ClipboardCheck,
+  Clock,
+  ExternalLink,
+  Info,
+  MessageSquare,
+  RotateCw,
+  Search,
+  Settings as SettingsIcon,
+  ShieldAlert,
   StickyNote,
+  UserPlus,
+  X,
 } from "lucide-react";
+import { toast } from "sonner";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import { useAuth } from "../../../contexts/useAuth";
 import { apiFetch } from "../../../api";
 import { useApiQuery } from "../../../hooks/useApiQuery";
 import { markNotificationsRead } from "../../../utils/notificationCache";
+import LoadError from "../../../components/ui/LoadError";
 import { Skeleton } from "../../../components/ui/Skeleton";
-import { UI, FONTS } from "../../../styles/tokens";
-import { PageHeader, KpiCard } from "../../../styles/designSystem";
 
 const NOTIFICATIONS_PATH = "/api/admin/notifications?include_archived=true";
 const NOTIFICATIONS_KEY = ["api", NOTIFICATIONS_PATH];
 const NO_NOTIFICATIONS = [];
 
+const PILL =
+  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11.5px] font-semibold leading-none whitespace-nowrap";
+
+const getNotificationBadge = (type) => {
+  switch (type) {
+    case "feedback":
+      return {
+        label: "Feedback",
+        className: "border-cal-warning/35 bg-cal-warning/15 text-cal-ink",
+      };
+    case "case":
+    case "clinical":
+      return {
+        label: "Case review",
+        className: "border-cal-error/25 bg-cal-error/10 text-cal-ink",
+      };
+    case "staff":
+    case "user":
+      return {
+        label: "Account",
+        className: "border-cal-badge-violet/30 bg-cal-badge-violet/15 text-cal-ink",
+      };
+    case "security":
+      return {
+        label: "Security",
+        className: "border-cal-error/25 bg-cal-error/10 text-cal-ink",
+      };
+    case "content":
+      return {
+        label: "Approval",
+        className: "border-cal-brand-accent/25 bg-cal-brand-accent/10 text-cal-ink",
+      };
+    case "notes":
+      return {
+        label: "Patient notes",
+        className: "border-cal-badge-emerald/35 bg-cal-badge-emerald/15 text-cal-ink",
+      };
+    case "system":
+      return {
+        label: "System",
+        className: "border-cal-hairline bg-cal-surface-soft text-cal-ink",
+      };
+    default:
+      return {
+        label: "General",
+        className: "border-cal-hairline bg-cal-surface-soft text-cal-muted",
+      };
+  }
+};
+
+const getNotificationIcon = (type, severity) => {
+  switch (type) {
+    case "feedback":
+      return (
+        <MessageSquare
+          size={15}
+          className={
+            severity === "warning" ? "text-cal-warning" : "text-cal-ink"
+          }
+          aria-hidden="true"
+        />
+      );
+    case "staff":
+    case "user":
+      return (
+        <UserPlus
+          size={15}
+          className="text-cal-badge-violet"
+          aria-hidden="true"
+        />
+      );
+    case "case":
+    case "clinical":
+      return (
+        <Activity size={15} className="text-cal-error" aria-hidden="true" />
+      );
+    case "security":
+      return (
+        <ShieldAlert size={15} className="text-cal-error" aria-hidden="true" />
+      );
+    case "system":
+      return (
+        <SettingsIcon
+          size={15}
+          className="text-cal-muted"
+          aria-hidden="true"
+        />
+      );
+    case "content":
+      return (
+        <ClipboardCheck
+          size={15}
+          className="text-cal-brand-accent"
+          aria-hidden="true"
+        />
+      );
+    case "notes":
+      return (
+        <StickyNote
+          size={15}
+          className="text-cal-success"
+          aria-hidden="true"
+        />
+      );
+    default:
+      return (
+        <Info size={15} className="text-cal-muted" aria-hidden="true" />
+      );
+  }
+};
+
+const formatRelativeTime = (isoString) => {
+  if (!isoString) return "";
+  try {
+    const date = new Date(isoString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHrs = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHrs / 24);
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHrs < 24) return `${diffHrs}h ago`;
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return "";
+  }
+};
+
+const formatFullDate = (isoString) => {
+  if (!isoString) return "";
+  try {
+    const d = new Date(isoString);
+    return d.toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  } catch {
+    return isoString;
+  }
+};
+
 const Notifications = () => {
   const navigate = useNavigate();
   const { userId, user } = useAuth();
-  // HL-082: medical experts get approvals waiting for them, guidance and patient-note replies
   const isExpert = user?.role === "medical_expert";
 
   const queryClient = useQueryClient();
-  // HL-019: archived ones (over 72 hours old) come too, but only show under "Archived".
   const notificationsQuery = useApiQuery(NOTIFICATIONS_PATH);
   const notifications = notificationsQuery.data?.items ?? NO_NOTIFICATIONS;
   const loading = notificationsQuery.isPending;
   const refreshing = notificationsQuery.isFetching;
   const fetchError = notificationsQuery.isError;
-  const [actionError, setActionError] = useState(null);
 
   // Filter & Search states
   const [searchQuery, setSearchQuery] = useState("");
@@ -58,14 +210,18 @@ const Notifications = () => {
   const [page, setPage] = useState(1);
   const pageSize = 12;
 
-  // Fetch notifications
   const markReadOnScreen = (shouldMark, allRead = false) =>
-    markNotificationsRead(queryClient, NOTIFICATIONS_KEY, userId, shouldMark, allRead);
+    markNotificationsRead(
+      queryClient,
+      NOTIFICATIONS_KEY,
+      userId,
+      shouldMark,
+      allRead
+    );
 
   // Mark single item as read
   const markAsRead = async (id, e) => {
     if (e) e.stopPropagation();
-    setActionError(null);
 
     const undo = markReadOnScreen((n) => n.id === id);
 
@@ -74,21 +230,21 @@ const Notifications = () => {
     } catch (error) {
       console.error("Failed to mark as read:", error);
       undo();
-      setActionError("Unable to update notification status.");
+      toast.error("Unable to update notification status.");
     }
   };
 
   // Mark all as read
   const markAllAsRead = async () => {
-    setActionError(null);
     const undo = markReadOnScreen(() => true, true);
 
     try {
       await apiFetch("/api/admin/notifications/mark-all-read", { method: "PUT" });
+      toast.success("All notifications marked as read.");
     } catch (error) {
       console.error("Failed to mark all as read:", error);
       undo();
-      setActionError("Unable to mark all notifications as read.");
+      toast.error("Unable to mark all notifications as read.");
     }
   };
 
@@ -99,96 +255,12 @@ const Notifications = () => {
     }
   };
 
-  const getIcon = (type, severity) => {
-    switch (type) {
-      case "feedback":
-        return <MessageSquare size={15} className={severity === "warning" ? "text-ds-warm-text" : "text-ds-charcoal"} />;
-      case "staff":
-      case "user":
-        return <UserPlus size={15} className={severity === "warning" ? "text-ds-primary" : "text-ds-charcoal"} />;
-      case "case":
-      case "clinical":
-        return <Activity size={15} className="text-ds-danger" />;
-      case "security":
-        return <ShieldAlert size={15} className="text-ds-danger" />;
-      case "system":
-        return <Settings size={15} className="text-ds-slate" />;
-      case "content":
-        return <ClipboardCheck size={15} className="text-ds-primary" />;
-      case "notes":
-        return <StickyNote size={15} className="text-ds-charcoal" />;
-      default:
-        return <Info size={15} className="text-ds-steel" />;
-    }
-  };
-
-  const getTypeBadge = (type) => {
-    switch (type) {
-      case "feedback":
-        return { label: "Feedback", cls: "bg-ds-yellow text-ds-warm-text border-ds-yellow-bold" };
-      case "case":
-      case "clinical":
-        return { label: "Case Review", cls: "bg-ds-rose text-ds-ink border-ds-rose" };
-      case "staff":
-      case "user":
-        return { label: "Account", cls: "bg-ds-mint text-ds-charcoal border-ds-mint" };
-      case "security":
-        return { label: "Security", cls: "bg-ds-rose text-ds-ink border-ds-rose" };
-      case "system":
-        return { label: "System", cls: "bg-ds-surface text-ds-slate border-ds-hairline" };
-      case "content":
-        return { label: "Approval", cls: "bg-ds-tint text-ds-ink border-ds-tint" };
-      case "notes":
-        return { label: "Patient notes", cls: "bg-ds-mint text-ds-charcoal border-ds-mint" };
-      default:
-        return { label: "General", cls: "bg-ds-surface text-ds-steel border-ds-hairline" };
-    }
-  };
-
-  const formatRelativeTime = (isoString) => {
-    if (!isoString) return "";
-    try {
-      const date = new Date(isoString);
-      const now = new Date();
-      const diffMs = now - date;
-      const diffMins = Math.floor(diffMs / 60000);
-      const diffHrs = Math.floor(diffMins / 60);
-      const diffDays = Math.floor(diffHrs / 24);
-
-      if (diffMins < 1) return "Just now";
-      if (diffMins < 60) return `${diffMins}m ago`;
-      if (diffHrs < 24) return `${diffHrs}h ago`;
-      if (diffDays === 1) return "Yesterday";
-      if (diffDays < 7) return `${diffDays}d ago`;
-      return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    } catch {
-      return "";
-    }
-  };
-
-  const formatFullDate = (isoString) => {
-    if (!isoString) return "";
-    try {
-      const d = new Date(isoString);
-      return d.toLocaleString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      });
-    } catch {
-      return isoString;
-    }
-  };
-
   // Filter notifications
   const filteredNotifications = notifications.filter((n) => {
     const isRead = n.read_by?.includes(userId);
 
     // Status filter: archived notifications only show under "Archived"
-    if ((statusFilter === "archived") !== !!n.archived) return false;
+    if ((statusFilter === "archived") !== Boolean(n.archived)) return false;
     if (statusFilter === "unread" && isRead) return false;
     if (statusFilter === "read" && !isRead) return false;
 
@@ -211,15 +283,28 @@ const Notifications = () => {
   const activeNotifications = notifications.filter((n) => !n.archived);
   const archivedCount = notifications.length - activeNotifications.length;
   const totalCount = activeNotifications.length;
-  const unreadItemsCount = activeNotifications.filter((n) => !n.read_by?.includes(userId)).length;
-  const clinicalCasesCount = notifications.filter((n) => n.type === "case" || n.type === "clinical").length;
-  const feedbackTicketsCount = notifications.filter((n) => n.type === "feedback").length;
-  const approvalsCount = notifications.filter((n) => n.type === "content").length;
-  const patientNotesCount = notifications.filter((n) => n.type === "notes").length;
+  const unreadItemsCount = activeNotifications.filter(
+    (n) => !n.read_by?.includes(userId)
+  ).length;
+  const clinicalCasesCount = notifications.filter(
+    (n) => n.type === "case" || n.type === "clinical"
+  ).length;
+  const feedbackTicketsCount = notifications.filter(
+    (n) => n.type === "feedback"
+  ).length;
+  const approvalsCount = notifications.filter(
+    (n) => n.type === "content"
+  ).length;
+  const patientNotesCount = notifications.filter(
+    (n) => n.type === "notes"
+  ).length;
 
   // Pagination logic
   const totalPages = Math.ceil(filteredNotifications.length / pageSize) || 1;
-  const paginatedNotifications = filteredNotifications.slice((page - 1) * pageSize, page * pageSize);
+  const paginatedNotifications = filteredNotifications.slice(
+    (page - 1) * pageSize,
+    page * pageSize
+  );
 
   const handleClearFilters = () => {
     setSearchQuery("");
@@ -228,348 +313,401 @@ const Notifications = () => {
     setPage(1);
   };
 
-  const isFilterActive = searchQuery.trim() !== "" || statusFilter !== "all" || typeFilter !== "all";
+  const isFilterActive =
+    searchQuery.trim() !== "" || statusFilter !== "all" || typeFilter !== "all";
+
+  const rangeStart =
+    filteredNotifications.length === 0
+      ? 0
+      : (page - 1) * pageSize + 1;
+  const rangeEnd = Math.min(page * pageSize, filteredNotifications.length);
 
   return (
     <AdminLayout>
-      <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>
-        {/* ── PAGE HEAD ── */}
-        <PageHeader
-          eyebrow="System alerts"
-          eyebrowIcon={Bell}
-          title="Notifications & Alerts Inbox"
-          description={
-            isExpert
-              ? "Recipes or exercises waiting for your approval, new Cardiologist guidance, and replies in patient notes."
-              : "Real-time feed of clinical escalations, support inquiries, staff events, and system security alerts."
-          }
-          actions={
-            <div className="flex items-center gap-2.5">
-              <button
-                onClick={() => notificationsQuery.refetch()}
-                disabled={refreshing}
-                className={UI.button.secondary}
-                title="Refresh notifications"
-              >
-                <RotateCw size={13} className={refreshing ? "animate-spin" : ""} />
-                <span>Refresh</span>
-              </button>
-              {unreadItemsCount > 0 && (
-                <button
-                  onClick={markAllAsRead}
-                  className={UI.button.primary}
-                >
-                  <CheckCheck size={14} />
-                  <span>Mark all as read</span>
-                </button>
-              )}
+      <div className="mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
+        {/* ─── 1. EDITORIAL PAGE HEADER ─────────────────────────────────────── */}
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <div className="mb-2.5 inline-flex items-center gap-2 rounded-full border border-cal-hairline bg-cal-canvas px-3 py-1 text-[12px] font-medium text-cal-muted">
+              <Bell size={13.5} className="text-cal-ink" />
+              <span>System alerts · Real-time activity inbox</span>
             </div>
-          }
-        />
+            <h2 className="font-cal-display text-[28px] sm:text-[32px] font-semibold tracking-[-0.8px] leading-[1.15] text-cal-ink">
+              Notifications &amp; alerts
+            </h2>
+            <p className="mt-1.5 max-w-[64ch] text-[14px] leading-[1.5] text-cal-muted">
+              {isExpert
+                ? "Pending recipe and exercise approvals, cardiologist guidance notices, and care team patient-note replies."
+                : "Real-time feed of clinical escalations, support inquiries, staff events, and system security alerts."}
+            </p>
+          </div>
 
-        {/* ── KPI METRICS ROW ── */}
-        <div className={UI.kpi.grid}>
-          <KpiCard
-            label="Total Alerts"
-            value={loading ? "…" : totalCount}
-            icon={Bell}
-          />
-          <KpiCard
-            label="Unread Items"
-            value={loading ? "…" : unreadItemsCount}
-            icon={AlertCircle}
-            iconBg="bg-ds-tint"
-            iconColor="text-ds-primary"
-            iconBorder="border-ds-tint"
-            valueColor="text-ds-primary"
-          />
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => notificationsQuery.refetch()}
+              disabled={refreshing}
+              className="inline-flex h-10 items-center gap-2 rounded-[8px] border border-cal-hairline bg-cal-canvas px-4 text-[13.5px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer disabled:opacity-50"
+              title="Refresh notifications"
+            >
+              <RotateCw
+                size={14}
+                className={refreshing ? "animate-spin text-cal-muted" : "text-cal-muted"}
+                aria-hidden="true"
+              />
+              <span>Refresh</span>
+            </button>
+
+            {unreadItemsCount > 0 && (
+              <button
+                type="button"
+                onClick={markAllAsRead}
+                className="inline-flex h-10 items-center gap-2 rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-5 text-[13.5px] font-semibold text-cal-on-primary transition-colors cursor-pointer"
+              >
+                <CheckCheck size={15} aria-hidden="true" />
+                <span>Mark all as read</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* ─── 2. KPI SUMMARY STRIP ─────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[12.5px] font-medium text-cal-muted">
+                Total alerts
+              </span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-soft text-cal-ink">
+                <Bell size={14.5} aria-hidden="true" />
+              </span>
+            </div>
+            <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
+              {loading ? "—" : totalCount}
+            </div>
+            <div className="mt-2 text-[12px] text-cal-muted">
+              Active inbox entries
+            </div>
+          </div>
+
+          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[12.5px] font-medium text-cal-muted">
+                Unread alerts
+              </span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-brand-accent/25 bg-cal-brand-accent/10 text-cal-brand-accent">
+                <AlertCircle size={14.5} aria-hidden="true" />
+              </span>
+            </div>
+            <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
+              {loading ? "—" : unreadItemsCount}
+            </div>
+            <div className="mt-2 text-[12px] text-cal-muted">
+              Requires administrative review
+            </div>
+          </div>
+
           {isExpert ? (
             <>
-              <KpiCard
-                label="Approvals"
-                value={loading ? "…" : approvalsCount}
-                icon={ClipboardCheck}
-                iconBg="bg-ds-tint"
-                iconColor="text-ds-primary"
-                iconBorder="border-ds-tint"
-              />
-              <KpiCard
-                label="Patient notes"
-                value={loading ? "…" : patientNotesCount}
-                icon={StickyNote}
-                iconBg="bg-ds-mint"
-                iconColor="text-ds-charcoal"
-                iconBorder="border-ds-mint"
-              />
+              <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[12.5px] font-medium text-cal-muted">
+                    Approvals
+                  </span>
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-brand-accent/25 bg-cal-brand-accent/10 text-cal-brand-accent">
+                    <ClipboardCheck size={14.5} aria-hidden="true" />
+                  </span>
+                </div>
+                <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
+                  {loading ? "—" : approvalsCount}
+                </div>
+                <div className="mt-2 text-[12px] text-cal-muted">
+                  Content awaiting verification
+                </div>
+              </div>
+
+              <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[12.5px] font-medium text-cal-muted">
+                    Patient notes
+                  </span>
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-badge-emerald/35 bg-cal-badge-emerald/15 text-cal-ink">
+                    <StickyNote size={14.5} aria-hidden="true" />
+                  </span>
+                </div>
+                <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
+                  {loading ? "—" : patientNotesCount}
+                </div>
+                <div className="mt-2 text-[12px] text-cal-muted">
+                  Replies &amp; cardiologist guidance
+                </div>
+              </div>
             </>
           ) : (
             <>
-              <KpiCard
-                label="Clinical Cases"
-                value={loading ? "…" : clinicalCasesCount}
-                icon={Activity}
-                iconBg="bg-ds-rose"
-                iconColor="text-ds-danger"
-                iconBorder="border-ds-rose"
-                valueColor="text-ds-danger"
-              />
-              <KpiCard
-                label="Feedback & Support"
-                value={loading ? "…" : feedbackTicketsCount}
-                icon={MessageSquare}
-                iconBg="bg-ds-yellow"
-                iconColor="text-ds-warm-text"
-                iconBorder="border-ds-yellow-bold"
-              />
+              <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[12.5px] font-medium text-cal-muted">
+                    Clinical cases
+                  </span>
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-error/25 bg-cal-error/10 text-cal-error">
+                    <Activity size={14.5} aria-hidden="true" />
+                  </span>
+                </div>
+                <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
+                  {loading ? "—" : clinicalCasesCount}
+                </div>
+                <div className="mt-2 text-[12px] text-cal-muted">
+                  Case reviews &amp; evaluations
+                </div>
+              </div>
+
+              <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[12.5px] font-medium text-cal-muted">
+                    Feedback &amp; support
+                  </span>
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-warning/35 bg-cal-warning/15 text-cal-ink">
+                    <MessageSquare size={14.5} aria-hidden="true" />
+                  </span>
+                </div>
+                <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
+                  {loading ? "—" : feedbackTicketsCount}
+                </div>
+                <div className="mt-2 text-[12px] text-cal-muted">
+                  User tickets &amp; inquiries
+                </div>
+              </div>
             </>
           )}
         </div>
 
-        {/* ── ACTION ERROR BANNER ── */}
-        {actionError && (
-          <div className="p-3 mb-4 bg-ds-rose border border-ds-rose rounded-[8px] flex items-center justify-between text-ds-ink text-[12px] font-medium">
-            <span>{actionError}</span>
-            <button
-              onClick={() => setActionError(null)}
-              className="text-ds-danger font-bold text-xs hover:underline cursor-pointer"
+        {/* ─── 3. MAIN INBOX CARD: FILTERS & FEED ───────────────────────────── */}
+        <section className="overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          {/* Status Tabs Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cal-hairline bg-cal-canvas px-4 py-3 sm:px-5">
+            <div
+              role="group"
+              aria-label="Filter notifications by read status"
+              className="relative inline-flex flex-wrap items-center gap-1 rounded-[16px] sm:rounded-full border border-cal-hairline/80 bg-cal-surface-soft p-1"
             >
-              Dismiss
-            </button>
-          </div>
-        )}
+              {[
+                { key: "all", label: "All", count: totalCount },
+                { key: "unread", label: "Unread", count: unreadItemsCount, dot: true },
+                { key: "read", label: "Read" },
+                { key: "archived", label: "Archived", count: archivedCount, title: "Notifications archive 72 hours after creation" },
+              ].map((tab) => {
+                const active = statusFilter === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => {
+                      setStatusFilter(tab.key);
+                      setPage(1);
+                    }}
+                    title={tab.title}
+                    className={`relative flex items-center gap-1.5 rounded-full px-3.5 py-1 text-[13px] font-medium transition-colors cursor-pointer select-none ${
+                      active
+                        ? "text-white font-semibold"
+                        : "text-cal-muted hover:text-cal-ink"
+                    }`}
+                  >
+                    {active && (
+                      <motion.div
+                        layoutId="notifications-status-filter-tab"
+                        className="absolute inset-0 rounded-full bg-cal-primary shadow-xs"
+                        transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                      />
+                    )}
+                    {tab.dot && (
+                      <span
+                        className={`relative z-10 h-1.5 w-1.5 rounded-full ${
+                          active ? "bg-white" : "bg-cal-brand-accent"
+                        }`}
+                      />
+                    )}
+                    <span className="relative z-10">{tab.label}</span>
+                    {tab.count !== undefined && (
+                      <span
+                        className={`relative z-10 font-cal-mono text-[11.5px] tabular-nums ${
+                          active ? "text-white/90 font-medium" : "text-cal-muted-soft"
+                        }`}
+                      >
+                        {loading ? "—" : tab.count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
 
-        {/* ── MAIN CARD: INBOX & FILTERS ── */}
-        <div className="bg-ds-canvas rounded-xl border border-ds-hairline flex flex-col overflow-hidden ">
-          {/* Filter & Search Header Toolbar */}
-          <div className="p-4 border-b border-ds-hairline bg-ds-canvas flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
-            {/* Search input */}
-            <div className="relative flex-1">
+            <div className="relative w-full sm:w-72">
               <Search
-                size={14}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ds-steel pointer-events-none"
+                size={15}
+                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-cal-muted-soft"
               />
               <input
                 type="text"
-                placeholder="Search alerts by keyword, title, or message…"
+                aria-label="Search notifications"
+                placeholder="Search alerts by title or message…"
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
                   setPage(1);
                 }}
-                className="w-full pl-9 pr-4 py-2 text-[13px] border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-ink transition-colors bg-ds-surface text-ds-ink placeholder:text-ds-steel"
+                className="h-9 w-full rounded-[8px] border border-cal-hairline bg-cal-canvas pl-9 pr-8 text-[13.5px] text-cal-ink placeholder:text-cal-muted-soft focus:border-cal-ink focus:outline-none transition-colors"
               />
-            </div>
-
-            {/* Status Pills and Type dropdown */}
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="bg-ds-surface p-0.5 rounded-[8px] border border-ds-hairline inline-flex">
+              {searchQuery && (
                 <button
-                  onClick={() => {
-                    setStatusFilter("all");
-                    setPage(1);
-                  }}
-                  className={`px-3 py-1 rounded-[6px] text-[11.5px] font-semibold transition-colors cursor-pointer ${
-                    statusFilter === "all"
-                      ? "bg-ds-canvas text-ds-ink "
-                      : "text-ds-slate hover:text-ds-ink"
-                  }`}
+                  type="button"
+                  aria-label="Clear search"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-cal-muted hover:text-cal-ink cursor-pointer"
                 >
-                  All ({totalCount})
-                </button>
-                <button
-                  onClick={() => {
-                    setStatusFilter("unread");
-                    setPage(1);
-                  }}
-                  className={`px-3 py-1 rounded-[6px] text-[11.5px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${
-                    statusFilter === "unread"
-                      ? "bg-ds-canvas text-ds-primary "
-                      : "text-ds-slate hover:text-ds-ink"
-                  }`}
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-ds-primary" />
-                  Unread ({unreadItemsCount})
-                </button>
-                <button
-                  onClick={() => {
-                    setStatusFilter("read");
-                    setPage(1);
-                  }}
-                  className={`px-3 py-1 rounded-[6px] text-[11.5px] font-semibold transition-colors cursor-pointer ${
-                    statusFilter === "read"
-                      ? "bg-ds-canvas text-ds-ink "
-                      : "text-ds-slate hover:text-ds-ink"
-                  }`}
-                >
-                  Read
-                </button>
-                <button
-                  onClick={() => {
-                    setStatusFilter("archived");
-                    setPage(1);
-                  }}
-                  title="Notifications archive 72 hours after they're sent"
-                  className={`px-3 py-1 rounded-[6px] text-[11.5px] font-semibold transition-colors cursor-pointer ${
-                    statusFilter === "archived"
-                      ? "bg-ds-canvas text-ds-ink "
-                      : "text-ds-slate hover:text-ds-ink"
-                  }`}
-                >
-                  Archived ({archivedCount})
-                </button>
-              </div>
-
-              <select
-                value={typeFilter}
-                onChange={(e) => {
-                  setTypeFilter(e.target.value);
-                  setPage(1);
-                }}
-                className="px-3 py-1.5 text-[12px] font-semibold bg-ds-canvas border border-ds-hairline text-ds-ink rounded-[8px] focus:outline-none focus:border-ds-ink transition-colors cursor-pointer"
-              >
-                <option value="all">All Types</option>
-                {isExpert ? (
-                  <>
-                    <option value="content">Approvals</option>
-                    <option value="notes">Patient notes</option>
-                  </>
-                ) : (
-                  <>
-                    <option value="feedback">Feedback</option>
-                    <option value="case">Clinical Cases</option>
-                    <option value="staff">Staff Accounts</option>
-                    <option value="user">User Accounts</option>
-                    <option value="security">Security</option>
-                    <option value="system">System</option>
-                  </>
-                )}
-              </select>
-
-              {isFilterActive && (
-                <button
-                  onClick={handleClearFilters}
-                  className="text-[11px] text-ds-ink font-semibold px-2.5 py-1.5 rounded-[6px] border border-ds-rose bg-ds-rose hover:bg-ds-rose transition-colors cursor-pointer"
-                >
-                  Reset
+                  <X size={13.5} />
                 </button>
               )}
             </div>
           </div>
 
-          {/* ── NOTIFICATIONS LIST ── */}
-          <div className="divide-y divide-ds-hairline">
+          {/* Secondary Filter Toolbar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cal-hairline bg-cal-surface-soft/40 px-4 py-2.5 sm:px-5">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <div className="relative">
+                <select
+                  aria-label="Filter by notification type"
+                  value={typeFilter}
+                  onChange={(e) => {
+                    setTypeFilter(e.target.value);
+                    setPage(1);
+                  }}
+                  className="h-8 appearance-none rounded-[6px] border border-cal-hairline bg-cal-canvas pl-3 pr-8 text-[12.5px] font-medium text-cal-ink focus:border-cal-ink focus:outline-none transition-colors cursor-pointer"
+                >
+                  <option value="all">All alert types</option>
+                  {isExpert ? (
+                    <>
+                      <option value="content">Approvals</option>
+                      <option value="notes">Patient notes</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="feedback">Feedback</option>
+                      <option value="case">Clinical cases</option>
+                      <option value="staff">Staff accounts</option>
+                      <option value="user">User accounts</option>
+                      <option value="security">Security</option>
+                      <option value="system">System</option>
+                    </>
+                  )}
+                </select>
+                <ChevronDown
+                  size={13}
+                  className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-cal-muted"
+                />
+              </div>
+
+              {isFilterActive && (
+                <button
+                  type="button"
+                  onClick={handleClearFilters}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-[6px] border border-cal-hairline bg-cal-canvas px-2.5 text-[12px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer"
+                >
+                  <RotateCw size={12} className="text-cal-muted" />
+                  <span>Reset filters</span>
+                </button>
+              )}
+            </div>
+
+            <div className="font-cal-mono text-[12px] tabular-nums text-cal-muted">
+              {filteredNotifications.length}{" "}
+              {filteredNotifications.length === 1 ? "alert" : "alerts"}
+            </div>
+          </div>
+
+          {/* Error Banner */}
+          {fetchError && (
+            <div className="border-b border-cal-hairline px-6 py-4">
+              <LoadError
+                what="notifications feed"
+                onRetry={notificationsQuery.refetch}
+                className="py-1"
+              />
+            </div>
+          )}
+
+          {/* ── NOTIFICATIONS FEED ── */}
+          <div className="divide-y divide-cal-hairline">
             {loading ? (
-              <div className="p-8 space-y-4">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="flex items-start gap-3.5 animate-pulse">
-                    <Skeleton className="w-9 h-9 rounded-[8px] bg-ds-hairline/70 shrink-0" />
+              <div className="p-6 space-y-4">
+                {[1, 2, 3, 4, 5].map((idx) => (
+                  <div key={idx} className="flex items-start gap-3.5">
+                    <Skeleton className="h-9 w-9 rounded-full bg-cal-surface-card shrink-0" />
                     <div className="flex-1 space-y-2">
-                      <Skeleton className="h-4 bg-ds-hairline/70 rounded w-1/3" />
-                      <Skeleton className="h-3.5 bg-ds-hairline/70 rounded w-3/4" />
+                      <Skeleton className="h-4 w-48 rounded bg-cal-surface-card" />
+                      <Skeleton className="h-3 w-80 rounded bg-cal-surface-card" />
                     </div>
+                    <Skeleton className="h-8 w-20 rounded-[8px] bg-cal-surface-card ml-auto" />
                   </div>
                 ))}
               </div>
-            ) : fetchError ? (
-              <div className="py-16 text-center">
-                <div className="w-12 h-12 bg-ds-rose text-ds-ink rounded-full flex items-center justify-center mx-auto mb-3 border border-ds-rose">
-                  <AlertCircle size={22} />
-                </div>
-                <h4 className="text-[16px] font-semibold text-ds-ink mb-1">
-                  Unable to load alerts
-                </h4>
-                <p className="text-[12px] text-ds-slate max-w-sm mx-auto mb-4">
-                  Please verify your network connection or try refreshing again.
-                </p>
-                <button
-                  onClick={() => notificationsQuery.refetch()}
-                  className="px-4 py-2 text-[12px] font-semibold text-white bg-ds-primary hover:bg-ds-primary-pressed rounded-[8px] transition-colors cursor-pointer"
-                >
-                  Try Again
-                </button>
-              </div>
-            ) : paginatedNotifications.length === 0 ? (
-              <div className="py-16 text-center">
-                <div className="w-12 h-12 bg-ds-surface text-ds-steel rounded-full flex items-center justify-center mx-auto mb-3 border border-ds-hairline">
-                  <Bell size={20} />
-                </div>
-                <h4 className="text-[16px] font-semibold text-ds-ink mb-1">
-                  No notifications found
-                </h4>
-                <p className="text-[12px] text-ds-slate max-w-sm mx-auto mb-3">
-                  {isFilterActive
-                    ? "No alerts match your applied filter or search parameters."
-                    : "You are completely caught up with all administrative notifications."}
-                </p>
-                {isFilterActive && (
-                  <button
-                    onClick={handleClearFilters}
-                    className="px-3.5 py-1.5 text-[12px] font-semibold text-ds-ink bg-ds-surface hover:bg-ds-hairline border border-ds-hairline rounded-[6px] transition-colors cursor-pointer"
-                  >
-                    Clear Filters
-                  </button>
-                )}
-              </div>
-            ) : (
+            ) : paginatedNotifications.length > 0 ? (
               paginatedNotifications.map((n) => {
                 const isRead = n.read_by?.includes(userId);
-                const badge = getTypeBadge(n.type);
+                const badge = getNotificationBadge(n.type);
 
                 return (
                   <div
                     key={n.id}
                     onClick={() => handleNavigate(n.id, n.route)}
-                    className={`p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors group cursor-pointer ${
-                      // HL-042: unread grey, read white (the blue dot still marks unread)
-                      isRead ? "bg-ds-canvas hover:bg-ds-surface" : "bg-ds-surface-alt hover:bg-ds-hairline"
+                    className={`flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5 transition-colors group cursor-pointer ${
+                      isRead
+                        ? "bg-cal-canvas hover:bg-cal-surface-soft/60"
+                        : "bg-cal-surface-soft/80 hover:bg-cal-surface-card"
                     }`}
                   >
-                    {/* Left Icon + Content */}
+                    {/* Left Icon + Details */}
                     <div className="flex items-start gap-3.5 flex-1 min-w-0">
-                      {/* Unread dot indicator */}
+                      {/* Unread indicator */}
                       <div className="pt-2 flex items-center justify-center shrink-0">
                         {!isRead ? (
-                          <span className="w-2.5 h-2.5 rounded-full bg-ds-primary ring-2 ring-white " />
+                          <span className="h-2 w-2 rounded-full bg-cal-brand-accent ring-2 ring-cal-canvas" />
                         ) : (
-                          <span className="w-2.5 h-2.5 rounded-full bg-transparent" />
+                          <span className="h-2 w-2 rounded-full bg-transparent" />
                         )}
                       </div>
 
-                      {/* Categorical Icon */}
-                      <div
-                        className={`w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0 border ${
-                          isRead
-                            ? "bg-ds-surface border-ds-hairline"
-                            : "bg-ds-canvas border-ds-hairline "
-                        }`}
-                      >
-                        {getIcon(n.type, n.severity)}
+                      {/* Icon */}
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-cal-hairline bg-cal-canvas text-cal-ink">
+                        {getNotificationIcon(n.type, n.severity)}
                       </div>
 
-                      {/* Text content */}
+                      {/* Text */}
                       <div className="flex-1 min-w-0 pr-2">
-                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
                           <h4
                             className={`text-[13.5px] leading-snug truncate ${
-                              isRead ? "font-semibold text-ds-ink" : "font-bold text-ds-ink"
+                              isRead
+                                ? "font-semibold text-cal-ink"
+                                : "font-bold text-cal-ink"
                             }`}
                           >
                             {n.title}
                           </h4>
-                          <span
-                            className={`inline-flex items-center px-2 py-0.2 rounded-[4px] text-[11px] font-bold uppercase tracking-wider border ${badge.cls}`}
-                          >
+                          <span className={`${PILL} ${badge.className}`}>
                             {badge.label}
                           </span>
                         </div>
 
-                        <p className="text-[12.5px] text-ds-slate leading-relaxed line-clamp-2 font-medium">
+                        <p className="text-[13px] text-cal-body line-clamp-2 leading-relaxed">
                           {n.message}
                         </p>
 
-                        <div className="flex items-center gap-3 mt-1.5 text-[11px] text-ds-steel font-medium">
+                        <div className="mt-1.5 flex items-center gap-2.5 font-cal-mono text-[11.5px] tabular-nums text-cal-muted">
                           <span className="flex items-center gap-1">
-                            <Clock size={11} /> {formatRelativeTime(n.created_at)}
+                            <Clock size={11} aria-hidden="true" />
+                            <span>{formatRelativeTime(n.created_at)}</span>
                           </span>
                           <span>•</span>
                           <span>{formatFullDate(n.created_at)}</span>
@@ -579,30 +717,32 @@ const Notifications = () => {
 
                     {/* Right Actions */}
                     <div
-                      className="flex items-center gap-2 sm:self-center shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-ds-hairline"
+                      className="flex items-center gap-2 sm:self-center shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-cal-hairline"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {n.route && (
                         <button
+                          type="button"
                           onClick={() => handleNavigate(n.id, n.route)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold text-ds-ink bg-ds-surface hover:bg-ds-hairline border border-ds-hairline rounded-[6px] transition-colors cursor-pointer"
+                          className="inline-flex h-8 items-center gap-1.5 rounded-[8px] border border-cal-hairline bg-cal-canvas px-3 text-[12.5px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer"
                         >
                           <span>Open</span>
-                          <ExternalLink size={12} />
+                          <ExternalLink size={12} className="text-cal-muted" />
                         </button>
                       )}
 
                       {!isRead ? (
                         <button
+                          type="button"
                           onClick={(e) => markAsRead(n.id, e)}
-                          className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-ds-on-tint hover:text-ds-primary-pressed bg-ds-tint hover:bg-ds-tint border border-ds-tint rounded-[6px] transition-colors cursor-pointer"
+                          className="inline-flex h-8 items-center gap-1.5 rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-3 text-[12.5px] font-semibold text-cal-on-primary transition-colors cursor-pointer"
                           title="Mark as read"
                         >
                           <Check size={13} />
                           <span>Mark read</span>
                         </button>
                       ) : (
-                        <span className="text-[11px] text-ds-steel font-medium px-2 py-1">
+                        <span className="px-2 py-1 text-[11.5px] font-medium text-cal-muted">
                           Read
                         </span>
                       )}
@@ -610,44 +750,78 @@ const Notifications = () => {
                   </div>
                 );
               })
+            ) : (
+              <div className="py-14 text-center">
+                <div className="flex flex-col items-center justify-center gap-2">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-soft text-cal-muted">
+                    <Bell size={18} aria-hidden="true" />
+                  </div>
+                  <p className="text-[14px] font-semibold text-cal-ink">
+                    No notifications found
+                  </p>
+                  <p className="max-w-sm text-[13px] text-cal-muted">
+                    {isFilterActive
+                      ? "No alerts match your applied filter or search parameters."
+                      : "You are completely caught up with all administrative notifications."}
+                  </p>
+                  {isFilterActive && (
+                    <button
+                      type="button"
+                      onClick={handleClearFilters}
+                      className="mt-1 inline-flex h-9 items-center gap-1.5 rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-4 text-[13px] font-semibold text-cal-on-primary transition-colors cursor-pointer"
+                    >
+                      <RotateCw size={13.5} />
+                      <span>Reset filters</span>
+                    </button>
+                  )}
+                </div>
+              </div>
             )}
           </div>
 
-          {/* ── PAGINATION BAR ── */}
+          {/* ── PAGINATION CONTROLS ── */}
           {filteredNotifications.length > 0 && (
-            <div className="p-3.5 border-t border-ds-hairline bg-ds-canvas flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <p className="text-[12px] text-ds-slate font-medium">
-                Showing <span className="text-ds-ink font-bold">{(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filteredNotifications.length)}</span> of{" "}
-                <span className="text-ds-ink font-bold">{filteredNotifications.length}</span> alerts
-              </p>
+            <div className="flex flex-col justify-between gap-3 border-t border-cal-hairline bg-cal-canvas px-4 py-3 sm:flex-row sm:items-center sm:px-5">
+              <span className="text-[12.5px] text-cal-muted">
+                Showing{" "}
+                <span className="font-cal-mono font-semibold tabular-nums text-cal-ink">
+                  {rangeStart}–{rangeEnd}
+                </span>{" "}
+                of{" "}
+                <span className="font-cal-mono font-semibold tabular-nums text-cal-ink">
+                  {filteredNotifications.length}
+                </span>{" "}
+                alerts
+              </span>
 
               <div className="flex items-center gap-2">
+                <span className="font-cal-mono text-[12px] tabular-nums text-cal-muted">
+                  Page {page} / {totalPages}
+                </span>
+
                 <button
+                  type="button"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page <= 1 || loading}
-                  className={`flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold rounded-[6px] border border-ds-hairline bg-ds-surface transition-colors cursor-pointer ${
-                    page <= 1 || loading
-                      ? "text-ds-steel cursor-not-allowed opacity-40"
-                      : "text-ds-ink hover:bg-ds-hairline"
-                  }`}
+                  className="inline-flex h-8 items-center gap-1 rounded-[8px] border border-cal-hairline bg-cal-canvas px-3 text-[12.5px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  <ChevronLeft size={13} /> Previous
+                  <ChevronLeft size={14} aria-hidden="true" />
+                  <span>Previous</span>
                 </button>
+
                 <button
+                  type="button"
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page >= totalPages || loading}
-                  className={`flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold rounded-[6px] border border-ds-hairline bg-ds-surface transition-colors cursor-pointer ${
-                    page >= totalPages || loading
-                      ? "text-ds-steel cursor-not-allowed opacity-40"
-                      : "text-ds-ink hover:bg-ds-hairline"
-                  }`}
+                  className="inline-flex h-8 items-center gap-1 rounded-[8px] border border-cal-hairline bg-cal-canvas px-3 text-[12.5px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  Next <ChevronRight size={13} />
+                  <span>Next</span>
+                  <ChevronRight size={14} aria-hidden="true" />
                 </button>
               </div>
             </div>
           )}
-        </div>
+        </section>
       </div>
     </AdminLayout>
   );
