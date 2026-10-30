@@ -82,57 +82,130 @@ export default function PartDoneScreen() {
         header={<SetupHeader part={n} partName={part.name} progress={1} fromProgress={0.85} onFinishLater={() => setFinishLater(true)} />}
         footer={
           <>
-            <DsButton label={next ? `Continue to ${next.name}` : "See my starting score"} onPress={goNext} />
+            <DsButton
+              label={next ? `Continue to ${next.name}` : "See my starting score"}
+              onPress={goNext}
+              icon={<Feather name="arrow-right" size={17} color="#ffffff" />}
+            />
             <DsButton label="Take a break, finish later" variant="quiet" onPress={() => setFinishLater(true)} />
           </>
         }
       >
         <Animated.View
-          entering={ZoomIn.delay(150).springify().damping(12)}
-          style={{ width: 56, height: 56, borderRadius: 12, backgroundColor: c.mint, alignItems: "center", justifyContent: "center", marginBottom: 20 }}
+          entering={ZoomIn.delay(120).springify().damping(12)}
+          style={{
+            width: 58,
+            height: 58,
+            borderRadius: 16,
+            backgroundColor: "#ECFDF5",
+            borderWidth: 1.5,
+            borderColor: "#A7F3D0",
+            alignItems: "center",
+            justifyContent: "center",
+            marginBottom: 20,
+          }}
         >
-          <Feather name="check" size={28} color={c.charcoal} />
+          <Feather name="check" size={28} color="#059669" />
         </Animated.View>
-        <Text accessibilityRole="header" style={{ fontSize: 28, lineHeight: 35, fontWeight: "600", letterSpacing: -0.5, color: c.ink }}>
+        <Text accessibilityRole="header" style={{ fontSize: 28, lineHeight: 34, fontWeight: "700", letterSpacing: -0.5, color: c.ink }}>
           {part.name}, done.
         </Text>
-        <Text style={{ fontSize: 16, lineHeight: 24, color: c.slate, marginTop: 8, marginBottom: 22 }}>
+        <Text style={{ fontSize: 15.5, lineHeight: 23, color: c.slate, marginTop: 8, marginBottom: 22 }}>
           Here&apos;s what you told us. Tap Edit if anything looks off.
         </Text>
 
-        <View style={{ borderRadius: 12, borderWidth: 1, borderColor: c.hairline }}>
+        <View
+          style={{
+            borderRadius: 14,
+            borderWidth: 1.5,
+            borderColor: c.hairline,
+            backgroundColor: c.canvas,
+            overflow: "hidden",
+            shadowColor: "#0F172A",
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.04,
+            shadowRadius: 4,
+            elevation: 1,
+          }}
+        >
           {questions.map((q, i) => (
             <View
               key={q.id}
               className="flex-row items-center"
-              style={{ paddingLeft: 16, paddingRight: 6, paddingVertical: 10, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: c.hairlineSoft }}
+              style={{
+                paddingLeft: 16,
+                paddingRight: 12,
+                paddingVertical: 12,
+                borderTopWidth: i === 0 ? 0 : 1,
+                borderTopColor: c.hairlineSoft,
+              }}
             >
-              <View className="flex-1">
-                <Text style={{ fontSize: 12, fontWeight: "500", color: c.steel }}>{SHORT_LABEL[q.id] ?? q.title}</Text>
-                <Text style={{ fontSize: 15, fontWeight: "500", color: c.ink, marginTop: 2 }}>{answerText(q, data)}</Text>
+              <View className="flex-1 pr-2">
+                <Text style={{ fontSize: 12, fontWeight: "600", color: c.steel, textTransform: "uppercase", letterSpacing: 0.3 }}>
+                  {SHORT_LABEL[q.id] ?? q.title}
+                </Text>
+                <Text style={{ fontSize: 15.5, fontWeight: "600", color: c.ink, marginTop: 2 }}>
+                  {answerText(q, data)}
+                </Text>
               </View>
               <AnimatedButton
                 onPress={() => router.push({ pathname: "/(baseline)/question/[id]", params: { id: q.id, from: "recap" } })}
                 accessibilityRole="button"
                 accessibilityLabel={`Edit ${SHORT_LABEL[q.id] ?? q.title}`}
-                style={{ height: 44, paddingHorizontal: 12, justifyContent: "center" }}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 4,
+                  height: 34,
+                  paddingHorizontal: 12,
+                  borderRadius: 8,
+                  backgroundColor: "#EFF6FF",
+                  borderWidth: 1,
+                  borderColor: "#DBEAFE",
+                }}
               >
-                <Text style={{ fontSize: 14, fontWeight: "500", color: c.link }}>Edit</Text>
+                <Feather name="edit-2" size={13} color="#2563EB" />
+                <Text style={{ fontSize: 13, fontWeight: "600", color: "#2563EB" }}>Edit</Text>
               </AnimatedButton>
             </View>
           ))}
         </View>
 
         {next ? (
-          <View className="flex-row items-center" style={{ gap: 14, marginTop: 14, padding: 16, borderRadius: 12, backgroundColor: tintColor(c, next.tint) }}>
-            <View style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: c.canvas, alignItems: "center", justifyContent: "center" }}>
-              <IconBadge icon={next.icon} tint={next.tint} size={32} />
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 14,
+              marginTop: 16,
+              padding: 16,
+              borderRadius: 14,
+              borderWidth: 1.5,
+              borderColor: "#BFDBFE",
+              backgroundColor: "#EFF6FF",
+            }}
+          >
+            <View
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                backgroundColor: "#FFFFFF",
+                borderWidth: 1,
+                borderColor: "#DBEAFE",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <IconBadge icon={next.icon} tint={next.tint} size={30} />
             </View>
             <View className="flex-1">
-              <Text style={{ fontSize: 12, fontWeight: "500", color: c.charcoal }}>
-                {next.n === 4 ? "Last part" : "Next"} · about 1 minute
-              </Text>
-              <Text style={{ fontSize: 16, fontWeight: "600", color: c.charcoal, marginTop: 2 }}>{next.name}</Text>
+              <View style={{ alignSelf: "flex-start", paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5, backgroundColor: "#DBEAFE", marginBottom: 3 }}>
+                <Text style={{ fontSize: 11, fontWeight: "700", color: "#1D4ED8", letterSpacing: 0.4 }}>
+                  {next.n === 4 ? "LAST PART" : "UP NEXT"} · ~1 MIN
+                </Text>
+              </View>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: "#0F172A" }}>{next.name}</Text>
             </View>
           </View>
         ) : null}

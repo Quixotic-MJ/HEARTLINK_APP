@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Platform, Switch, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { Feather } from "@expo/vector-icons";
 import AnimatedButton from "../../components/ui/AnimatedButton";
 import DsButton from "../../components/onboarding/DsButton";
 import { DsScreen, IconBadge, InfoNote, Tag, BadgeTint, McIcon } from "../../components/onboarding/QuestionLayout";
@@ -65,45 +66,75 @@ export default function RemindersScreen() {
             label={count === 0 ? "Continue without reminders" : `Turn on ${count} ${count === 1 ? "reminder" : "reminders"}`}
             loading={saving}
             onPress={turnOn}
+            icon={<Feather name="arrow-right" size={17} color="#ffffff" />}
           />
           <DsButton label="Not now" variant="quiet" onPress={done} />
         </>
       }
     >
-      <View style={{ marginBottom: 16 }}>
+      <View style={{ marginBottom: 18 }}>
         <Tag label="Last steps · 2 of 2" />
       </View>
-      <Text accessibilityRole="header" style={{ fontSize: 28, lineHeight: 35, fontWeight: "600", letterSpacing: -0.5, color: c.ink }}>
+      <Text accessibilityRole="header" style={{ fontSize: 28, lineHeight: 34, fontWeight: "700", letterSpacing: -0.5, color: c.ink }}>
         Plan your day with HeartLink
       </Text>
-      <Text style={{ fontSize: 16, lineHeight: 24, color: c.slate, marginTop: 8, marginBottom: 22 }}>
+      <Text style={{ fontSize: 15.5, lineHeight: 23, color: c.slate, marginTop: 8, marginBottom: 22 }}>
         A gentle nudge at each moment. Change the times anytime in Settings.
       </Text>
 
-      <View style={{ gap: 10 }}>
+      <View style={{ gap: 12 }}>
         {ROWS.map((r) => {
           const item = reminders[r.key];
           return (
-            <View key={r.key} className="flex-row items-center" style={{ gap: 14, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: c.hairline }}>
-              <IconBadge icon={r.icon} tint={r.tint} size={40} />
+            <View
+              key={r.key}
+              className="flex-row items-center"
+              style={{
+                gap: 14,
+                padding: 14,
+                borderRadius: 14,
+                borderWidth: 1.5,
+                borderColor: item.enabled ? "#BFDBFE" : c.hairline,
+                backgroundColor: item.enabled ? "#F8FAFC" : c.canvas,
+              }}
+            >
+              <IconBadge icon={r.icon} tint={r.tint} size={42} />
               <View className="flex-1">
-                <Text style={{ fontSize: 12, fontWeight: "500", color: c.steel }}>{r.when}</Text>
+                <Text style={{ fontSize: 11.5, fontWeight: "700", color: c.steel, textTransform: "uppercase", letterSpacing: 0.4 }}>
+                  {r.when}
+                </Text>
                 <Text style={{ fontSize: 15, fontWeight: "600", color: c.ink, marginTop: 2 }}>{r.title}</Text>
                 <AnimatedButton
                   onPress={() => setEditing(r.key)}
                   disabled={Platform.OS === "web"}
                   accessibilityRole="button"
                   accessibilityLabel={`${r.when} reminder time, ${formatTime(item.time)}. Tap to change`}
-                  style={{ alignSelf: "flex-start", marginTop: 6, height: 32, paddingHorizontal: 10, borderRadius: 6, borderWidth: 1, borderColor: c.hairline, backgroundColor: c.surface, justifyContent: "center" }}
+                  style={{
+                    alignSelf: "flex-start",
+                    marginTop: 6,
+                    height: 30,
+                    paddingHorizontal: 10,
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: item.enabled ? "#DBEAFE" : c.hairline,
+                    backgroundColor: item.enabled ? "#EFF6FF" : "#F8FAFC",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 5,
+                  }}
                 >
-                  <Text style={{ fontSize: 13, fontWeight: "500", color: c.ink }}>{formatTime(item.time)}</Text>
+                  <Feather name="clock" size={12} color={item.enabled ? "#2563EB" : c.slate} />
+                  <Text style={{ fontSize: 13, fontWeight: "600", color: item.enabled ? "#1D4ED8" : c.ink }}>
+                    {formatTime(item.time)}
+                  </Text>
                 </AnimatedButton>
               </View>
               <Switch
                 value={item.enabled}
                 onValueChange={(v) => setReminders((prev) => ({ ...prev, [r.key]: { ...prev[r.key], enabled: v } }))}
-                trackColor={{ false: c.hairlineStrong, true: c.line }}
+                trackColor={{ false: "#CBD5E1", true: "#3B82F6" }}
                 thumbColor="#ffffff"
+                ios_backgroundColor="#CBD5E1"
                 accessibilityLabel={`${r.when} reminder`}
               />
             </View>
@@ -120,7 +151,7 @@ export default function RemindersScreen() {
           value={toDate(reminders[editing].time)}
           mode="time"
           display="default"
-          onChange={(_event, date) => {
+          onValueChange={(_event, date) => {
             const key = editing;
             setEditing(null);
             if (date && key) {
@@ -128,6 +159,7 @@ export default function RemindersScreen() {
               setReminders((prev) => ({ ...prev, [key]: { ...prev[key], time } }));
             }
           }}
+          onDismiss={() => setEditing(null)}
         />
       ) : null}
     </DsScreen>

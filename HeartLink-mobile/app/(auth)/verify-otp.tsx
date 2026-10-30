@@ -16,10 +16,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import Animated, {
   FadeIn,
+  FadeInDown,
   useSharedValue,
   useAnimatedStyle,
   withSequence,
-  withTiming
+  withTiming,
 } from "react-native-reanimated";
 import "../../global.css";
 import { useUser } from "../../contexts/UserContext";
@@ -29,6 +30,7 @@ import SetupHeader from "../../components/onboarding/SetupHeader";
 import { DsScreen } from "../../components/onboarding/QuestionLayout";
 import { apiFetch } from "../../lib/api";
 import { useDs } from "../../components/onboarding/useDs";
+
 const CODE_LENGTH = 6;
 const RESEND_SECONDS = 60;
 
@@ -209,44 +211,64 @@ export default function OTPVerificationScreen() {
   const isComplete = otp.join("").length === CODE_LENGTH;
   const hasError = !!(generalError || errors.code);
 
-
   return (
     <DsScreen
       header={
         <View>
           <SetupHeader title="Step 2 of 2" onBack={() => router.back()} />
-          <View className="flex-row px-6" style={{ gap: 4 }} accessible={true} accessibilityLabel="Step 2 of 2: confirm your email">
-            <View style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: c.line }} />
-            <View style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: c.line }} />
+          <View className="flex-row px-6 pt-1 pb-2" style={{ gap: 6 }} accessible={true} accessibilityLabel="Step 2 of 2: confirm your email">
+            <View style={{ flex: 1, height: 4, borderRadius: 9999, backgroundColor: c.primary }} />
+            <View style={{ flex: 1, height: 4, borderRadius: 9999, backgroundColor: c.primary }} />
           </View>
         </View>
       }
       footer={
-        <>
-          <DsButton label="Verify and create account" onPress={handleSubmit(onSubmit)} loading={isVerifying} disabled={!isComplete || isVerifying} />
-          <Text style={{ fontSize: 12, color: c.steel, textAlign: "center", marginTop: 4 }}>Codes expire after 10 minutes.</Text>
-        </>
+        <Animated.View entering={FadeInDown.delay(180).duration(400)} style={{ gap: 6 }}>
+          <DsButton
+            label="Verify and create account"
+            onPress={handleSubmit(onSubmit)}
+            loading={isVerifying}
+            disabled={!isComplete || isVerifying}
+            icon={<Feather name="check" size={16} color={!isComplete || isVerifying ? c.steel : "#FFFFFF"} />}
+          />
+          <Text style={{ fontSize: 12, color: c.slate, textAlign: "center", marginTop: 4 }}>
+            Codes expire after 10 minutes.
+          </Text>
+        </Animated.View>
       }
     >
       {/* ── Heading ── */}
-      <Animated.View entering={FadeIn.duration(400)} style={{ marginBottom: 20 }}>
-        <View style={{ width: 44, height: 44, borderRadius: 8, backgroundColor: c.tint, alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
-          <Feather name="mail" size={20} color={c.charcoal} />
+      <Animated.View entering={FadeIn.duration(400)} style={{ marginBottom: 24 }}>
+        <View
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: 12,
+            backgroundColor: c.tint,
+            alignItems: "center",
+            justifyContent: "center",
+            marginBottom: 20,
+          }}
+        >
+          <Feather name="mail" size={22} color={c.primary} />
         </View>
-        <Text accessibilityRole="header" style={{ fontSize: 28, lineHeight: 35, fontWeight: "600", letterSpacing: -0.5, color: c.ink }}>
+
+        <Text accessibilityRole="header" style={{ fontSize: 28, lineHeight: 36, fontWeight: "700", letterSpacing: -0.6, color: c.ink }}>
           Enter the code
         </Text>
-        <Text style={{ fontSize: 16, lineHeight: 24, color: c.slate, marginTop: 8 }}>
-          We emailed a 6-digit code to <Text style={{ fontWeight: "600", color: c.ink }}>{emailText || "your email"}</Text>.
-          Check your spam folder if you don&apos;t see it.
+        <Text style={{ fontSize: 15, lineHeight: 22, color: c.slate, marginTop: 6 }}>
+          We emailed a 6-digit verification code to{" "}
+          <Text style={{ fontWeight: "600", color: c.ink }}>{emailText || "your email"}</Text>.
         </Text>
-        <View style={{ alignItems: "flex-start" }}>
+
+        <View className="flex-row items-center mt-2">
+          <Text style={{ fontSize: 13.5, color: c.slate }}>Wrong address? </Text>
           <DsButton label="Edit email" variant="link" block={false} onPress={() => router.back()} />
         </View>
       </Animated.View>
 
       {/* ── OTP boxes ── */}
-      <Animated.View entering={FadeIn.delay(120).duration(400)} style={[errorAnimatedStyle, { flexDirection: "row", gap: 8 }]}>
+      <Animated.View entering={FadeInDown.delay(120).duration(400)} style={[errorAnimatedStyle, { flexDirection: "row", gap: 8 }]}>
         {otp.map((digit, index) => {
           const isFocused = focusedIndex === index;
           return (
@@ -270,15 +292,27 @@ export default function OTPVerificationScreen() {
               style={{
                 flex: 1,
                 height: 56,
-                borderRadius: 8,
+                borderRadius: 10,
                 textAlign: "center",
-                fontSize: 22,
-                fontWeight: "600",
+                fontSize: 24,
+                fontWeight: "700",
                 color: c.ink,
                 padding: 0,
-                backgroundColor: c.canvas,
-                borderWidth: isFocused || hasError ? 2 : 1,
-                borderColor: hasError ? c.danger : isFocused ? c.line : digit ? c.hairlineStrong : c.hairline,
+                backgroundColor: hasError
+                  ? "#FEF2F2"
+                  : isFocused
+                  ? c.tint
+                  : digit
+                  ? c.surfaceAlt
+                  : c.canvas,
+                borderWidth: isFocused || hasError ? 2 : 1.5,
+                borderColor: hasError
+                  ? c.danger
+                  : isFocused
+                  ? c.primary
+                  : digit
+                  ? c.hairlineStrong
+                  : c.hairline,
                 textAlignVertical: "center",
                 ...(Platform.OS === "android" ? { includeFontPadding: false } : {}),
               }}
@@ -288,14 +322,25 @@ export default function OTPVerificationScreen() {
       </Animated.View>
 
       {/* ── Resend row ── */}
-      <View className="flex-row items-center" style={{ gap: 6, marginTop: 16, minHeight: 44 }}>
-        <Text style={{ fontSize: 14, color: c.slate }}>Didn&apos;t get it?</Text>
+      <View className="flex-row items-center" style={{ gap: 6, marginTop: 20, minHeight: 44 }}>
+        <Text style={{ fontSize: 14, color: c.slate }}>Didn&apos;t get the code?</Text>
         {!canResend ? (
-          <Text style={{ fontSize: 14, color: c.slate }}>
-            Resend in <Text style={{ fontWeight: "600", color: c.ink }}>{formatTime(timer)}</Text>
-          </Text>
+          <View
+            style={{
+              paddingHorizontal: 8,
+              paddingVertical: 3,
+              borderRadius: 6,
+              backgroundColor: c.surfaceAlt,
+              borderWidth: 1,
+              borderColor: c.hairline,
+            }}
+          >
+            <Text style={{ fontSize: 13, fontWeight: "600", color: c.slate }}>
+              Resend in {formatTime(timer)}
+            </Text>
+          </View>
         ) : isResending ? (
-          <ActivityIndicator size="small" color={c.line} />
+          <ActivityIndicator size="small" color={c.primary} />
         ) : (
           <TouchableOpacity
             onPress={handleResend}
@@ -305,21 +350,47 @@ export default function OTPVerificationScreen() {
             accessibilityRole="button"
             accessibilityLabel="Resend code"
           >
-            <Text style={{ fontSize: 14, fontWeight: "500", color: c.link }}>Resend code</Text>
+            <Text style={{ fontSize: 14, fontWeight: "600", color: c.primary }}>Resend code</Text>
           </TouchableOpacity>
         )}
       </View>
 
       {/* Error Message */}
       {hasError && (
-        <View
-          style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 14, borderRadius: 12, backgroundColor: c.rose, marginTop: 12 }}
+        <Animated.View
+          style={[
+            errorAnimatedStyle,
+            {
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 12,
+              padding: 14,
+              borderRadius: 12,
+              backgroundColor: c.rose,
+              borderWidth: 1,
+              borderColor: "#FECACA",
+              marginTop: 16,
+            },
+          ]}
           accessible={true}
           accessibilityRole="alert"
         >
-          <Feather name="alert-triangle" size={16} color={c.danger} />
-          <Text style={{ flex: 1, fontSize: 14, lineHeight: 20, color: c.ink }}>{generalError || errors.code?.message}</Text>
-        </View>
+          <View
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 14,
+              backgroundColor: "#FEE2E2",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Feather name="alert-triangle" size={15} color={c.danger} />
+          </View>
+          <Text style={{ flex: 1, fontSize: 13.5, lineHeight: 19, color: "#991B1B", fontWeight: "500" }}>
+            {generalError || errors.code?.message}
+          </Text>
+        </Animated.View>
       )}
     </DsScreen>
   );

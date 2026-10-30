@@ -26,7 +26,14 @@ export function IconBadge({ icon, tint, size = 44 }: { icon: McIcon; tint: Badge
   const { c } = useDs();
   return (
     <View
-      style={{ width: size, height: size, borderRadius: 8, backgroundColor: tintColor(c, tint), alignItems: "center", justifyContent: "center" }}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: 12,
+        backgroundColor: tintColor(c, tint),
+        alignItems: "center",
+        justifyContent: "center",
+      }}
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
     >
@@ -50,7 +57,7 @@ export function Tag({
   const bg = tone === "tint" ? c.tint : tone === "warm" ? c.yellow : c.surfaceAlt;
   const fg = tone === "tint" ? c.onTint : tone === "warm" ? c.warmText : c.slate;
   return (
-    <View style={{ alignSelf: align === "center" ? "center" : "flex-start", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: bg }}>
+    <View style={{ alignSelf: align === "center" ? "center" : "flex-start", paddingHorizontal: 10, paddingVertical: 3, borderRadius: 6, backgroundColor: bg }}>
       <Text style={{ fontSize: 13, fontWeight: "600", color: fg }}>{label}</Text>
     </View>
   );
@@ -60,10 +67,10 @@ export function Tag({
 export function InfoNote({ title, text, icon = "info" }: { title?: string; text: string; icon?: keyof typeof Feather.glyphMap }) {
   const { c } = useDs();
   return (
-    <View className="flex-row" style={{ gap: 10, padding: 14, borderRadius: 12, backgroundColor: c.surface }}>
+    <View className="flex-row" style={{ gap: 10, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: c.hairline, backgroundColor: c.surface }}>
       <Feather name={icon} size={16} color={c.charcoal} style={{ marginTop: 2 }} />
       <View className="flex-1">
-        {title ? <Text style={{ fontSize: 14, fontWeight: "500", color: c.ink }}>{title}</Text> : null}
+        {title ? <Text style={{ fontSize: 14, fontWeight: "600", color: c.ink }}>{title}</Text> : null}
         <Text style={{ fontSize: title ? 14 : 13, lineHeight: 20, color: c.slate, marginTop: title ? 3 : 0 }}>{text}</Text>
       </View>
     </View>

@@ -101,7 +101,7 @@ Never commit `.env`. Git ignores it.
    ```
 3. Start the server:
    ```bash
-   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+   python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
    ```
    `--host 0.0.0.0` is what lets a phone on the same Wi-Fi reach it. Without it, only your computer can connect.
 4. Check it: http://localhost:8000/health shows `{"status":"ok"}`. The API documentation is at http://localhost:8000/docs (hidden in production).

@@ -293,7 +293,8 @@ export default function DailyRemindersScreen() {
           value={parseTimeToDate(reminders[pickerConfig.key].time)}
           mode="time"
           display="default"
-          onChange={handleTimeChange}
+          onValueChange={handleTimeChange}
+          onDismiss={() => setPickerConfig({ visible: false, key: null })}
         />
       )}
 

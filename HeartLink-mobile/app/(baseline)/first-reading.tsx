@@ -1,7 +1,8 @@
 import React, { useCallback, useState } from "react";
 import { Text, View } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import AnimatedButton from "../../components/ui/AnimatedButton";
 import DsButton from "../../components/onboarding/DsButton";
 import { DsScreen, Tag } from "../../components/onboarding/QuestionLayout";
 import { useDs } from "../../components/onboarding/useDs";
@@ -34,7 +35,8 @@ export default function FirstReadingScreen() {
   useFocusEffect(
     useCallback(() => {
       if (!userId || !token) return;
-      let active = true;      apiFetch(`/api/health-logs/${userId}?page=1&page_size=1`, { headers: { Authorization: `Bearer ${token}` } })
+      let active = true;
+      apiFetch(`/api/health-logs/${userId}?page=1&page_size=1`, { headers: { Authorization: `Bearer ${token}` } })
         .then((res) => (res.ok ? res.json() : null))
         .then((body) => {
           if (!active || !body) return;
@@ -57,51 +59,104 @@ export default function FirstReadingScreen() {
     <DsScreen
       footer={
         reading ? (
-          <DsButton label="Continue" onPress={next} />
+          <DsButton
+            label="Continue"
+            onPress={next}
+            icon={<Feather name="arrow-right" size={17} color="#ffffff" />}
+          />
         ) : (
           <>
             <DsButton
               label="Log my reading"
               onPress={() => router.push("/(home)/(health)/log-symptoms")}
               accessibilityHint="Opens the blood pressure log"
+              icon={<Feather name="plus-circle" size={17} color="#ffffff" />}
             />
             <DsButton label="I don't have a monitor right now" variant="quiet" onPress={next} />
           </>
         )
       }
     >
-      <View className="flex-row justify-between items-center" style={{ marginBottom: 16 }}>
+      <View className="flex-row justify-between items-center" style={{ marginBottom: 18 }}>
         <Tag label="Last steps · 1 of 2" align="center" />
-        {!reading ? <DsButton label="Skip" variant="quiet" block={false} onPress={next} /> : null}
+        {!reading ? (
+          <AnimatedButton
+            onPress={next}
+            accessibilityRole="button"
+            accessibilityLabel="Skip blood pressure reading"
+            style={{
+              height: 32,
+              paddingHorizontal: 12,
+              borderRadius: 8,
+              backgroundColor: "#F8FAFC",
+              borderWidth: 1,
+              borderColor: c.hairline,
+              justifyContent: "center",
+            }}
+          >
+            <Text style={{ fontSize: 13, fontWeight: "600", color: c.slate }}>Skip</Text>
+          </AnimatedButton>
+        ) : null}
       </View>
-      <Text accessibilityRole="header" style={{ fontSize: 28, lineHeight: 35, fontWeight: "600", letterSpacing: -0.5, color: c.ink }}>
+
+      <Text accessibilityRole="header" style={{ fontSize: 28, lineHeight: 34, fontWeight: "700", letterSpacing: -0.5, color: c.ink }}>
         {reading ? "Reading saved" : "Log your first reading"}
       </Text>
-      <Text style={{ fontSize: 16, lineHeight: 24, color: c.slate, marginTop: 8, marginBottom: 22 }}>
+      <Text style={{ fontSize: 15.5, lineHeight: 23, color: c.slate, marginTop: 8, marginBottom: 22 }}>
         {reading
-          ? "Nice start. Your score now uses a real reading, not only your answers."
-          : "Your score so far comes from your answers. A real blood pressure reading makes it yours."}
+          ? "Nice start! Your score now uses a real reading, making your stability metrics personalized."
+          : "Your score so far comes from your answers. A real blood pressure reading makes it truly yours."}
       </Text>
 
       {reading ? (
-        <View style={{ borderRadius: 12, borderWidth: 1, borderColor: c.hairline, padding: 20, alignItems: "center" }}>
-          <Text style={{ fontSize: 40, fontWeight: "600", color: c.ink }}>
+        <View
+          style={{
+            borderRadius: 16,
+            borderWidth: 1.5,
+            borderColor: "#A7F3D0",
+            backgroundColor: "#ECFDF5",
+            padding: 24,
+            alignItems: "center",
+            marginBottom: 16,
+          }}
+        >
+          <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: "#D1FAE5", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
+            <Feather name="check" size={24} color="#059669" />
+          </View>
+          <Text style={{ fontSize: 44, fontWeight: "800", letterSpacing: -1, color: "#065F46" }}>
             {reading.systolic}/{reading.diastolic}
           </Text>
-          <Text style={{ fontSize: 13, color: c.steel, marginTop: 2 }}>mmHg</Text>
+          <Text style={{ fontSize: 13, fontWeight: "600", color: "#047857", marginTop: 2 }}>mmHg</Text>
         </View>
       ) : (
-        <>
-          <Text style={{ fontSize: 14, fontWeight: "600", color: c.ink, marginBottom: 10 }}>For a good reading</Text>
-          <View className="flex-row" style={{ gap: 8 }}>
+        <View style={{ marginTop: 4 }}>
+          <Text style={{ fontSize: 13.5, fontWeight: "700", letterSpacing: 0.3, textTransform: "uppercase", color: c.slate, marginBottom: 12 }}>
+            Tips for an accurate reading
+          </Text>
+          <View className="flex-row" style={{ gap: 10 }}>
             {TIPS.map((t) => (
-              <View key={t.text} style={{ flex: 1, padding: 12, borderRadius: 12, backgroundColor: c.sky, alignItems: "center" }}>
-                <MaterialCommunityIcons name={t.icon} size={20} color={c.charcoal} />
-                <Text style={{ fontSize: 12, fontWeight: "500", lineHeight: 17, color: c.charcoal, marginTop: 4, textAlign: "center" }}>{t.text}</Text>
+              <View
+                key={t.text}
+                style={{
+                  flex: 1,
+                  padding: 14,
+                  borderRadius: 14,
+                  backgroundColor: "#EFF6FF",
+                  borderWidth: 1.5,
+                  borderColor: "#BFDBFE",
+                  alignItems: "center",
+                }}
+              >
+                <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: "#DBEAFE", alignItems: "center", justifyContent: "center", marginBottom: 8 }}>
+                  <MaterialCommunityIcons name={t.icon} size={20} color="#1D4ED8" />
+                </View>
+                <Text style={{ fontSize: 12, fontWeight: "600", lineHeight: 16, color: "#1E40AF", textAlign: "center" }}>
+                  {t.text}
+                </Text>
               </View>
             ))}
           </View>
-        </>
+        </View>
       )}
     </DsScreen>
   );

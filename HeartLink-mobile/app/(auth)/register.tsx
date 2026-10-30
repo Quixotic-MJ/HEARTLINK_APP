@@ -216,9 +216,9 @@ export default function RegisterScreen() {
       header={
         <View>
           <SetupHeader title="Step 1 of 2" onBack={() => router.back()} />
-          <View className="flex-row px-6" style={{ gap: 4 }} accessible={true} accessibilityLabel="Step 1 of 2: your details">
-            <View style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: c.line }} />
-            <View style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: c.hairlineSoft }} />
+          <View className="flex-row px-6 pt-1 pb-2" style={{ gap: 6 }} accessible={true} accessibilityLabel="Step 1 of 2: your details">
+            <View style={{ flex: 1, height: 4, borderRadius: 9999, backgroundColor: c.primary }} />
+            <View style={{ flex: 1, height: 4, borderRadius: 9999, backgroundColor: c.hairline }} />
           </View>
         </View>
       }
@@ -231,7 +231,14 @@ export default function RegisterScreen() {
             accessibilityState={{ checked: consented }}
             accessibilityLabel={HEALTH_DATA_CONSENT}
             accessibilityHint="Required to create an account"
-            style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 48, marginBottom: 4 }}
+            style={{
+              flexDirection: "row",
+              alignItems: "flex-start",
+              gap: 12,
+              minHeight: 44,
+              marginBottom: 8,
+              paddingVertical: 4,
+            }}
           >
             <View
               style={{
@@ -240,41 +247,66 @@ export default function RegisterScreen() {
                 borderRadius: 6,
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: consented ? c.line : "transparent",
+                marginTop: 2,
+                backgroundColor: consented ? c.primary : "transparent",
                 borderWidth: consented ? 0 : 1.5,
-                borderColor: c.hairlineStrong,
+                borderColor: consented ? c.primary : c.hairlineStrong,
+                shadowColor: consented ? c.primary : "transparent",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: consented ? 0.25 : 0,
+                shadowRadius: 4,
+                elevation: consented ? 2 : 0,
               }}
             >
               {consented ? <Feather name="check" size={14} color="#ffffff" /> : null}
             </View>
-            <Text style={{ flex: 1, fontSize: 14, lineHeight: 21, color: c.ink }}>{HEALTH_DATA_CONSENT}</Text>
+            <Text style={{ flex: 1, fontSize: 13.5, lineHeight: 20, color: c.ink }}>{HEALTH_DATA_CONSENT}</Text>
           </AnimatedButton>
-          <DsButton label="Continue" onPress={handleSubmit(onSubmit)} disabled={!canContinue} loading={isSubmitting} />
-          <Text style={{ fontSize: 12, lineHeight: 18, color: c.steel, textAlign: "center", marginTop: 4 }}>
+
+          <DsButton
+            label="Continue"
+            onPress={handleSubmit(onSubmit)}
+            disabled={!canContinue}
+            loading={isSubmitting}
+            icon={<Feather name="arrow-right" size={16} color={!canContinue ? c.steel : "#FFFFFF"} />}
+          />
+
+          <Text style={{ fontSize: 12, lineHeight: 18, color: c.slate, textAlign: "center", marginTop: 6 }}>
             By continuing you agree to our{" "}
-            <Text style={{ color: c.link }} onPress={() => openLegal("terms")} accessibilityRole="link" accessibilityLabel="Terms, opens in browser">
-              Terms
+            <Text
+              style={{ color: c.primary, fontWeight: "600" }}
+              onPress={() => openLegal("terms")}
+              accessibilityRole="link"
+              accessibilityLabel="Terms, opens in browser"
+            >
+              Terms of Service
             </Text>
             {" "}and{" "}
-            <Text style={{ color: c.link }} onPress={() => openLegal("privacy")} accessibilityRole="link" accessibilityLabel="Privacy Policy, opens in browser">
+            <Text
+              style={{ color: c.primary, fontWeight: "600" }}
+              onPress={() => openLegal("privacy")}
+              accessibilityRole="link"
+              accessibilityLabel="Privacy Policy, opens in browser"
+            >
               Privacy Policy
             </Text>
             .
           </Text>
-          <View className="flex-row justify-center items-center">
-            <Text style={{ fontSize: 14, color: c.slate }}>Already have an account?</Text>
+
+          <View className="flex-row justify-center items-center mt-2">
+            <Text style={{ fontSize: 14, color: c.slate }}>Already have an account? </Text>
             <DsButton label="Log in" variant="link" block={false} onPress={() => router.replace("/(auth)/login")} />
           </View>
         </>
       }
     >
       {/* ── Heading ── */}
-      <Animated.View entering={FadeIn.duration(400)} style={{ marginBottom: 24 }}>
-        <Text accessibilityRole="header" style={{ fontSize: 28, lineHeight: 35, fontWeight: "600", letterSpacing: -0.5, color: c.ink }}>
+      <Animated.View entering={FadeIn.duration(400)} style={{ marginBottom: 28 }}>
+        <Text accessibilityRole="header" style={{ fontSize: 28, lineHeight: 36, fontWeight: "700", letterSpacing: -0.6, color: c.ink }}>
           Create your account
         </Text>
-        <Text style={{ fontSize: 16, lineHeight: 24, color: c.slate, marginTop: 8 }}>
-          Takes about a minute. We&apos;ll email you a code to confirm it&apos;s you.
+        <Text style={{ fontSize: 15, lineHeight: 22, color: c.slate, marginTop: 6 }}>
+          Takes about a minute. We&apos;ll send a verification code to get started.
         </Text>
       </Animated.View>
 
@@ -282,12 +314,35 @@ export default function RegisterScreen() {
         {/* General Error Banner */}
         {generalError && (
           <Animated.View
-            style={[errorAnimatedStyle, { flexDirection: "row", alignItems: "center", gap: 10, padding: 14, borderRadius: 12, backgroundColor: c.rose }]}
+            style={[
+              errorAnimatedStyle,
+              {
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 12,
+                padding: 14,
+                borderRadius: 12,
+                backgroundColor: c.rose,
+                borderWidth: 1,
+                borderColor: "#FECACA",
+              },
+            ]}
             accessible={true}
             accessibilityRole="alert"
           >
-            <Feather name="alert-triangle" size={16} color={c.danger} />
-            <Text style={{ flex: 1, fontSize: 14, lineHeight: 20, color: c.ink }}>{generalError}</Text>
+            <View
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 14,
+                backgroundColor: "#FEE2E2",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Feather name="alert-triangle" size={15} color={c.danger} />
+            </View>
+            <Text style={{ flex: 1, fontSize: 13.5, lineHeight: 19, color: "#991B1B", fontWeight: "500" }}>{generalError}</Text>
           </Animated.View>
         )}
 
@@ -295,7 +350,7 @@ export default function RegisterScreen() {
           look="ds"
           control={control}
           name="email"
-          label="Email"
+          label="Email address"
           placeholder="name@example.com"
           keyboardType="email-address"
           autoComplete="email"
@@ -338,11 +393,19 @@ export default function RegisterScreen() {
           }}
           leftElement={
             <View
-              style={{ flexDirection: "row", alignItems: "center", alignSelf: "stretch", paddingRight: 12, marginRight: 12, borderRightWidth: 1, borderRightColor: c.hairline }}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                alignSelf: "stretch",
+                paddingRight: 12,
+                marginRight: 12,
+                borderRightWidth: 1,
+                borderRightColor: c.hairline,
+              }}
               accessible={true}
               accessibilityLabel="Philippines, plus 63"
             >
-              <Text style={{ fontSize: 15, fontWeight: "500", color: c.ink }}>+63</Text>
+              <Text style={{ fontSize: 15, fontWeight: "600", color: c.ink }}>+63</Text>
             </View>
           }
         />
@@ -353,7 +416,7 @@ export default function RegisterScreen() {
             control={control}
             name="password"
             label="Password"
-            placeholder="Create a password"
+            placeholder="Create a strong password"
             secureTextEntry={!showPassword}
             autoCapitalize="none"
             textContentType="newPassword"
@@ -382,13 +445,13 @@ export default function RegisterScreen() {
                 accessibilityLabel={showPassword ? "Hide password" : "Show password"}
               >
                 <Animated.View style={eyeAnimatedStyle}>
-                  <Feather name={showPassword ? "eye-off" : "eye"} size={18} color={c.slate} />
+                  <Feather name={showPassword ? "eye-off" : "eye"} size={18} color={showPassword ? c.primary : c.slate} />
                 </Animated.View>
               </TouchableOpacity>
             }
           />
 
-          {/* Password rules as tags that turn green when met */}
+          {/* Password rules as interactive tags */}
           <View
             className="flex-row flex-wrap"
             style={{ gap: 6, marginTop: 10 }}
@@ -403,10 +466,22 @@ export default function RegisterScreen() {
                 <View
                   key={rule.label}
                   className="flex-row items-center"
-                  style={{ gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: met ? c.mint : c.surfaceAlt }}
+                  style={{
+                    gap: 5,
+                    paddingHorizontal: 9,
+                    paddingVertical: 4,
+                    borderRadius: 8,
+                    backgroundColor: met ? c.mint : c.surfaceAlt,
+                    borderWidth: 1,
+                    borderColor: met ? "#A7F3D0" : c.hairline,
+                  }}
                 >
-                  {met ? <Feather name="check" size={12} color={c.charcoal} /> : null}
-                  <Text style={{ fontSize: 13, fontWeight: "600", color: met ? c.charcoal : c.slate }}>{rule.label}</Text>
+                  {met ? (
+                    <Feather name="check-circle" size={12} color="#059669" />
+                  ) : (
+                    <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: c.steel, marginHorizontal: 3 }} />
+                  )}
+                  <Text style={{ fontSize: 12.5, fontWeight: "600", color: met ? "#065F46" : c.slate }}>{rule.label}</Text>
                 </View>
               );
             })}

@@ -180,24 +180,6 @@ export default function OnboardingScreen() {
               HeartLink
             </Text>
           </View>
-          <View
-            style={{
-              marginLeft: "auto",
-              flexDirection: "row",
-              alignItems: "center",
-              paddingHorizontal: 9,
-              paddingVertical: 3.5,
-              borderRadius: 999,
-              backgroundColor: c.tint,
-              borderWidth: 1,
-              borderColor: "#DBEAFE",
-            }}
-          >
-            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: c.primary, marginRight: 5 }} />
-            <Text style={{ fontSize: 11, fontWeight: "600", color: c.primary, letterSpacing: 0.3 }}>
-              DAILY CARE
-            </Text>
-          </View>
         </Animated.View>
 
         {/* ── Headline ── */}

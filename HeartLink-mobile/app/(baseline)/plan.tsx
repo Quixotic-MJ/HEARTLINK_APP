@@ -6,8 +6,8 @@ import AnimatedButton from "../../components/ui/AnimatedButton";
 import DsButton from "../../components/onboarding/DsButton";
 import SetupHeader from "../../components/onboarding/SetupHeader";
 import FinishLaterDialog from "../../components/onboarding/FinishLaterDialog";
-import Animated from "react-native-reanimated";
-import { DsScreen, IconBadge, InfoNote, Tag, enter } from "../../components/onboarding/QuestionLayout";
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import { DsScreen, IconBadge, InfoNote, enter } from "../../components/onboarding/QuestionLayout";
 import { useDs } from "../../components/onboarding/useDs";
 import { useBaseline } from "../../contexts/BaselineContext";
 import {
@@ -46,74 +46,147 @@ export default function PlanScreen() {
     router.push({ pathname: "/(baseline)/question/[id]", params: { id: first.id } });
   };
 
-  const title = !started ? "Let's get your starting score." : nextPart ? "Welcome back. Let's carry on." : "All four parts are done.";
-  const cta = nextPart ? `${started ? "Continue with" : "Start with"} ${nextPart.name}` : "See my starting score";
+  const title = !started
+    ? "Let's get your starting score."
+    : nextPart
+    ? "Welcome back. Let's carry on."
+    : "All four parts are done.";
+  const cta = nextPart
+    ? `${started ? "Continue with" : "Start with"} ${nextPart.name}`
+    : "See my starting score";
 
   return (
     <>
       <DsScreen
         header={<SetupHeader title="Set-up" onFinishLater={() => setFinishLater(true)} />}
         footer={
-          <DsButton
-            label={cta}
-            disabled={!loaded}
-            onPress={() => (nextPart ? openPart(nextPart.n) : router.push("/(baseline)/score"))}
-          />
+          <Animated.View entering={FadeInDown.delay(180).duration(400)} style={{ gap: 6 }}>
+            <DsButton
+              label={cta}
+              disabled={!loaded}
+              onPress={() => (nextPart ? openPart(nextPart.n) : router.push("/(baseline)/score"))}
+              icon={<Feather name="arrow-right" size={16} color="#FFFFFF" />}
+            />
+          </Animated.View>
         }
       >
         {!loaded ? (
-          <ActivityIndicator color={c.line} />
+          <ActivityIndicator color={c.primary} />
         ) : (
           <>
-            <Text accessibilityRole="header" style={{ fontSize: 28, lineHeight: 35, fontWeight: "600", letterSpacing: -0.5, color: c.ink }}>
-              {title}
-            </Text>
-            <Text style={{ fontSize: 16, lineHeight: 24, color: c.slate, marginTop: 10, marginBottom: 24 }}>
-              Four short parts, about 4 minutes. Your answers save as you go.
-            </Text>
+            <Animated.View entering={FadeIn.duration(400)}>
+              <Text
+                accessibilityRole="header"
+                style={{
+                  fontSize: 28,
+                  lineHeight: 36,
+                  fontWeight: "700",
+                  letterSpacing: -0.6,
+                  color: c.ink,
+                }}
+              >
+                {title}
+              </Text>
+              <Text
+                style={{
+                  fontSize: 15,
+                  lineHeight: 22,
+                  color: c.slate,
+                  marginTop: 6,
+                  marginBottom: 24,
+                }}
+              >
+                Four short parts, about 4 minutes. Your answers save as you go.
+              </Text>
+            </Animated.View>
 
-            <View style={{ gap: 10 }}>
+            <View style={{ gap: 12 }}>
               {SETUP_PART_LIST.map((p, i) => {
                 const isNext = nextPart?.n === p.n;
+                const isDone = done[i];
                 return (
                   <Animated.View key={p.n} entering={enter(i)}>
-                  <AnimatedButton
-                    onPress={() => openPart(p.n)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${p.name}. ${p.summary}. ${done[i] ? "Done, tap to change answers" : isNext ? "Up next" : "Not started"}`}
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 14,
-                      padding: 14,
-                      borderRadius: 12,
-                      backgroundColor: c.canvas,
-                      borderWidth: isNext ? 2 : 1,
-                      borderColor: isNext ? c.line : c.hairline,
-                    }}
-                  >
-                    <IconBadge icon={p.icon} tint={p.tint} size={40} />
-                    <View className="flex-1">
-                      <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>{p.name}</Text>
-                      <Text style={{ fontSize: 14, color: c.slate, marginTop: 2 }}>{p.summary}</Text>
-                    </View>
-                    {done[i] ? (
-                      <View style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: c.success, alignItems: "center", justifyContent: "center" }}>
-                        <Feather name="check" size={14} color="#ffffff" />
+                    <AnimatedButton
+                      onPress={() => openPart(p.n)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${p.name}. ${p.summary}. ${
+                        isDone ? "Done, tap to change answers" : isNext ? "Up next" : "Not started"
+                      }`}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 14,
+                        padding: 16,
+                        borderRadius: 14,
+                        backgroundColor: c.canvas,
+                        borderWidth: isNext ? 2 : 1,
+                        borderColor: isNext ? c.primary : c.hairline,
+                        ...(isNext
+                          ? {
+                              shadowColor: c.primary,
+                              shadowOffset: { width: 0, height: 3 },
+                              shadowOpacity: 0.12,
+                              shadowRadius: 8,
+                              elevation: 2,
+                            }
+                          : {}),
+                      }}
+                    >
+                      <IconBadge icon={p.icon} tint={p.tint} size={42} />
+                      <View className="flex-1">
+                        <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>{p.name}</Text>
+                        <Text style={{ fontSize: 13.5, lineHeight: 19, color: c.slate, marginTop: 2 }}>
+                          {p.summary}
+                        </Text>
                       </View>
-                    ) : isNext ? (
-                      <Tag label="Up next" align="center" />
-                    ) : (
-                      <Text style={{ fontSize: 12, fontWeight: "500", color: c.steel }}>1 min</Text>
-                    )}
-                  </AnimatedButton>
+
+                      {isDone ? (
+                        <View
+                          style={{
+                            width: 26,
+                            height: 26,
+                            borderRadius: 13,
+                            backgroundColor: "#ECFDF5",
+                            borderWidth: 1,
+                            borderColor: "#A7F3D0",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Feather name="check" size={15} color="#059669" />
+                        </View>
+                      ) : isNext ? (
+                        <View
+                          style={{
+                            paddingHorizontal: 9,
+                            paddingVertical: 3.5,
+                            borderRadius: 999,
+                            backgroundColor: c.tint,
+                            borderWidth: 1,
+                            borderColor: "#DBEAFE",
+                          }}
+                        >
+                          <Text style={{ fontSize: 12, fontWeight: "700", color: c.primary }}>
+                            Up next
+                          </Text>
+                        </View>
+                      ) : (
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                          <Feather name="clock" size={13} color={c.steel} />
+                          <Text style={{ fontSize: 12, fontWeight: "500", color: c.steel }}>~1 min</Text>
+                        </View>
+                      )}
+                    </AnimatedButton>
                   </Animated.View>
                 );
               })}
             </View>
 
-            <View style={{ marginTop: 20 }}>
-              <InfoNote icon="shield" text="Only you and HeartLink see these answers. They set where your score starts, nothing more." />
+            <View style={{ marginTop: 22 }}>
+              <InfoNote
+                icon="shield"
+                text="Only you and HeartLink see these answers. They calibrate your starting score and baseline habits."
+              />
             </View>
           </>
         )}

@@ -108,12 +108,12 @@ function readAnswers(d: BaselineData): { helping: string[]; grow: string[] } {
   return { helping: helping.slice(0, 2), grow: grow.slice(0, 2) };
 }
 
-function bandStyle(key: ScoreBand, c: DsColors): { bg: string; fg: string } {
+function bandStyle(key: ScoreBand): { bg: string; fg: string; border: string } {
   switch (key) {
-    case "good": return { bg: c.mint, fg: c.charcoal };
-    case "moderate": return { bg: c.yellow, fg: c.warmText };
-    case "elevated": return { bg: c.peach, fg: c.warmText };
-    case "critical": return { bg: c.rose, fg: c.charcoal };
+    case "good": return { bg: "#ECFDF5", fg: "#059669", border: "#A7F3D0" };
+    case "moderate": return { bg: "#FEFCE8", fg: "#B45309", border: "#FEF08A" };
+    case "elevated": return { bg: "#FFF7ED", fg: "#C2410C", border: "#FED7AA" };
+    case "critical": return { bg: "#FEF2F2", fg: "#DC2626", border: "#FECACA" };
   }
 }
 
@@ -182,9 +182,27 @@ export default function ScoreScreen() {
     return (
       <DsScreen centered>
         <View className="items-center">
-          <ActivityIndicator size="large" color={c.line} accessibilityLabel="Working out your score" />
-          <Text style={{ fontSize: 22, fontWeight: "600", color: c.ink, marginTop: 20 }}>Working out your starting score</Text>
-          <Text style={{ fontSize: 15, color: c.slate, marginTop: 6 }}>This takes a few seconds.</Text>
+          <View
+            style={{
+              width: 72,
+              height: 72,
+              borderRadius: 20,
+              backgroundColor: "#EFF6FF",
+              borderWidth: 1.5,
+              borderColor: "#DBEAFE",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: 24,
+            }}
+          >
+            <ActivityIndicator size="large" color="#2563EB" accessibilityLabel="Working out your score" />
+          </View>
+          <Text style={{ fontSize: 24, fontWeight: "700", letterSpacing: -0.5, color: c.ink, textAlign: "center" }}>
+            Working out your starting score
+          </Text>
+          <Text style={{ fontSize: 15.5, color: c.slate, marginTop: 8, textAlign: "center" }}>
+            Analyzing your answers. This takes just a moment.
+          </Text>
         </View>
       </DsScreen>
     );
@@ -196,24 +214,42 @@ export default function ScoreScreen() {
         centered
         footer={
           <>
-            <DsButton label="Try again" onPress={run} />
+            <DsButton
+              label="Try again"
+              onPress={run}
+              icon={<Feather name="refresh-cw" size={17} color="#ffffff" />}
+            />
             <DsButton label="Back to my answers" variant="quiet" onPress={() => router.replace("/(baseline)/plan")} />
           </>
         }
       >
-        <View style={{ width: 56, height: 56, borderRadius: 12, backgroundColor: c.rose, alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
-          <Feather name="wifi-off" size={26} color={c.charcoal} />
+        <View
+          style={{
+            width: 58,
+            height: 58,
+            borderRadius: 16,
+            backgroundColor: "#FEF2F2",
+            borderWidth: 1.5,
+            borderColor: "#FECACA",
+            alignItems: "center",
+            justifyContent: "center",
+            marginBottom: 20,
+          }}
+        >
+          <Feather name="wifi-off" size={26} color="#DC2626" />
         </View>
-        <Text accessibilityRole="header" style={{ fontSize: 26, fontWeight: "600", color: c.ink }}>We couldn&apos;t get your score</Text>
-        <Text style={{ fontSize: 16, lineHeight: 24, color: c.slate, marginTop: 8 }}>
-          {state.message} Your answers are saved, so nothing is lost.
+        <Text accessibilityRole="header" style={{ fontSize: 26, fontWeight: "700", letterSpacing: -0.5, color: c.ink }}>
+          We couldn&apos;t get your score
+        </Text>
+        <Text style={{ fontSize: 15.5, lineHeight: 23, color: c.slate, marginTop: 8 }}>
+          {state.message} Your answers are securely saved, so nothing is lost.
         </Text>
       </DsScreen>
     );
   }
 
   const band = scoreBand(state.score, light);
-  const bs = bandStyle(band.key, c);
+  const bs = bandStyle(band.key);
   const R = 80;
   const circ = 2 * Math.PI * R;
   const filled = (Math.max(0, Math.min(100, state.score)) / 100) * circ;
@@ -224,56 +260,115 @@ export default function ScoreScreen() {
         <DsButton
           label="Continue"
           onPress={() => router.replace({ pathname: "/(baseline)/first-reading", params: { name: state.name } })}
+          icon={<Feather name="arrow-right" size={17} color="#ffffff" />}
         />
       }
     >
       <View className="items-center">
-        <Text style={{ fontSize: 11, fontWeight: "600", letterSpacing: 1, textTransform: "uppercase", color: c.steel, marginBottom: 16 }}>
-          Your starting score
-        </Text>
-        <View style={{ width: 188, height: 188 }} accessible accessibilityLabel={`Heart Health Stability Score ${state.score} out of 100, ${band.label}`}>
-          <Svg width={188} height={188} viewBox="0 0 188 188">
-            <Circle cx={94} cy={94} r={R} fill="none" stroke={c.hairlineSoft} strokeWidth={12} />
-            <RingFill r={R} circ={circ} filled={filled} color={c.line} />
+        <View
+          style={{
+            paddingHorizontal: 10,
+            paddingVertical: 3,
+            borderRadius: 6,
+            backgroundColor: "#EFF6FF",
+            borderWidth: 1,
+            borderColor: "#DBEAFE",
+            marginBottom: 18,
+          }}
+        >
+          <Text style={{ fontSize: 11.5, fontWeight: "700", letterSpacing: 0.8, textTransform: "uppercase", color: "#1D4ED8" }}>
+            Your Starting Score
+          </Text>
+        </View>
+
+        <View style={{ width: 196, height: 196 }} accessible accessibilityLabel={`Heart Health Stability Score ${state.score} out of 100, ${band.label}`}>
+          <Svg width={196} height={196} viewBox="0 0 188 188">
+            <Circle cx={94} cy={94} r={R} fill="none" stroke="#F1F5F9" strokeWidth={12} />
+            <RingFill r={R} circ={circ} filled={filled} color="#3B82F6" />
           </Svg>
           <Animated.View
-            entering={ZoomIn.delay(250).springify().damping(14)}
+            entering={ZoomIn.delay(200).springify().damping(14)}
             style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" }}
           >
-            <Text style={{ fontSize: 56, fontWeight: "600", letterSpacing: -1, color: c.ink }}>{state.score}</Text>
-            <Text style={{ fontSize: 13, color: c.steel }}>out of 100</Text>
+            <Text style={{ fontSize: 62, fontWeight: "800", letterSpacing: -1.5, color: c.ink }}>{state.score}</Text>
+            <Text style={{ fontSize: 13, fontWeight: "600", color: c.steel }}>out of 100</Text>
           </Animated.View>
         </View>
-        <Animated.View entering={FadeIn.delay(1000).duration(300)} style={{ marginTop: 14, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: bs.bg }}>
-          <Text style={{ fontSize: 13, fontWeight: "600", color: bs.fg }}>{band.label}</Text>
+
+        <Animated.View
+          entering={FadeIn.delay(950).duration(300)}
+          style={{
+            marginTop: 16,
+            paddingHorizontal: 12,
+            paddingVertical: 4,
+            borderRadius: 8,
+            backgroundColor: bs.bg,
+            borderWidth: 1,
+            borderColor: bs.border,
+          }}
+        >
+          <Text style={{ fontSize: 13.5, fontWeight: "700", color: bs.fg }}>{band.label}</Text>
         </Animated.View>
-        <Text style={{ fontSize: 16, lineHeight: 24, color: c.slate, textAlign: "center", marginTop: 14, marginBottom: 22, maxWidth: 320 }}>
-          This is where you start, based on your answers. It moves as you log readings, meals and activity.
+
+        <Text style={{ fontSize: 15.5, lineHeight: 23, color: c.slate, textAlign: "center", marginTop: 14, marginBottom: 22, maxWidth: 320 }}>
+          This is where you start, based on your answers. It adapts as you log daily readings, meals, and activity.
         </Text>
       </View>
 
       {state.helping.length || state.grow.length ? (
-        <Animated.View entering={FadeInDown.delay(1100).duration(350)} className="flex-row" style={{ gap: 10 }}>
+        <Animated.View entering={FadeInDown.delay(1050).duration(350)} className="flex-row" style={{ gap: 10 }}>
           {state.helping.length ? (
-            <View style={{ flex: 1, padding: 16, borderRadius: 12, backgroundColor: c.mint }}>
-              <Text style={{ fontSize: 12, fontWeight: "600", color: c.charcoal, marginBottom: 8 }}>Helping you</Text>
+            <View
+              style={{
+                flex: 1,
+                padding: 16,
+                borderRadius: 14,
+                backgroundColor: "#F0FDF4",
+                borderWidth: 1.5,
+                borderColor: "#BBF7D0",
+              }}
+            >
+              <View className="flex-row items-center" style={{ gap: 6, marginBottom: 10 }}>
+                <Feather name="trending-up" size={14} color="#16A34A" />
+                <Text style={{ fontSize: 11.5, fontWeight: "700", letterSpacing: 0.4, textTransform: "uppercase", color: "#15803D" }}>
+                  Helping you
+                </Text>
+              </View>
               {state.helping.map((t) => (
-                <Text key={t} style={{ fontSize: 14, fontWeight: "500", lineHeight: 21, color: c.charcoal }}>{t}</Text>
+                <Text key={t} style={{ fontSize: 14, fontWeight: "600", lineHeight: 21, color: "#166534" }}>
+                  • {t}
+                </Text>
               ))}
             </View>
           ) : null}
           {state.grow.length ? (
-            <View style={{ flex: 1, padding: 16, borderRadius: 12, backgroundColor: c.peach }}>
-              <Text style={{ fontSize: 12, fontWeight: "600", color: c.charcoal, marginBottom: 8 }}>Room to grow</Text>
+            <View
+              style={{
+                flex: 1,
+                padding: 16,
+                borderRadius: 14,
+                backgroundColor: "#EFF6FF",
+                borderWidth: 1.5,
+                borderColor: "#BFDBFE",
+              }}
+            >
+              <View className="flex-row items-center" style={{ gap: 6, marginBottom: 10 }}>
+                <Feather name="arrow-up-right" size={14} color="#2563EB" />
+                <Text style={{ fontSize: 11.5, fontWeight: "700", letterSpacing: 0.4, textTransform: "uppercase", color: "#1D4ED8" }}>
+                  Room to grow
+                </Text>
+              </View>
               {state.grow.map((t) => (
-                <Text key={t} style={{ fontSize: 14, fontWeight: "500", lineHeight: 21, color: c.charcoal }}>{t}</Text>
+                <Text key={t} style={{ fontSize: 14, fontWeight: "600", lineHeight: 21, color: "#1E40AF" }}>
+                  • {t}
+                </Text>
               ))}
             </View>
           ) : null}
         </Animated.View>
       ) : null}
 
-      <View style={{ marginTop: 12 }}>
+      <View style={{ marginTop: 14 }}>
         <InfoNote text="HeartLink helps you build heart-healthy habits. It doesn't diagnose conditions or replace your doctor." />
       </View>
     </DsScreen>

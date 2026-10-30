@@ -77,7 +77,7 @@ function Checkbox({ on }: { on: boolean }) {
   }));
   const icon = useAnimatedStyle(() => ({ transform: [{ scale: tick.value }] }));
   return (
-    <Animated.View style={[{ width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, alignItems: "center", justifyContent: "center" }, box]}>
+    <Animated.View style={[{ width: 22, height: 22, borderRadius: 7, borderWidth: 1.5, alignItems: "center", justifyContent: "center" }, box]}>
       <Animated.View style={icon}>
         <Feather name="check" size={14} color="#ffffff" />
       </Animated.View>
@@ -91,10 +91,10 @@ function ChoiceRow({ opt, on, hasError, onPick }: { opt: ChoiceOption; on: boole
   const { c } = useDs();
   const anim = useCardStyle(on, hasError);
   const base: StyleProp<ViewStyle> = {
-    minHeight: opt.desc ? 64 : 56,
+    minHeight: opt.desc ? 66 : 56,
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
+    paddingVertical: 12,
+    borderRadius: 14,
     borderWidth: 1.5,
     flexDirection: "row",
     alignItems: "center",
@@ -109,8 +109,8 @@ function ChoiceRow({ opt, on, hasError, onPick }: { opt: ChoiceOption; on: boole
       style={[base, anim]}
     >
       <View className="flex-1">
-        <Text style={{ fontSize: 16, fontWeight: "500", color: c.ink }}>{opt.label}</Text>
-        {opt.desc ? <Text style={{ fontSize: 13, color: c.slate, marginTop: 2 }}>{opt.desc}</Text> : null}
+        <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>{opt.label}</Text>
+        {opt.desc ? <Text style={{ fontSize: 13, lineHeight: 18, color: c.slate, marginTop: 2 }}>{opt.desc}</Text> : null}
       </View>
       <Radio on={on} />
     </AnimatedButton>
@@ -151,7 +151,7 @@ function CheckRow({ opt, on, onToggle }: { opt: ChoiceOption; on: boolean; onTog
       accessibilityState={{ checked: on }}
       accessibilityLabel={opt.desc ? `${opt.label}. ${opt.desc}` : opt.label}
       style={[
-        { minHeight: 68, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, borderWidth: 1.5, flexDirection: "row", alignItems: "center", gap: 14 },
+        { minHeight: 68, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 14, borderWidth: 1.5, flexDirection: "row", alignItems: "center", gap: 14 },
         anim,
       ]}
     >
@@ -196,7 +196,7 @@ function Tile({ opt, on, caption, onPick }: { opt: ChoiceOption; on: boolean; ca
       accessibilityState={{ checked: on }}
       accessibilityLabel={caption ? `${opt.label} ${caption}` : opt.label}
       style={[
-        { flexBasis: "47%", flexGrow: 1, height: 72, borderRadius: 12, borderWidth: 1.5, alignItems: "center", justifyContent: "center" },
+        { flexBasis: "47%", flexGrow: 1, height: 72, borderRadius: 14, borderWidth: 1.5, alignItems: "center", justifyContent: "center" },
         anim,
       ]}
     >
@@ -239,9 +239,9 @@ function YesNoButton({ label, on, onPick }: { label: string; on: boolean; onPick
       accessibilityRole="radio"
       accessibilityState={{ checked: on }}
       accessibilityLabel={label}
-      style={[{ flex: 1, height: 56, borderRadius: 12, borderWidth: 1.5, alignItems: "center", justifyContent: "center" }, anim]}
+      style={[{ flex: 1, height: 56, borderRadius: 14, borderWidth: 1.5, alignItems: "center", justifyContent: "center" }, anim]}
     >
-      <Text style={{ fontSize: 16, fontWeight: "500", color: c.ink }}>{label}</Text>
+      <Text style={{ fontSize: 16, fontWeight: "600", color: on ? c.onTint : c.ink }}>{label}</Text>
     </AnimatedButton>
   );
 }
@@ -300,8 +300,8 @@ export function StepperCard({ rows }: { rows: StepperRow[] }) {
   const btn = {
     width: 44,
     height: 44,
-    borderRadius: 8,
-    borderWidth: 1,
+    borderRadius: 10,
+    borderWidth: 1.5,
     borderColor: c.hairlineStrong,
     alignItems: "center" as const,
     justifyContent: "center" as const,
@@ -310,17 +310,24 @@ export function StepperCard({ rows }: { rows: StepperRow[] }) {
   return (
     <Animated.View
       entering={FadeIn.duration(220)}
-      style={{ borderRadius: 12, borderWidth: 1, borderColor: c.hairline, paddingHorizontal: 16, paddingVertical: 4 }}
+      style={{
+        borderRadius: 14,
+        borderWidth: 1.5,
+        borderColor: c.hairline,
+        paddingHorizontal: 16,
+        paddingVertical: 4,
+        backgroundColor: c.canvas,
+      }}
     >
       {rows.map((r, i) => (
         <View key={r.label} className="flex-row items-center" style={{ minHeight: 60, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: c.hairlineSoft }}>
-          <Text style={{ flex: 1, fontSize: 15, fontWeight: "500", color: c.ink }}>{r.label}</Text>
+          <Text style={{ flex: 1, fontSize: 15, fontWeight: "600", color: c.ink }}>{r.label}</Text>
           <AnimatedButton
             onPress={() => r.onChange(Math.max(r.min, r.value - r.step))}
             disabled={r.value <= r.min}
             accessibilityRole="button"
             accessibilityLabel={`Decrease ${r.label.toLowerCase()}`}
-            style={[btn, { opacity: r.value <= r.min ? 0.4 : 1 }]}
+            style={[btn, { opacity: r.value <= r.min ? 0.35 : 1 }]}
           >
             <Feather name="minus" size={18} color={c.ink} />
           </AnimatedButton>
@@ -330,7 +337,7 @@ export function StepperCard({ rows }: { rows: StepperRow[] }) {
             disabled={r.value >= r.max}
             accessibilityRole="button"
             accessibilityLabel={`Increase ${r.label.toLowerCase()}`}
-            style={[btn, { opacity: r.value >= r.max ? 0.4 : 1 }]}
+            style={[btn, { opacity: r.value >= r.max ? 0.35 : 1 }]}
           >
             <Feather name="plus" size={18} color={c.ink} />
           </AnimatedButton>
@@ -343,12 +350,11 @@ export function StepperCard({ rows }: { rows: StepperRow[] }) {
 // ─── Chips (multi-select) ────────────────────────────────────────────────────
 
 function Chip({ opt, on, onToggle }: { opt: ChoiceOption; on: boolean; onToggle: () => void }) {
-  const { c, isDark } = useDs();
-  const activeBg = isDark ? c.ink : "#000000";
+  const { c } = useDs();
   const p = useSelection(on);
   const box = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(p.value, [0, 1], [c.canvas, activeBg]),
-    borderColor: interpolateColor(p.value, [0, 1], [c.hairline, activeBg]),
+    backgroundColor: interpolateColor(p.value, [0, 1], [c.canvas, c.line]),
+    borderColor: interpolateColor(p.value, [0, 1], [c.hairlineStrong, c.line]),
   }));
   return (
     <AnimatedButton
@@ -356,9 +362,9 @@ function Chip({ opt, on, onToggle }: { opt: ChoiceOption; on: boolean; onToggle:
       accessibilityRole="checkbox"
       accessibilityState={{ checked: on }}
       accessibilityLabel={opt.label}
-      style={[{ minHeight: 44, paddingHorizontal: 18, borderRadius: 9999, justifyContent: "center", borderWidth: 1 }, box]}
+      style={[{ minHeight: 44, paddingHorizontal: 18, borderRadius: 9999, justifyContent: "center", borderWidth: 1.5 }, box]}
     >
-      <Text style={{ fontSize: 14, fontWeight: "500", color: on ? c.canvas : c.charcoal }}>{opt.label}</Text>
+      <Text style={{ fontSize: 14, fontWeight: "600", color: on ? "#ffffff" : c.charcoal }}>{opt.label}</Text>
     </AnimatedButton>
   );
 }
@@ -404,18 +410,19 @@ export function DsTextField({ label, optional, unit, hasError = false, large = f
   const target = hasError ? c.danger : c.line;
   const box = useAnimatedStyle(() => ({
     borderColor: interpolateColor(p.value, [0, 1], [c.hairlineStrong, target]),
+    backgroundColor: interpolateColor(p.value, [0, 1], ["#F8FAFC", c.canvas]),
   }));
   return (
     <View style={{ gap: 6 }}>
       {hideLabel ? null : (
-        <Text style={{ fontSize: 14, fontWeight: "500", color: c.ink }}>
+        <Text style={{ fontSize: 14, fontWeight: "600", color: c.ink }}>
           {label}
           {optional ? <Text style={{ fontWeight: "400", color: c.steel }}> (optional)</Text> : null}
         </Text>
       )}
       <Animated.View
         className="flex-row items-center"
-        style={[{ height: large ? 64 : 52, borderRadius: 8, borderWidth: 1.5, paddingHorizontal: 16, backgroundColor: c.canvas }, box]}
+        style={[{ height: large ? 64 : 52, borderRadius: large ? 12 : 10, borderWidth: 1.5, paddingHorizontal: 16 }, box]}
       >
         <TextInput
           {...input}
@@ -430,9 +437,9 @@ export function DsTextField({ label, optional, unit, hasError = false, large = f
             setFocused(false);
             input.onBlur?.(e);
           }}
-          style={{ flex: 1, fontSize: large ? 26 : 17, fontWeight: large ? "600" : "400", color: c.ink, paddingVertical: 0 }}
+          style={{ flex: 1, fontSize: large ? 26 : 16.5, fontWeight: large ? "600" : "500", color: c.ink, paddingVertical: 0 }}
         />
-        {unit ? <Text style={{ fontSize: 14, fontWeight: "500", color: c.steel, marginLeft: 6 }}>{unit}</Text> : null}
+        {unit ? <Text style={{ fontSize: 14, fontWeight: "600", color: c.steel, marginLeft: 6 }}>{unit}</Text> : null}
       </Animated.View>
     </View>
   );

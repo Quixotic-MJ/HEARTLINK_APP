@@ -155,19 +155,30 @@ export default function QuestionScreen() {
               accessibilityRole="button"
               accessibilityLabel={`Date of birth, ${formatDob(data.date_of_birth) || "not set"}`}
               style={{
-                height: 56,
-                borderRadius: 8,
-                borderWidth: data.date_of_birth || showError ? 2 : 1,
+                height: 58,
+                borderRadius: 12,
+                borderWidth: 1.5,
                 borderColor: showError ? c.danger : data.date_of_birth ? c.line : c.hairlineStrong,
                 paddingHorizontal: 16,
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 12,
-                backgroundColor: c.canvas,
+                backgroundColor: data.date_of_birth ? c.tint : "#F8FAFC",
               }}
             >
-              <Feather name="calendar" size={20} color={c.slate} />
-              <Text style={{ flex: 1, fontSize: 17, fontWeight: data.date_of_birth ? "500" : "400", color: data.date_of_birth ? c.ink : c.steel }}>
+              <View
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  backgroundColor: data.date_of_birth ? "#DBEAFE" : "#EDF2F7",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Feather name="calendar" size={17} color={data.date_of_birth ? c.line : c.slate} />
+              </View>
+              <Text style={{ flex: 1, fontSize: 16.5, fontWeight: data.date_of_birth ? "600" : "500", color: data.date_of_birth ? c.ink : c.steel }}>
                 {formatDob(data.date_of_birth) || "Select your birth date"}
               </Text>
               {age !== null ? <Tag label={`Age ${age}`} align="center" /> : null}
@@ -178,11 +189,12 @@ export default function QuestionScreen() {
                 mode="date"
                 display="default"
                 maximumDate={new Date()}
-                onChange={(event, date) => {
+                onValueChange={(_event, date) => {
                   setShowPicker(false);
                   // Local date, not toISOString(): that is UTC and saved the day before in the Philippines.
-                  if (event.type === "set" && date) set({ date_of_birth: toYMD(date) });
+                  if (date) set({ date_of_birth: toYMD(date) });
                 }}
+                onDismiss={() => setShowPicker(false)}
               />
             ) : null}
           </>
@@ -310,7 +322,13 @@ export default function QuestionScreen() {
             onFinishLater={() => setFinishLater(true)}
           />
         }
-        footer={<DsButton label={nextLabel} onPress={goNext} />}
+        footer={
+          <DsButton
+            label={nextLabel}
+            onPress={goNext}
+            icon={<Feather name="arrow-right" size={17} color="#ffffff" />}
+          />
+        }
         icon={q.icon}
         tint={part.tint}
         tag={q.tag}
@@ -321,9 +339,27 @@ export default function QuestionScreen() {
       >
         {body}
         {showError ? (
-          <Animated.Text entering={FadeIn.duration(200)} accessibilityRole="alert" style={{ fontSize: 14, color: c.danger, marginTop: 12 }}>
-            {errorFor(q)}
-          </Animated.Text>
+          <Animated.View
+            entering={FadeIn.duration(200)}
+            accessibilityRole="alert"
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 10,
+              marginTop: 16,
+              paddingHorizontal: 14,
+              paddingVertical: 12,
+              borderRadius: 10,
+              backgroundColor: "#FEF2F2",
+              borderWidth: 1,
+              borderColor: "#FECACA",
+            }}
+          >
+            <Feather name="alert-circle" size={17} color="#DC2626" />
+            <Text style={{ flex: 1, fontSize: 13.5, fontWeight: "500", color: "#991B1B" }}>
+              {errorFor(q)}
+            </Text>
+          </Animated.View>
         ) : null}
       </QuestionLayout>
       <FinishLaterDialog visible={finishLater} onClose={() => setFinishLater(false)} />
