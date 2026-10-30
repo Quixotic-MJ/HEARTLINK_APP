@@ -15,9 +15,10 @@ interface DsButtonProps {
   block?: boolean;
   accessibilityHint?: string;
   style?: StyleProp<ViewStyle>;
+  icon?: React.ReactNode;
 }
 
-// Design-system button: 8px corners, 48px tall, one primary per screen.
+// Design-system button: 10px corners, 48-50px tall, one primary per screen.
 export default function DsButton({
   label,
   onPress,
@@ -27,15 +28,16 @@ export default function DsButton({
   block,
   accessibilityHint,
   style,
+  icon,
 }: DsButtonProps) {
   const { c } = useDs();
   const isBlock = block ?? variant === "primary";
   const inactive = disabled || loading;
 
   const boxStyle: ViewStyle = {
-    height: variant === "link" || variant === "quiet" ? 44 : 48,
-    borderRadius: variant === "link" || variant === "quiet" ? 6 : 8,
-    paddingHorizontal: variant === "link" ? 4 : 18,
+    height: variant === "link" || variant === "quiet" ? 44 : 50,
+    borderRadius: variant === "link" || variant === "quiet" ? 6 : 10,
+    paddingHorizontal: variant === "link" ? 4 : 20,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
@@ -45,6 +47,13 @@ export default function DsButton({
   if (variant === "primary") {
     boxStyle.backgroundColor = inactive && !loading ? c.hairline : c.primary;
     textColor = inactive && !loading ? c.steel : c.onPrimary;
+    if (!inactive) {
+      boxStyle.shadowColor = c.primary;
+      boxStyle.shadowOffset = { width: 0, height: 4 };
+      boxStyle.shadowOpacity = 0.22;
+      boxStyle.shadowRadius = 8;
+      boxStyle.elevation = 3;
+    }
   } else if (variant === "secondary") {
     boxStyle.borderWidth = 1;
     boxStyle.borderColor = c.hairlineStrong;
@@ -67,9 +76,19 @@ export default function DsButton({
           <ActivityIndicator size="small" color={textColor} />
         </View>
       ) : (
-        <Text style={{ color: textColor, fontSize: variant === "link" || variant === "quiet" ? 14 : 15, fontWeight: "500" }}>
-          {label}
-        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <Text
+            style={{
+              color: textColor,
+              fontSize: variant === "link" || variant === "quiet" ? 14 : 15.5,
+              fontWeight: "600",
+              letterSpacing: -0.1,
+            }}
+          >
+            {label}
+          </Text>
+          {icon}
+        </View>
       )}
     </AnimatedButton>
   );
