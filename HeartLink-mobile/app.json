@@ -47,7 +47,10 @@
         {
           "color": "#1478B8"
         }
-      ]
+      ],
+      "expo-image",
+      "expo-sharing",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
