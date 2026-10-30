@@ -103,10 +103,12 @@ export default function AuthScreen() {
   }));
 
   const togglePasswordVisibility = () => {
-    eyeScale.value = withSequence(
-      withTiming(0.7, { duration: 80 }),
-      withTiming(1.15, { duration: 100 }),
-      withTiming(1, { duration: 80 })
+    eyeScale.set(
+      withSequence(
+        withTiming(0.7, { duration: 80 }),
+        withTiming(1.15, { duration: 100 }),
+        withTiming(1, { duration: 80 })
+      )
     );
     setShowPassword((prev) => !prev);
   };
