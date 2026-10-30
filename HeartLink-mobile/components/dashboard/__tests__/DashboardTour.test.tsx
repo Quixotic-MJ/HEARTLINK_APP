@@ -3,7 +3,7 @@ import { Text, View } from "react-native";
 import { render, screen, userEvent } from "@testing-library/react-native";
 import { TourSpot, TourTarget, useDashboardTour } from "../DashboardTour";
 
-const TARGETS: TourTarget[] = ["score", "note", "missions", "vitals", "summary", "care"];
+const TARGETS: TourTarget[] = ["score", "missions", "note", "vitals", "summary", "care"];
 
 // A stand-in dashboard: six sections, and the tour starts straight away. A critical score hides the picks, as
 // the real dashboard does; care tools stay.
@@ -35,12 +35,12 @@ describe("Dashboard tour", () => {
     expect(screen.getByText("1 of 4")).toBeOnTheScreen();
 
     await user.press(screen.getByRole("button", { name: "Next" }));
-    expect(screen.getByText("Today")).toBeOnTheScreen();
+    expect(screen.getByText("Check-ins and medicine")).toBeOnTheScreen();
     // Only one tip at a time: the score tip is gone.
     expect(screen.queryByText("Your heart score")).not.toBeOnTheScreen();
 
     await user.press(screen.getByRole("button", { name: "Next" }));
-    expect(screen.getByText("Daily limits")).toBeOnTheScreen();
+    expect(screen.getByText("Blood pressure this week")).toBeOnTheScreen();
 
     await user.press(screen.getByRole("button", { name: "Next" }));
     expect(screen.queryByText("Picked for you")).not.toBeOnTheScreen();

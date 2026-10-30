@@ -28,7 +28,7 @@ import { useToast } from "../../../contexts/ToastContext";
 
 // Import extracted UI components
 import { ScoreRing } from "../../../components/dashboard/ScoreRing";
-import { MissionList, type MissionId, type MissionItem } from "../../../components/dashboard/MissionList";
+import { type MissionId, type MissionItem } from "../../../components/dashboard/MissionList";
 import { MissionLogModal } from "../../../components/dashboard/MissionLogModal";
 import { LogMealSheet } from "../../../components/dashboard/LogMealSheet";
 import { QuickLogModal } from "../../../components/exercise/QuickLogModal";
@@ -39,7 +39,6 @@ import {
 import { FacilityMapModal } from "../../../components/dashboard/FacilityMapModal";
 import { RecommendationCard, recommendationReason, type DashboardRec } from "../../../components/dashboard/RecommendationCard";
 import { TodayNote } from "../../../components/dashboard/TodayNote";
-import { ScoreCard } from "../../../components/dashboard/ScoreCard";
 import { CareTools } from "../../../components/dashboard/CareTools";
 import { CheckupBanner, type CheckupReminder } from "../../../components/dashboard/CheckupBanner";
 import { useDs } from "../../../components/onboarding/useDs";
@@ -49,7 +48,10 @@ import { Skeleton } from "../../../components/ui/Skeleton";
 import { ScreenWrapper } from "../../../components/ui/ScreenWrapper";
 import { TourSpot, useDashboardTour } from "../../../components/dashboard/DashboardTour";
 import { ScoreExplanationModal } from "../../../components/dashboard/ScoreExplanationModal";
-import { RitualProgress } from "../../../components/dashboard/RitualProgress";
+import { TodayCard, ScorePage, HabitsPage, LatestReadingPage } from "../../../components/dashboard/TodayCard";
+import { CheckinsTile, MedicineTile, type MedicineStatus } from "../../../components/dashboard/TodayTiles";
+import { PressureWeek } from "../../../components/dashboard/PressureWeek";
+import { useWeekTrends } from "../../../hooks/useWeekTrends";
 import { apiFetch } from "../../../lib/api";
 import { theme as colors, light as lightColors, dark as darkColors, ds } from "../../../constants/theme";
 // ─── Score theme ──────────────────────────────────────────────────────────────
@@ -311,11 +313,13 @@ export default function DashboardScreen() {
   const hasHssScore = hssScore > 0;
   const theme = getScoreTheme(hssScore, isDark);
   const isCritical = hasHssScore && hssScore < 50;
-  // Weekly score change under the heart ring; today's note says the same thing when there is one.
+  // The score's change next to the heart ring, against the last earlier day's score (or this morning's on day one)
   const rawTrend = data?.latest_vitals?.trend;
-  const scoreTrend =
-    !data?.insight && rawTrend && rawTrend !== "0" && rawTrend !== "+0"
-      ? `${rawTrend.startsWith("-") ? "Down" : "Up"} ${Math.abs(parseInt(rawTrend, 10))} points this week`
+  const since: string | null | undefined = data?.latest_vitals?.trend_since;
+  const sinceText = since === "yesterday" ? "since yesterday" : since === "today" ? "today" : "since your last check-in";
+  const scoreChange =
+    rawTrend && rawTrend !== "0" && rawTrend !== "+0"
+      ? `${rawTrend.startsWith("-") ? "Down" : "Up"} ${Math.abs(parseInt(rawTrend, 10))} ${sinceText}`
       : null;
 
   // Latest vitals for the swipe card under the score ring.
@@ -417,7 +421,7 @@ export default function DashboardScreen() {
   const handleRecLogged = useCallback(() => {
     setActiveRec(null);
     refetch();
-  }, [refetch]);
+  }, [refetch, setActiveRec]);
   const handleRecOpenFull = useCallback(
     (rec: ActiveRec) => {
       setActiveRec(null);
@@ -427,8 +431,29 @@ export default function DashboardScreen() {
         safeNavigate("/(home)/(health)/exercise-session", { id: rec.id });
       }
     },
-    [safeNavigate]
+    [safeNavigate, setActiveRec]
   );
+
+  // The Check-ins tile logs the next one still to do; with all four done it opens Trends.
+  const nextMission = missionItems.find((m) => !m.done) ?? null;
+  const openCheckins = () => {
+    if (nextMission) handleMissionPress(nextMission.id);
+    else safeNavigate("/(home)/(tabs)/trends");
+  };
+  const medicineStatus: MedicineStatus =
+    data?.today_activity?.medication_status ?? (data?.today_activity?.medication_taken ? "taken" : "not_yet");
+
+  const week = useWeekTrends(userId);
+  const latestAt = data?.latest_vitals?.logged_at ? new Date(data.latest_vitals.logged_at) : null;
+  const latestWhen =
+    latestAt && !Number.isNaN(latestAt.getTime())
+      ? `${latestAt.toDateString() === new Date().toDateString() ? "Today" : latestAt.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}, ${latestAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
+      : null;
+  const refetchWeek = week.refetch;
+  useEffect(() => {
+    if (dataUpdatedAt) refetchWeek();
+  }, [dataUpdatedAt, refetchWeek]);
+  const todayLabel = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
   // ── First-visit tour (tips drawn inside the page, see DashboardTour) ──
   const tourKey = userId ? `@dashboard_tour_seen_${userId}` : "@dashboard_tour_seen_guest";
@@ -778,109 +803,137 @@ export default function DashboardScreen() {
           />
         ) : null}
 
-        {/* ============================================================== */}
-        {/* 1. TIER 1 - STATUS */}
-        {/* ============================================================== */}
+        {/* ── Today: the title, then the swipe card (Heart score, habits, latest reading) ── */}
+        <View style={{ marginTop: 4, marginBottom: -6 }}>
+          <Text accessibilityRole="header" style={{ fontSize: 28, fontWeight: "700", letterSpacing: -0.6, color: c.ink }}>
+            Today
+          </Text>
+          <Text style={{ fontSize: 14, color: c.slate }}>{todayLabel}</Text>
+        </View>
+
         <Reanimated.View entering={FadeInDown.delay(100).duration(260)}>
           <TourSpot target="score" tour={tour}>
-          <ScoreCard
-            label={theme.label}
-            hasScore={hasHssScore}
-            systolic={latestSbp}
-            diastolic={latestDbp}
-            bpm={latestBpm}
-            streakDays={streakDays}
-            trend={scoreTrend}
-            onExplain={() => {
-              Haptics.selectionAsync();
-              setScoreModalVisible(true);
-            }}
-            onLogBloodPressure={() => handleMissionPress("vitals")}
-          >
-            <Animated.View
-              className="items-center justify-center"
-              style={{ transform: [{ scale: pulseAnim }] }}
-            >
-              {isCritical && (
-                <Animated.View
-                  className="absolute w-[140px] h-[140px] rounded-full bg-danger-tint"
-                  style={{ opacity: glowOpacity }}
-                />
-              )}
-              <ScoreRing
-                score={hssScore}
-                size={240}
-                color={theme.barColor}
-                refreshTrigger={dataUpdatedAt}
-                celebrateTrigger={completedCount}
-                systolic={latestSbp}
-                diastolic={latestDbp}
-                bpm={latestBpm}
-                streakDays={streakDays}
-              />
-            </Animated.View>
-          </ScoreCard>
+            <TodayCard
+              pages={[
+                {
+                  key: "score",
+                  label: "Heart score",
+                  content: (
+                    <ScorePage
+                      label={theme.label}
+                      hasScore={hasHssScore}
+                      change={scoreChange}
+                      reason={streakDays > 1 ? `${streakDays}-day logging streak` : null}
+                      onExplain={() => {
+                        Haptics.selectionAsync();
+                        setScoreModalVisible(true);
+                      }}
+                      onLogBloodPressure={() => handleMissionPress("vitals")}
+                    >
+                      <Animated.View
+                        className="items-center justify-center"
+                        style={{ transform: [{ scale: pulseAnim }] }}
+                      >
+                        {isCritical && (
+                          <Animated.View
+                            className="absolute w-[110px] h-[110px] rounded-full bg-danger-tint"
+                            style={{ opacity: glowOpacity }}
+                          />
+                        )}
+                        <ScoreRing
+                          score={hssScore}
+                          size={150}
+                          color={theme.barColor}
+                          refreshTrigger={dataUpdatedAt}
+                          celebrateTrigger={completedCount}
+                          systolic={latestSbp}
+                          diastolic={latestDbp}
+                          bpm={latestBpm}
+                          streakDays={streakDays}
+                        />
+                      </Animated.View>
+                    </ScorePage>
+                  ),
+                },
+                {
+                  key: "habits",
+                  label: "Today's habits",
+                  content: (
+                    <HabitsPage
+                      sodiumMg={Number(sodiumTodayMg) || 0}
+                      sodiumLimitMg={sodiumLimitMg}
+                      movementMins={movementMins}
+                      movementGoal={movementGoal}
+                      sleepHours={typeof sleepHours === "number" && sleepHours > 0 ? sleepHours : null}
+                    />
+                  ),
+                },
+                {
+                  key: "reading",
+                  label: "Latest reading",
+                  content: (
+                    <LatestReadingPage
+                      systolic={latestSbp}
+                      diastolic={latestDbp}
+                      bpm={latestBpm}
+                      when={latestWhen}
+                      onLog={() => handleMissionPress("vitals")}
+                    />
+                  ),
+                },
+              ]}
+            />
           </TourSpot>
         </Reanimated.View>
 
-        {/* ============================================================== */}
-        {/* 2. TIER 2 - PROTECT YOUR SCORE TODAY */}
-        {/* ============================================================== */}
+        {/* ── Check-ins and medicine ── */}
         <Reanimated.View entering={FadeInDown.delay(180).duration(260)}>
-
-          {/* Today's note: what changed in the score and one step to take */}
-          {data?.insight ? (
-            <View style={{ marginBottom: 12 }}>
-              <TourSpot target="note" tour={tour}>
-                <TodayNote
-                  insight={data.insight}
-                  hidden={!showInsight}
-                  onHide={() => setShowInsight(false)}
-                  onShow={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setShowInsight(true);
-                  }}
-                  onAction={(action) => {
-                    // An emergency-level reading or symptom: Call 911 and the nearest clinics
-                    if (action === "see_what_to_do") safeNavigate("/locator");
-                    else if (action === "log_vitals" || action === "log_later") handleMissionPress("vitals");
-                    else safeNavigate("/(home)/(meals)/food-diary");
-                  }}
-                />
-              </TourSpot>
-            </View>
-          ) : null}
-
           <TourSpot target="missions" tour={tour}>
-            <MissionList missions={missionItems} onPress={handleMissionPress} />
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <CheckinsTile
+                done={completedCount}
+                total={missionItems.length}
+                next={nextMission ? `log ${nextMission.title.toLowerCase()}` : null}
+                onPress={openCheckins}
+              />
+              <MedicineTile status={medicineStatus} onPress={() => handleMissionPress("vitals")} />
+            </View>
           </TourSpot>
         </Reanimated.View>
 
-        {/* ============================================================== */}
-        {/* 3. TIER 3 - TODAY'S PROGRESS */}
-        {/* ============================================================== */}
+        {/* Today's note: what changed in the score and one step to take */}
+        {data?.insight ? (
+          <Reanimated.View entering={FadeInDown.delay(220).duration(260)}>
+            <TourSpot target="note" tour={tour}>
+              <TodayNote
+                insight={data.insight}
+                hidden={!showInsight}
+                onHide={() => setShowInsight(false)}
+                onShow={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setShowInsight(true);
+                }}
+                onAction={(action) => {
+                  // An emergency-level reading or symptom: Call 911 and the nearest clinics
+                  if (action === "see_what_to_do") safeNavigate("/locator");
+                  else if (action === "log_vitals" || action === "log_later") handleMissionPress("vitals");
+                  else safeNavigate("/(home)/(meals)/food-diary");
+                }}
+              />
+            </TourSpot>
+          </Reanimated.View>
+        ) : null}
+
+        {/* ── Blood pressure, last 7 days ── */}
         <Reanimated.View entering={FadeInDown.delay(260).duration(260)}>
           <TourSpot target="vitals" tour={tour}>
-          <RitualProgress
-            calories={Number(data?.today_activity?.total_calories) || 0}
-            caloriesBurned={Number(data?.today_activity?.total_calories_burned) || 0}
-            exercisesNotCounted={Number(data?.today_activity?.exercises_not_counted) || 0}
-            cholesterol={Number(data?.nutrition_budget?.cholesterol?.consumed_mg ?? data?.today_activity?.total_cholesterol_mg) || 0}
-            cholesterolLimit={Number(data?.nutrition_budget?.cholesterol?.limit_mg) || 200}
-            totalSod={sodiumTodayMg}
-            sodiumLimit={sodiumLimitMg}
-            satFat={data?.nutrition_budget?.sat_fat?.consumed_g ?? data?.today_activity?.total_saturated_fat_g ?? 0}
-            satFatLimit={Number(data?.nutrition_budget?.sat_fat?.limit_g) || 13}
-            movementMins={movementMins}
-            movementGoal={movementGoal}
-            mealsLogged={mealsLogged}
-            exerciseLogged={exerciseLogged}
-            onLogMeal={() => handleMissionPress("meals")}
-          />
+            <PressureWeek
+              vitals={week.data?.vitals ?? []}
+              onAdd={() => handleMissionPress("vitals")}
+              onOpen={() => safeNavigate("/(home)/(tabs)/trends")}
+            />
           </TourSpot>
         </Reanimated.View>
-
-
 
         {/* The Critical state keeps the whole dashboard (its pop-ups included); Today's note carries the emergency
             step, so only the picks are left out while the score is Critical. */}

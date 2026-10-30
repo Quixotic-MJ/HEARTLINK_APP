@@ -22,7 +22,12 @@ export const TOUR_STEPS: TourStep[] = [
   {
     target: "score",
     title: "Your heart score",
-    body: "Built from your readings and habits, with your latest blood pressure, pulse and streak underneath. Its colour shows the band. Tap the i to see how it's worked out. It isn't a diagnosis.",
+    body: "Built from your readings and habits; its colour shows the band. Swipe this card (or tap the dots) to see today's habits and your latest reading. Tap the i to see how the score is worked out. It isn't a diagnosis.",
+  },
+  {
+    target: "missions",
+    title: "Check-ins and medicine",
+    body: "How many of today's four check-ins are done: blood pressure, meals, movement and sleep. Tap it to log the next one. Medicine shows your answer from today's check-in.",
   },
   {
     target: "note",
@@ -30,14 +35,9 @@ export const TOUR_STEPS: TourStep[] = [
     body: "One line on what just changed your score, with a step to take when there is one. After an emergency-level reading it turns red with Call 911. Tap Hide to fold it away.",
   },
   {
-    target: "missions",
-    title: "Today",
-    body: "Four small tasks each day: blood pressure, meals, movement and sleep. The blue tile is the one to do next; tap any tile to log it.",
-  },
-  {
     target: "vitals",
-    title: "Daily limits",
-    body: "Sodium, saturated fat and cholesterol so far against your daily limits, and net calories (eaten minus burned).",
+    title: "Blood pressure this week",
+    body: "Your last 7 days, top and bottom number, with lines at 120 and 80. Tap + to log a reading, or the card to open Trends.",
   },
   {
     target: "summary",

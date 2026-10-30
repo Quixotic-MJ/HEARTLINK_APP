@@ -140,6 +140,17 @@ def _get_comparison_score(user_hss: list) -> int:
     # If all scores are from today, return the oldest one to show today's progress
     return user_hss[-1].get("score", 0)
 
+def _trend_since(user_hss: list) -> str | None:
+    """What the trend compares with: "yesterday", an "earlier" day, or "today" when every score is from today."""
+    if len(user_hss) < 2:
+        return None
+    latest_dt = _safe_date(user_hss[0].get("computed_at"))
+    for hss in user_hss[1:]:
+        dt = _safe_date(hss.get("computed_at"))
+        if dt < latest_dt:
+            return "yesterday" if (latest_dt - dt).days == 1 else "earlier"
+    return "today"
+
 def _get_trend_direction(user_hss: list) -> str:
     """Compute score trend comparing to yesterday (or baseline)."""
     if len(user_hss) < 2:
@@ -464,6 +475,14 @@ def _get_today_activity(user_id: str) -> dict:
 
     # Meds adherence today
     meds_taken = any(l.get("medication_taken") for l in vitals_today)
+    # For the dashboard's medicine tile: "I don't take any" is saved as null, so the latest answer decides "none"
+    latest_answer = max(daily_health_logs, key=lambda l: _safe_datetime(l.get("logged_at")), default=None)
+    if meds_taken:
+        medication_status = "taken"
+    elif latest_answer is not None and latest_answer.get("medication_taken") is None:
+        medication_status = "none"
+    else:
+        medication_status = "not_yet"
 
     # Context, Severe Symptoms, Weight Gain, Blood Sugar
     vitals_context = vitals_today[0].get("context") if vitals_today else None
@@ -487,6 +506,7 @@ def _get_today_activity(user_id: str) -> dict:
         "total_exercise_minutes": total_exercise_min,
         "total_sleep_hours": total_sleep_hours,
         "medication_taken": meds_taken,
+        "medication_status": medication_status,
         "vitals_context": vitals_context,
         "severe_symptom_count": severe_symptom_count,
         "latest_blood_sugar": blood_sugar,
@@ -687,6 +707,7 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
                 else "--/--"
             ),
             "trend": trend,
+            "trend_since": _trend_since(user_hss),
             "logged_at": latest_log.get("logged_at") if latest_log else None,
         },
         "latest_alert": latest_alert,
