@@ -28,7 +28,7 @@ import { useToast } from "../../../contexts/ToastContext";
 
 // Import extracted UI components
 import { ScoreRing } from "../../../components/dashboard/ScoreRing";
-import { type MissionId, type MissionItem } from "../../../components/dashboard/MissionList";
+import { type MissionId } from "../../../components/dashboard/MissionList";
 import { MissionLogModal } from "../../../components/dashboard/MissionLogModal";
 import { LogMealSheet } from "../../../components/dashboard/LogMealSheet";
 import { QuickLogModal } from "../../../components/exercise/QuickLogModal";
@@ -48,8 +48,8 @@ import { Skeleton } from "../../../components/ui/Skeleton";
 import { ScreenWrapper } from "../../../components/ui/ScreenWrapper";
 import { TourSpot, useDashboardTour } from "../../../components/dashboard/DashboardTour";
 import { ScoreExplanationModal } from "../../../components/dashboard/ScoreExplanationModal";
-import { TodayCard, ScorePage, HabitsPage, LatestReadingPage } from "../../../components/dashboard/TodayCard";
-import { CheckinsTile, MedicineTile, type MedicineStatus } from "../../../components/dashboard/TodayTiles";
+import { TodayCard, ScorePage, HabitsPage, LatestReadingPage, sleepText } from "../../../components/dashboard/TodayCard";
+import { CheckinGrid, type CheckinTile, type MedicineStatus } from "../../../components/dashboard/TodayTiles";
 import { PressureWeek } from "../../../components/dashboard/PressureWeek";
 import { useWeekTrends } from "../../../hooks/useWeekTrends";
 import { apiFetch } from "../../../lib/api";
@@ -387,32 +387,6 @@ export default function DashboardScreen() {
   );
 
   const sleepHours = data?.today_activity?.total_sleep_hours;
-  const missionItems: MissionItem[] = [
-    {
-      id: "vitals",
-      title: "Blood pressure",
-      subtitle: vitalsLogged ? (data?.latest_vitals?.bp ? `${data.latest_vitals.bp}` : "Done") : "Not yet",
-      done: vitalsLogged,
-    },
-    {
-      id: "meals",
-      title: "Meals",
-      subtitle: mealsLogged ? `${Number(sodiumTodayMg).toLocaleString()} mg sodium` : "Not yet",
-      done: mealsLogged,
-    },
-    {
-      id: "exercise",
-      title: "Movement",
-      subtitle: `${movementMins}/${movementGoal} min`,
-      done: exerciseLogged,
-    },
-    {
-      id: "sleep",
-      title: "Sleep",
-      subtitle: sleepLogged ? (typeof sleepHours === "number" ? `${sleepHours} h` : "Done") : "Not yet",
-      done: sleepLogged,
-    },
-  ];
 
   // Recommendation detail modal (compiled expandable card).
   const [activeRec, setActiveRec] = useState<ActiveRec | null>(null);
@@ -434,14 +408,42 @@ export default function DashboardScreen() {
     [safeNavigate, setActiveRec]
   );
 
-  // The Check-ins tile logs the next one still to do; with all four done it opens Trends.
-  const nextMission = missionItems.find((m) => !m.done) ?? null;
-  const openCheckins = () => {
-    if (nextMission) handleMissionPress(nextMission.id);
-    else safeNavigate("/(home)/(tabs)/trends");
-  };
+  // The four check-in tiles; each opens its own log. Medicine is answered in the blood pressure check-in.
   const medicineStatus: MedicineStatus =
     data?.today_activity?.medication_status ?? (data?.today_activity?.medication_taken ? "taken" : "not_yet");
+  const mealsCount = data?.today_activity?.meals_count || 0;
+  const checkinTiles: CheckinTile[] = [
+    {
+      id: "vitals",
+      title: "Blood pressure",
+      value: vitalsLogged && latestSbp && latestDbp ? `${latestSbp}/${latestDbp}` : "Not yet",
+      sub: medicineStatus === "taken" ? "Medicine taken" : medicineStatus === "none" ? "No medicine" : "Medicine: not yet",
+      done: vitalsLogged,
+    },
+    {
+      id: "meals",
+      title: "Meals",
+      value: mealsLogged ? `${Number(sodiumTodayMg).toLocaleString()} mg` : "Not yet",
+      sub: mealsLogged ? `sodium · ${mealsCount} meal${mealsCount === 1 ? "" : "s"}` : `${sodiumLimitMg.toLocaleString()} mg sodium limit`,
+      done: mealsLogged,
+      progress: sodiumLimitMg ? Number(sodiumTodayMg) / sodiumLimitMg : 0,
+    },
+    {
+      id: "exercise",
+      title: "Movement",
+      value: `${movementMins} min`,
+      sub: movementMins >= movementGoal ? "Goal reached" : `of ${movementGoal} min goal`,
+      done: exerciseLogged,
+      progress: movementGoal ? movementMins / movementGoal : 0,
+    },
+    {
+      id: "sleep",
+      title: "Sleep",
+      value: sleepLogged && typeof sleepHours === "number" ? sleepText(sleepHours) : "Not yet",
+      sub: sleepLogged ? "Last night" : "Log last night",
+      done: sleepLogged,
+    },
+  ];
 
   const week = useWeekTrends(userId);
   const latestAt = data?.latest_vitals?.logged_at ? new Date(data.latest_vitals.logged_at) : null;
@@ -836,13 +838,13 @@ export default function DashboardScreen() {
                       >
                         {isCritical && (
                           <Animated.View
-                            className="absolute w-[110px] h-[110px] rounded-full bg-danger-tint"
+                            className="absolute w-[140px] h-[140px] rounded-full bg-danger-tint"
                             style={{ opacity: glowOpacity }}
                           />
                         )}
                         <ScoreRing
                           score={hssScore}
-                          size={150}
+                          size={185}
                           color={theme.barColor}
                           refreshTrigger={dataUpdatedAt}
                           celebrateTrigger={completedCount}
@@ -886,18 +888,10 @@ export default function DashboardScreen() {
           </TourSpot>
         </Reanimated.View>
 
-        {/* ── Check-ins and medicine ── */}
+        {/* ── Today's check-ins: blood pressure (with medicine), meals, movement, sleep ── */}
         <Reanimated.View entering={FadeInDown.delay(180).duration(260)}>
           <TourSpot target="missions" tour={tour}>
-            <View style={{ flexDirection: "row", gap: 12 }}>
-              <CheckinsTile
-                done={completedCount}
-                total={missionItems.length}
-                next={nextMission ? `log ${nextMission.title.toLowerCase()}` : null}
-                onPress={openCheckins}
-              />
-              <MedicineTile status={medicineStatus} onPress={() => handleMissionPress("vitals")} />
-            </View>
+            <CheckinGrid tiles={checkinTiles} onPress={handleMissionPress} />
           </TourSpot>
         </Reanimated.View>
 

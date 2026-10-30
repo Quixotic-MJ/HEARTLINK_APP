@@ -26,8 +26,8 @@ export const TOUR_STEPS: TourStep[] = [
   },
   {
     target: "missions",
-    title: "Check-ins and medicine",
-    body: "How many of today's four check-ins are done: blood pressure, meals, movement and sleep. Tap it to log the next one. Medicine shows your answer from today's check-in.",
+    title: "Today's check-ins",
+    body: "Blood pressure (with your medicine answer), meals, movement and sleep. Each tile shows where it stands today; tap one to log it.",
   },
   {
     target: "note",

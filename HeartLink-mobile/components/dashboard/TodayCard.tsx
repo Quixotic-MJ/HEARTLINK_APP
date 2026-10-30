@@ -122,11 +122,11 @@ export function ScorePage({
         }
       />
       {hasScore ? (
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+        <View style={{ alignItems: "center", gap: 10 }}>
           <View style={{ alignItems: "center", justifyContent: "center" }}>{children}</View>
-          <View style={{ flex: 1, gap: 8 }}>
-            <View style={{ alignSelf: "flex-start", paddingVertical: 3, paddingHorizontal: 10, borderRadius: 999, backgroundColor: tag.bg }}>
-              <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 13, fontWeight: "700", color: tag.fg }}>{tag.text}</Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 10 }}>
+            <View style={{ paddingVertical: 4, paddingHorizontal: 12, borderRadius: 999, backgroundColor: tag.bg }}>
+              <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 14, fontWeight: "700", color: tag.fg }}>{tag.text}</Text>
             </View>
             {change ? (
               <Text style={{ fontSize: 15, fontWeight: "600", color: up ? t.successText : c.charcoal }}>
@@ -134,8 +134,8 @@ export function ScorePage({
                 {change}
               </Text>
             ) : null}
-            {reason ? <Text style={{ fontSize: 13, lineHeight: 18, color: c.slate }}>{reason}</Text> : null}
           </View>
+          {reason ? <Text style={{ fontSize: 13, color: c.slate, textAlign: "center" }}>{reason}</Text> : null}
         </View>
       ) : (
         <View style={{ alignItems: "center", gap: 12, paddingVertical: 8 }}>
@@ -146,7 +146,7 @@ export function ScorePage({
           <DsButton label="Log blood pressure" block={false} onPress={onLogBloodPressure} />
         </View>
       )}
-      <Text style={{ fontSize: 12, color: c.steel }}>A wellness guide, not a diagnosis.</Text>
+      <Text style={{ fontSize: 12, color: c.steel, textAlign: "center" }}>A wellness guide, not a diagnosis.</Text>
     </View>
   );
 }
@@ -188,9 +188,10 @@ function Ring({ value, max, track, stroke, top, bottom, label }: {
 
 const fmt = (n: number) => Math.round(n).toLocaleString();
 
-function sleepText(hours: number): string {
-  const h = Math.floor(hours);
-  const m = Math.round((hours - h) * 60);
+export function sleepText(hours: number): string {
+  const total = Math.round(hours * 60);
+  const h = Math.floor(total / 60);
+  const m = total % 60;
   return m ? `${h}h ${m}m` : `${h}h`;
 }
 
@@ -233,9 +234,10 @@ export function HabitsPage({ sodiumMg, sodiumLimitMg, movementMins, movementGoal
     },
   ];
   return (
-    <View style={{ gap: 14 }}>
+    <View style={{ flex: 1, gap: 14 }}>
       <PageTitle title="Today's habits" right={<Text style={{ fontSize: 13, color: c.steel }}>Resets at midnight</Text>} />
-      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+      {/* The card is as tall as its tallest page (the score), so the shorter pages centre their content */}
+      <View style={{ flex: 1, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
         {items.map((it) => (
           <View key={it.name} style={{ flex: 1, alignItems: "center", gap: 6 }}>
             <Text style={{ fontSize: 14, fontWeight: "600", color: c.ink }}>{it.name}</Text>
@@ -265,7 +267,7 @@ export function LatestReadingPage({ systolic, diastolic, bpm, when, onLog }: {
   const t = isDark ? dark : light;
   if (!systolic || !diastolic) {
     return (
-      <View style={{ gap: 12 }}>
+      <View style={{ flex: 1, gap: 12 }}>
         <PageTitle title="Latest reading" />
         <Text style={{ fontSize: 15, lineHeight: 22, color: c.charcoal }}>No blood pressure logged yet.</Text>
         <DsButton label="Log blood pressure" variant="secondary" block={false} onPress={onLog} />
@@ -273,9 +275,11 @@ export function LatestReadingPage({ systolic, diastolic, bpm, when, onLog }: {
     );
   }
   const level = readingLevel(systolic, diastolic);
+  const healthy = level.text === "Healthy range";
   return (
-    <View style={{ gap: 12 }}>
+    <View style={{ flex: 1, gap: 12 }}>
       <PageTitle title="Latest reading" right={when ? <Text style={{ fontSize: 13, color: c.steel }}>{when}</Text> : null} />
+      <View style={{ flex: 1, justifyContent: "center", gap: 12 }}>
       <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8 }}>
         <Text style={{ fontSize: 42, fontWeight: "700", letterSpacing: -1, lineHeight: 46, color: c.ink, fontVariant: ["tabular-nums"] }}>
           {systolic}/{diastolic}
@@ -283,8 +287,8 @@ export function LatestReadingPage({ systolic, diastolic, bpm, when, onLog }: {
         <Text style={{ fontSize: 15, color: c.slate, paddingBottom: 6 }}>mmHg</Text>
       </View>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-        <View style={{ paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999, backgroundColor: level.emergency ? c.rose : c.tint }}>
-          <Text style={{ fontSize: 13, fontWeight: "700", color: level.emergency ? t.dangerText : c.onTint }}>{level.text}</Text>
+        <View style={{ paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999, backgroundColor: level.emergency ? c.rose : healthy ? c.tint : c.yellow }}>
+          <Text style={{ fontSize: 13, fontWeight: "700", color: level.emergency ? t.dangerText : healthy ? c.onTint : c.warmText }}>{level.text}</Text>
         </View>
         {bpm ? (
           <View style={{ paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999, backgroundColor: c.surfaceAlt }}>
@@ -295,6 +299,7 @@ export function LatestReadingPage({ systolic, diastolic, bpm, when, onLog }: {
       <Text style={{ fontSize: 13, lineHeight: 18, color: c.slate }}>
         Healthy is under 120/80. Measuring at the same time each day gives the clearest picture.
       </Text>
+      </View>
     </View>
   );
 }

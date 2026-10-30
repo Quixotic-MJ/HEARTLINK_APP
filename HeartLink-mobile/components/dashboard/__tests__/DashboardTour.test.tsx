@@ -35,7 +35,7 @@ describe("Dashboard tour", () => {
     expect(screen.getByText("1 of 4")).toBeOnTheScreen();
 
     await user.press(screen.getByRole("button", { name: "Next" }));
-    expect(screen.getByText("Check-ins and medicine")).toBeOnTheScreen();
+    expect(screen.getByText("Today's check-ins")).toBeOnTheScreen();
     // Only one tip at a time: the score tip is gone.
     expect(screen.queryByText("Your heart score")).not.toBeOnTheScreen();
 
