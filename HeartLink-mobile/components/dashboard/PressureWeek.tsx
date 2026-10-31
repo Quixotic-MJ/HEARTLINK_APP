@@ -1,16 +1,18 @@
 import React, { useState } from "react";
 import { LayoutChangeEvent, Text, View } from "react-native";
-import Svg, { Circle, Line, Polyline, Text as SvgText } from "react-native-svg";
+import Svg, { Circle, Line, Polyline, Rect, Text as SvgText } from "react-native-svg";
 import { Feather } from "@expo/vector-icons";
 import AnimatedButton from "../ui/AnimatedButton";
 import { useDs } from "../onboarding/useDs";
 import { periodDays, pressureByDay, type VitalsRow } from "../../services/trends";
 
 const HEIGHT = 140;
-const TOP = 10;
-const PLOT = 110;
+const TOP = 12;
+const PLOT = 100;
 const MIN = 50;
 const MAX = 190;
+const PAD_LEFT = 16;
+const PAD_RIGHT = 44;
 
 /**
  * Blood pressure for the last 7 days: one point per day (the day's last reading), top and bottom number,
@@ -25,9 +27,11 @@ export function PressureWeek({ vitals, onAdd, onOpen }: { vitals: VitalsRow[]; o
   const top = isDark ? "#60a5fa" : "#2563eb";
   const bottom = isDark ? "#1e40af" : "#93c5fd";
 
-  const step = width > 24 ? (width - 24) / 6 : 0;
-  const x = (i: number) => 12 + i * step;
+  const chartWidth = width > PAD_LEFT + PAD_RIGHT ? width - PAD_LEFT - PAD_RIGHT : 0;
+  const step = chartWidth > 0 ? chartWidth / 6 : 0;
+  const x = (i: number) => PAD_LEFT + i * step;
   const y = (v: number) => TOP + ((MAX - Math.min(MAX, Math.max(MIN, v))) / (MAX - MIN)) * PLOT;
+
   // Lines only join neighbouring days that both have a reading
   const segments = (pick: "sys" | "dia") =>
     values.flatMap((v, i) => {
@@ -72,8 +76,32 @@ export function PressureWeek({ vitals, onAdd, onOpen }: { vitals: VitalsRow[]; o
             <Svg width={width} height={HEIGHT} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
               {[120, 80].map((v) => (
                 <React.Fragment key={v}>
-                  <Line x1={0} y1={y(v)} x2={width} y2={y(v)} stroke={c.hairlineStrong} strokeDasharray="4 4" />
-                  <SvgText x={width} y={y(v) - 4} fontSize={10} fill={c.steel} textAnchor="end">{String(v)}</SvgText>
+                  <Line
+                    x1={PAD_LEFT - 4}
+                    y1={y(v)}
+                    x2={width - 34}
+                    y2={y(v)}
+                    stroke={c.hairlineStrong}
+                    strokeDasharray="4 4"
+                  />
+                  <Rect
+                    x={width - 30}
+                    y={y(v) - 8}
+                    width={30}
+                    height={16}
+                    rx={5}
+                    fill={isDark ? c.surfaceAlt : "#F1F5F9"}
+                  />
+                  <SvgText
+                    x={width - 15}
+                    y={y(v) + 3.5}
+                    fontSize={10}
+                    fontWeight="600"
+                    fill={c.steel}
+                    textAnchor="middle"
+                  >
+                    {String(v)}
+                  </SvgText>
                 </React.Fragment>
               ))}
               {segments("sys").map((pts) => (

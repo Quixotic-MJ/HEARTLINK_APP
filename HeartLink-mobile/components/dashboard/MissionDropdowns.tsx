@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, TouchableOpacity, Platform } from "react-native";
+import { View, Text, TouchableOpacity, Platform } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import Animated, {
   useSharedValue,
@@ -11,16 +11,12 @@ import Animated, {
   LinearTransition,
 } from "react-native-reanimated";
 import { Feather } from "@expo/vector-icons";
-import { useColorScheme } from "nativewind";
 import * as Haptics from "expo-haptics";
 import { useToast } from "../../contexts/ToastContext";
-import { postLogAck } from "../../services/companionCopy";
 import { useLogSleep } from "../../hooks/useLogSleep";
-import { theme } from "../../constants/theme";
-/* ─── Collapsible body ───
-   Uses Reanimated layout animations so the accordion expands and collapses
-   naturally without requiring fragile onLayout height measurements. */
+import { useDs } from "../onboarding/useDs";
 
+/* ─── Collapsible body ─── */
 export function MissionDropdown({
   expanded,
   children,
@@ -43,10 +39,9 @@ export function MissionDropdown({
 }
 
 /* ─── Chevron that rotates with the dropdown ─── */
-
 export function SpinChevron({
   expanded,
-  color = theme.textSoft,
+  color = "#64748B",
   size = 13,
 }: {
   expanded: boolean;
@@ -73,114 +68,14 @@ export function SpinChevron({
   );
 }
 
-/* ─── Shared bits ─── */
+/* ─── Mission 4 body: Sleep Quick Log ─── */
 
-function FieldShell({
-  label,
-  children,
-  isDark,
-}: {
-  label: string;
-  children: React.ReactNode;
-  isDark: boolean;
-}) {
-  return (
-    <View className="gap-1">
-      <Text
-        className="text-[11px] font-semibold ml-0.5"
-      >
-        {label}
-      </Text>
-      {children}
-    </View>
-  );
-}
-
-function NumberInput({
-  value,
-  onChange,
-  placeholder,
-  unit,
-  isDark,
-  maxLength = 3,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  placeholder: string;
-  unit: string;
-  isDark: boolean;
-  maxLength?: number;
-}) {
-  return (
-    <View
-      className="h-[46px] rounded-xl flex-row items-center px-3.5 border bg-surface dark:bg-slate-950/60 border-border dark:border-slate-800"
-    >
-      <TextInput
-        value={value}
-        onChangeText={onChange}
-        placeholder={placeholder}
-        placeholderTextColor={isDark ? "#64748b" : "#94a3b8"}
-        keyboardType="numeric"
-        maxLength={maxLength}
-        className="flex-1 text-[15px] font-medium h-full text-text dark:text-white"
-      />
-      <Text className="text-[11px] font-medium text-text-soft dark:text-text-soft">
-        {unit}
-      </Text>
-    </View>
-  );
-}
-
-function SaveButton({
-  label,
-  onPress,
-  isLoading,
-  color = theme.successMid,
-}: {
-  label: string;
-  onPress: () => void;
-  isLoading?: boolean;
-  color?: string;
-}) {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      disabled={isLoading}
-      activeOpacity={0.8}
-      style={{
-        backgroundColor: color,
-        opacity: isLoading ? 0.7 : 1,
-        borderRadius: 12,
-        paddingVertical: 11,
-        alignItems: "center",
-        flexDirection: "row",
-        justifyContent: "center",
-        gap: 6,
-      }}
-    >
-      <Feather name="check" size={14} color={theme.onPrimary} />
-      <Text className="text-[13px] font-bold text-white">
-        {isLoading ? "Saving…" : label}
-      </Text>
-    </TouchableOpacity>
-  );
-}
-
-/* ─── Mission 1 body: Step-1 vitals quick log ───
-   Step 2 (symptoms) stays    </View>
-          </View>
-        </View>
-      </Modal>
-    </View>
-  );
-}
-
-/* ─── Mission 2 body: sodium quick log ─── */
-// Replaced by 3-option picker in MissionLogModal
-
-/* ─── Mission 4 body: sleep quick log ─── */
-
-const SLEEP_QUALITIES = ["Poor", "Fair", "Good", "Excellent"];
+const SLEEP_QUALITIES = [
+  { key: "Poor", label: "Poor" },
+  { key: "Fair", label: "Fair" },
+  { key: "Good", label: "Good" },
+  { key: "Excellent", label: "Great" },
+];
 
 export function SleepQuickForm({
   userId,
@@ -193,14 +88,12 @@ export function SleepQuickForm({
   initialSleepHours?: number;
   onSaved: () => void;
 }) {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { c, isDark } = useDs();
   const { showToast } = useToast();
   
   const logSleepMutation = useLogSleep(userId ?? null, token ?? null);
 
   const defaultWake = new Date();
-
   const defaultBed = new Date(defaultWake);
   const backHours = initialSleepHours || 7.5;
   defaultBed.setMinutes(defaultBed.getMinutes() - backHours * 60);
@@ -222,6 +115,23 @@ export function SleepQuickForm({
   const displayHours = Math.floor(durationHours);
   const displayMins = Math.round((durationHours % 1) * 60);
 
+  let targetLabel = "Optimal (7–9h)";
+  let targetBg = isDark ? "rgba(16, 185, 129, 0.15)" : "#ECFDF5";
+  let targetBorder = isDark ? "rgba(16, 185, 129, 0.3)" : "#A7F3D0";
+  let targetColor = isDark ? "#34D399" : "#059669";
+
+  if (durationHours < 7) {
+    targetLabel = "Below 7h target";
+    targetBg = isDark ? "rgba(245, 158, 11, 0.15)" : "#FEF3C7";
+    targetBorder = isDark ? "rgba(245, 158, 11, 0.3)" : "#FDE68A";
+    targetColor = isDark ? "#FBBF24" : "#D97706";
+  } else if (durationHours > 9) {
+    targetLabel = "Extended (>9h)";
+    targetBg = isDark ? "rgba(59, 130, 246, 0.15)" : "#EFF6FF";
+    targetBorder = isDark ? "rgba(59, 130, 246, 0.3)" : "#BFDBFE";
+    targetColor = isDark ? "#60A5FA" : "#2563EB";
+  }
+
   const handleSave = async () => {
     if (!userId) {
       showToast({ title: "Not signed in", message: "Please sign in to log sleep.", type: "error" });
@@ -235,8 +145,6 @@ export function SleepQuickForm({
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     
     // Fix cross-midnight bug for the payload:
-    // If diffMs was negative initially (before we added 24h), it means bedTime is numerically larger than wakeTime (e.g. 23:00 vs 07:00 on the same date).
-    // In that case, we need to subtract one day from the bedTime object so it represents yesterday chronologically.
     const actualBedTime = new Date(bedTime);
     if (wakeTime.getTime() - bedTime.getTime() < 0) {
       actualBedTime.setDate(actualBedTime.getDate() - 1);
@@ -252,8 +160,7 @@ export function SleepQuickForm({
     logSleepMutation.mutate(payload, {
       onError: async (error: any) => {
         if (error.status === 401) {
-           const { useUser } = require("../../contexts/UserContext"); // lazy load to avoid circular deps if any
-           // Since we don't have logout in props, just let global interceptor or user session handle it.
+           const { useUser } = require("../../contexts/UserContext");
         }
       }
     });
@@ -266,109 +173,255 @@ export function SleepQuickForm({
   };
 
   return (
-    <View className="gap-2.5 pt-3 mt-1 border-t border-border/60 dark:border-slate-800">
+    <View style={{ gap: 14, paddingTop: 14 }}>
       
-      <View className="flex-row items-center justify-between rounded-xl px-4 py-3 bg-surface dark:bg-slate-950/60 border border-border dark:border-slate-800">
-        <Text className="text-[14px] font-semibold text-text dark:text-white">Bedtime</Text>
-        {Platform.OS === 'ios' ? (
-          <DateTimePicker
-            value={bedTime}
-            mode="time"
-            display="default"
-            onValueChange={(e, date) => date && setBedTime(date)}
-            themeVariant={isDark ? "dark" : "light"}
-          />
-        ) : (
-          <>
-            <TouchableOpacity 
-              onPress={() => setShowBedPicker(true)}
-              className="flex-row items-center gap-1.5 bg-surface-alt border border-border dark:border-slate-700 px-3 py-2 rounded-lg"
-            >
-              <Text className="text-[15px] font-bold text-success-text dark:text-success-text">{formatTime(bedTime)}</Text>
-              <Feather name="chevron-down" size={14} color={isDark ? "#94a3b8" : "#8D9B96"} />
-            </TouchableOpacity>
-            {showBedPicker && (
-              <DateTimePicker
-                value={bedTime}
-                mode="time"
-                display="default"
-                onValueChange={(e, date) => {
-                  setShowBedPicker(false);
-                  if (date) setBedTime(date);
+      {/* 2-Column Bedtime & Wake Up Time Cards */}
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        
+        {/* Bedtime Card */}
+        <View
+          style={{
+            flex: 1,
+            padding: 12,
+            borderRadius: 14,
+            backgroundColor: c.surfaceAlt,
+            borderWidth: 1,
+            borderColor: c.hairline,
+            gap: 8,
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Feather name="moon" size={13} color={c.primary} />
+              <Text style={{ fontSize: 13, fontWeight: "600", color: c.ink }}>Bedtime</Text>
+            </View>
+            <Text style={{ fontSize: 10.5, color: c.slate }}>Night</Text>
+          </View>
+
+          {Platform.OS === 'ios' ? (
+            <DateTimePicker
+              value={bedTime}
+              mode="time"
+              display="default"
+              onValueChange={(_e, date) => date && setBedTime(date)}
+              themeVariant={isDark ? "dark" : "light"}
+            />
+          ) : (
+            <>
+              <TouchableOpacity 
+                onPress={() => setShowBedPicker(true)}
+                accessibilityRole="button"
+                accessibilityLabel={`Bedtime: ${formatTime(bedTime)}`}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  backgroundColor: c.canvas,
+                  borderWidth: 1,
+                  borderColor: c.hairline,
+                  paddingHorizontal: 10,
+                  paddingVertical: 7,
+                  borderRadius: 10,
                 }}
-                onDismiss={() => setShowBedPicker(false)}
-              />
-            )}
-          </>
-        )}
-      </View>
-
-      <View className="flex-row items-center justify-between rounded-xl px-4 py-3 bg-surface dark:bg-slate-950/60 border border-border dark:border-slate-800">
-        <Text className="text-[14px] font-semibold text-text dark:text-white">Wake Up</Text>
-        {Platform.OS === 'ios' ? (
-          <DateTimePicker
-            value={wakeTime}
-            mode="time"
-            display="default"
-            onValueChange={(e, date) => date && setWakeTime(date)}
-            themeVariant={isDark ? "dark" : "light"}
-          />
-        ) : (
-          <>
-            <TouchableOpacity 
-              onPress={() => setShowWakePicker(true)}
-              className="flex-row items-center gap-1.5 bg-surface-alt border border-border dark:border-slate-700 px-3 py-2 rounded-lg"
-            >
-              <Text className="text-[15px] font-bold text-success-text dark:text-success-text">{formatTime(wakeTime)}</Text>
-              <Feather name="chevron-down" size={14} color={isDark ? "#94a3b8" : "#8D9B96"} />
-            </TouchableOpacity>
-            {showWakePicker && (
-              <DateTimePicker
-                value={wakeTime}
-                mode="time"
-                display="default"
-                onValueChange={(e, date) => {
-                  setShowWakePicker(false);
-                  if (date) setWakeTime(date);
-                }}
-                onDismiss={() => setShowWakePicker(false)}
-              />
-            )}
-          </>
-        )}
-      </View>
-
-      <Text className="text-[12px] text-center font-medium text-text-soft dark:text-text-muted my-1">
-        Total sleep: {displayHours} hr {displayMins} min
-      </Text>
-
-      <View className="flex-row flex-wrap gap-1.5 justify-center mt-1">
-        {SLEEP_QUALITIES.map((q) => {
-          const selected = quality === q;
-          return (
-            <TouchableOpacity
-              key={q}
-              hitSlop={4}
-              onPress={() => {
-                Haptics.selectionAsync();
-                setQuality(q);
-              }}
-              className={`px-3 py-2 rounded-full border ${
-                selected
-                  ? "bg-primary border-primary"
-                  : "bg-surface/60 border-border dark:border-slate-700"
-              }`}
-            >
-              <Text
-                className={`text-[11.5px] font-semibold ${selected ? "text-white" : "text-text-soft dark:text-text-muted"}`}
               >
-                {q}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
+                <Text style={{ fontSize: 14, fontWeight: "600", color: c.ink, fontVariant: ["tabular-nums"] }}>
+                  {formatTime(bedTime)}
+                </Text>
+                <Feather name="chevron-down" size={13} color={c.slate} />
+              </TouchableOpacity>
+              {showBedPicker && (
+                <DateTimePicker
+                  value={bedTime}
+                  mode="time"
+                  display="default"
+                  onValueChange={(_e, date) => {
+                    setShowBedPicker(false);
+                    if (date) setBedTime(date);
+                  }}
+                  onDismiss={() => setShowBedPicker(false)}
+                />
+              )}
+            </>
+          )}
+        </View>
+
+        {/* Wake Up Card */}
+        <View
+          style={{
+            flex: 1,
+            padding: 12,
+            borderRadius: 14,
+            backgroundColor: c.surfaceAlt,
+            borderWidth: 1,
+            borderColor: c.hairline,
+            gap: 8,
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Feather name="sun" size={13} color="#F59E0B" />
+              <Text style={{ fontSize: 13, fontWeight: "600", color: c.ink }}>Wake Up</Text>
+            </View>
+            <Text style={{ fontSize: 10.5, color: c.slate }}>Morning</Text>
+          </View>
+
+          {Platform.OS === 'ios' ? (
+            <DateTimePicker
+              value={wakeTime}
+              mode="time"
+              display="default"
+              onValueChange={(_e, date) => date && setWakeTime(date)}
+              themeVariant={isDark ? "dark" : "light"}
+            />
+          ) : (
+            <>
+              <TouchableOpacity 
+                onPress={() => setShowWakePicker(true)}
+                accessibilityRole="button"
+                accessibilityLabel={`Wake up time: ${formatTime(wakeTime)}`}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  backgroundColor: c.canvas,
+                  borderWidth: 1,
+                  borderColor: c.hairline,
+                  paddingHorizontal: 10,
+                  paddingVertical: 7,
+                  borderRadius: 10,
+                }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: "600", color: c.ink, fontVariant: ["tabular-nums"] }}>
+                  {formatTime(wakeTime)}
+                </Text>
+                <Feather name="chevron-down" size={13} color={c.slate} />
+              </TouchableOpacity>
+              {showWakePicker && (
+                <DateTimePicker
+                  value={wakeTime}
+                  mode="time"
+                  display="default"
+                  onValueChange={(_e, date) => {
+                    setShowWakePicker(false);
+                    if (date) setWakeTime(date);
+                  }}
+                  onDismiss={() => setShowWakePicker(false)}
+                />
+              )}
+            </>
+          )}
+        </View>
+
       </View>
-      <SaveButton label="Log Sleep" onPress={handleSave} isLoading={logSleepMutation.isPending} color={theme.text} />
+
+      {/* Calculated Duration Summary Card */}
+      <View
+        style={{
+          padding: 14,
+          borderRadius: 14,
+          backgroundColor: c.tint,
+          borderWidth: 1,
+          borderColor: isDark ? c.hairline : "#BFDBFE",
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <View style={{ gap: 2 }}>
+          <Text style={{ fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.4, color: c.primary }}>
+            Calculated Duration
+          </Text>
+          <Text style={{ fontSize: 18, fontWeight: "700", color: c.ink, fontVariant: ["tabular-nums"] }}>
+            {displayHours} <Text style={{ fontSize: 13, fontWeight: "500", color: c.slate }}>hr</Text> {displayMins < 10 ? `0${displayMins}` : displayMins} <Text style={{ fontSize: 13, fontWeight: "500", color: c.slate }}>min</Text>
+          </Text>
+        </View>
+
+        <View
+          style={{
+            paddingHorizontal: 10,
+            paddingVertical: 4,
+            borderRadius: 999,
+            backgroundColor: targetBg,
+            borderWidth: 1,
+            borderColor: targetBorder,
+          }}
+        >
+          <Text style={{ fontSize: 11.5, fontWeight: "600", color: targetColor }}>
+            {targetLabel}
+          </Text>
+        </View>
+      </View>
+
+      {/* Rest Quality Rating */}
+      <View style={{ gap: 8 }}>
+        <Text style={{ fontSize: 13, fontWeight: "600", color: c.ink }}>
+          How rested do you feel?
+        </Text>
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          {SLEEP_QUALITIES.map((q) => {
+            const selected = quality === q.key;
+            return (
+              <TouchableOpacity
+                key={q.key}
+                hitSlop={4}
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  setQuality(q.key);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={`Sleep quality ${q.label}`}
+                accessibilityState={{ selected }}
+                style={{
+                  flex: 1,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  paddingVertical: 10,
+                  borderRadius: 12,
+                  backgroundColor: selected ? c.tint : c.surfaceAlt,
+                  borderWidth: selected ? 1.5 : 1,
+                  borderColor: selected ? c.primary : c.hairline,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 12.5,
+                    fontWeight: selected ? "600" : "500",
+                    color: selected ? c.primary : c.charcoal,
+                  }}
+                >
+                  {q.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+
+      {/* Save Button */}
+      <TouchableOpacity
+        onPress={handleSave}
+        disabled={logSleepMutation.isPending}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel="Save Sleep Log"
+        style={{
+          marginTop: 6,
+          height: 48,
+          borderRadius: 12,
+          backgroundColor: c.primary,
+          alignItems: "center",
+          justifyContent: "center",
+          flexDirection: "row",
+          gap: 8,
+          opacity: logSleepMutation.isPending ? 0.7 : 1,
+        }}
+      >
+        <Feather name="check" size={16} color={c.onPrimary} />
+        <Text style={{ fontSize: 15, fontWeight: "600", color: c.onPrimary }}>
+          {logSleepMutation.isPending ? "Saving…" : "Save Sleep Log"}
+        </Text>
+      </TouchableOpacity>
+
     </View>
   );
 }

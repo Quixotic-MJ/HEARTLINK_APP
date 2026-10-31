@@ -1,5 +1,17 @@
-import React, { useState } from "react";
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import {
+  Animated,
+  Dimensions,
+  Easing,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
@@ -41,11 +53,60 @@ export function QuickLogModal({ visible, onClose }: QuickLogModalProps) {
   const [error, setError] = useState("");
   const [focused, setFocused] = useState(false);
 
+  const [slideAnim] = useState(() => new Animated.Value(350));
+  const [backdropAnim] = useState(() => new Animated.Value(0));
+
+  const animateIn = useCallback(() => {
+    slideAnim.setValue(350);
+    backdropAnim.setValue(0);
+    Animated.parallel([
+      Animated.timing(backdropAnim, {
+        toValue: 1,
+        duration: 200,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 250,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [slideAnim, backdropAnim]);
+
+  const animateOut = useCallback(
+    (done?: () => void) => {
+      Animated.parallel([
+        Animated.timing(backdropAnim, {
+          toValue: 0,
+          duration: 160,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 350,
+          duration: 180,
+          easing: Easing.in(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ]).start(() => done?.());
+    },
+    [slideAnim, backdropAnim]
+  );
+
+  useEffect(() => {
+    if (visible) {
+      animateIn();
+    }
+  }, [visible, animateIn]);
+
   const close = (saved = false) => {
-    setName("");
-    setMinutes(30);
-    setError("");
-    onClose(saved);
+    animateOut(() => {
+      setName("");
+      setMinutes(30);
+      setError("");
+      onClose(saved);
+    });
   };
 
   const save = () => {
@@ -63,14 +124,36 @@ export function QuickLogModal({ visible, onClose }: QuickLogModalProps) {
     close(true);
   };
 
+  if (!visible) return null;
+
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={() => close()} statusBarTranslucent>
+    <Modal visible={visible} transparent animationType="none" onRequestClose={() => close()} statusBarTranslucent>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(15,15,15,0.55)" }}>
-          <Pressable style={{ flex: 1 }} onPress={() => close()} accessibilityRole="button" accessibilityLabel="Close" />
-          <View
+        <View style={{ flex: 1, justifyContent: "flex-end" }}>
+          <Animated.View
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "rgba(15, 23, 42, 0.45)",
+              opacity: backdropAnim,
+            }}
+          >
+            <Pressable style={{ flex: 1 }} onPress={() => close()} accessibilityRole="button" accessibilityLabel="Close" />
+          </Animated.View>
+
+          <Animated.View
             accessibilityViewIsModal
-            style={{ maxHeight: "90%", backgroundColor: c.canvas, borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingTop: 12 }}
+            style={{
+              maxHeight: "90%",
+              backgroundColor: c.canvas,
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              paddingTop: 12,
+              transform: [{ translateY: slideAnim }],
+            }}
           >
             <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: c.hairlineStrong, alignSelf: "center" }} />
             <ScrollView
@@ -189,7 +272,7 @@ export function QuickLogModal({ visible, onClose }: QuickLogModalProps) {
                 }}
               />
             </ScrollView>
-          </View>
+          </Animated.View>
         </View>
       </KeyboardAvoidingView>
     </Modal>

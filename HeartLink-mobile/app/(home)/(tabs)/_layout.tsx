@@ -12,6 +12,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { createMaterialTopTabNavigator } from "expo-router/js-top-tabs";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Haptics from "expo-haptics";
 import { useDs } from "../../../components/onboarding/useDs";
 import {
   SplitRecordActions,
@@ -32,8 +33,6 @@ const TABS = [
 ] as const;
 
 // ─── Custom Tab Bar ───────────────────────────────────────────────────────────
-
-// ─── Pill trigger: icon-only circle, filled + elevated when active ────────────
 
 function TabBarItem({
   focused,
@@ -60,21 +59,24 @@ function TabBarItem({
 
   const scale = spring.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.95, 1.05],
+    outputRange: [0.94, 1.04],
   });
   
-  const { c } = useDs();
-  const activeColor = c.ink;
+  const { c, isDark } = useDs();
+  const activeColor = c.primary;
   const inactiveColor = c.steel;
 
   return (
     <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.8}
+      onPress={() => {
+        Haptics.selectionAsync().catch(() => {});
+        onPress();
+      }}
+      activeOpacity={0.75}
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ selected: focused }}
-      style={{ alignItems: "center", justifyContent: "center", flex: 1, paddingVertical: 8 }}
+      style={{ alignItems: "center", justifyContent: "center", flex: 1, paddingVertical: 6 }}
     >
       <Animated.View
         style={{
@@ -83,13 +85,17 @@ function TabBarItem({
           transform: [{ scale }],
         }}
       >
-        {children}
-        <Text maxFontSizeMultiplier={1.3}
+        <View style={{ alignItems: "center", justifyContent: "center", height: 26 }}>
+          {children}
+        </View>
+        <Text
+          maxFontSizeMultiplier={1.3}
           style={{
             fontSize: 11,
             fontWeight: focused ? "600" : "500",
             color: focused ? activeColor : inactiveColor,
-            marginTop: 4,
+            marginTop: 3,
+            letterSpacing: -0.1,
           }}
         >
           {label}
@@ -101,16 +107,17 @@ function TabBarItem({
 
 function CustomTabBar({ state, navigation, splitOpen, onFabPress, onCloseSplit }: any) {
   const insets = useSafeAreaInsets();
-  const { c } = useDs();
+  const { c, isDark } = useDs();
 
   const INACTIVE_COLOR = c.steel;
-  const ACTIVE_COLOR = c.ink;
+  const ACTIVE_COLOR = c.primary;
 
   const [fabSpin] = useState(() => new Animated.Value(0));
   useEffect(() => {
     Animated.timing(fabSpin, {
       toValue: splitOpen ? 1 : 0,
-      duration: 200,
+      duration: 220,
+      easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start();
   }, [splitOpen, fabSpin]);
@@ -119,7 +126,7 @@ function CustomTabBar({ state, navigation, splitOpen, onFabPress, onCloseSplit }
     outputRange: ["0deg", "45deg"],
   });
 
-  const bottomPad = Platform.OS === "ios" ? (insets.bottom > 0 ? insets.bottom : 20) : insets.bottom + 20;
+  const bottomPad = Platform.OS === "ios" ? (insets.bottom > 0 ? insets.bottom : 20) : insets.bottom + 16;
 
   return (
     <View
@@ -127,12 +134,21 @@ function CustomTabBar({ state, navigation, splitOpen, onFabPress, onCloseSplit }
         backgroundColor: c.canvas,
         flexDirection: "row",
         alignItems: "center",
-        height: 60 + bottomPad,
+        height: 58 + bottomPad,
         paddingBottom: bottomPad,
-        paddingTop: 4,
+        paddingTop: 6,
         paddingHorizontal: 8,
         borderTopWidth: 1,
-        borderTopColor: c.hairline,
+        borderTopColor: isDark ? c.hairline : "#F1F5F9",
+        ...Platform.select({
+          ios: {
+            shadowColor: "#0F172A",
+            shadowOffset: { width: 0, height: -3 },
+            shadowOpacity: isDark ? 0.3 : 0.04,
+            shadowRadius: 8,
+          },
+          android: { elevation: 8 },
+        }),
       }}
     >
       {TABS.map((tab: any) => {
@@ -164,34 +180,33 @@ function CustomTabBar({ state, navigation, splitOpen, onFabPress, onCloseSplit }
             <View key={tab.name} style={{ flex: 1, alignItems: "center", justifyContent: "flex-start" }}>
               <TouchableOpacity
                 onPress={onPress}
-                activeOpacity={0.8}
+                activeOpacity={0.85}
                 accessibilityRole="button"
                 accessibilityLabel={splitOpen ? "Close quick record" : "Open quick record"}
                 style={{
                   position: "absolute",
-                  top: -24, // Positioned slightly overlapping the bar
-                  width: 56,
-                  height: 56,
-                  borderRadius: 28,
+                  top: -20,
+                  width: 54,
+                  height: 54,
+                  borderRadius: 27,
                   backgroundColor: c.primary,
-                  borderWidth: 3,
+                  borderWidth: 3.5,
                   borderColor: c.canvas,
                   alignItems: "center",
                   justifyContent: "center",
-                  // Design-system "card" shadow (level 2), just enough to lift it off the bar.
                   ...Platform.select({
                     ios: {
-                      shadowColor: "#0f0f0f",
-                      shadowOffset: { width: 0, height: 4 },
-                      shadowOpacity: 0.08,
-                      shadowRadius: 12,
+                      shadowColor: c.primary,
+                      shadowOffset: { width: 0, height: 6 },
+                      shadowOpacity: 0.32,
+                      shadowRadius: 10,
                     },
-                    android: { elevation: 4 },
+                    android: { elevation: 6 },
                   }),
                 }}
               >
                 <Animated.View style={{ transform: [{ rotate: fabRotate }] }}>
-                  <Feather name="plus" size={26} color={c.onPrimary} />
+                  <Feather name="plus" size={24} color={c.onPrimary} />
                 </Animated.View>
               </TouchableOpacity>
             </View>

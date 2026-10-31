@@ -12,59 +12,70 @@ import Animated, {
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { useDs } from "../onboarding/useDs";
-import { BadgeTint, tintColor } from "../onboarding/QuestionLayout";
 
-// ─── Action config (mirrors the RecordBottomSheet options) ───────────────────
+// ─── Action config ────────────────────────────────────────────────────────────
 
 export interface SplitAction {
+  id: string;
   icon: string;
   iconType: "feather" | "material";
   shortLabel: string;
-  route: string;
-  /** Topic badge colour: food = peach, movement = mint, habits = lavender, vitals = sky. */
-  tint: BadgeTint;
-  id?: string;
+  route?: string;
+  badgeBg: string;
+  badgeFg: string;
+  darkBadgeBg: string;
+  darkBadgeFg: string;
 }
 
 export const SPLIT_ACTIONS: SplitAction[] = [
   {
+    id: "meal",
+    shortLabel: "Meal",
     icon: "silverware-fork-knife",
     iconType: "material",
-    shortLabel: "Meal",
-    id: "meal",
-    route: "",
-    tint: "peach",
+    badgeBg: "#FEF3C7",
+    badgeFg: "#D97706",
+    darkBadgeBg: "rgba(245, 158, 11, 0.18)",
+    darkBadgeFg: "#FBBF24",
   },
   {
+    id: "exercise",
+    shortLabel: "Exercise",
     icon: "activity",
     iconType: "feather",
-    shortLabel: "Exercise",
-    id: "exercise",
-    route: "",
-    tint: "mint",
+    badgeBg: "#ECFDF5",
+    badgeFg: "#059669",
+    darkBadgeBg: "rgba(16, 185, 129, 0.18)",
+    darkBadgeFg: "#34D399",
   },
   {
+    id: "sleep",
+    shortLabel: "Sleep",
     icon: "moon",
     iconType: "feather",
-    shortLabel: "Sleep",
-    id: "sleep",
-    route: "",
-    tint: "lavender",
+    badgeBg: "#EEF2FF",
+    badgeFg: "#4F46E5",
+    darkBadgeBg: "rgba(99, 102, 241, 0.18)",
+    darkBadgeFg: "#818CF8",
   },
   {
+    id: "vitals",
+    shortLabel: "Vitals",
     icon: "heart",
     iconType: "feather",
-    shortLabel: "Vitals",
     route: "/(home)/(health)/log-symptoms",
-    tint: "sky",
+    badgeBg: "#EFF6FF",
+    badgeFg: "#2563EB",
+    darkBadgeBg: "rgba(59, 130, 246, 0.18)",
+    darkBadgeFg: "#60A5FA",
   },
 ];
 
-// Fast, crisp ease-out — no bounce, no float.
-const ENTER_ANIM = { duration: 240, easing: Easing.out(Easing.cubic) };
-const EXIT_ANIM = { duration: 180, easing: Easing.out(Easing.quad) };
-const STAGGER_MS = 30;
-const CLOSE_MS = 220;
+// Crisp ease-out — smooth, no bounce
+const ENTER_ANIM = { duration: 220, easing: Easing.out(Easing.cubic) };
+const EXIT_ANIM = { duration: 160, easing: Easing.out(Easing.cubic) };
+const STAGGER_MS = 28;
+const CLOSE_MS = 200;
 
 // ─── Single pill: blooms outward from the FAB center ─────────────────────────
 
@@ -81,7 +92,7 @@ function SplitPill({
   open: boolean;
   onPress: () => void;
 }) {
-  const { c } = useDs();
+  const { c, isDark } = useDs();
   const progress = useSharedValue(0);
 
   useEffect(() => {
@@ -93,68 +104,75 @@ function SplitPill({
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: progress.value,
     transform: [
-      // Fan out horizontally away from center, rise slightly into place.
-      { translateX: dir * 48 * (1 - progress.value) },
+      { translateX: dir * 32 * (1 - progress.value) },
       { translateY: 10 * (1 - progress.value) },
-      { scale: 0.5 + 0.5 * progress.value },
+      { scale: 0.7 + 0.3 * progress.value },
     ],
   }));
+
+  const badgeBg = isDark ? action.darkBadgeBg : action.badgeBg;
+  const badgeFg = isDark ? action.darkBadgeFg : action.badgeFg;
 
   return (
     <Animated.View style={animatedStyle}>
       <Pressable
-        onPress={onPress}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+          onPress();
+        }}
         accessibilityRole="button"
         accessibilityLabel={action.shortLabel}
-        style={{
+        style={({ pressed }) => ({
           flexDirection: "row",
           alignItems: "center",
-          gap: 10,
-          minHeight: 48,
+          gap: 12,
+          minHeight: 50,
+          width: 144,
           backgroundColor: c.canvas,
-          borderRadius: 12,
+          borderRadius: 16,
           paddingVertical: 8,
-          paddingLeft: 8,
-          paddingRight: 16,
+          paddingHorizontal: 12,
           borderWidth: 1,
-          borderColor: c.hairline,
-          // Design-system modal shadow (level 4) so the choices stand off the dimmed screen.
+          borderColor: isDark ? c.hairline : "#E2E8F0",
+          opacity: pressed ? 0.88 : 1,
+          transform: [{ scale: pressed ? 0.97 : 1 }],
           ...Platform.select({
             ios: {
-              shadowColor: "#0f0f0f",
-              shadowOffset: { width: 0, height: 16 },
-              shadowOpacity: 0.16,
-              shadowRadius: 24,
+              shadowColor: "#0F172A",
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: isDark ? 0.45 : 0.12,
+              shadowRadius: 18,
             },
             android: { elevation: 6 },
           }),
-        }}
+        })}
       >
         <View
           style={{
-            width: 32,
-            height: 32,
-            borderRadius: 8,
-            backgroundColor: tintColor(c, action.tint),
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            backgroundColor: badgeBg,
             alignItems: "center",
             justifyContent: "center",
           }}
         >
           {action.iconType === "feather" ? (
-            <Feather name={action.icon as any} size={16} color={c.charcoal} />
+            <Feather name={action.icon as any} size={18} color={badgeFg} />
           ) : (
             <MaterialCommunityIcons
               name={action.icon as any}
-              size={16}
-              color={c.charcoal}
+              size={18}
+              color={badgeFg}
             />
           )}
         </View>
         <Text
           style={{
             fontSize: 15,
-            fontWeight: "500",
+            fontWeight: "600",
             color: c.ink,
+            letterSpacing: -0.2,
           }}
         >
           {action.shortLabel}
@@ -188,41 +206,35 @@ export function SplitRecordActions({
 
   useEffect(() => {
     if (open) {
-      backdropOpacity.value = withTiming(1, { duration: 200 });
+      backdropOpacity.value = withTiming(1, { duration: 180 });
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     } else {
-      backdropOpacity.value = withTiming(0, { duration: 200 });
+      backdropOpacity.value = withTiming(0, { duration: 160 });
       const timer = setTimeout(() => setVisible(false), CLOSE_MS);
       return () => clearTimeout(timer);
     }
   }, [open, backdropOpacity]);
 
   const backdropStyle = useAnimatedStyle(() => ({
-    opacity: backdropOpacity.value * 0.45,
+    opacity: backdropOpacity.value * 0.65,
   }));
 
   if (!visible) return null;
 
-  // Floating pill bar footprint: 66pt bar + bottom margin.
-  const bottomPad = Platform.OS === "ios" ? 14 : insets.bottom + 10;
-  const tabBarHeight = 66 + bottomPad;
+  // CustomTabBar height: 58 + bottomPad
+  const bottomPad =
+    Platform.OS === "ios" ? (insets.bottom > 0 ? insets.bottom : 20) : insets.bottom + 16;
+  const tabBarHeight = 58 + bottomPad;
 
-  // Two rows centered on the FAB: top row fans to 2 pills, bottom to 3.
+  // Two rows centered on the FAB: top row has Meal & Exercise, bottom has Sleep & Vitals
   const topRow = SPLIT_ACTIONS.slice(0, 2);
   const bottomRow = SPLIT_ACTIONS.slice(2);
   const topDirs: (-1 | 0 | 1)[] = [-1, 1];
   const bottomDirs: (-1 | 0 | 1)[] = [-1, 1];
 
-  const handleSelect = (route: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-    onClose();
-    router.push(route as any);
-  };
-
   return (
     <>
-      {/* Backdrop: covers everything above the tab bar; tap to dismiss.
-          The tab bar itself stays interactive so the FAB can toggle shut. */}
+      {/* Backdrop: covers everything above the tab bar; tap to dismiss */}
       <Pressable
         onPress={onClose}
         style={{
@@ -235,7 +247,7 @@ export function SplitRecordActions({
       >
         <Animated.View
           style={[
-            { flex: 1, backgroundColor: "#0f0f0f" },
+            { flex: 1, backgroundColor: "#0B1120" },
             backdropStyle,
           ]}
         />
@@ -248,15 +260,15 @@ export function SplitRecordActions({
           position: "absolute",
           left: 16,
           right: 16,
-          bottom: tabBarHeight + 14,
+          bottom: tabBarHeight + 20,
           alignItems: "center",
-          gap: 10,
+          gap: 12,
         }}
       >
-        <View style={{ flexDirection: "row", gap: 10, justifyContent: "center" }}>
+        <View style={{ flexDirection: "row", gap: 12, justifyContent: "center" }}>
           {topRow.map((action, i) => (
             <SplitPill
-              key={action.shortLabel}
+              key={action.id}
               action={action}
               index={i}
               dir={topDirs[i]}
@@ -276,10 +288,10 @@ export function SplitRecordActions({
             />
           ))}
         </View>
-        <View style={{ flexDirection: "row", gap: 10, justifyContent: "center" }}>
+        <View style={{ flexDirection: "row", gap: 12, justifyContent: "center" }}>
           {bottomRow.map((action, i) => (
             <SplitPill
-              key={action.shortLabel}
+              key={action.id}
               action={action}
               index={topRow.length + i}
               dir={bottomDirs[i]}

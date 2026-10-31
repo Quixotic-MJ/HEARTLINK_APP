@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Animated, Dimensions, Easing, Modal, PanResponder, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
@@ -55,6 +55,12 @@ export function LogMealSheet({
   const router = useRouter();
   const logMeal = useLogMeal(userId, token ?? null);
   const [loggedIds, setLoggedIds] = useState<string[]>([]);
+  // Each time the sheet opens it starts with nothing ticked as logged (set while rendering, not in an effect)
+  const [wasVisible, setWasVisible] = useState(visible);
+  if (visible !== wasVisible) {
+    setWasVisible(visible);
+    if (visible) setLoggedIds([]);
+  }
 
   const recent = useQuery({
     queryKey: ["recentMeals", userId],
@@ -67,12 +73,11 @@ export function LogMealSheet({
   const [backdropAnim] = useState(() => new Animated.Value(0));
 
   const animateIn = useCallback(() => {
-    setLoggedIds([]);
     slideAnim.setValue(Dimensions.get("window").height);
     backdropAnim.setValue(0);
     Animated.parallel([
       Animated.timing(backdropAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
-      Animated.spring(slideAnim, { toValue: 0, stiffness: 300, damping: 30, mass: 0.9, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 250, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
     ]).start();
   }, [slideAnim, backdropAnim]);
 
@@ -90,6 +95,12 @@ export function LogMealSheet({
     },
     [slideAnim, backdropAnim]
   );
+
+  useEffect(() => {
+    if (visible) {
+      animateIn();
+    }
+  }, [visible, animateIn]);
 
   // Dragging the top of the sheet down past 100px closes it; a shorter drag springs back.
   const dragResponder = useMemo(
@@ -123,7 +134,7 @@ export function LogMealSheet({
   const meals = (recent.data ?? []).slice(0, RECENT_SHOWN);
 
   return (
-    <Modal visible transparent animationType="none" statusBarTranslucent onShow={animateIn} onRequestClose={close}>
+    <Modal visible transparent animationType="none" statusBarTranslucent onRequestClose={close}>
       <Animated.View style={{ flex: 1, backgroundColor: "rgba(10,21,48,0.45)", opacity: backdropAnim }}>
         <TouchableOpacity activeOpacity={1} onPress={close} accessibilityLabel="Close" style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }} />
       </Animated.View>
