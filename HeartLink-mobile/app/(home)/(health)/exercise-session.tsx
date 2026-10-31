@@ -142,6 +142,7 @@ export default function ExerciseSessionScreen() {
     setSheet(null);
     save("completed", savedSeconds);
     setPhase("done");
+    voice.cue("done");
     say("Exercise saved. Well done.");
   };
 
@@ -269,6 +270,7 @@ export default function ExerciseSessionScreen() {
           setup={routine.setup}
           firstStep={routine.steps[0]?.text ?? ""}
           say={say}
+          cue={voice.cue}
           onComplete={() => {
             clock.start();
             setPhase("active");

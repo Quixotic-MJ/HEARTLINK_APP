@@ -11,6 +11,7 @@ import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
+import { playSound } from "../services/sounds";
 
 export type ToastType = "success" | "error" | "info";
 
@@ -79,6 +80,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   };
 
   const showToast = (options: ToastOptions) => {
+    // The "saved" sound with a success message (off with Settings › Sounds)
+    if (options.type === "success") playSound("notify");
     queue.current.push(options);
     processQueue();
   };

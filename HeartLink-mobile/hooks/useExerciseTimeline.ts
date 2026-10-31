@@ -76,13 +76,13 @@ export function useSegmentVoice({
   timeline: Segment[];
   index: number;
   elapsed: number;
-  voice: Pick<VoiceGuide, "say" | "sayIfQuiet">;
+  voice: Pick<VoiceGuide, "say" | "sayIfQuiet"> & Partial<Pick<VoiceGuide, "cue">>;
 }) {
   const seg = timeline[index];
   const next = timeline[index + 1];
-  const latest = useRef({ say: voice.say, sayIfQuiet: voice.sayIfQuiet, seg, prev: timeline[index - 1], next });
+  const latest = useRef({ say: voice.say, sayIfQuiet: voice.sayIfQuiet, cue: voice.cue, seg, prev: timeline[index - 1], next });
   useEffect(() => {
-    latest.current = { say: voice.say, sayIfQuiet: voice.sayIfQuiet, seg, prev: timeline[index - 1], next };
+    latest.current = { say: voice.say, sayIfQuiet: voice.sayIfQuiet, cue: voice.cue, seg, prev: timeline[index - 1], next };
   });
 
   // A new segment.
@@ -92,7 +92,10 @@ export function useSegmentVoice({
     if (!s) return;
     speak(segmentIntro(s, prev));
     if (first.current) first.current = false;
-    else Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    else {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      latest.current.cue?.("chime");
+    }
   }, [index]);
 
   // A heads-up before the change, and one minute left in long parts. Not for counted moves:

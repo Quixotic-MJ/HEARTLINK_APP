@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Speech from "expo-speech";
+import { playSound, type Cue } from "../services/sounds";
 
 // Spoken instructions during an exercise, in the phone's own voice, so patients can follow along
 // without looking at the screen. A little slower than normal speech. The mute choice is remembered.
@@ -18,6 +19,8 @@ export type VoiceGuide = {
   /** Say this only if nothing is being said right now. */
   sayIfQuiet: (text: string) => void;
   stop: () => void;
+  /** Play a short tone (countdown beep, new part, finished); silent while muted, like the voice. */
+  cue: (sound: Cue) => void;
   muted: boolean;
   toggleMute: () => void;
 };
@@ -86,5 +89,9 @@ export function useVoiceGuide(): VoiceGuide {
     AsyncStorage.setItem(MUTE_KEY, next ? "1" : "0").catch(() => {});
   }, [speak]);
 
-  return { say, sayIfQuiet, stop, muted, toggleMute };
+  const cue = useCallback((sound: Cue) => {
+    if (!mutedRef.current) playSound(sound);
+  }, []);
+
+  return { say, sayIfQuiet, stop, cue, muted, toggleMute };
 }

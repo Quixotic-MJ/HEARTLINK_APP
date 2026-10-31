@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { View, Text, TextInput, ScrollView, Linking, Platform, KeyboardAvoidingView, Modal } from "react-native";
+import { View, Text, TextInput, ScrollView, Linking, Platform, KeyboardAvoidingView, Modal, Vibration } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
@@ -24,6 +24,9 @@ import {
   isSymptomEmergency,
 } from "../../../services/vitalsCheck";
 import { apiFetch } from "../../../lib/api";
+
+// Wait, buzz 0.5 s, pause 0.25 s, three times (Android follows the pattern; iPhones give one long buzz).
+const EMERGENCY_BUZZ = [0, 500, 250, 500, 250, 500];
 
 // The daily check-in: blood pressure (and pulse), medicines, how the patient feels, and weight if they like.
 // Safety: a complete blood pressure reading of 180/120 or more, or under 90/60, chest discomfort rated 7 or
@@ -106,8 +109,12 @@ export default function LogSymptomsScreen() {
     setShowEmergency(true);
     setHasInterrupted(true);
   }
+  // Three long buzzes with the emergency guidance, so it's felt even when the patient isn't looking.
   useEffect(() => {
-    if (hasInterrupted) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    if (!hasInterrupted) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    Vibration.vibrate(EMERGENCY_BUZZ);
+    return () => Vibration.cancel();
   }, [hasInterrupted]);
 
   // Today's reading fills in again if the patient comes back; otherwise the last one is shown for comparison.

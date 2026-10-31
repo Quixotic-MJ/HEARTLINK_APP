@@ -1,11 +1,13 @@
 import { useDs } from "../../../components/onboarding/useDs";
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, ScrollView, Linking } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, Linking, Switch } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useUser } from "../../../contexts/UserContext";
+import { DARK_MODE_ENABLED } from "../../../constants/theme";
+import { useSoundsSetting } from "../../../services/sounds";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { SquareIconButton } from "../../../components/exercise/ExerciseBits";
 import { isPremiumProfile } from "../../../services/premium";
@@ -112,6 +114,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { logout, user } = useUser();
   const isPremium = isPremiumProfile(user);
+  const [soundsOn, setSoundsOn] = useSoundsSetting();
   // HL-087: an account made only to follow family members has no health set-up, so those rows are left out
   const familyOnly = isFamilyAccount(user);
   // HL-077: whether this phone gets push notifications, and why not
@@ -249,18 +252,38 @@ export default function SettingsScreen() {
           )}
         </SettingsGroup>
 
-        {/* ── 3. App Preferences ── */}
+        {/* ── 3. App Preferences (Appearance only once dark mode is finished: until then light is the only choice) ── */}
         <SectionLabel title="APP PREFERENCES" />
         <SettingsGroup>
-          <SettingsRow
-            icon="moon"
-            label="Appearance and theme"
-            subtitle="Light, dark or system default"
-            iconBg={c.surface}
-            iconColor={c.slate}
-            onPress={() => router.push("/(home)/(settings)/appearance")}
-            isLast
-          />
+          <View style={{ flexDirection: "row", alignItems: "center", minHeight: 64, paddingVertical: 14, borderBottomWidth: DARK_MODE_ENABLED ? 1 : 0, borderBottomColor: c.hairlineSoft }}>
+            <View style={{ width: 40, height: 40, borderRadius: 8, alignItems: "center", justifyContent: "center", marginRight: 14, backgroundColor: c.surface }}>
+              <Feather name={soundsOn ? "volume-2" : "volume-x"} size={18} color={c.slate} />
+            </View>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text style={{ fontSize: 16, fontWeight: "500", color: c.ink }}>Sounds</Text>
+              <Text style={{ fontSize: 13, lineHeight: 18, marginTop: 2, color: c.slate }}>Taps, saved messages, your score and workout tones</Text>
+            </View>
+            <Switch
+              value={soundsOn}
+              onValueChange={setSoundsOn}
+              trackColor={{ false: c.hairlineStrong, true: c.line }}
+              thumbColor={c.onPrimary}
+              ios_backgroundColor={c.hairlineStrong}
+              accessibilityLabel="Sounds"
+              accessibilityRole="switch"
+            />
+          </View>
+          {DARK_MODE_ENABLED ? (
+            <SettingsRow
+              icon="moon"
+              label="Appearance and theme"
+              subtitle="Light, dark or system default"
+              iconBg={c.surface}
+              iconColor={c.slate}
+              onPress={() => router.push("/(home)/(settings)/appearance")}
+              isLast
+            />
+          ) : null}
         </SettingsGroup>
 
         {/* ── 4. Support & Legal ── */}

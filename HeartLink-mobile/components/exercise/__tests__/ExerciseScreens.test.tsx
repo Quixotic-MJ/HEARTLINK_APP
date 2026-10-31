@@ -24,7 +24,7 @@ const handlers = () => ({
   onFinish: jest.fn(),
   onClose: jest.fn(),
   onUnwell: jest.fn(),
-  voice: { say: jest.fn(), sayIfQuiet: jest.fn(), stop: jest.fn(), muted: false, toggleMute: jest.fn() },
+  voice: { say: jest.fn(), sayIfQuiet: jest.fn(), stop: jest.fn(), muted: false, toggleMute: jest.fn(), cue: jest.fn() },
 });
 
 describe("Exercise screens", () => {

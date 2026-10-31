@@ -9,7 +9,6 @@ import {
   Animated,
   RefreshControl,
   BackHandler,
-  Alert,
   AccessibilityInfo,
   DeviceEventEmitter,
 } from "react-native";
@@ -43,6 +42,7 @@ import { CareTools } from "../../../components/dashboard/CareTools";
 import { CheckupBanner, type CheckupReminder } from "../../../components/dashboard/CheckupBanner";
 import { useDs } from "../../../components/onboarding/useDs";
 import { CustomAlertModal } from "../../../components/dashboard/CustomAlertModal";
+import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { Header } from "../../../components/Header";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { ScreenWrapper } from "../../../components/ui/ScreenWrapper";
@@ -52,6 +52,7 @@ import { TodayCard, ScorePage, HabitsPage, LatestReadingPage, sleepText } from "
 import { CheckinGrid, type CheckinTile, type MedicineStatus } from "../../../components/dashboard/TodayTiles";
 import { PressureWeek } from "../../../components/dashboard/PressureWeek";
 import { useWeekTrends } from "../../../hooks/useWeekTrends";
+import { playSound } from "../../../services/sounds";
 import { apiFetch } from "../../../lib/api";
 import { theme as colors, light as lightColors, dark as darkColors, ds } from "../../../constants/theme";
 // ─── Score theme ──────────────────────────────────────────────────────────────
@@ -133,6 +134,7 @@ export default function DashboardScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const { c } = useDs();
+  const t = isDark ? darkColors : lightColors;
 
   const [nearestClinic, setNearestClinic] = useState<{name: string, distance: string} | null>(null);
 
@@ -451,6 +453,20 @@ export default function DashboardScreen() {
     latestAt && !Number.isNaN(latestAt.getTime())
       ? `${latestAt.toDateString() === new Date().toDateString() ? "Today" : latestAt.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}, ${latestAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
       : null;
+  // The score sound plays with the heart ring when the score is one the patient hasn't heard yet,
+  // not on every visit (the last one heard is remembered on the phone)
+  useEffect(() => {
+    if (!userId || hssScore <= 0) return;
+    const key = `@heard_score_${userId}`;
+    AsyncStorage.getItem(key)
+      .then((heard) => {
+        if (heard === String(hssScore)) return;
+        playSound("score");
+        AsyncStorage.setItem(key, String(hssScore)).catch(() => {});
+      })
+      .catch(() => {});
+  }, [userId, hssScore]);
+
   const refetchWeek = week.refetch;
   useEffect(() => {
     if (dataUpdatedAt) refetchWeek();
@@ -579,18 +595,12 @@ export default function DashboardScreen() {
   const alertModalVisible =
     alertReopened || (!!latestAlertId && !isLoading && !!dismissedAlertIds && !dismissedAlertIds.includes(latestAlertId));
 
-  // Clean Android BackHandler on the primary Dashboard tab
+  // Android's Back button on the dashboard asks before closing the app, in the app's own dialog
+  const [exitAsked, setExitAsked] = useState(false);
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
-        Alert.alert(
-          "Exit HeartLink?",
-          "Are you sure you want to close the app?",
-          [
-            { text: "Cancel", style: "cancel" },
-            { text: "Exit", style: "destructive", onPress: () => BackHandler.exitApp() },
-          ]
-        );
+        setExitAsked(true);
         return true;
       };
 
@@ -598,15 +608,6 @@ export default function DashboardScreen() {
       return () => subscription.remove();
     }, [])
   );
-
-  // Common card shadow styling for subtle depth
-  const cardShadowStyle = {
-    shadowColor: isDark ? "#000000" : "#10231F",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: isDark ? 0.35 : 0.04,
-    shadowRadius: 12,
-    elevation: 2,
-  };
 
   if (isLoading && !data) {
     return (
@@ -716,6 +717,21 @@ export default function DashboardScreen() {
         />
       )}
 
+      <ConfirmDialog
+        visible={exitAsked}
+        mode="centered"
+        variant="info"
+        title="Close HeartLink?"
+        message="Your logs are saved. You can open the app again any time."
+        confirmLabel="Close app"
+        cancelLabel="Stay"
+        onCancel={() => setExitAsked(false)}
+        onConfirm={() => {
+          setExitAsked(false);
+          BackHandler.exitApp();
+        }}
+      />
+
       {/* ── Top bar ── */}
       <Header unreadCount={data?.unread_notifications_count} showProfile={false} />
 
@@ -731,64 +747,63 @@ export default function DashboardScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#33CC82"
+            tintColor={c.primary}
+            colors={[c.primary]}
             progressViewOffset={50}
           />
         }
       >
         {isOffline && data ? <OfflineNote savedAt={dataUpdatedAt} onRetry={() => refetch()} /> : null}
 
-        {/* ── Background Refresh Error Banner ── */}
+        {/* ── Background refresh error ── */}
         {refreshError && !isOffline && (
-          <View className="mx-5 mt-3 bg-danger-tint border border-danger/30 px-4 py-2.5 rounded-3xl flex-row items-center justify-between">
-            <View className="flex-row items-center gap-2 flex-1 pr-2">
-              <Feather name="alert-circle" size={14} color={colors.dangerText} />
-              <Text className="text-[12px] text-danger-text font-medium">
-                Couldn&apos;t refresh your latest data.
-              </Text>
-            </View>
+          <View
+            style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: c.rose, borderRadius: 14, paddingLeft: 14, paddingRight: 4 }}
+          >
+            <Feather name="alert-circle" size={18} color={t.dangerText} />
+            <Text style={{ flex: 1, fontSize: 14, color: c.charcoal }}>Couldn&apos;t refresh your latest data.</Text>
             <TouchableOpacity
               onPress={() => refetch()}
               activeOpacity={0.7}
-              accessible={true}
               accessibilityRole="button"
-              accessibilityLabel="Retry refreshing dashboard"
-              className="bg-danger-tint px-2.5 py-1 rounded-lg"
+              accessibilityLabel="Try again to refresh the dashboard"
+              style={{ minHeight: 44, paddingHorizontal: 12, justifyContent: "center" }}
             >
-              <Text className="text-[11px] font-bold text-primary dark:text-danger-tint">Try again</Text>
+              <Text style={{ fontSize: 14, fontWeight: "600", color: c.link }}>Try again</Text>
             </TouchableOpacity>
           </View>
         )}
 
-        {/* ── Syncing Banner ── */}
+        {/* ── Uploading logs saved offline ── */}
         {isSyncingOffline && !isOffline && (
-          <Reanimated.View entering={FadeInDown.duration(200)} className="mx-5 mt-3 bg-success-tint border border-success/30 px-4 py-2 rounded-xl flex-row items-center justify-center gap-2">
-            <Feather name="refresh-cw" size={13} color={colors.successMid} />
-            <Text className="text-[12px] font-medium text-success-text">
-              Syncing offline data...
-            </Text>
+          <Reanimated.View
+            entering={FadeInDown.duration(200)}
+            style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: c.mint, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 14 }}
+          >
+            <Feather name="refresh-cw" size={16} color={t.successText} />
+            <Text style={{ fontSize: 14, color: c.charcoal }}>Uploading the logs you saved offline…</Text>
           </Reanimated.View>
         )}
 
-        {/* ── Critical Health Alert Banner (Tap to re-open modal) ── */}
+        {/* ── Health alert (tap to see it again) ── */}
         {isAlertActive && (
-          <TouchableOpacity activeOpacity={0.8}
+          <TouchableOpacity
+            activeOpacity={0.8}
             onPress={() => setAlertReopened(true)}
-            className="mx-5 mt-3 bg-danger-tint border border-danger/30 rounded-3xl p-4 flex-row items-center gap-3"
-            style={cardShadowStyle}
+            accessibilityRole="button"
+            accessibilityLabel={`Health alert: ${data?.latest_alert?.message || "Tap to see what to do."}`}
+            style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: c.rose, borderRadius: 14, padding: 14 }}
           >
-            <View className="w-10 h-10 rounded-xl bg-danger-tint items-center justify-center flex-shrink-0">
-              <Feather name="alert-triangle" size={20} color={colors.dangerText} />
+            <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: c.canvas, alignItems: "center", justifyContent: "center" }}>
+              <Feather name="alert-triangle" size={18} color={t.dangerText} />
             </View>
-            <View className="flex-1">
-              <Text className="text-[11px] font-bold text-danger-text uppercase tracking-wider mb-0.5">
-                Active Health Alert
-              </Text>
-              <Text className="text-[13px] text-text font-medium leading-snug" numberOfLines={2}>
-                {data?.latest_alert?.message || "Attention required. Tap to view action items."}
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={{ fontSize: 15, fontWeight: "700", color: c.ink }}>Health alert</Text>
+              <Text style={{ fontSize: 14, lineHeight: 19, color: c.charcoal }} numberOfLines={2}>
+                {data?.latest_alert?.message || "Tap to see what to do."}
               </Text>
             </View>
-            <Feather name="chevron-right" size={18} color={colors.dangerText} />
+            <Feather name="chevron-right" size={18} color={c.slate} />
           </TouchableOpacity>
         )}
 

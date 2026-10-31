@@ -44,8 +44,9 @@ backend on a phone, use the computer's local network IP (e.g. `192.168.x.x`), no
 - `react-native-reanimated` 4 (runs on `react-native-worklets`) for animations, e.g. toasts
 - `expo-haptics` for vibration feedback, `expo-secure-store` for auth tokens,
   `@react-native-community/netinfo` for online/offline status
-- `expo-speech` for spoken exercise instructions (`hooks/useVoiceGuide.ts`), `expo-keep-awake` to keep
-  the screen on during an exercise
+- `expo-speech` for spoken exercise instructions (`hooks/useVoiceGuide.ts`), `expo-audio` for its short
+  tones (countdown beeps, new-part chime, finish; `services/workoutSounds.ts`, files in `assets/sounds/`),
+  `expo-keep-awake` to keep the screen on during an exercise
 - `expo-notifications` for daily reminders (`utils/notifications.ts`) and push notifications
   (`services/pushNotifications.ts`, HL-025), with `expo-device` and `expo-dev-client` for EAS builds
   (`eas.json`). Push needs an EAS build: Expo Go can't receive remote push, so it is skipped there.
@@ -252,7 +253,7 @@ Every new piece of UI must look right in light and dark mode.
   test, run the full `npx jest`, not just one file.
 - Mocks for every test live in `jest-setup.js`: AsyncStorage, `react-native-worklets` (Reanimated's
   native engine, which can't run in Jest), `expo-router`, `expo-haptics`, `expo-status-bar`,
-  `expo-speech`, `expo-keep-awake`, `react-native-youtube-iframe`.
+  `expo-speech`, `expo-audio`, `expo-keep-awake`, `react-native-youtube-iframe`.
 - React Query in tests: `retry: false`, `gcTime: Infinity` (otherwise its 5-minute cleanup timer
   keeps Jest running), and no real network calls (mock `fetch`). Today only
   `useLogExercise.test.tsx` uses React Query; when a second test needs it, move this setup into one

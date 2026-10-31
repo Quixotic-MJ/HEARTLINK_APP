@@ -5,6 +5,7 @@ import AnimatedButton from "../ui/AnimatedButton";
 import { useDs } from "../onboarding/useDs";
 import { light, dark, type DsColors } from "../../constants/theme";
 import type { MissionId } from "./MissionList";
+import { playSound } from "../../services/sounds";
 
 /** What the backend says about today's medicine; older servers send only medication_taken. */
 export type MedicineStatus = "taken" | "not_yet" | "none";
@@ -54,7 +55,10 @@ export function CheckinGrid({ tiles, onPress }: { tiles: CheckinTile[]; onPress:
         {tiles.map((tile) => (
           <AnimatedButton
             key={tile.id}
-            onPress={() => onPress(tile.id)}
+            onPress={() => {
+              playSound("press");
+              onPress(tile.id);
+            }}
             accessibilityRole="button"
             accessibilityLabel={`${tile.title}: ${tile.value}, ${tile.sub}. ${tile.done ? "Logged today." : "Tap to log."}`}
             style={{

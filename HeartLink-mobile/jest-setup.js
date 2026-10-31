@@ -47,6 +47,12 @@ jest.mock('expo-speech', () => ({
   stop: jest.fn(),
 }));
 
+// The workout tones (services/workoutSounds.ts): Jest has no audio player.
+jest.mock('expo-audio', () => ({
+  createAudioPlayer: jest.fn(() => ({ play: jest.fn(), seekTo: jest.fn(() => Promise.resolve()), remove: jest.fn() })),
+  setAudioModeAsync: jest.fn(() => Promise.resolve()),
+}));
+
 // The YouTube player is a web view, which doesn't exist in Jest.
 jest.mock('react-native-youtube-iframe', () => () => null);
 

@@ -19,6 +19,8 @@ export interface ExerciseReadyProps {
   onComplete: () => void;
   /** Spoken instructions. */
   say: (text: string) => void;
+  /** Tones for the countdown (a beep each second, "go" at the start); optional. */
+  cue?: (sound: "beep" | "go") => void;
 }
 
 function GetIntoPosition({ setup, onReady, say }: { setup: SetupStep[]; onReady: () => void; say: (text: string) => void }) {
@@ -69,12 +71,14 @@ function GetIntoPosition({ setup, onReady, say }: { setup: SetupStep[]; onReady:
   );
 }
 
-function Countdown({ firstStep, onComplete, say }: Omit<ExerciseReadyProps, "setup">) {
+function Countdown({ firstStep, onComplete, say, cue }: Omit<ExerciseReadyProps, "setup">) {
   const [count, setCount] = useState(3);
   const done = useRef(onComplete);
+  const tone = useRef(cue);
   useEffect(() => {
     done.current = onComplete;
-  }, [onComplete]);
+    tone.current = cue;
+  }, [onComplete, cue]);
   const ring = useLinearProgress(0, 3000, true, "ready");
   // Said once; the first step is read out when the exercise starts.
   const greet = useRef(say);
@@ -84,9 +88,11 @@ function Countdown({ firstStep, onComplete, say }: Omit<ExerciseReadyProps, "set
 
   useEffect(() => {
     if (count <= 0) {
+      tone.current?.("go");
       done.current();
       return;
     }
+    tone.current?.("beep");
     Haptics.selectionAsync();
     AccessibilityInfo.announceForAccessibility(String(count));
     const t = setTimeout(() => setCount((n) => n - 1), 1000);
@@ -116,8 +122,8 @@ function Countdown({ firstStep, onComplete, say }: Omit<ExerciseReadyProps, "set
   );
 }
 
-export function ExerciseReady({ setup, firstStep, onComplete, say }: ExerciseReadyProps) {
+export function ExerciseReady({ setup, firstStep, onComplete, say, cue }: ExerciseReadyProps) {
   const [inPosition, setInPosition] = useState(setup.length === 0);
   if (!inPosition) return <GetIntoPosition setup={setup} onReady={() => setInPosition(true)} say={say} />;
-  return <Countdown firstStep={firstStep} onComplete={onComplete} say={say} />;
+  return <Countdown firstStep={firstStep} onComplete={onComplete} say={say} cue={cue} />;
 }
