@@ -43,7 +43,8 @@ class FakeGroq:
 
         def create(self, **kwargs):
             FakeGroq.calls += 1
-            message = type("M", (), {"content": f"AI note {FakeGroq.calls}"})
+            # No digits: the AI line may only use numbers that are already in the note
+            message = type("M", (), {"content": f"AI note {'ABCDEFGH'[FakeGroq.calls - 1]}."})
             return type("R", (), {"choices": [type("C", (), {"message": message})]})
 
 
@@ -63,7 +64,7 @@ def test_reloading_the_dashboard_reuses_todays_ai_note(monkeypatch):
     ai_on(monkeypatch)
     first = _generate_insight(scores(80, 70), None, "Ana", "u1")
     again = _generate_insight(scores(80, 70), None, "Ana", "u1")
-    assert first["ai_written"] and again["body"] == first["body"] == "AI note 1"
+    assert first["ai_written"] and again["body"] == first["body"] == "AI note A."
     assert FakeGroq.calls == 1
 
 

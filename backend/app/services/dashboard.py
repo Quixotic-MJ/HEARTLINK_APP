@@ -2,6 +2,7 @@ import os
 import zoneinfo
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
+from app.services import coach_note
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 from app.services.exercises import is_visible_to_patients, calories_burned
 from app.services.nutrition_targets import compute_targets
@@ -206,13 +207,75 @@ def _event_records(user_hss: list) -> tuple:
     return latest, previous, reading
 
 
+def _own_points(user_hss: list) -> dict:
+    """What the latest log did by itself, so each log shows its own points (+2 from a meal, -3 from a reading):
+    - points: a reading's change to the base, or a meal/exercise/sleep log's change to today's habit points
+    - check_in_habits: habit points a check-in itself added (medicine, symptoms), told apart from the reading
+    - reset: yesterday's habit points that dropped off at midnight before this first log of the day
+    Older records without the breakdown fall back to the plain change in score."""
+    latest, previous, reading = _event_records(user_hss)
+    fallback = {"points": (latest.get("score", 0) - previous) if previous is not None else 0, "check_in_habits": 0, "reset": 0}
+    lf = latest.get("contributing_factors") or {}
+    composite = lf.get("source") == "lifestyle_composite"
+    before = user_hss[2:] if (reading is not None and reading is not latest) else user_hss[1:]
+    prev_comp = next((h for h in before if (h.get("contributing_factors") or {}).get("source") == "lifestyle_composite"), None)
+    pf = (prev_comp or {}).get("contributing_factors") or {}
+    if "total_lifestyle_adjustment" not in pf or (composite and "total_lifestyle_adjustment" not in lf):
+        return fallback
+    same_day = _safe_date(prev_comp.get("computed_at")) == _safe_date(latest.get("computed_at"))
+    habits_before = pf["total_lifestyle_adjustment"] if same_day else 0
+    reset = 0 if same_day else -pf["total_lifestyle_adjustment"]
+    habit_change = (lf["total_lifestyle_adjustment"] if composite else habits_before) - habits_before
+    if reading is not None:
+        prev_base = (reading.get("contributing_factors") or {}).get("previous_base")
+        if prev_base is None:
+            return fallback
+        return {"points": reading.get("score", 0) - prev_base, "check_in_habits": habit_change, "reset": reset}
+    return {"points": habit_change, "check_in_habits": 0, "reset": reset}
+
+
+def _score_parts(user_hss: list) -> dict | None:
+    """How the current score adds up, for the line under the heart: the part from readings (the base) plus the
+    habit points. `habits_today` is False while the score still carries an earlier day's habits (nothing logged
+    yet today)."""
+    if not user_hss:
+        return None
+    from app.services.hss_service import latest_base_score
+
+    latest = user_hss[0]
+    score = latest.get("score")
+    base = latest_base_score(user_hss)
+    if score is None or base is None:
+        return None
+    composite = (latest.get("contributing_factors") or {}).get("source") == "lifestyle_composite"
+    habits = int(score) - base if composite else 0
+    return {
+        "readings": int(score) - habits,
+        "habits": habits,
+        "habits_today": _safe_date(latest.get("computed_at")) == to_local_date(utc_now()),
+    }
+
+
+def _side_note(user_hss: list) -> str | None:
+    """The small print under Today's note: habit points from the check-in itself, and the midnight reset."""
+    if len(user_hss) < 2:
+        return None
+    own = _own_points(user_hss)
+    lines = []
+    if own["check_in_habits"]:
+        lines.append(f"Your check-in also {'added' if own['check_in_habits'] > 0 else 'took away'} {abs(own['check_in_habits'])} habit points.")
+    if own["reset"]:
+        lines.append(f"Yesterday's {-own['reset']:+} habit points reset at midnight, as they do every day.")
+    return " ".join(lines) or None
+
+
 def _note_for_latest_event(user_hss: list, latest_log: dict | None) -> tuple:
     """Today's note: what the latest log did to the score, and the one step that fits it."""
     from app.services.family import is_emergency
 
     latest, previous, reading = _event_records(user_hss)
     score = latest.get("score", 0)
-    diff = (score - previous) if previous is not None else 0
+    diff = _own_points(user_hss)["points"]  # this log's own points, not yesterday's habits dropping off at midnight
     factors = latest.get("contributing_factors") or {}
     trigger = factors.get("trigger") or ""
     moved = f"Up {diff}" if diff > 0 else f"Down {abs(diff)}"
@@ -268,8 +331,35 @@ def _note_for_latest_event(user_hss: list, latest_log: dict | None) -> tuple:
     return ("Your score is holding steady.", f"It stays at {score}.", "check-circle", None)
 
 
+def _note_kind(user_hss: list) -> tuple:
+    """What moved the score last ("meal", "exercise", "reading", "stale", "removed" or ""), the change and the score;
+    the same reading of the score history as _note_for_latest_event."""
+    latest, previous, reading = _event_records(user_hss)
+    score = latest.get("score", 0)
+    diff = _own_points(user_hss)["points"]
+    factors = latest.get("contributing_factors") or {}
+    trigger = factors.get("trigger") or ""
+    if reading is not None:
+        kind = "reading"
+    elif factors.get("staleness_points", 0) < 0 and diff < 0:
+        kind = "stale"
+    elif trigger.endswith("_delete"):
+        kind = "removed"
+    elif trigger.startswith("meal"):
+        kind = "meal"
+    elif trigger.startswith("exercise"):
+        kind = "exercise"
+    else:
+        kind = ""
+    return kind, diff, score
+
+
 def _generate_insight(
-    user_hss: list, latest_log: dict | None, first_name: str | None = None, user_id: str | None = None
+    user_hss: list,
+    latest_log: dict | None,
+    first_name: str | None = None,
+    user_id: str | None = None,
+    facts: dict | None = None,
 ) -> dict:
     """Generate a dynamic smart insight based on actual data.
 
@@ -286,6 +376,13 @@ def _generate_insight(
         }
 
     title, body, icon, action = _note_for_latest_event(user_hss, latest_log)
+
+    # The fact stays the title; real numbers, a step for the time of day and one weekly pattern are added
+    pattern = None
+    if facts and action != "see_what_to_do":
+        kind, diff, score = _note_kind(user_hss)
+        title, body, icon, action = coach_note.improve_note(title, body, icon, action, kind, diff, score, facts)
+        pattern = coach_note.weekly_pattern(facts)
 
     ai_written = False
     # Try to enhance the body with Groq AI if available
@@ -313,55 +410,48 @@ def _generate_insight(
                     context_str = "Today's score was affected by: " + ", ".join(points) + "."
 
             today = to_local_date(utc_now()).isoformat()
-            cache_key = (user_id or first_name, today, body, context_str)
+            cache_key = (user_id or first_name, today, title, body, pattern, context_str)
             ai_body = _ai_insight_lines.get(cache_key)
             if ai_body is None and _ai_insight_allowed(user_id or first_name, today):
-                ai_body = _ask_ai_for_insight(client, first_name, body, context_str)
+                # The AI only rewords the second line; anything with a new number or a medical claim is dropped
+                facts_text = " ".join(x for x in (title, body, pattern or "") if x)
+                ai_body = coach_note.checked_ai_line(
+                    _ask_ai_for_insight(client, coach_note.ai_prompt(first_name, title, body, pattern)), facts_text
+                )
                 if ai_body:
                     _remember_ai_insight(cache_key, ai_body)
             if ai_body:
-                body = ai_body
-                title = "" # Remove legacy rigid title so the AI coach speaks naturally
+                body = ai_body  # the title (the fact) stays
                 ai_written = True
         except Exception as e:
             logger.warning(f"Groq API Error: {str(e)}")
             # Silently fallback to the deterministic rule-based body if timeout or error
             pass
 
-    return {"title": title, "body": body, "icon": icon, "action": action, "ai_written": ai_written}
+    side_note = None if action == "see_what_to_do" else _side_note(user_hss)
+    return {
+        "title": title, "body": body, "icon": icon, "action": action, "pattern": pattern, "side_note": side_note,
+        "ai_written": ai_written,
+    }
 
 
-def _ask_ai_for_insight(client, first_name: str, body: str, context_str: str) -> str:
-    """One short AI-written note; the caller keeps it for the day."""
-    prompt = f"""
-    You are HeartLink's empathetic AI health coach. 
-    Write a warm, highly personalized, and encouraging 2-sentence insight for {first_name}.
-    Do NOT give specific medical or dietary advice. Do not use generic phrases. Be conversational and human.
-    
-    Context about their Heart Stability Score today:
-    - General trend: {body}
-    - Itemized changes today: {context_str or "No major activities logged yet."}
-    
-    Write the message directly to {first_name}.
-    """
-    
+def _ask_ai_for_insight(client, prompt: str) -> str:
+    """One short AI rewording of Today's note (coach_note.ai_prompt); the caller checks it and keeps it for the day."""
     chat_completion = client.chat.completions.create(
         messages=[
             {
                 "role": "system",
-                "content": "You are a warm, empathetic AI health coach. Output only the message, no quotation marks or preamble. Strictly 2 sentences maximum."
+                # /no_think: Qwen models otherwise write their reasoning first, which used up the short answer
+                "content": "/no_think You reword short wellness notes for a heart-health app. Output only the reworded "
+                "note, with no quotation marks, preamble or reasoning.",
             },
-            {
-                "role": "user",
-                "content": prompt,
-            }
+            {"role": "user", "content": prompt},
         ],
         model="qwen/qwen3.8-27b",
-        temperature=0.7,
-        max_tokens=60,
+        temperature=0.5,
+        max_tokens=160,
     )
-    
-    return chat_completion.choices[0].message.content.strip().strip('"')
+    return chat_completion.choices[0].message.content or ""
 
 
 def _calculate_streak_data(meal_logs, exercise_logs, daily_health_logs, sleep_logs) -> Dict[str, Any]:
@@ -511,6 +601,8 @@ def _get_today_activity(user_id: str) -> dict:
         "severe_symptom_count": severe_symptom_count,
         "latest_blood_sugar": blood_sugar,
         "streak_data": _calculate_streak_data(meal_logs, exercise_logs, daily_health_logs, sleep_logs),
+        # For Today's note (coach_note.day_facts); taken out before the dashboard is sent
+        "_logs": {"meals": meal_logs, "exercises": exercise_logs, "vitals": daily_health_logs},
     }
 
 
@@ -675,7 +767,20 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
     trend = _get_trend_direction(user_hss)
 
     # ── Generate dynamic smart insight ─────────────────────────────────────────
-    insight = _generate_insight(user_hss, latest_log, profile.get("first_name"), canonical_id)
+    logs = today_activity.pop("_logs", {})
+    try:
+        facts = coach_note.day_facts(
+            meal_logs=logs.get("meals", []),
+            exercise_logs=logs.get("exercises", []),
+            vitals_logs=logs.get("vitals", []),
+            sleep_hours=today_activity.get("total_sleep_hours") or 0,
+            sodium_limit=sodium_limit,
+            movement_goal=(threshold or {}).get("active_minutes_goal") or 30,
+        )
+    except Exception as e:  # the plain note still works without the extra facts
+        logger.warning(f"Today's note facts failed: {e}")
+        facts = None
+    insight = _generate_insight(user_hss, latest_log, profile.get("first_name"), canonical_id, facts)
 
 
 
@@ -693,6 +798,8 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
         "hss_score": latest_hss.get("score", 0),
         "hss_tier": latest_hss.get("tier", "Unknown"),
         "hss_factors": latest_hss.get("contributing_factors", {}),
+        # Under the heart: "74 from your readings + 2 from today's habits"
+        "score_parts": _score_parts(user_hss),
         "last_sync": latest_hss.get("computed_at"),
         "unread_notifications_count": unread_count,
         "latest_vitals": {

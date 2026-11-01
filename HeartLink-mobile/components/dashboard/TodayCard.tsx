@@ -11,6 +11,16 @@ import { isHypertensiveCrisis, isSevereHypotension } from "../../services/vitals
 
 export type TodayPage = { key: string; label: string; content: React.ReactNode };
 
+/** How the score adds up (dashboard `score_parts`): the readings part plus the habit points. */
+export type ScoreParts = { readings: number; habits: number; habits_today: boolean };
+
+/** "74 from your readings + 2 from today's habits" */
+export function partsText(p: ScoreParts): string {
+  const day = p.habits_today ? "today's" : "yesterday's";
+  if (!p.habits) return `${p.readings} from your readings, no habit points yet today`;
+  return `${p.readings} from your readings ${p.habits > 0 ? "+" : "−"} ${Math.abs(p.habits)} from ${day} habits`;
+}
+
 /**
  * The dashboard's top card: pages you swipe through (or pick with the dots), like a fitness app's rings card.
  * It always opens on the first page, the Heart score.
@@ -87,6 +97,7 @@ export function ScorePage({
   label,
   hasScore,
   change,
+  parts,
   reason,
   onExplain,
   onLogBloodPressure,
@@ -94,8 +105,10 @@ export function ScorePage({
 }: {
   label: string;
   hasScore: boolean;
-  /** e.g. "Up 3 since yesterday" */
+  /** e.g. "Up 3 since yesterday"; only shown when the server sends no breakdown (`parts`) */
   change?: string | null;
+  /** How the score adds up; shown under the band instead of the change since yesterday */
+  parts?: ScoreParts | null;
   /** e.g. "+2 from meals" */
   reason?: string | null;
   onExplain: () => void;
@@ -128,13 +141,16 @@ export function ScorePage({
             <View style={{ paddingVertical: 4, paddingHorizontal: 12, borderRadius: 999, backgroundColor: tag.bg }}>
               <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 14, fontWeight: "700", color: tag.fg }}>{tag.text}</Text>
             </View>
-            {change ? (
+            {change && !parts ? (
               <Text style={{ fontSize: 15, fontWeight: "600", color: up ? t.successText : c.charcoal }}>
                 {up ? "↑ " : "↓ "}
                 {change}
               </Text>
             ) : null}
           </View>
+          {parts ? (
+            <Text style={{ fontSize: 14, fontWeight: "500", color: c.charcoal, textAlign: "center" }}>{partsText(parts)}</Text>
+          ) : null}
           {reason ? <Text style={{ fontSize: 13, color: c.slate, textAlign: "center" }}>{reason}</Text> : null}
         </View>
       ) : (
@@ -160,27 +176,93 @@ function Ring({ value, max, track, stroke, top, bottom, label }: {
   value: number; max: number; track: string; stroke: string; top: string; bottom: string; label: string;
 }) {
   const { c } = useDs();
-  const r = 34;
+  const size = 84;
+  const strokeWidth = 6.5;
+  const center = size / 2;
+  const r = 38;
   const circ = 2 * Math.PI * r;
-  const filled = max > 0 ? Math.min(1, Math.max(0, value / max)) * circ : 0;
+  const ratio = max > 0 ? Math.max(0, value / max) : 0;
+  const isFull = ratio >= 1;
+  // Keep a crisp gap before 100% so round endcaps never collide prematurely (e.g. 7h 30m / 8h)
+  const filled =
+    ratio > 0 && !isFull
+      ? Math.max(strokeWidth * 0.5, Math.min(ratio * circ, circ - strokeWidth * 2.1))
+      : 0;
+  const topFontSize = top.length >= 6 ? 13.5 : top.length >= 5 ? 14.5 : 16.5;
+
   return (
-    <View style={{ width: 84, height: 84 }}>
-      <Svg width={84} height={84} viewBox="0 0 84 84" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <Circle cx={42} cy={42} r={r} fill="none" stroke={track} strokeWidth={8} />
-        {filled > 0 ? (
+    <View style={{ width: size, height: size }}>
+      <Svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
+        <Circle cx={center} cy={center} r={r} fill="none" stroke={track} strokeWidth={strokeWidth} />
+        {isFull ? (
+          <Circle cx={center} cy={center} r={r} fill="none" stroke={stroke} strokeWidth={strokeWidth} />
+        ) : filled > 0 ? (
           <Circle
-            cx={42} cy={42} r={r} fill="none" stroke={stroke} strokeWidth={8} strokeLinecap="round"
-            strokeDasharray={`${filled} ${circ}`} transform="rotate(-90 42 42)"
+            cx={center}
+            cy={center}
+            r={r}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeDasharray={`${filled} ${circ}`}
+            transform={`rotate(-90 ${center} ${center})`}
           />
         ) : null}
       </Svg>
       <View
         accessible
         accessibilityLabel={label}
-        style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" }}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          paddingHorizontal: 11,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
       >
-        <Text maxFontSizeMultiplier={1.2} style={{ fontSize: 16, fontWeight: "700", color: c.ink, fontVariant: ["tabular-nums"] }}>{top}</Text>
-        <Text maxFontSizeMultiplier={1.2} style={{ fontSize: 11, color: c.steel }}>{bottom}</Text>
+        <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.72}
+          maxFontSizeMultiplier={1.15}
+          style={{
+            fontSize: topFontSize,
+            lineHeight: 19,
+            fontWeight: "700",
+            letterSpacing: top.length >= 5 ? -0.4 : -0.2,
+            color: c.ink,
+            fontVariant: ["tabular-nums"],
+            textAlign: "center",
+          }}
+        >
+          {top}
+        </Text>
+        <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.75}
+          maxFontSizeMultiplier={1.15}
+          style={{
+            fontSize: 10.5,
+            lineHeight: 13,
+            fontWeight: "500",
+            color: c.steel,
+            marginTop: 1,
+            textAlign: "center",
+          }}
+        >
+          {bottom}
+        </Text>
       </View>
     </View>
   );
@@ -195,6 +277,62 @@ export function sleepText(hours: number): string {
   return m ? `${h}h ${m}m` : `${h}h`;
 }
 
+export type HabitsSummary = {
+  tone: "good" | "warn" | "neutral";
+  text: string;
+};
+
+export function habitsSummary({
+  sodiumMg,
+  sodiumLimitMg,
+  movementMins,
+  movementGoal,
+  sleepHours,
+}: {
+  sodiumMg: number;
+  sodiumLimitMg: number;
+  movementMins: number;
+  movementGoal: number;
+  sleepHours: number | null;
+}): HabitsSummary {
+  if (sodiumLimitMg > 0 && sodiumMg > sodiumLimitMg) {
+    return {
+      tone: "warn",
+      text: "Over today's sodium limit — water and lighter meals next help balance it.",
+    };
+  }
+  if (sodiumMg <= 0 && movementMins <= 0 && !sleepHours) {
+    return {
+      tone: "neutral",
+      text: "Log meals, movement, and sleep below to earn up to 20 habit points.",
+    };
+  }
+  const movementMet = movementGoal > 0 && movementMins >= movementGoal;
+  const rested = typeof sleepHours === "number" && sleepHours >= 7;
+  if (movementMet && rested) {
+    return {
+      tone: "good",
+      text: "Great momentum — movement and rest are on track, and sodium is within limit.",
+    };
+  }
+  if (movementMet) {
+    return {
+      tone: "good",
+      text: !sleepHours
+        ? "Movement goal reached — log last night's sleep below to complete your rings."
+        : "Movement goal reached and sodium is within today's limit.",
+    };
+  }
+  const moveLeft = Math.max(0, movementGoal - movementMins);
+  return {
+    tone: "neutral",
+    text:
+      moveLeft > 0
+        ? `${moveLeft} min of movement left to hit today's goal.`
+        : "Keep logging your meals and sleep to steady today's score.",
+  };
+}
+
 /** Page 2: sodium, movement and sleep as three rings, with what's left. */
 export function HabitsPage({ sodiumMg, sodiumLimitMg, movementMins, movementGoal, sleepHours }: {
   sodiumMg: number; sodiumLimitMg: number; movementMins: number; movementGoal: number; sleepHours: number | null;
@@ -202,49 +340,231 @@ export function HabitsPage({ sodiumMg, sodiumLimitMg, movementMins, movementGoal
   const { c, isDark } = useDs();
   const t = isDark ? dark : light;
   const sodiumLeft = sodiumLimitMg - sodiumMg;
+  const sodiumOver = sodiumLeft < 0;
   const movementLeft = Math.max(0, movementGoal - movementMins);
+  const movementMet = movementGoal > 0 && movementMins >= movementGoal;
+  const sleepMet = typeof sleepHours === "number" && sleepHours >= 8;
+
   const items = [
     {
       name: "Sodium",
       ring: (
-        <Ring value={sodiumMg} max={sodiumLimitMg} track={c.peach} stroke={SODIUM} top={fmt(sodiumMg)} bottom={`/${fmt(sodiumLimitMg)} mg`}
-          label={`Sodium ${fmt(sodiumMg)} of ${fmt(sodiumLimitMg)} milligrams`} />
+        <Ring
+          value={sodiumMg}
+          max={sodiumLimitMg}
+          track={c.peach}
+          stroke={sodiumOver ? c.danger : SODIUM}
+          top={fmt(sodiumMg)}
+          bottom={`/${fmt(sodiumLimitMg)} mg`}
+          label={`Sodium ${fmt(sodiumMg)} of ${fmt(sodiumLimitMg)} milligrams`}
+        />
       ),
       note: sodiumLeft >= 0 ? `${fmt(sodiumLeft)} mg left` : `${fmt(-sodiumLeft)} mg over`,
-      noteColor: sodiumLeft >= 0 ? c.slate : t.dangerText,
+      noteColor: sodiumOver ? t.dangerText : c.slate,
+      done: false,
     },
     {
       name: "Movement",
       ring: (
-        <Ring value={movementMins} max={movementGoal} track={c.mint} stroke={c.success} top={`${movementMins}`} bottom={`/${movementGoal} min`}
-          label={`Movement ${movementMins} of ${movementGoal} minutes`} />
+        <Ring
+          value={movementMins}
+          max={movementGoal}
+          track={c.mint}
+          stroke={c.success}
+          top={`${movementMins}`}
+          bottom={`/${movementGoal} min`}
+          label={`Movement ${movementMins} of ${movementGoal} minutes`}
+        />
       ),
       note: movementLeft > 0 ? `${movementLeft} min to go` : "Goal reached",
-      noteColor: c.slate,
+      noteColor: movementMet ? t.successText : c.slate,
+      done: movementMet,
     },
     {
       name: "Sleep",
       ring: (
-        <Ring value={sleepHours ?? 0} max={8} track={c.lavender} stroke={isDark ? "#a78bfa" : SLEEP}
-          top={sleepHours ? sleepText(sleepHours) : "--"} bottom="/8 h"
-          label={sleepHours ? `Sleep ${sleepText(sleepHours)} of 8 hours` : "Sleep not logged"} />
+        <Ring
+          value={sleepHours ?? 0}
+          max={8}
+          track={c.lavender}
+          stroke={isDark ? "#a78bfa" : SLEEP}
+          top={sleepHours ? sleepText(sleepHours) : "--"}
+          bottom="/8 h"
+          label={sleepHours ? `Sleep ${sleepText(sleepHours)} of 8 hours` : "Sleep not logged"}
+        />
       ),
-      note: sleepHours ? "Last night" : "Not logged",
-      noteColor: c.slate,
+      note: sleepMet ? "Goal reached" : sleepHours ? "Last night" : "Not logged",
+      noteColor: sleepMet ? t.successText : sleepHours ? c.slate : c.muted,
+      done: sleepMet,
     },
   ];
+
+  const summary = habitsSummary({
+    sodiumMg,
+    sodiumLimitMg,
+    movementMins,
+    movementGoal,
+    sleepHours,
+  });
+
+  const bannerBg =
+    summary.tone === "good"
+      ? isDark
+        ? t.successTint
+        : "#F0FDF4"
+      : summary.tone === "warn"
+      ? isDark
+        ? t.warningTint
+        : "#FFFBEB"
+      : c.surface;
+
+  const bannerBorder =
+    summary.tone === "good"
+      ? isDark
+        ? "rgba(51, 204, 130, 0.25)"
+        : "#DCFCE7"
+      : summary.tone === "warn"
+      ? isDark
+        ? "rgba(255, 154, 46, 0.25)"
+        : "#FEF3C7"
+      : isDark
+      ? c.hairline
+      : "#EEF2F6";
+
+  const bannerIcon =
+    summary.tone === "good"
+      ? ("check-circle" as const)
+      : summary.tone === "warn"
+      ? ("alert-circle" as const)
+      : ("zap" as const);
+
+  const bannerIconColor =
+    summary.tone === "good"
+      ? t.successText
+      : summary.tone === "warn"
+      ? t.warningText
+      : c.primary;
+
   return (
-    <View style={{ flex: 1, gap: 14 }}>
-      <PageTitle title="Today's habits" right={<Text style={{ fontSize: 13, color: c.steel }}>Resets at midnight</Text>} />
-      {/* The card is as tall as its tallest page (the score), so the shorter pages centre their content */}
-      <View style={{ flex: 1, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+    <View style={{ flex: 1, justifyContent: "space-between", gap: 12 }}>
+      <View style={{ gap: 2 }}>
+        <PageTitle
+          title="Today's habits"
+          right={
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 4,
+                paddingVertical: 4,
+                paddingHorizontal: 9,
+                borderRadius: 999,
+                backgroundColor: c.surfaceAlt,
+              }}
+            >
+              <Feather name="clock" size={11} color={c.steel} />
+              <Text style={{ fontSize: 11.5, fontWeight: "600", color: c.steel }}>
+                Resets at midnight
+              </Text>
+            </View>
+          }
+        />
+        <Text style={{ fontSize: 13, color: c.slate }}>
+          Daily targets that steady your score
+        </Text>
+      </View>
+
+      {/* Three structured habit pods */}
+      <View style={{ flexDirection: "row", gap: 8 }}>
         {items.map((it) => (
-          <View key={it.name} style={{ flex: 1, alignItems: "center", gap: 6 }}>
-            <Text style={{ fontSize: 14, fontWeight: "600", color: c.ink }}>{it.name}</Text>
+          <View
+            key={it.name}
+            style={{
+              flex: 1,
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 8,
+              paddingVertical: 12,
+              paddingHorizontal: 4,
+              borderRadius: 14,
+              backgroundColor: c.surface,
+              borderWidth: 1,
+              borderColor: isDark ? c.hairline : "#EEF2F6",
+            }}
+          >
+            <Text
+              numberOfLines={1}
+              maxFontSizeMultiplier={1.15}
+              style={{
+                fontSize: 13,
+                fontWeight: "600",
+                color: c.charcoal,
+                letterSpacing: -0.1,
+              }}
+            >
+              {it.name}
+            </Text>
+
             {it.ring}
-            <Text style={{ fontSize: 12, color: it.noteColor }}>{it.note}</Text>
+
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 3,
+                minHeight: 16,
+                paddingHorizontal: 2,
+              }}
+            >
+              {it.done ? (
+                <Feather name="check-circle" size={11} color={t.successText} />
+              ) : null}
+              <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+                maxFontSizeMultiplier={1.15}
+                style={{
+                  fontSize: 11.5,
+                  fontWeight: it.done || sodiumOver && it.name === "Sodium" ? "600" : "500",
+                  color: it.noteColor,
+                  textAlign: "center",
+                }}
+              >
+                {it.note}
+              </Text>
+            </View>
           </View>
         ))}
+      </View>
+
+      {/* Dynamic daily takeaway bar */}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 8,
+          paddingVertical: 9,
+          paddingHorizontal: 12,
+          borderRadius: 12,
+          backgroundColor: bannerBg,
+          borderWidth: 1,
+          borderColor: bannerBorder,
+        }}
+      >
+        <Feather name={bannerIcon} size={15} color={bannerIconColor} />
+        <Text
+          numberOfLines={2}
+          style={{
+            flex: 1,
+            fontSize: 12.5,
+            lineHeight: 17,
+            color: c.charcoal,
+          }}
+        >
+          {summary.text}
+        </Text>
       </View>
     </View>
   );

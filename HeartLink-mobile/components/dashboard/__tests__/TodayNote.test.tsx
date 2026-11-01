@@ -48,14 +48,21 @@ it("offers Log a reading after an ordinary high reading", async () => {
   expect(screen.getByText("Log another one later.")).toBeOnTheScreen(); // the explanation shows when there's a step
 });
 
-it("keeps a note with no step to one line", async () => {
+it("shows the fact, the line with its numbers and the week's pattern, even with no step", async () => {
   await render(
     <TodayNote
       {...props}
       onAction={jest.fn()}
-      insight={{ title: "Your 118/76 reading is in the healthy range.", body: "Your score stays at 99.", action: null }}
+      insight={{
+        title: "Your 118/76 reading is in the healthy range.",
+        body: "Your score stays at 99.",
+        action: null,
+        pattern: "You reached your movement goal on 5 of the last 7 days.",
+      }}
     />,
   );
   expect(screen.getByText("Your 118/76 reading is in the healthy range.")).toBeOnTheScreen();
-  expect(screen.queryByText("Your score stays at 99.")).toBeNull();
+  expect(screen.getByText("Your score stays at 99.")).toBeOnTheScreen();
+  expect(screen.getByText("You reached your movement goal on 5 of the last 7 days.")).toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: "Log a reading" })).toBeNull();
 });

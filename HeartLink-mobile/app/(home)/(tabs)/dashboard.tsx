@@ -12,7 +12,7 @@ import {
   AccessibilityInfo,
   DeviceEventEmitter,
 } from "react-native";
-import Reanimated, { FadeInDown } from "react-native-reanimated";
+import Reanimated, { FadeInDown, LinearTransition, Easing as ReanimatedEasing } from "react-native-reanimated";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useColorScheme } from "nativewind";
 import { Feather } from "@expo/vector-icons";
@@ -840,6 +840,7 @@ export default function DashboardScreen() {
                       label={theme.label}
                       hasScore={hasHssScore}
                       change={scoreChange}
+                      parts={data?.score_parts ?? null}
                       reason={streakDays > 1 ? `${streakDays}-day logging streak` : null}
                       onExplain={() => {
                         Haptics.selectionAsync();
@@ -912,7 +913,9 @@ export default function DashboardScreen() {
 
         {/* Today's note: what changed in the score and one step to take */}
         {data?.insight ? (
-          <Reanimated.View entering={FadeInDown.delay(220).duration(260)}>
+          <Reanimated.View
+            entering={FadeInDown.delay(220).duration(260).easing(ReanimatedEasing.out(ReanimatedEasing.cubic))}
+          >
             <TourSpot target="note" tour={tour}>
               <TodayNote
                 insight={data.insight}
@@ -926,6 +929,10 @@ export default function DashboardScreen() {
                   // An emergency-level reading or symptom: Call 911 and the nearest clinics
                   if (action === "see_what_to_do") safeNavigate("/locator");
                   else if (action === "log_vitals" || action === "log_later") handleMissionPress("vitals");
+                  else if (action === "log_meal") handleMissionPress("meals");
+                  else if (action === "log_sleep") handleMissionPress("sleep");
+                  else if (action === "low_sodium_ideas") safeNavigate("/(home)/(tabs)/recipes");
+                  else if (action === "start_walk") safeNavigate("/(home)/(tabs)/exercises");
                   else safeNavigate("/(home)/(meals)/food-diary");
                 }}
               />
@@ -950,17 +957,41 @@ export default function DashboardScreen() {
             {/* ── Recommendations (hidden when empty) ── */}
             {!isCritical && data?.recommendations && data.recommendations.length > 0 && (
               <TourSpot target="summary" tour={tour}>
-                <Reanimated.View entering={FadeInDown.delay(340).duration(300)} className="flex-row items-center justify-between mb-3">
-                  <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "600", color: c.ink }}>
-                    Picked for you
-                  </Text>
+                <Reanimated.View entering={FadeInDown.delay(340).duration(300)} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "700", color: c.ink, letterSpacing: -0.3 }}>
+                      Picked for you
+                    </Text>
+                    <View
+                      style={{
+                        paddingHorizontal: 8,
+                        paddingVertical: 2.5,
+                        borderRadius: 999,
+                        backgroundColor: isDark ? "rgba(14, 165, 233, 0.16)" : "#E0F2FE",
+                        borderWidth: 1,
+                        borderColor: isDark ? "rgba(14, 165, 233, 0.3)" : "#BAE6FD",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          fontWeight: "700",
+                          color: isDark ? "#38BDF8" : "#0284C7",
+                          letterSpacing: 0.3,
+                        }}
+                      >
+                        DAILY PICKS
+                      </Text>
+                    </View>
+                  </View>
                   <TouchableOpacity
                     onPress={() => safeNavigate("/(home)/(tabs)/explore")}
                     accessibilityRole="link"
                     accessibilityLabel="See all picks in Explore"
-                    style={{ height: 44, justifyContent: "center" }}
+                    style={{ height: 44, justifyContent: "center", flexDirection: "row", alignItems: "center", gap: 3 }}
                   >
-                    <Text style={{ fontSize: 15, fontWeight: "500", color: c.link }}>See all</Text>
+                    <Text style={{ fontSize: 14.5, fontWeight: "600", color: isDark ? "#38BDF8" : "#0284C7" }}>See all</Text>
+                    <Feather name="chevron-right" size={15} color={isDark ? "#38BDF8" : "#0284C7"} />
                   </TouchableOpacity>
                 </Reanimated.View>
                 <ScrollView
@@ -968,8 +999,8 @@ export default function DashboardScreen() {
                   showsHorizontalScrollIndicator={false}
                   nestedScrollEnabled={true}
                   directionalLockEnabled={true}
-                  style={{ marginRight: -20 }}
-                  contentContainerStyle={{ gap: 12, paddingRight: 20 }}
+                  style={{ marginRight: -20, marginBottom: 20 }}
+                  contentContainerStyle={{ gap: 14, paddingRight: 20 }}
                 >
                   {data?.recommendations?.map((r: DashboardRec) => (
                     <RecommendationCard
