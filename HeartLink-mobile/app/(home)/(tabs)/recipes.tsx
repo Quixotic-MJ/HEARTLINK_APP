@@ -6,6 +6,7 @@ import {
   FlatList,
   ScrollView,
   RefreshControl,
+  Platform,
 } from "react-native";
 import { Image } from "expo-image";
 import { ScreenWrapper } from "../../../components/ui/ScreenWrapper";
@@ -17,6 +18,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "../../../contexts/UserContext";
 import { apiFetch } from "../../../lib/api";
 import { useDs } from "../../../components/onboarding/useDs";
+import AnimatedButton from "../../../components/ui/AnimatedButton";
 import { useRefetchOnFocus } from "../../../hooks/useRefetchOnFocus";
 import { useExploreScore } from "../../../hooks/useExploreData";
 import { foodWarnings, suitsTier } from "../../../services/explore";
@@ -60,51 +62,123 @@ function RecipeCard({
   onSave: () => void;
   suits?: boolean;
 }) {
-  const { c } = useDs();
+  const { c, isDark } = useDs();
   const warnings = recipe.warnings ?? [];
 
   return (
-    <TouchableOpacity
-      activeOpacity={0.8}
+    <AnimatedButton
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`${recipe.title}${warnings.length ? `. Warning: ${warnings.join(". ")}` : ""}`}
-      className="overflow-hidden mb-4 relative"
-      style={{ borderRadius: 12, borderWidth: 1, borderColor: c.hairline, backgroundColor: c.canvas }}
+      style={{
+        borderRadius: 16,
+        overflow: "hidden",
+        borderWidth: 1,
+        borderColor: isDark ? c.hairline : "#E2E8F0",
+        backgroundColor: isDark ? c.surface : c.canvas,
+        marginBottom: 14,
+        ...Platform.select({
+          ios: {
+            shadowColor: "#0F172A",
+            shadowOffset: { width: 0, height: 3 },
+            shadowOpacity: isDark ? 0.3 : 0.06,
+            shadowRadius: 8,
+          },
+          android: { elevation: 2 },
+        }),
+      }}
     >
-      <View className="h-[105px] w-full items-center justify-center" style={{ backgroundColor: c.surface }}>
-        <Feather name="image" size={24} color={c.muted} style={{ position: "absolute" }} />
+      <View
+        style={{
+          height: 116,
+          width: "100%",
+          backgroundColor: isDark ? c.surfaceAlt : c.peach,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Feather
+          name="coffee"
+          size={24}
+          color={isDark ? "#FBBF24" : c.charcoal}
+          style={{ position: "absolute" }}
+        />
         <Image
           source={{ uri: recipe.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&q=80" }}
-          style={{ width: "100%", height: "100%", position: 'absolute' }}
+          style={{ width: "100%", height: "100%", position: "absolute" }}
           contentFit="cover"
           transition={200}
         />
+        {/* Heart Save button overlay */}
+        <TouchableOpacity
+          onPress={onSave}
+          accessibilityRole="button"
+          accessibilityLabel={isSaved ? `Remove ${recipe.title} from saved` : `Save ${recipe.title}`}
+          accessibilityState={{ selected: isSaved }}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          style={{
+            position: "absolute",
+            top: 8,
+            right: 8,
+            width: 32,
+            height: 32,
+            borderRadius: 16,
+            backgroundColor: isDark ? "rgba(15, 23, 42, 0.82)" : "rgba(255, 255, 255, 0.92)",
+            borderWidth: 1,
+            borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.06)",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Feather
+            name="heart"
+            size={14}
+            color={isSaved ? c.danger : c.steel}
+            style={{ marginTop: 1 }}
+          />
+        </TouchableOpacity>
       </View>
-      <TouchableOpacity
-        onPress={onSave}
-        accessibilityRole="button"
-        accessibilityLabel={isSaved ? `Remove ${recipe.title} from saved` : `Save ${recipe.title}`}
-        accessibilityState={{ selected: isSaved }}
-        className="absolute top-2 right-2 items-center justify-center rounded-full"
-        style={{ width: 32, height: 32, backgroundColor: c.canvas }}
-      >
-        <Feather name="heart" size={15} color={isSaved ? c.danger : c.ink} />
-      </TouchableOpacity>
-      <View className="p-3 pb-4">
-        <Text style={{ fontSize: 15, fontWeight: "500", color: c.ink, marginBottom: 2 }} numberOfLines={1}>{recipe.title}</Text>
-        <Text style={{ fontSize: 13, color: c.slate }}>{recipe.nutrition?.calories || 0} cal - {recipe.prepTime || 0} min</Text>
+
+      <View style={{ padding: 12, gap: 5 }}>
+        <Text
+          style={{ fontSize: 14.5, fontWeight: "700", color: c.ink, letterSpacing: -0.2 }}
+          numberOfLines={1}
+        >
+          {recipe.title}
+        </Text>
+        <Text style={{ fontSize: 12, color: c.slate }}>
+          {recipe.nutrition?.calories || 0} cal • {recipe.prepTime || 0} min • {recipe.nutrition?.sodium || 0} mg
+        </Text>
         {warnings.length ? (
-          <View style={{ marginTop: 6 }}>
+          <View style={{ marginTop: 2 }}>
             <FoodWarning warnings={warnings} compact />
           </View>
         ) : suits ? (
-          <View style={{ alignSelf: "flex-start", marginTop: 6, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: c.mint }}>
-            <Text style={{ fontSize: 12, fontWeight: "600", color: c.charcoal }}>Suits your score</Text>
+          <View
+            style={{
+              alignSelf: "flex-start",
+              marginTop: 2,
+              paddingHorizontal: 7,
+              paddingVertical: 2.5,
+              borderRadius: 6,
+              backgroundColor: isDark ? "rgba(16, 185, 129, 0.16)" : "#ECFDF5",
+              borderWidth: 1,
+              borderColor: isDark ? "rgba(16, 185, 129, 0.3)" : "#A7F3D0",
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 11,
+                fontWeight: "600",
+                color: isDark ? "#34D399" : "#059669",
+              }}
+            >
+              Suits your score
+            </Text>
           </View>
         ) : null}
       </View>
-    </TouchableOpacity>
+    </AnimatedButton>
   );
 }
 
@@ -159,7 +233,7 @@ export default function RecipesScreen({
       }));
       AsyncStorage.setItem(recipesCacheKey, JSON.stringify(mapped)).catch(() => {});
       return mapped;
-    }
+    },
   });
 
   const { data: savedRecipes = [], refetch: refetchSaved } = useQuery({
@@ -168,7 +242,7 @@ export default function RecipesScreen({
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const response = await apiFetch(`/api/recipes/saved/${userId}`, {
-        headers: { "Authorization": `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error("Failed to fetch saved recipes");
       const data = await response.json();
@@ -176,7 +250,7 @@ export default function RecipesScreen({
       const remoteIds = data.map((item: any) => item.recipe_id || item.id || String(item));
       AsyncStorage.setItem(savedRecipesKey, JSON.stringify(remoteIds)).catch(() => {});
       return remoteIds;
-    }
+    },
   });
 
   const [refreshing, setRefreshing] = useState(false);
@@ -197,7 +271,7 @@ export default function RecipesScreen({
       const response = await apiFetch(`/api/recipes/${id}/save/${userId}`, {
         method: isSaved ? "DELETE" : "POST",
         headers: {
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       });
@@ -206,7 +280,7 @@ export default function RecipesScreen({
     onMutate: async ({ id, isSaved }) => {
       await queryClient.cancelQueries({ queryKey: ["saved_recipes", userId] });
       const previous = queryClient.getQueryData<string[]>(["saved_recipes", userId]);
-      const updated = isSaved ? (previous || []).filter(rId => rId !== id) : [...(previous || []), id];
+      const updated = isSaved ? (previous || []).filter((rId) => rId !== id) : [...(previous || []), id];
       queryClient.setQueryData(["saved_recipes", userId], updated);
       AsyncStorage.setItem(savedRecipesKey, JSON.stringify(updated)).catch(() => {});
       return { previous };
@@ -234,39 +308,94 @@ export default function RecipesScreen({
   return (
     <Container {...containerProps}>
       {!isEmbedded && <StatusBar style={isDark ? "light" : "dark"} />}
-      
-      {/* Top Bar matching the "See All" design */}
+
+      {/* Top Bar matching latest design system */}
       {!isEmbedded && (
-        <View className="flex-row items-center px-5 pt-3 pb-3" style={{ gap: 10 }}>
-          <SquareIconButton icon="arrow-left" label="Go back" onPress={() => (from === "explore" ? router.navigate("/(home)/(tabs)/explore") : router.back())} />
-          <Text accessibilityRole="header" style={{ flex: 1, fontSize: 22, fontWeight: "600", color: c.ink }}>
-            Recipes
-          </Text>
-          <View className="items-center justify-center" style={{ width: 44, height: 44, borderRadius: 8, borderWidth: 1, borderColor: c.hairline }}>
-            <Feather name="sliders" size={18} color={c.ink} />
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingHorizontal: 20,
+            paddingTop: 12,
+            paddingBottom: 10,
+            gap: 12,
+          }}
+        >
+          <SquareIconButton
+            icon="arrow-left"
+            label="Go back"
+            onPress={() => (from === "explore" ? router.navigate("/(home)/(tabs)/explore") : router.back())}
+          />
+          <View style={{ flex: 1, gap: 1 }}>
+            <Text
+              accessibilityRole="header"
+              style={{ fontSize: 22, fontWeight: "700", color: c.ink, letterSpacing: -0.4 }}
+            >
+              Recipes
+            </Text>
+            <Text style={{ fontSize: 12.5, color: c.slate }}>
+              Heart-healthy, dietitian-approved meals
+            </Text>
           </View>
         </View>
       )}
 
-      {/* Filters */}
-      <View className="mb-4">
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="pl-5 max-h-[40px]" contentContainerStyle={{ paddingRight: 40 }}>
+      {/* Modern Filter Pills */}
+      <View style={{ marginBottom: 12 }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          accessibilityRole="tablist"
+          contentContainerStyle={{ paddingHorizontal: 20, gap: 8 }}
+        >
           {filters.map((filter) => {
             const isActive = activeFilter === filter;
             return (
-              <TouchableOpacity
+              <AnimatedButton
                 key={filter}
                 onPress={() => setActiveFilter(filter)}
-                activeOpacity={0.7}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: isActive }}
-                className="mr-2 justify-center"
-                style={{ height: 40, paddingHorizontal: 16, borderRadius: 9999, borderWidth: 1, backgroundColor: isActive ? c.ink : c.canvas, borderColor: isActive ? c.ink : c.hairline }}
+                style={{
+                  height: 38,
+                  paddingHorizontal: 16,
+                  borderRadius: 999,
+                  borderWidth: 1,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  backgroundColor: isActive
+                    ? c.primary
+                    : isDark
+                    ? c.surfaceAlt
+                    : "#F1F5F9",
+                  borderColor: isActive
+                    ? c.primary
+                    : isDark
+                    ? c.hairline
+                    : "#E2E8F0",
+                  ...(isActive
+                    ? Platform.select({
+                        ios: {
+                          shadowColor: c.primary,
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.25,
+                          shadowRadius: 4,
+                        },
+                        android: { elevation: 2 },
+                      })
+                    : {}),
+                }}
               >
-                <Text style={{ fontSize: 14, fontWeight: "500", color: isActive ? c.canvas : c.charcoal }}>
+                <Text
+                  style={{
+                    fontSize: 13.5,
+                    fontWeight: "600",
+                    color: isActive ? "#FFFFFF" : c.charcoal,
+                  }}
+                >
                   {filter}
                 </Text>
-              </TouchableOpacity>
+              </AnimatedButton>
             );
           })}
         </ScrollView>
@@ -276,15 +405,66 @@ export default function RecipesScreen({
         data={filteredRecipes}
         keyExtractor={(item) => item.id}
         numColumns={2}
-        contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 20 }}
+        contentContainerStyle={{ paddingBottom: 110, paddingHorizontal: 20 }}
         columnWrapperStyle={{ justifyContent: "space-between" }}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.line} />}
         ListHeaderComponent={
-          <View className="mb-4">
-            <Text style={{ fontSize: 13, color: c.steel }}>
+          <View
+            style={{
+              marginBottom: 12,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <Text style={{ fontSize: 13, fontWeight: "500", color: c.slate }}>
               {filteredRecipes.length} recipes
-              {knowsTier ? `, ${filteredRecipes.filter((r) => r.tier && suitsTier(r.tier, patientTier) && !r.warnings?.length).length} suit your score` : ""}
+              {knowsTier
+                ? ` • ${
+                    filteredRecipes.filter(
+                      (r) => r.tier && suitsTier(r.tier, patientTier) && !r.warnings?.length
+                    ).length
+                  } suit your score`
+                : ""}
+            </Text>
+            {knowsTier ? (
+              <View
+                style={{
+                  paddingHorizontal: 8,
+                  paddingVertical: 2.5,
+                  borderRadius: 999,
+                  backgroundColor: isDark ? "rgba(16, 185, 129, 0.16)" : "#ECFDF5",
+                  borderWidth: 1,
+                  borderColor: isDark ? "rgba(16, 185, 129, 0.28)" : "#A7F3D0",
+                }}
+              >
+                <Text style={{ fontSize: 11.5, fontWeight: "600", color: isDark ? "#34D399" : "#059669" }}>
+                  {patientTier}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        }
+        ListEmptyComponent={
+          <View
+            style={{
+              padding: 24,
+              borderRadius: 16,
+              backgroundColor: isDark ? c.surfaceAlt : "#F8FAFC",
+              borderWidth: 1,
+              borderColor: isDark ? c.hairline : "#E2E8F0",
+              alignItems: "center",
+              gap: 8,
+              marginTop: 20,
+            }}
+          >
+            <Feather name="coffee" size={28} color={c.steel} />
+            <Text style={{ fontSize: 15, fontWeight: "600", color: c.ink }}>
+              No recipes found
+            </Text>
+            <Text style={{ fontSize: 13, color: c.slate, textAlign: "center" }}>
+              No meals match the &quot;{activeFilter}&quot; tag yet. Try selecting &quot;All&quot;.
             </Text>
           </View>
         }

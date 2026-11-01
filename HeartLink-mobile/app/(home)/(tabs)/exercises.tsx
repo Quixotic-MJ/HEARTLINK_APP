@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { FlatList, RefreshControl, ScrollView, Text, View } from "react-native";
+import { FlatList, RefreshControl, ScrollView, Text, View, Platform } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
@@ -9,7 +10,7 @@ import { Skeleton } from "../../../components/ui/Skeleton";
 import AnimatedButton from "../../../components/ui/AnimatedButton";
 import DsButton from "../../../components/onboarding/DsButton";
 import { useDs } from "../../../components/onboarding/useDs";
-import { ExerciseHistoryLink, IconBadge, SquareIconButton } from "../../../components/exercise/ExerciseBits";
+import { ExerciseHistoryLink, SquareIconButton } from "../../../components/exercise/ExerciseBits";
 import { apiFetch } from "../../../lib/api";
 import { Routine, exerciseKind, toRoutines } from "../../../services/exerciseSession";
 import { useRefetchOnFocus } from "../../../hooks/useRefetchOnFocus";
@@ -22,6 +23,13 @@ const FILTERS = ["All", "Light Cardio", "Breathing", "Stationary", "General"] as
 type Filter = (typeof FILTERS)[number];
 
 const KIND_ICON = { breathing: "wind", cardio: "activity", steps: "user", guide: "play-circle" } as const;
+
+const KIND_FALLBACK_IMAGE: Record<string, string> = {
+  breathing: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&h=400&fit=crop",
+  cardio: "https://images.unsplash.com/photo-1522898467493-49726bf28798?w=600&h=400&fit=crop",
+  steps: "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=600&h=400&fit=crop",
+  guide: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=600&h=400&fit=crop",
+};
 
 export default function ExercisesScreen({ isEmbedded = false }: { isEmbedded?: boolean } = {}) {
   const { c, isDark } = useDs();
@@ -59,34 +67,144 @@ export default function ExercisesScreen({ isEmbedded = false }: { isEmbedded?: b
 
   const renderRow = ({ item }: { item: Routine }) => {
     const kind = exerciseKind(item);
+    const isBreathing = kind === "breathing";
+    const tone = isBreathing
+      ? isDark ? "rgba(59, 130, 246, 0.18)" : c.sky
+      : isDark ? "rgba(16, 185, 129, 0.18)" : c.mint;
+    const iconColor = isBreathing
+      ? isDark ? "#60A5FA" : "#2563EB"
+      : isDark ? "#34D399" : "#059669";
+
+    const suits = knowsTier && item.tier && suitsTier(item.tier, patientTier);
+
     return (
       <AnimatedButton
-        onPress={() => router.push({ pathname: "/(home)/(health)/exercise-session", params: { id: item.id } })}
+        onPress={() =>
+          router.push({
+            pathname: "/(home)/(health)/exercise-session",
+            params: { id: item.id },
+          })
+        }
         accessibilityRole="button"
         accessibilityLabel={`${item.title}. ${item.type}, ${item.minutes} minutes, ${item.intensity} intensity${item.reviewedAt ? ". PT approved" : ""}`}
-        style={{ minHeight: 72, borderRadius: 12, borderWidth: 1, borderColor: c.hairline, paddingHorizontal: 14, paddingVertical: 12, flexDirection: "row", alignItems: "center", gap: 12 }}
+        style={{
+          minHeight: 88,
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: isDark ? c.hairline : "#E2E8F0",
+          backgroundColor: isDark ? c.surface : c.canvas,
+          paddingHorizontal: 14,
+          paddingVertical: 12,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+          ...Platform.select({
+            ios: {
+              shadowColor: "#0F172A",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: isDark ? 0.25 : 0.04,
+              shadowRadius: 6,
+            },
+            android: { elevation: 1 },
+          }),
+        }}
       >
-        <IconBadge icon={KIND_ICON[kind]} tone={kind === "breathing" ? "sky" : "mint"} size={48} />
-        <View style={{ flex: 1, gap: 3 }}>
-          <Text style={{ fontSize: 16, fontWeight: "500", color: c.ink }} numberOfLines={2}>
+        <View
+          style={{
+            width: 70,
+            height: 70,
+            borderRadius: 14,
+            overflow: "hidden",
+            backgroundColor: tone,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Feather name={KIND_ICON[kind]} size={24} color={iconColor} style={{ position: "absolute" }} />
+          <Image
+            source={{ uri: item.image || KIND_FALLBACK_IMAGE[kind] }}
+            style={{ width: "100%", height: "100%" }}
+            contentFit="cover"
+            transition={200}
+          />
+        </View>
+
+        <View style={{ flex: 1, gap: 4 }}>
+          <Text
+            style={{ fontSize: 15.5, fontWeight: "700", color: c.ink, letterSpacing: -0.2 }}
+            numberOfLines={2}
+          >
             {item.title}
           </Text>
-          <Text style={{ fontSize: 13, color: c.slate }}>
-            {item.type}, {item.minutes} min, {item.intensity.toLowerCase()} intensity
+          <Text style={{ fontSize: 12.5, color: c.slate }}>
+            {item.type} • {item.minutes} min • {item.intensity.toLowerCase()} intensity
           </Text>
-          {knowsTier && item.tier && suitsTier(item.tier, patientTier) ? (
-            <View style={{ alignSelf: "flex-start", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: c.mint }}>
-              <Text style={{ fontSize: 12, fontWeight: "600", color: c.charcoal }}>Suits your score</Text>
-            </View>
-          ) : null}
-          {item.reviewedAt ? (
-            <View className="flex-row items-center" style={{ gap: 4 }}>
-              <Feather name="check-circle" size={13} color={c.success} />
-              <Text style={{ fontSize: 12, fontWeight: "600", color: c.charcoal }}>PT approved</Text>
-            </View>
-          ) : null}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 1 }}>
+            {suits ? (
+              <View
+                style={{
+                  paddingHorizontal: 7,
+                  paddingVertical: 2,
+                  borderRadius: 6,
+                  backgroundColor: isDark ? "rgba(16, 185, 129, 0.16)" : "#ECFDF5",
+                  borderWidth: 1,
+                  borderColor: isDark ? "rgba(16, 185, 129, 0.3)" : "#A7F3D0",
+                }}
+              >
+                <Text style={{ fontSize: 11, fontWeight: "600", color: isDark ? "#34D399" : "#059669" }}>
+                  Suits your score
+                </Text>
+              </View>
+            ) : null}
+            {item.reviewedAt ? (
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 4,
+                  paddingHorizontal: 7,
+                  paddingVertical: 2,
+                  borderRadius: 6,
+                  backgroundColor: isDark ? "rgba(59, 130, 246, 0.16)" : "#EFF6FF",
+                  borderWidth: 1,
+                  borderColor: isDark ? "rgba(59, 130, 246, 0.3)" : "#BFDBFE",
+                }}
+              >
+                <Feather name="check-circle" size={11} color={isDark ? "#60A5FA" : "#2563EB"} />
+                <Text style={{ fontSize: 11, fontWeight: "600", color: isDark ? "#60A5FA" : "#2563EB" }}>
+                  PT approved
+                </Text>
+              </View>
+            ) : null}
+            {item.position ? (
+              <View
+                style={{
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                  borderRadius: 6,
+                  backgroundColor: isDark ? c.surfaceAlt : "#F1F5F9",
+                }}
+              >
+                <Text style={{ fontSize: 10.5, fontWeight: "500", color: c.slate }}>
+                  {item.position}
+                </Text>
+              </View>
+            ) : null}
+          </View>
         </View>
-        <Feather name="chevron-right" size={18} color={c.steel} />
+
+        <View
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: 15,
+            backgroundColor: isDark ? c.surfaceAlt : "#F1F5F9",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Feather name="chevron-right" size={15} color={c.steel} />
+        </View>
       </AnimatedButton>
     );
   };
@@ -94,16 +212,42 @@ export default function ExercisesScreen({ isEmbedded = false }: { isEmbedded?: b
   const content = (
     <>
       {!isEmbedded ? (
-        <View className="flex-row items-center px-5 pt-3 pb-2" style={{ gap: 10 }}>
-          <SquareIconButton icon="arrow-left" label="Go back" onPress={() => (from === "explore" ? router.navigate("/(home)/(tabs)/explore") : router.back())} />
-          <Text accessibilityRole="header" style={{ flex: 1, fontSize: 22, fontWeight: "600", color: c.ink }}>
-            Exercises
-          </Text>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingHorizontal: 20,
+            paddingTop: 12,
+            paddingBottom: 10,
+            gap: 12,
+          }}
+        >
+          <SquareIconButton
+            icon="arrow-left"
+            label="Go back"
+            onPress={() => (from === "explore" ? router.navigate("/(home)/(tabs)/explore") : router.back())}
+          />
+          <View style={{ flex: 1, gap: 1 }}>
+            <Text
+              accessibilityRole="header"
+              style={{ fontSize: 22, fontWeight: "700", color: c.ink, letterSpacing: -0.4 }}
+            >
+              Exercises
+            </Text>
+            <Text style={{ fontSize: 12.5, color: c.slate }}>
+              Gentle movement and breathing routines
+            </Text>
+          </View>
         </View>
       ) : null}
 
-      <View style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: c.hairlineSoft }}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityRole="tablist" contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }}>
+      <View style={{ paddingVertical: 10 }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          accessibilityRole="tablist"
+          contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }}
+        >
           {FILTERS.map((f) => {
             const on = f === filter;
             return (
@@ -114,9 +258,45 @@ export default function ExercisesScreen({ isEmbedded = false }: { isEmbedded?: b
                 accessibilityState={{ selected: on }}
                 accessibilityLabel={f}
                 hitSlop={{ top: 4, bottom: 4 }}
-                style={{ height: 40, paddingHorizontal: 16, borderRadius: 9999, borderWidth: 1, justifyContent: "center", backgroundColor: on ? c.ink : c.canvas, borderColor: on ? c.ink : c.hairline }}
+                style={{
+                  height: 38,
+                  paddingHorizontal: 16,
+                  borderRadius: 999,
+                  borderWidth: 1,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  backgroundColor: on
+                    ? c.primary
+                    : isDark
+                    ? c.surfaceAlt
+                    : "#F1F5F9",
+                  borderColor: on
+                    ? c.primary
+                    : isDark
+                    ? c.hairline
+                    : "#E2E8F0",
+                  ...(on
+                    ? Platform.select({
+                        ios: {
+                          shadowColor: c.primary,
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.25,
+                          shadowRadius: 4,
+                        },
+                        android: { elevation: 2 },
+                      })
+                    : {}),
+                }}
               >
-                <Text style={{ fontSize: 14, fontWeight: "500", color: on ? c.canvas : c.charcoal }}>{f}</Text>
+                <Text
+                  style={{
+                    fontSize: 13.5,
+                    fontWeight: "600",
+                    color: on ? "#FFFFFF" : c.charcoal,
+                  }}
+                >
+                  {f}
+                </Text>
               </AnimatedButton>
             );
           })}
@@ -124,9 +304,9 @@ export default function ExercisesScreen({ isEmbedded = false }: { isEmbedded?: b
       </View>
 
       {query.isLoading ? (
-        <View className="px-5" style={{ paddingTop: 20, gap: 8 }}>
+        <View style={{ paddingHorizontal: 20, paddingTop: 16, gap: 10 }}>
           {[0, 1, 2, 3].map((k) => (
-            <Skeleton key={k} style={{ height: 72, borderRadius: 12 }} />
+            <Skeleton key={k} style={{ height: 88, borderRadius: 16 }} />
           ))}
         </View>
       ) : (
@@ -134,8 +314,8 @@ export default function ExercisesScreen({ isEmbedded = false }: { isEmbedded?: b
           data={shown}
           keyExtractor={(item) => item.id}
           renderItem={renderRow}
-          ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120 }}
+          ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 110 }}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
@@ -149,24 +329,71 @@ export default function ExercisesScreen({ isEmbedded = false }: { isEmbedded?: b
             />
           }
           ListHeaderComponent={
-            <View style={{ gap: 16, marginBottom: shown.length > 0 ? 12 : 16 }}>
+            <View style={{ gap: 14, marginBottom: shown.length > 0 ? 12 : 16 }}>
               <ExerciseHistoryLink onPress={() => router.push("/(home)/(health)/exercise-diary")} />
               {shown.length > 0 ? (
-                <Text style={{ fontSize: 13, color: c.steel }}>
-                  {shown.length} {shown.length === 1 ? "exercise" : "exercises"}
-                </Text>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                  <Text style={{ fontSize: 13, fontWeight: "500", color: c.slate }}>
+                    {shown.length} {shown.length === 1 ? "exercise" : "exercises"}
+                    {knowsTier
+                      ? ` • ${shown.filter((r) => r.tier && suitsTier(r.tier, patientTier)).length} suit your score`
+                      : ""}
+                  </Text>
+                  {knowsTier ? (
+                    <View
+                      style={{
+                        paddingHorizontal: 8,
+                        paddingVertical: 2.5,
+                        borderRadius: 999,
+                        backgroundColor: isDark ? "rgba(16, 185, 129, 0.16)" : "#ECFDF5",
+                        borderWidth: 1,
+                        borderColor: isDark ? "rgba(16, 185, 129, 0.28)" : "#A7F3D0",
+                      }}
+                    >
+                      <Text style={{ fontSize: 11.5, fontWeight: "600", color: isDark ? "#34D399" : "#059669" }}>
+                        {patientTier}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
               ) : null}
             </View>
           }
           ListEmptyComponent={
-            <View style={{ padding: 20, borderRadius: 12, backgroundColor: c.surface, gap: 8 }}>
-              <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>
-                {query.isError ? "Exercises couldn't load" : filter === "All" ? "No exercises yet" : `No ${filter.toLowerCase()} exercises yet`}
+            <View
+              style={{
+                padding: 24,
+                borderRadius: 16,
+                backgroundColor: isDark ? c.surfaceAlt : "#F8FAFC",
+                borderWidth: 1,
+                borderColor: isDark ? c.hairline : "#E2E8F0",
+                gap: 8,
+                alignItems: "center",
+                marginTop: 10,
+              }}
+            >
+              <Feather name="activity" size={28} color={c.steel} />
+              <Text style={{ fontSize: 16, fontWeight: "700", color: c.ink, textAlign: "center" }}>
+                {query.isError
+                  ? "Exercises couldn't load"
+                  : filter === "All"
+                  ? "No exercises yet"
+                  : `No ${filter.toLowerCase()} exercises yet`}
               </Text>
-              <Text style={{ fontSize: 14, lineHeight: 21, color: c.slate }}>
-                {query.isError ? "Check your connection and try again." : "Exercises show here once they're added."}
+              <Text style={{ fontSize: 13.5, lineHeight: 20, color: c.slate, textAlign: "center" }}>
+                {query.isError
+                  ? "Check your connection and try again."
+                  : "Exercises show here once they're approved by your PT."}
               </Text>
-              {query.isError ? <DsButton label="Try again" variant="secondary" block={false} onPress={() => query.refetch()} style={{ marginTop: 6 }} /> : null}
+              {query.isError ? (
+                <DsButton
+                  label="Try again"
+                  variant="secondary"
+                  block={false}
+                  onPress={() => query.refetch()}
+                  style={{ marginTop: 8 }}
+                />
+              ) : null}
             </View>
           }
         />

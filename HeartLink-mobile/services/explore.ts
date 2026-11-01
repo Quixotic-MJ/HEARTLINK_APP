@@ -24,6 +24,7 @@ export type ExploreExercise = {
   intensity: string;
   position: string | null;
   tier: string;
+  image?: string;
 };
 
 type RawRow = Record<string, unknown>;
@@ -58,6 +59,7 @@ export function toExploreExercise(r: RawRow): ExploreExercise {
     intensity: text(r.intensity, "Low"),
     position: text(r.position) || null,
     tier: text(r.hss_tier, "Stable"),
+    image: text(r.media_url, text(r.image_url)),
   };
 }
 

@@ -74,6 +74,7 @@ export const SPLIT_ACTIONS: SplitAction[] = [
 // Crisp ease-out — smooth, no bounce
 const ENTER_ANIM = { duration: 220, easing: Easing.out(Easing.cubic) };
 const EXIT_ANIM = { duration: 160, easing: Easing.out(Easing.cubic) };
+const PRESS_EASING = Easing.out(Easing.cubic);
 const STAGGER_MS = 28;
 const CLOSE_MS = 200;
 
@@ -94,6 +95,7 @@ function SplitPill({
 }) {
   const { c, isDark } = useDs();
   const progress = useSharedValue(0);
+  const pressScale = useSharedValue(1);
 
   useEffect(() => {
     progress.value = open
@@ -106,7 +108,7 @@ function SplitPill({
     transform: [
       { translateX: dir * 32 * (1 - progress.value) },
       { translateY: 10 * (1 - progress.value) },
-      { scale: 0.7 + 0.3 * progress.value },
+      { scale: (0.7 + 0.3 * progress.value) * pressScale.value },
     ],
   }));
 
@@ -116,67 +118,75 @@ function SplitPill({
   return (
     <Animated.View style={animatedStyle}>
       <Pressable
+        onPressIn={() => {
+          pressScale.value = withTiming(0.97, { duration: 100, easing: PRESS_EASING });
+        }}
+        onPressOut={() => {
+          pressScale.value = withTiming(1, { duration: 140, easing: PRESS_EASING });
+        }}
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
           onPress();
         }}
         accessibilityRole="button"
         accessibilityLabel={action.shortLabel}
-        style={({ pressed }) => ({
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 12,
-          minHeight: 50,
-          width: 144,
-          backgroundColor: c.canvas,
-          borderRadius: 16,
-          paddingVertical: 8,
-          paddingHorizontal: 12,
-          borderWidth: 1,
-          borderColor: isDark ? c.hairline : "#E2E8F0",
-          opacity: pressed ? 0.88 : 1,
-          transform: [{ scale: pressed ? 0.97 : 1 }],
-          ...Platform.select({
-            ios: {
-              shadowColor: "#0F172A",
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: isDark ? 0.45 : 0.12,
-              shadowRadius: 18,
-            },
-            android: { elevation: 6 },
-          }),
-        })}
       >
+        {/* Plain View holds card styles — NativeWind v4 strips function styles on Pressable */}
         <View
           style={{
-            width: 36,
-            height: 36,
-            borderRadius: 10,
-            backgroundColor: badgeBg,
+            flexDirection: "row",
             alignItems: "center",
-            justifyContent: "center",
+            gap: 12,
+            minHeight: 50,
+            width: 144,
+            backgroundColor: isDark ? c.surface : c.canvas,
+            borderRadius: 16,
+            paddingVertical: 8,
+            paddingHorizontal: 12,
+            borderWidth: 1,
+            borderColor: isDark ? c.hairline : "#E2E8F0",
+            ...Platform.select({
+              ios: {
+                shadowColor: "#0F172A",
+                shadowOffset: { width: 0, height: 8 },
+                shadowOpacity: isDark ? 0.45 : 0.12,
+                shadowRadius: 18,
+              },
+              android: { elevation: 6 },
+            }),
           }}
         >
-          {action.iconType === "feather" ? (
-            <Feather name={action.icon as any} size={18} color={badgeFg} />
-          ) : (
-            <MaterialCommunityIcons
-              name={action.icon as any}
-              size={18}
-              color={badgeFg}
-            />
-          )}
+          <View
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              backgroundColor: badgeBg,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            {action.iconType === "feather" ? (
+              <Feather name={action.icon as any} size={18} color={badgeFg} />
+            ) : (
+              <MaterialCommunityIcons
+                name={action.icon as any}
+                size={18}
+                color={badgeFg}
+              />
+            )}
+          </View>
+          <Text
+            style={{
+              fontSize: 15,
+              fontWeight: "600",
+              color: c.ink,
+              letterSpacing: -0.2,
+            }}
+          >
+            {action.shortLabel}
+          </Text>
         </View>
-        <Text
-          style={{
-            fontSize: 15,
-            fontWeight: "600",
-            color: c.ink,
-            letterSpacing: -0.2,
-          }}
-        >
-          {action.shortLabel}
-        </Text>
       </Pressable>
     </Animated.View>
   );
