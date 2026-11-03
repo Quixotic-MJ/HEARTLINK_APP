@@ -18,6 +18,8 @@ interface InputFieldProps<T extends FieldValues> extends TextInputProps {
   name: Path<T>;
   control: Control<T>;
   label?: string;
+  required?: boolean;
+  tag?: string;
   icon?: keyof typeof Feather.glyphMap;
   rightElement?: React.ReactNode;
   leftElement?: React.ReactNode;
@@ -31,6 +33,8 @@ export function InputField<T extends FieldValues>({
   name,
   control,
   label,
+  required,
+  tag,
   icon,
   rightElement,
   leftElement,
@@ -89,7 +93,29 @@ export function InputField<T extends FieldValues>({
     return (
       <View>
         {label && (
-          <Text style={{ fontSize: 14, fontWeight: "500", color: d.ink, marginBottom: 6 }}>{label}</Text>
+          <View className="flex-row items-center mb-1.5">
+            <Text style={{ fontSize: 14, fontWeight: "500", color: d.ink }}>
+              {label}
+              {required && <Text style={{ color: d.danger, fontWeight: "600" }}> *</Text>}
+            </Text>
+            {tag && (
+              <View
+                style={{
+                  marginLeft: 8,
+                  paddingHorizontal: 7,
+                  paddingVertical: 2,
+                  borderRadius: 5,
+                  backgroundColor: d.surfaceAlt,
+                  borderWidth: 1,
+                  borderColor: d.hairline,
+                }}
+              >
+                <Text style={{ fontSize: 11, fontWeight: "600", color: d.slate }}>
+                  {tag}
+                </Text>
+              </View>
+            )}
+          </View>
         )}
         <Animated.View
           style={[
@@ -155,9 +181,17 @@ export function InputField<T extends FieldValues>({
   return (
     <View className="mb-1">
       {label && (
-        <Text className="text-sm font-semibold text-text mb-1.5 ml-1">
-          {label}
-        </Text>
+        <View className="flex-row items-center mb-1.5 ml-1">
+          <Text className="text-sm font-semibold text-text">
+            {label}
+            {required && <Text style={{ color: theme.dangerMid }}> *</Text>}
+          </Text>
+          {tag && (
+            <View className="ml-2 px-2 py-0.5 rounded bg-surface-alt border border-border">
+              <Text className="text-xs font-semibold text-textMuted">{tag}</Text>
+            </View>
+          )}
+        </View>
       )}
 
       <Animated.View

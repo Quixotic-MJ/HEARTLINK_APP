@@ -351,6 +351,7 @@ export default function RegisterScreen() {
           control={control}
           name="email"
           label="Email address"
+          required
           placeholder="name@example.com"
           keyboardType="email-address"
           autoComplete="email"
@@ -374,6 +375,7 @@ export default function RegisterScreen() {
           control={control}
           name="phone"
           label="Mobile number"
+          required
           placeholder="912 345 6789"
           keyboardType="phone-pad"
           autoComplete="tel"
@@ -416,6 +418,7 @@ export default function RegisterScreen() {
             control={control}
             name="password"
             label="Password"
+            required
             placeholder="Create a strong password"
             secureTextEntry={!showPassword}
             autoCapitalize="none"

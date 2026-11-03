@@ -464,3 +464,24 @@ export function isPartDone(n: PartNumber, d: BaselineData): boolean {
 export function firstOpenQuestion(d: BaselineData): SetupQuestion | undefined {
   return visibleQuestions(d).find((q) => !isAnswered(q, d));
 }
+
+// ─── Moving between parts ────────────────────────────────────────────────────
+// Parts can be opened in any order from the set-up map, so "the next part" is the next
+// one that still has an unanswered question, not simply part + 1.
+
+/** Parts that still have at least one unanswered question, in order. */
+export function openParts(d: BaselineData): SetupPart[] {
+  return SETUP_PART_LIST.filter((p) => !isPartDone(p.n, d));
+}
+
+/** The unfinished part to go to after `after`: a later one first, then an earlier one. */
+export function nextOpenPart(d: BaselineData, after: PartNumber): SetupPart | undefined {
+  const open = openParts(d).filter((p) => p.n !== after);
+  return open.find((p) => p.n > after) ?? open[0];
+}
+
+/** The question to open for a part: its first unanswered one, or its first one. */
+export function firstQuestionToOpen(d: BaselineData, n: PartNumber): SetupQuestion {
+  const qs = visibleQuestions(d, n);
+  return qs.find((q) => !isAnswered(q, d)) ?? qs[0];
+}

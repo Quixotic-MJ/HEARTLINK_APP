@@ -74,3 +74,25 @@ export async function apiFetch(path: string, options: ApiOptions = {}): Promise<
   if (result.status === "expired") onSessionEnded?.();
   return response;
 }
+
+/**
+ * One readable sentence from an error response body. FastAPI sends a plain string for most
+ * errors, but a list of { loc, msg } objects for 422 validation errors; showing that list
+ * directly printed "[object Object],[object Object]".
+ */
+export function apiErrorMessage(body: unknown, fallback: string): string {
+  const detail = (body as { detail?: unknown } | null)?.detail;
+  if (typeof detail === "string" && detail.trim()) return detail;
+  if (Array.isArray(detail)) {
+    const fields = detail
+      .map((e) => (Array.isArray(e?.loc) ? e.loc[e.loc.length - 1] : null))
+      .filter((f): f is string => typeof f === "string")
+      .map((f) => f.replace(/_/g, " "));
+    const unique = Array.from(new Set(fields));
+    return unique.length ? `${fallback} Please check: ${unique.join(", ")}.` : fallback;
+  }
+  if (detail && typeof detail === "object" && typeof (detail as { message?: unknown }).message === "string") {
+    return (detail as { message: string }).message;
+  }
+  return fallback;
+}

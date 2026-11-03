@@ -31,9 +31,16 @@ import DsButton from "../../components/onboarding/DsButton";
 import { DsScreen } from "../../components/onboarding/QuestionLayout";
 import { useDs } from "../../components/onboarding/useDs";
 import { apiFetch } from "../../lib/api";
+import { formatPhoneIdentifier, isCompletePhone, isPhoneLike, normalizeIdentifier } from "../../lib/phone";
 
 const loginSchema = z.object({
-  identifier: z.string().min(1, "Please enter your email or phone number."),
+  identifier: z
+    .string()
+    .min(1, "Please enter your email or phone number.")
+    .refine(
+      (val) => !isPhoneLike(val) || isCompletePhone(val),
+      "Enter a complete mobile number (e.g., 0912 345 6789)."
+    ),
   password: z.string().min(1, "Please enter your password."),
 });
 
@@ -54,18 +61,7 @@ export default function AuthScreen() {
   const eyeScale = useSharedValue(1);
   const errorShake = useSharedValue(0);
 
-  const formatIdentifier = (text: string) => {
-    const trimmed = text.trim();
-    if (/^[\d-]+$/.test(trimmed)) {
-      const digits = trimmed.replace(/\D/g, "").slice(0, 10);
-      if (digits.length <= 3) return digits;
-      if (digits.length <= 6) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
-      return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
-    }
-    return text;
-  };
-
-  const { control, handleSubmit, setValue, formState: { isSubmitting } } = useForm<LoginFormData>({
+  const { control, handleSubmit, setValue, formState: { isSubmitting, errors } } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: { identifier: "", password: "" },
     mode: "onTouched",
@@ -116,15 +112,8 @@ export default function AuthScreen() {
   const onSubmit = async (data: LoginFormData) => {
     setGlobalError(null);
 
-    let finalIdentifier = data.identifier.trim().toLowerCase();
-    const digitsOnly = finalIdentifier.replace(/\D/g, "");
-    if (/^[\d-]+$/.test(finalIdentifier) && digitsOnly.length >= 7) {
-      let p = digitsOnly;
-      if (p.startsWith("0")) {
-        p = p.substring(1);
-      }
-      finalIdentifier = `+63${p}`;
-    }
+    // "0912…", "912…", "63912…" and "+63912…" all become "+63912…"; emails are lower-cased.
+    const finalIdentifier = normalizeIdentifier(data.identifier);
 
     try {
       const response = await apiFetch(`/api/auth/login`, {
@@ -180,24 +169,11 @@ export default function AuthScreen() {
       <NavigationBar style="auto" />
       <DsScreen
         header={
-          <View className="flex-row items-center justify-between px-6 pt-3 pb-2">
+          <View className="flex-row items-center px-6 pt-3 pb-2">
             <View className="flex-row items-center" style={{ gap: 10 }}>
               <HeartLogo size={26} />
               <Text style={{ fontSize: 18, fontWeight: "700", letterSpacing: -0.4, color: c.ink }}>HeartLink</Text>
             </View>
-            <TouchableOpacity
-              onPress={() => router.push("/(auth)/register")}
-              style={{
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 8,
-                backgroundColor: c.tint,
-              }}
-              accessibilityRole="button"
-              accessibilityLabel="Sign up"
-            >
-              <Text style={{ fontSize: 13, fontWeight: "600", color: c.primary }}>Sign up</Text>
-            </TouchableOpacity>
           </View>
         }
         footer={
@@ -231,7 +207,7 @@ export default function AuthScreen() {
             control={control}
             name="identifier"
             label="Email or phone number"
-            placeholder="name@example.com or 912 345 6789"
+            placeholder="email or number"
             keyboardType="email-address"
             autoComplete="username"
             textContentType="username"
@@ -242,7 +218,9 @@ export default function AuthScreen() {
             onSubmitEditing={() => passwordRef.current?.focus()}
             editable={!isSubmitting}
             onChangeText={(text) => {
-              setValue("identifier", formatIdentifier(text), { shouldValidate: true });
+              // Re-check only when an error is showing, so it clears as soon as the entry is fixed
+              // instead of flagging a half-typed number.
+              setValue("identifier", formatPhoneIdentifier(text), { shouldValidate: !!errors.identifier, shouldDirty: true });
             }}
           />
 

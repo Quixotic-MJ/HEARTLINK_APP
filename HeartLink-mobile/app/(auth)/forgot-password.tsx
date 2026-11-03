@@ -19,10 +19,17 @@ import DsButton from "../../components/onboarding/DsButton";
 import SetupHeader from "../../components/onboarding/SetupHeader";
 import { DsScreen, InfoNote } from "../../components/onboarding/QuestionLayout";
 import { apiFetch } from "../../lib/api";
+import { formatPhoneIdentifier, isCompletePhone, isPhoneLike, normalizeIdentifier } from "../../lib/phone";
 import { useDs } from "../../components/onboarding/useDs";
 
 const forgotPasswordSchema = z.object({
-  identifier: z.string().min(1, "Please enter your email or phone number."),
+  identifier: z
+    .string()
+    .min(1, "Please enter your email or phone number.")
+    .refine(
+      (val) => !isPhoneLike(val) || isCompletePhone(val),
+      "Enter a complete mobile number (e.g., 0912 345 6789)."
+    ),
 });
 
 type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
@@ -32,7 +39,7 @@ export default function ForgotPasswordScreen() {
   const { showToast } = useToast();
   const { c } = useDs();
 
-  const { control, handleSubmit } = useForm<ForgotPasswordFormValues>({
+  const { control, handleSubmit, setValue, formState: { errors } } = useForm<ForgotPasswordFormValues>({
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: {
       identifier: "",
@@ -65,15 +72,8 @@ export default function ForgotPasswordScreen() {
     setGeneralError(null);
     setIsSubmitting(true);
 
-    let finalIdentifier = data.identifier.trim();
-    if (/^\d+$/.test(finalIdentifier)) {
-      if (finalIdentifier.startsWith("0")) {
-        finalIdentifier = finalIdentifier.substring(1);
-      }
-      if (!finalIdentifier.startsWith("+63")) {
-        finalIdentifier = `+63${finalIdentifier}`;
-      }
-    }
+    // "0912…", "912…", "63912…" and "+63912…" all become "+63912…"; emails are lower-cased.
+    const finalIdentifier = normalizeIdentifier(data.identifier);
 
     try {
       const response = await apiFetch(`/api/auth/forgot-password`, {
@@ -179,7 +179,7 @@ export default function ForgotPasswordScreen() {
           control={control}
           name="identifier"
           label="Email or mobile number"
-          placeholder="name@example.com or 912 345 6789"
+          placeholder="name@example.com or 0912 345 6789"
           keyboardType="email-address"
           autoCapitalize="none"
           autoComplete="username"
@@ -188,6 +188,9 @@ export default function ForgotPasswordScreen() {
           returnKeyType="done"
           onSubmitEditing={handleSubmit(onSubmit)}
           editable={!isSubmitting}
+          onChangeText={(text) => {
+            setValue("identifier", formatPhoneIdentifier(text), { shouldValidate: !!errors.identifier, shouldDirty: true });
+          }}
         />
 
         <InfoNote text="If this account is registered, the reset instructions will arrive in a few minutes." />
