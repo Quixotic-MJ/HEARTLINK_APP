@@ -11,7 +11,7 @@ export function CareTools({
   onOpenClinics,
 }: {
   nearestClinic: { name: string; distance: string } | null;
-  onOpenSummary: () => void;
+  onOpenSummary?: () => void;
   onOpenClinics: () => void;
 }) {
   const { c, isDark } = useDs();
@@ -56,7 +56,8 @@ export function CareTools({
         </View>
       </View>
 
-      {/* ── Card 1: Visit Summary ── */}
+      {/* ── Card 1: Visit Summary (if provided) ── */}
+      {onOpenSummary ? (
       <AnimatedButton
         onPress={onOpenSummary}
         accessibilityRole="button"
@@ -145,6 +146,8 @@ export function CareTools({
           <Feather name="chevron-right" size={18} color={c.steel} />
         </View>
       </AnimatedButton>
+
+      ) : null}
 
       {/* ── Card 2: Nearby Clinics ── */}
       <AnimatedButton

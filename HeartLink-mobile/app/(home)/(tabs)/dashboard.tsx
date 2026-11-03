@@ -15,7 +15,7 @@ import {
 import Reanimated, { FadeInDown, LinearTransition, Easing as ReanimatedEasing } from "react-native-reanimated";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useColorScheme } from "nativewind";
-import { Feather } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import { useUser } from "../../../contexts/UserContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getToken } from "../../../lib/secureTokenStore";
@@ -904,6 +904,52 @@ export default function DashboardScreen() {
           </TourSpot>
         </Reanimated.View>
 
+        {/* ── Weekly report banner (Visit summary) ── */}
+        <Reanimated.View entering={FadeInDown.delay(140).duration(260)}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => {
+              Haptics.selectionAsync();
+              safeNavigate("/(home)/(tabs)/consultation-summary");
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Your weekly report is ready. See how your week went."
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 12,
+              backgroundColor: isDark ? c.surface : "#F8FAFC",
+              borderWidth: 1,
+              borderColor: c.hairline,
+              borderRadius: 16,
+              paddingVertical: 12,
+              paddingHorizontal: 14,
+            }}
+          >
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: isDark ? "#3A4A32" : "#4A5D3E",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Ionicons name="sparkles" size={18} color="#FFFFFF" />
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={{ fontSize: 15, fontWeight: "700", color: c.ink, letterSpacing: -0.2 }}>
+                Your weekly report is ready
+              </Text>
+              <Text style={{ fontSize: 13, color: c.slate }}>
+                See how your week went
+              </Text>
+            </View>
+            <Feather name="chevron-right" size={18} color={c.slate} />
+          </TouchableOpacity>
+        </Reanimated.View>
+
         {/* ── Today's check-ins: blood pressure (with medicine), meals, movement, sleep ── */}
         <Reanimated.View entering={FadeInDown.delay(180).duration(260)}>
           <TourSpot target="missions" tour={tour}>
@@ -1099,7 +1145,7 @@ export default function DashboardScreen() {
               <TourSpot target="care" tour={tour}>
                 <CareTools
                   nearestClinic={nearestClinic}
-                  onOpenSummary={() => safeNavigate("/(home)/(tabs)/consultation-summary")}
+
                   onOpenClinics={() => {
                     setMapVisible(true);
                     Haptics.selectionAsync();
