@@ -931,12 +931,12 @@ export default function DashboardScreen() {
                 width: 40,
                 height: 40,
                 borderRadius: 20,
-                backgroundColor: isDark ? "#3A4A32" : "#4A5D3E",
+                backgroundColor: c.primary,
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <Ionicons name="sparkles" size={18} color="#FFFFFF" />
+              <Ionicons name="sparkles" size={18} color={c.onPrimary} />
             </View>
             <View style={{ flex: 1, gap: 2 }}>
               <Text style={{ fontSize: 15, fontWeight: "700", color: c.ink, letterSpacing: -0.2 }}>
@@ -953,7 +953,10 @@ export default function DashboardScreen() {
         {/* ── Today's check-ins: blood pressure (with medicine), meals, movement, sleep ── */}
         <Reanimated.View entering={FadeInDown.delay(180).duration(260)}>
           <TourSpot target="missions" tour={tour}>
-            <CheckinGrid tiles={checkinTiles} onPress={handleMissionPress} />
+            <CheckinGrid
+              tiles={checkinTiles}
+              onPress={handleMissionPress}
+            />
           </TourSpot>
         </Reanimated.View>
 

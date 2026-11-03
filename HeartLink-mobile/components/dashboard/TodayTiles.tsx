@@ -3,7 +3,7 @@ import { Text, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import AnimatedButton from "../ui/AnimatedButton";
 import { useDs } from "../onboarding/useDs";
-import { light, dark, type DsColors } from "../../constants/theme";
+import { light, dark } from "../../constants/theme";
 import type { MissionId } from "./MissionList";
 import { playSound } from "../../services/sounds";
 
@@ -20,96 +20,135 @@ export type CheckinTile = {
   done: boolean;
   /** 0 to 1 for a progress bar (meals against the sodium limit, movement against the goal); none for the others */
   progress?: number;
+  streak?: number;
 };
 
-const ICON: Record<MissionId, keyof typeof Feather.glyphMap> = {
-  vitals: "heart",
-  meals: "coffee",
-  exercise: "activity",
-  sleep: "moon",
-};
-
-// Each check-in keeps its topic tint from the design system: warnings/vitals rose, food peach,
-// movement mint, sleep lavender.
-function tint(id: MissionId, c: DsColors): string {
-  return id === "vitals" ? c.rose : id === "meals" ? c.peach : id === "exercise" ? c.mint : c.lavender;
+// Bullet dot accent colors keeping HeartLink's design system topic hues:
+// Vitals (rose/red), Meals (amber/orange), Exercise (mint/green), Sleep (lavender/purple)
+function dotColor(id: MissionId, isDark: boolean): string {
+  switch (id) {
+    case "vitals":
+      return isDark ? "#FF6B6B" : "#E11D48";
+    case "meals":
+      return isDark ? "#F59E0B" : "#D97706";
+    case "exercise":
+      return isDark ? "#10B981" : "#059669";
+    case "sleep":
+      return isDark ? "#A78BFA" : "#7C3AED";
+    default:
+      return isDark ? "#94A3B8" : "#64748B";
+  }
 }
 
-/** Today's four check-ins as a 2 by 2 grid: each tile shows where it stands and opens its own log. */
-export function CheckinGrid({ tiles, onPress }: { tiles: CheckinTile[]; onPress: (id: MissionId) => void }) {
+/**
+ * Today's check-in habits rendered as a vertical list of rounded habit cards,
+ * matching the habit checklist layout with squircle checkmark / plus icon and bullet topic dot.
+ */
+export function CheckinGrid({
+  tiles,
+  onPress,
+}: {
+  tiles: CheckinTile[];
+  onPress: (id: MissionId) => void;
+}) {
   const { c, isDark } = useDs();
   const t = isDark ? dark : light;
   const done = tiles.filter((x) => x.done).length;
 
   return (
-    <View style={{ gap: 10 }}>
+    <View style={{ gap: 12 }}>
+      {/* ── Section Header: Today's mission ── */}
       <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" }}>
-        <Text accessibilityRole="header" style={{ fontSize: 18, fontWeight: "700", color: c.ink }}>
-          Today&apos;s check-ins
+        <Text accessibilityRole="header" style={{ fontSize: 18, fontWeight: "700", color: c.ink, letterSpacing: -0.3 }}>
+          Today&apos;s mission
         </Text>
         <Text style={{ fontSize: 14, fontWeight: "600", color: done === tiles.length ? t.successText : c.slate }}>
           {done === tiles.length ? "All done" : `${done} of ${tiles.length} done`}
         </Text>
       </View>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
-        {tiles.map((tile) => (
-          <AnimatedButton
-            key={tile.id}
-            onPress={() => {
-              playSound("press");
-              onPress(tile.id);
-            }}
-            accessibilityRole="button"
-            accessibilityLabel={`${tile.title}: ${tile.value}, ${tile.sub}. ${tile.done ? "Logged today." : "Tap to log."}`}
-            style={{
-              flexBasis: "47%",
-              flexGrow: 1,
-              borderWidth: 1,
-              borderColor: c.hairline,
-              borderRadius: 14,
-              backgroundColor: c.canvas,
-              padding: 14,
-              gap: 10,
-            }}
-          >
-            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-              <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: tint(tile.id, c), alignItems: "center", justifyContent: "center" }}>
-                <Feather name={ICON[tile.id]} size={17} color={c.charcoal} />
-              </View>
-              {tile.done ? (
-                <Feather name="check-circle" size={20} color={t.successText} accessibilityElementsHidden />
-              ) : (
-                <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: c.tint, alignItems: "center", justifyContent: "center" }}>
-                  <Feather name="plus" size={16} color={c.onTint} />
-                </View>
-              )}
-            </View>
-            <View style={{ gap: 2 }}>
-              <Text numberOfLines={1} style={{ fontSize: 14, color: c.slate }}>{tile.title}</Text>
-              <Text
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.8}
-                style={{ fontSize: 22, fontWeight: "700", color: tile.done ? c.ink : c.steel, fontVariant: ["tabular-nums"] }}
+
+      {/* ── Habit cards list ── */}
+      <View style={{ gap: 10 }}>
+        {tiles.map((tile) => {
+          const subtitle = tile.done
+            ? `${tile.value} · ${tile.sub}`
+            : tile.id === "vitals"
+            ? "Not logged today"
+            : tile.sub;
+
+          return (
+            <AnimatedButton
+              key={tile.id}
+              onPress={() => {
+                playSound("press");
+                onPress(tile.id);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={`${tile.title}: ${tile.done ? "Completed." : "Not completed."} ${tile.value !== "Not yet" ? tile.value : ""}. Tap to log.`}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                backgroundColor: isDark ? c.surface : "#FFFFFF",
+                borderWidth: 1,
+                borderColor: c.hairline,
+                borderRadius: 18,
+                paddingVertical: 14,
+                paddingHorizontal: 16,
+                gap: 14,
+              }}
+            >
+              {/* Left Squircle: Checkmark if done, Plus icon if not done */}
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 14,
+                  backgroundColor: tile.done
+                    ? c.primary
+                    : (isDark ? c.surfaceAlt : c.tint),
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
               >
-                {tile.value}
-              </Text>
-              <Text numberOfLines={1} style={{ fontSize: 13, color: c.slate }}>{tile.sub}</Text>
-            </View>
-            {tile.progress !== undefined ? (
-              <View style={{ height: 6, borderRadius: 3, backgroundColor: c.surfaceAlt, overflow: "hidden" }}>
-                <View
-                  style={{
-                    width: `${Math.round(Math.min(1, Math.max(0, tile.progress)) * 100)}%`,
-                    height: "100%",
-                    borderRadius: 3,
-                    backgroundColor: tile.id === "meals" && tile.progress > 1 ? t.dangerText : c.primary,
-                  }}
-                />
+                {tile.done ? (
+                  <Feather name="check" size={22} color={c.onPrimary} />
+                ) : (
+                  <Feather name="plus" size={20} color={c.primary} />
+                )}
               </View>
-            ) : null}
-          </AnimatedButton>
-        ))}
+
+              {/* Habit Details */}
+              <View style={{ flex: 1, gap: 3 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
+                  <View
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: 3,
+                      backgroundColor: dotColor(tile.id, isDark),
+                    }}
+                  />
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      fontSize: 16,
+                      fontWeight: "700",
+                      color: c.ink,
+                      letterSpacing: -0.2,
+                    }}
+                  >
+                    {tile.title}
+                  </Text>
+                </View>
+
+                {/* Subtitle */}
+                <Text numberOfLines={1} style={{ fontSize: 13, color: c.slate }}>
+                  {subtitle}
+                </Text>
+              </View>
+            </AnimatedButton>
+          );
+        })}
       </View>
     </View>
   );
