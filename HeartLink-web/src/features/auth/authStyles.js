@@ -2,7 +2,7 @@
 // Uses scoped --color-cal-* and --font-cal-* tokens from App.css.
 
 export const focusRing =
-  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cal-ink";
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cal-primary";
 
 export const inputBase =
   "w-full h-10 rounded-[8px] border bg-cal-canvas px-3.5 font-cal-sans text-[14px] text-cal-ink placeholder:text-cal-muted-soft outline-none transition-colors";
@@ -10,7 +10,7 @@ export const inputBase =
 export const inputState = (hasError) =>
   hasError
     ? "border-cal-error focus:border-cal-error focus:ring-1 focus:ring-cal-error"
-    : "border-cal-hairline focus:border-cal-ink focus:ring-1 focus:ring-cal-ink";
+    : "border-cal-hairline focus:border-cal-primary focus:ring-1 focus:ring-cal-primary";
 
 export const labelText =
   "block font-cal-sans text-[13px] font-medium leading-[1.4] text-cal-ink";

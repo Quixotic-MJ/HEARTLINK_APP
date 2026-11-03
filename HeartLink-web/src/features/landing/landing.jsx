@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Activity,
   ArrowRight,
@@ -34,16 +35,16 @@ const PRICING_DEFAULTS = {
 const YEARLY_SAVINGS_PHP = PRICING_DEFAULTS.monthlyPhp * 12 - PRICING_DEFAULTS.yearlyPhp; // ₱289
 
 const focusRing =
-  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cal-ink";
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cal-primary";
 
 const focusRingOnDark =
-  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cal-on-dark";
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cal-primary";
 
 const btnPrimary = `inline-flex h-10 items-center justify-center gap-2 rounded-[8px] bg-cal-primary px-5 font-cal-sans text-[14px] font-semibold leading-none text-cal-on-primary no-underline active:bg-cal-primary-active ${focusRing}`;
 
 const btnSecondary = `inline-flex h-10 items-center justify-center gap-2 rounded-[8px] border border-cal-hairline bg-cal-canvas px-5 font-cal-sans text-[14px] font-semibold leading-none text-cal-ink no-underline active:bg-cal-surface-soft ${focusRing}`;
 
-const btnOnDark = `inline-flex h-10 items-center justify-center gap-2 rounded-[8px] bg-cal-on-dark px-5 font-cal-sans text-[14px] font-semibold leading-none text-cal-ink no-underline active:bg-cal-surface-strong ${focusRingOnDark}`;
+const btnOnDark = `inline-flex h-10 items-center justify-center gap-2 rounded-[8px] bg-cal-primary px-5 font-cal-sans text-[14px] font-semibold leading-none text-cal-on-primary no-underline active:bg-cal-primary-active ${focusRingOnDark}`;
 
 const FEATURES = [
   {
@@ -100,7 +101,7 @@ const STEPS = [
           <span className="font-cal-mono text-[12px] text-cal-ink">37 / 37 answered</span>
         </div>
         <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-cal-hairline-soft">
-          <div className="h-full w-full rounded-full bg-cal-ink" />
+          <div className="h-full w-full rounded-full bg-cal-primary" />
         </div>
         <div className="mt-2.5 flex items-center justify-between text-[13px]">
           <span className="font-semibold text-cal-ink">Starting Heart score</span>
@@ -274,7 +275,7 @@ function HeroProductCard() {
         <div
           role="tablist"
           aria-label="Preview screen"
-          className="inline-flex rounded-full bg-cal-surface-soft p-1.5"
+          className="relative inline-flex items-center rounded-full bg-cal-surface-soft p-1"
         >
           {HERO_TABS.map((tab) => {
             const isActive = activeTab === tab.id;
@@ -285,13 +286,24 @@ function HeroProductCard() {
                 role="tab"
                 aria-selected={isActive}
                 onClick={() => setActiveTab(tab.id)}
-                className={`cursor-pointer rounded-[8px] border-0 px-3 py-1.5 font-cal-sans text-[13px] font-medium leading-[1.2] ${focusRing} ${
+                className={`relative z-10 cursor-pointer rounded-full border-0 px-3.5 py-1.5 font-cal-sans text-[13px] font-medium leading-[1.2] transition-colors duration-150 ${focusRing} ${
                   isActive
-                    ? "bg-cal-canvas text-cal-ink shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
-                    : "bg-transparent text-cal-muted"
+                    ? "text-cal-primary font-semibold"
+                    : "text-cal-muted hover:text-cal-ink"
                 }`}
               >
-                {tab.label}
+                {isActive && (
+                  <motion.div
+                    layoutId="heroTabPill"
+                    className="absolute inset-0 rounded-full bg-cal-canvas shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
+                    transition={{
+                      type: "spring",
+                      stiffness: 450,
+                      damping: 35,
+                    }}
+                  />
+                )}
+                <span className="relative z-10">{tab.label}</span>
               </button>
             );
           })}
@@ -328,7 +340,7 @@ function HeroProductCard() {
                   cy="54"
                   r="44"
                   fill="none"
-                  className="stroke-cal-ink"
+                  className="stroke-cal-primary"
                   strokeWidth="9"
                   strokeLinecap="round"
                   strokeDasharray="226 276"
@@ -400,9 +412,8 @@ function HeroProductCard() {
                 <div key={`${bar.day}-${idx}`} className="flex h-full flex-col items-center justify-end gap-1.5">
                   <span className="font-cal-mono text-[11px] text-cal-muted">{bar.score}</span>
                   <div
-                    className={`w-full rounded-[6px] ${bar.h} ${
-                      bar.today ? "bg-cal-ink" : "bg-cal-surface-strong"
-                    }`}
+                    className={`w-full rounded-[6px] ${bar.h} ${bar.today ? "bg-cal-primary" : "bg-cal-surface-strong"
+                      }`}
                   />
                   <span className="text-[11px] font-medium text-cal-muted">{bar.day}</span>
                 </div>
@@ -412,7 +423,7 @@ function HeroProductCard() {
 
           <div className="flex items-center justify-between rounded-[8px] border border-cal-hairline px-3.5 py-2.5 text-[13px]">
             <span className="text-cal-body">7 of 7 daily check-ins completed</span>
-            <span className="font-semibold text-cal-ink">Ready for doctor visit</span>
+            <span className="font-semibold text-cal-primary">Ready for doctor visit</span>
           </div>
         </div>
       )}
@@ -491,7 +502,7 @@ function PricingSection() {
       <div className="mx-auto flex max-w-[1200px] flex-col gap-12">
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div className="max-w-[620px]">
-            <span className="inline-block rounded-full bg-cal-canvas px-3 py-1 text-[13px] font-medium text-cal-ink shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+            <span className="inline-block rounded-full bg-cal-primary/10 px-3 py-1 text-[13px] font-semibold text-cal-primary">
               Simple, transparent plans
             </span>
             <h2 className="mt-4 mb-0 font-cal-display text-[28px] font-semibold leading-[1.1] tracking-[-1px] text-cal-ink sm:text-[38px] lg:text-[48px] lg:tracking-[-1.5px]">
@@ -503,39 +514,73 @@ function PricingSection() {
             </p>
           </div>
 
-          {/* Cal.com signature `nav-pill-group` billing switcher */}
+          {/* Animated sliding billing switcher */}
           <div
             role="group"
             aria-label="Billing period"
-            className="inline-flex rounded-full border border-cal-hairline bg-cal-canvas p-1.5"
+            className="relative inline-flex items-center rounded-full border border-cal-hairline bg-cal-canvas p-1 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
           >
             <button
               type="button"
               aria-pressed={isYearly}
               onClick={() => setPeriod("yearly")}
-              className={`cursor-pointer rounded-full border-0 px-3.5 py-2 font-cal-sans text-[14px] font-medium leading-none ${focusRing} ${
-                isYearly ? "bg-cal-primary text-cal-on-primary" : "bg-transparent text-cal-muted"
+              className={`relative z-10 cursor-pointer rounded-full border-0 px-4 py-2 font-cal-sans text-[14px] font-semibold leading-none transition-colors duration-200 ${focusRing} ${
+                isYearly ? "text-white" : "text-cal-muted hover:text-cal-ink"
               }`}
             >
-              Yearly · Save ₱{YEARLY_SAVINGS_PHP}
+              {isYearly && (
+                <motion.div
+                  layoutId="billingPill"
+                  className="absolute inset-0 rounded-full bg-cal-primary shadow-[0_2px_8px_rgba(59,130,246,0.35)]"
+                  transition={{
+                    type: "spring",
+                    stiffness: 460,
+                    damping: 34,
+                  }}
+                />
+              )}
+              <span className="relative z-10 inline-flex items-center gap-1.5">
+                Yearly
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[11px] font-semibold transition-colors duration-150 ${
+                    isYearly
+                      ? "bg-white/20 text-white"
+                      : "bg-cal-primary/10 text-cal-primary"
+                  }`}
+                >
+                  Save <span className="font-sans">₱</span>{YEARLY_SAVINGS_PHP}
+                </span>
+              </span>
             </button>
+
             <button
               type="button"
               aria-pressed={!isYearly}
               onClick={() => setPeriod("monthly")}
-              className={`cursor-pointer rounded-full border-0 px-3.5 py-2 font-cal-sans text-[14px] font-medium leading-none ${focusRing} ${
-                !isYearly ? "bg-cal-primary text-cal-on-primary" : "bg-transparent text-cal-muted"
+              className={`relative z-10 cursor-pointer rounded-full border-0 px-4 py-2 font-cal-sans text-[14px] font-semibold leading-none transition-colors duration-200 ${focusRing} ${
+                !isYearly ? "text-white" : "text-cal-muted hover:text-cal-ink"
               }`}
             >
-              Monthly
+              {!isYearly && (
+                <motion.div
+                  layoutId="billingPill"
+                  className="absolute inset-0 rounded-full bg-cal-primary shadow-[0_2px_8px_rgba(59,130,246,0.35)]"
+                  transition={{
+                    type: "spring",
+                    stiffness: 460,
+                    damping: 34,
+                  }}
+                />
+              )}
+              <span className="relative z-10">Monthly</span>
             </button>
           </div>
         </div>
 
-        {/* 3-tier grid: Standard light, Featured dark (#101010), Standard light */}
+        {/* 3-tier grid: Standard light, Featured dark, Standard light */}
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {/* Tier 1: Patient Free (`pricing-tier-card`) */}
-          <article className="flex flex-col justify-between rounded-[12px] border border-cal-hairline bg-cal-canvas p-8 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+          <article className="flex flex-col justify-between rounded-[16px] border border-cal-hairline bg-cal-canvas p-8 shadow-[0_1px_3px_rgba(0,0,0,0.05)] transition-shadow duration-200 hover:shadow-[0_6px_20px_rgba(0,0,0,0.06)]">
             <div>
               <div className="flex items-center justify-between gap-2">
                 <h3 className="m-0 font-cal-sans text-[22px] font-semibold leading-[1.3] tracking-[-0.3px] text-cal-ink">
@@ -547,8 +592,8 @@ function PricingSection() {
               </div>
 
               <div className="mt-5 flex items-baseline gap-2">
-                <span className="font-cal-display text-[36px] font-semibold leading-[1.15] tracking-[-1px] text-cal-ink">
-                  ₱0
+                <span className="font-cal-display text-[38px] font-semibold leading-[1.1] tracking-[-1px] text-cal-ink">
+                  <span className="font-sans text-[30px] font-semibold mr-0.5">₱</span>0
                 </span>
                 <span className="text-[14px] text-cal-muted">forever</span>
               </div>
@@ -557,7 +602,7 @@ function PricingSection() {
                 Full daily heart tracking, personalized routines, and safety alerts for every adult.
               </p>
 
-              <ul className="mt-6 mb-8 flex list-none flex-col gap-3 border-t border-cal-hairline-soft pt-6 p-0 text-[15px] text-cal-body">
+              <ul className="mt-6 mb-8 flex list-none flex-col gap-3.5 border-t border-cal-hairline-soft pt-6 p-0 text-[14.5px] text-cal-body">
                 {[
                   "Daily BP, pulse, meal, move & sleep check-ins",
                   "Personal Heart Stability Score (HSS) + Today's note",
@@ -566,9 +611,11 @@ function PricingSection() {
                   "Expert-approved recipes & exercises",
                   "7-day Trends, offline sync & Cebu clinic map",
                 ].map((item) => (
-                  <li key={item} className="flex items-start gap-2.5">
-                    <Check size={17} className="mt-0.5 shrink-0 text-cal-ink" aria-hidden="true" />
-                    <span>{item}</span>
+                  <li key={item} className="flex items-start gap-3">
+                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-cal-primary/10 text-cal-primary">
+                      <Check size={12} strokeWidth={2.8} aria-hidden="true" />
+                    </span>
+                    <span className="leading-[1.45] text-cal-body">{item}</span>
                   </li>
                 ))}
               </ul>
@@ -579,34 +626,45 @@ function PricingSection() {
             </DownloadCTA>
           </article>
 
-          {/* Tier 2: HeartLink Premium (`pricing-tier-card-featured`: #101010 dark card) */}
-          <article className="flex flex-col justify-between rounded-[12px] bg-cal-surface-dark p-8 text-cal-on-dark">
+          {/* Tier 2: HeartLink Premium (`pricing-tier-card-featured`: dark card with brand primary accent) */}
+          <article className="relative flex flex-col justify-between rounded-[16px] border-2 border-cal-primary bg-gradient-to-b from-[#141b24] to-[#0c1017] p-8 text-cal-on-dark shadow-[0_12px_36px_rgba(0,0,0,0.35),0_0_24px_rgba(59,130,246,0.18)] transition-all duration-200 hover:shadow-[0_16px_44px_rgba(0,0,0,0.4),0_0_32px_rgba(59,130,246,0.25)]">
             <div>
-              <div className="flex items-center justify-between gap-2">
-                <h3 className="m-0 font-cal-sans text-[22px] font-semibold leading-[1.3] tracking-[-0.3px] text-cal-on-dark">
+              <div className="flex items-start justify-between gap-3">
+                <h3 className="m-0 font-cal-sans text-[22px] font-semibold leading-[1.25] tracking-[-0.3px] text-cal-on-dark">
                   HeartLink Premium
                 </h3>
-                <span className="rounded-full bg-cal-surface-dark-elevated px-3 py-1 text-[13px] font-medium text-cal-on-dark">
+                <span className="shrink-0 whitespace-nowrap rounded-full bg-cal-primary px-3.5 py-1 text-[12px] font-semibold text-white shadow-xs">
                   {PRICING_DEFAULTS.trialDays}-day free trial
                 </span>
               </div>
 
-              <div className="mt-5 flex items-baseline gap-2">
-                <span className="font-cal-display text-[36px] font-semibold leading-[1.15] tracking-[-1px] text-cal-on-dark">
-                  ₱{isYearly ? PRICING_DEFAULTS.yearlyPhp : PRICING_DEFAULTS.monthlyPhp}
-                </span>
-                <span className="text-[14px] text-cal-on-dark-soft">
-                  {isYearly ? "/ year (one-time)" : "/ month (one-time)"}
-                </span>
-              </div>
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={period}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.18, ease: "easeOut" }}
+                >
+                  <div className="mt-5 flex items-baseline gap-2">
+                    <span className="font-cal-display text-[38px] font-semibold leading-[1.1] tracking-[-1px] text-cal-on-dark">
+                      <span className="font-sans text-[30px] font-semibold mr-0.5">₱</span>
+                      {isYearly ? PRICING_DEFAULTS.yearlyPhp : PRICING_DEFAULTS.monthlyPhp}
+                    </span>
+                    <span className="text-[14px] text-cal-on-dark-soft">
+                      {isYearly ? "/ year (one-time)" : "/ month (one-time)"}
+                    </span>
+                  </div>
 
-              <p className="mt-3 mb-0 text-[14px] leading-[1.5] text-cal-on-dark-soft">
-                {isYearly
-                  ? `Works out to ~₱${Math.round(PRICING_DEFAULTS.yearlyPhp / 12)}/mo—save ₱${YEARLY_SAVINGS_PHP} vs paying monthly.`
-                  : "Pay once for 30 days via GCash or card—never auto-renews."}
-              </p>
+                  <p className="mt-3 mb-0 text-[14px] leading-[1.5] text-cal-on-dark-soft">
+                    {isYearly
+                      ? `Works out to ~₱${Math.round(PRICING_DEFAULTS.yearlyPhp / 12)}/mo—save ₱${YEARLY_SAVINGS_PHP} vs paying monthly.`
+                      : "Pay once for 30 days via GCash or card—never auto-renews."}
+                  </p>
+                </motion.div>
+              </AnimatePresence>
 
-              <ul className="mt-6 mb-8 flex list-none flex-col gap-3 border-t border-cal-surface-dark-elevated pt-6 p-0 text-[15px] text-cal-on-dark">
+              <ul className="mt-6 mb-8 flex list-none flex-col gap-3.5 border-t border-cal-surface-dark-elevated pt-6 p-0 text-[14.5px] text-cal-on-dark">
                 {[
                   "Everything in Core Wellness",
                   "1- and 3-month doctor-ready PDF health reports",
@@ -615,26 +673,31 @@ function PricingSection() {
                   "Family sharing invite codes with emergency alerts",
                   "One-time GCash or card pass—no surprise renewals",
                 ].map((item) => (
-                  <li key={item} className="flex items-start gap-2.5">
-                    <Check size={17} className="mt-0.5 shrink-0 text-cal-success" aria-hidden="true" />
-                    <span>{item}</span>
+                  <li key={item} className="flex items-start gap-3">
+                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-cal-primary/20 text-cal-primary">
+                      <Check size={12} strokeWidth={2.8} aria-hidden="true" />
+                    </span>
+                    <span className="leading-[1.45] text-cal-on-dark">{item}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
             <div className="flex flex-col gap-2.5">
-              <DownloadCTA variant="on-dark" className="w-full">
+              <DownloadCTA
+                variant="primary"
+                className="w-full shadow-[0_4px_14px_rgba(59,130,246,0.35)] hover:shadow-[0_6px_20px_rgba(59,130,246,0.5)] active:scale-[0.98] transition-all"
+              >
                 Start {PRICING_DEFAULTS.trialDays}-day trial in app
               </DownloadCTA>
               <span className="text-center text-[12px] text-cal-on-dark-soft">
-                Academic test mode: ₱0 real money charged during capstone demo
+                Academic test mode: <span className="font-sans">₱</span>0 real money charged during capstone demo
               </span>
             </div>
           </article>
 
           {/* Tier 3: Family Follower (`pricing-tier-card`) */}
-          <article className="flex flex-col justify-between rounded-[12px] border border-cal-hairline bg-cal-canvas p-8 shadow-[0_1px_2px_rgba(0,0,0,0.05)] md:col-span-2 lg:col-span-1">
+          <article className="flex flex-col justify-between rounded-[16px] border border-cal-hairline bg-cal-canvas p-8 shadow-[0_1px_3px_rgba(0,0,0,0.05)] transition-shadow duration-200 hover:shadow-[0_6px_20px_rgba(0,0,0,0.06)] md:col-span-2 lg:col-span-1">
             <div>
               <div className="flex items-center justify-between gap-2">
                 <h3 className="m-0 font-cal-sans text-[22px] font-semibold leading-[1.3] tracking-[-0.3px] text-cal-ink">
@@ -646,8 +709,8 @@ function PricingSection() {
               </div>
 
               <div className="mt-5 flex items-baseline gap-2">
-                <span className="font-cal-display text-[36px] font-semibold leading-[1.15] tracking-[-1px] text-cal-ink">
-                  ₱0
+                <span className="font-cal-display text-[38px] font-semibold leading-[1.1] tracking-[-1px] text-cal-ink">
+                  <span className="font-sans text-[30px] font-semibold mr-0.5">₱</span>0
                 </span>
                 <span className="text-[14px] text-cal-muted">for invited family</span>
               </div>
@@ -656,7 +719,7 @@ function PricingSection() {
                 For spouses, adult children, or caregivers following a loved one on Premium.
               </p>
 
-              <ul className="mt-6 mb-8 flex list-none flex-col gap-3 border-t border-cal-hairline-soft pt-6 p-0 text-[15px] text-cal-body">
+              <ul className="mt-6 mb-8 flex list-none flex-col gap-3.5 border-t border-cal-hairline-soft pt-6 p-0 text-[14.5px] text-cal-body">
                 {[
                   "Dedicated Family home screen—no daily logging required",
                   "Follow a loved one's latest Heart score & BP check-ins",
@@ -664,13 +727,11 @@ function PricingSection() {
                   "Patient stays in control and can revoke access anytime",
                   "Switch to tracking your own heart health in one tap",
                 ].map((item) => (
-                  <li key={item} className="flex items-start gap-2.5">
-                    <HeartHandshake
-                      size={17}
-                      className="mt-0.5 shrink-0 text-cal-ink"
-                      aria-hidden="true"
-                    />
-                    <span>{item}</span>
+                  <li key={item} className="flex items-start gap-3">
+                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-cal-primary/10 text-cal-primary">
+                      <HeartHandshake size={12} strokeWidth={2.5} aria-hidden="true" />
+                    </span>
+                    <span className="leading-[1.45] text-cal-body">{item}</span>
                   </li>
                 ))}
               </ul>
@@ -693,7 +754,7 @@ function FaqSection() {
     <section id="faq" className="scroll-mt-20 bg-cal-canvas px-6 py-16 md:py-24">
       <div className="mx-auto grid max-w-[1200px] grid-cols-1 items-start gap-12 lg:grid-cols-12">
         <div className="flex flex-col gap-3.5 lg:col-span-5">
-          <span className="inline-block w-fit rounded-full bg-cal-surface-card px-3 py-1 text-[13px] font-medium text-cal-ink">
+          <span className="inline-block w-fit rounded-full bg-cal-primary/10 px-3 py-1 text-[13px] font-semibold text-cal-primary">
             FAQ
           </span>
           <h2 className="m-0 font-cal-display text-[28px] font-semibold leading-[1.1] tracking-[-1px] text-cal-ink sm:text-[38px] lg:text-[48px] lg:tracking-[-1.5px]">
@@ -720,9 +781,8 @@ function FaqSection() {
                   <ChevronDown
                     size={18}
                     aria-hidden="true"
-                    className={`shrink-0 text-cal-muted transition-transform duration-150 ${
-                      isOpen ? "rotate-180" : ""
-                    }`}
+                    className={`shrink-0 text-cal-muted transition-transform duration-150 ${isOpen ? "rotate-180" : ""
+                      }`}
                   />
                 </button>
                 {isOpen && (
@@ -745,7 +805,7 @@ export default function Landing() {
   const navItemClass = `rounded-[6px] px-3 py-1.5 font-cal-sans text-[14px] font-medium leading-[1.4] text-cal-body no-underline ${focusRing}`;
 
   return (
-    <div className="min-h-screen scroll-smooth bg-cal-canvas font-cal-sans text-cal-ink selection:bg-cal-ink selection:text-cal-on-primary">
+    <div className="min-h-screen scroll-smooth bg-cal-canvas font-cal-sans text-cal-ink selection:bg-cal-primary selection:text-cal-on-primary">
       {/* ─── Top Navigation (`top-nav`: 64px white bar) ─── */}
       <header className="sticky top-0 z-40 border-b border-cal-hairline-soft bg-cal-canvas">
         <nav
@@ -845,8 +905,8 @@ export default function Landing() {
         <section id="top" className="scroll-mt-20 bg-cal-canvas px-6 py-16 md:py-24">
           <div className="mx-auto grid max-w-[1200px] grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-10">
             <div className="flex flex-col items-start gap-6 lg:col-span-7">
-              <span className="inline-flex items-center gap-2 rounded-full bg-cal-surface-card px-3 py-1 text-[13px] font-medium leading-[1.4] text-cal-ink">
-                <span className="h-2 w-2 rounded-full bg-cal-success" />
+              <span className="inline-flex items-center gap-2 rounded-full bg-cal-primary/10 px-3 py-1 text-[13px] font-semibold leading-[1.4] text-cal-primary">
+                <span className="h-2 w-2 rounded-full bg-cal-primary" />
                 Heart wellness companion · Cebu City
               </span>
 
@@ -885,7 +945,7 @@ export default function Landing() {
         >
           <div className="mx-auto flex max-w-[1200px] flex-col gap-12">
             <div className="max-w-[640px]">
-              <span className="inline-block rounded-full bg-cal-surface-card px-3 py-1 text-[13px] font-medium text-cal-ink">
+              <span className="inline-block rounded-full bg-cal-primary/10 px-3 py-1 text-[13px] font-semibold text-cal-primary">
                 How it works
               </span>
               <h2 className="mt-4 mb-0 font-cal-display text-[28px] font-semibold leading-[1.1] tracking-[-1px] text-cal-ink sm:text-[38px] lg:text-[48px] lg:tracking-[-1.5px]">
@@ -903,7 +963,7 @@ export default function Landing() {
                   key={item.title}
                   className="flex flex-col gap-4 rounded-[12px] bg-cal-surface-card p-8"
                 >
-                  <span className="inline-flex h-8 w-fit items-center rounded-[6px] bg-cal-canvas px-2.5 font-cal-mono text-[13px] font-medium text-cal-ink">
+                  <span className="inline-flex h-8 w-fit items-center rounded-[6px] bg-cal-primary/10 px-2.5 font-cal-mono text-[13px] font-semibold text-cal-primary">
                     Step {item.step}
                   </span>
                   <h3 className="m-0 font-cal-sans text-[18px] font-semibold leading-[1.4] text-cal-ink">
@@ -924,7 +984,7 @@ export default function Landing() {
         >
           <div className="mx-auto flex max-w-[1200px] flex-col gap-12">
             <div className="max-w-[640px]">
-              <span className="inline-block rounded-full bg-cal-canvas px-3 py-1 text-[13px] font-medium text-cal-ink shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+              <span className="inline-block rounded-full bg-cal-primary/10 px-3 py-1 text-[13px] font-semibold text-cal-primary">
                 Capabilities
               </span>
               <h2 className="mt-4 mb-0 font-cal-display text-[28px] font-semibold leading-[1.1] tracking-[-1px] text-cal-ink sm:text-[38px] lg:text-[48px] lg:tracking-[-1.5px]">
@@ -942,7 +1002,7 @@ export default function Landing() {
                   key={title}
                   className="flex flex-col gap-3 rounded-[12px] border border-cal-hairline bg-cal-canvas p-6"
                 >
-                  <span className="flex h-10 w-10 items-center justify-center rounded-[8px] bg-cal-surface-card text-cal-ink">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-[8px] bg-cal-primary/10 text-cal-primary">
                     <Icon size={20} aria-hidden="true" />
                   </span>
                   <h3 className="m-0 font-cal-sans text-[16px] font-semibold leading-[1.4] text-cal-ink">
@@ -959,7 +1019,7 @@ export default function Landing() {
         <section id="score" className="scroll-mt-20 bg-cal-canvas px-6 py-16 md:py-24">
           <div className="mx-auto grid max-w-[1200px] grid-cols-1 items-start gap-12 lg:grid-cols-12">
             <div className="flex flex-col gap-4 lg:col-span-5">
-              <span className="inline-flex w-fit items-center gap-2 rounded-full bg-cal-surface-card px-3 py-1 text-[13px] font-medium text-cal-ink">
+              <span className="inline-flex w-fit items-center gap-2 rounded-full bg-cal-primary/10 px-3 py-1 text-[13px] font-semibold text-cal-primary">
                 <ShieldCheck size={15} aria-hidden="true" />
                 NHANES 2017–2018 · 5,569 adults
               </span>
@@ -1039,7 +1099,7 @@ export default function Landing() {
             {/* Cal.com `cta-band-light`: #f5f5f5, 12px radius, 48px padding */}
             <div className="grid grid-cols-1 items-center gap-10 rounded-[12px] bg-cal-surface-card p-8 md:p-12 lg:grid-cols-12">
               <div className="flex flex-col items-start gap-4 lg:col-span-6">
-                <span className="rounded-full bg-cal-canvas px-3 py-1 text-[13px] font-medium text-cal-ink">
+                <span className="rounded-full bg-cal-primary/10 px-3 py-1 text-[13px] font-semibold text-cal-primary">
                   Android APK · Free download
                 </span>
                 <h2 className="m-0 font-cal-display text-[26px] font-semibold leading-[1.2] tracking-[-0.5px] text-cal-ink sm:text-[32px]">
@@ -1071,7 +1131,7 @@ export default function Landing() {
                     key={text}
                     className="flex items-center gap-3.5 rounded-[10px] border border-cal-hairline bg-cal-canvas px-4 py-3.5"
                   >
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[6px] bg-cal-surface-card font-cal-mono text-[13px] font-medium text-cal-ink">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[6px] bg-cal-primary/10 font-cal-mono text-[13px] font-semibold text-cal-primary">
                       {i + 1}
                     </span>
                     <span className="text-[14px] leading-[1.5] text-cal-body">{text}</span>
