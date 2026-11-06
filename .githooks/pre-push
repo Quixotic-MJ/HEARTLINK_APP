@@ -1,0 +1,32 @@
+#!/bin/sh
+set -eu
+
+branch=$(git symbolic-ref --quiet --short HEAD) || {
+  printf '%s\n' 'Blocked: select an authorized feature branch before pushing.' >&2
+  exit 1
+}
+case "$branch" in
+  main|master)
+    printf '%s\n' 'Blocked: pushing while on main/master is not permitted.' >&2
+    exit 1
+    ;;
+esac
+
+while read -r local_ref local_oid remote_ref remote_oid; do
+  if [ -z "$local_ref" ] || [ -z "$local_oid" ] || [ -z "$remote_ref" ] || [ -z "$remote_oid" ]; then
+    printf '%s\n' 'Blocked: incomplete push reference information.' >&2
+    exit 1
+  fi
+  case "$local_ref" in
+    refs/heads/main|refs/heads/master)
+      printf '%s\n' 'Blocked: pushing main/master as a source is not permitted.' >&2
+      exit 1
+      ;;
+  esac
+  case "$remote_ref" in
+    refs/heads/main|refs/heads/master)
+      printf '%s\n' 'Blocked: updating or deleting remote main/master is not permitted.' >&2
+      exit 1
+      ;;
+  esac
+done

@@ -1,0 +1,13 @@
+#!/bin/sh
+set -eu
+
+branch=$(git symbolic-ref --quiet --short HEAD) || {
+  printf '%s\n' 'Blocked: create or select an authorized feature branch before committing.' >&2
+  exit 1
+}
+case "$branch" in
+  main|master)
+    printf '%s\n' 'Blocked: commit on web_content, not main/master.' >&2
+    exit 1
+    ;;
+esac
