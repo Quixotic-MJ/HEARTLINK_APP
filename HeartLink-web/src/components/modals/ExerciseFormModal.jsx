@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   Activity,
   AlertCircle,
@@ -29,10 +29,10 @@ import {
   SetupEditor,
   TextListEditor,
 } from "./ExercisePartsEditor";
-import CardiologistGuidance from "../care/CardiologistGuidance";
 import { useDialogFocus } from "../../hooks/useDialogFocus";
 import {
   NEW_PART,
+  countedPromptSeconds,
   formatSeconds,
   partFromStep,
   partSeconds,
@@ -64,12 +64,20 @@ const partSchema = z
       .min(0)
       .max(59, "Use 0 to 59 seconds")
       .default(30),
-    reps: z.coerce.number().min(1).default(10),
-    seconds_per_rep: z.coerce.number().min(1).default(3),
+    reps: z.coerce.number().int().min(0).max(100).default(0),
+    seconds_per_rep: z.coerce.number().int().min(0).max(60).default(0),
     both_sides: z.boolean().default(false),
     // Breathing exercises only: what this step asks for. Empty = the app reads it from the words.
     breath: z.enum(["", "in", "hold", "out"]).optional(),
     image: z.string().optional(),
+  })
+  .refine((p) => p.mode !== "count" || p.reps > 0, {
+    message: "Set the reviewed count",
+    path: ["reps"],
+  })
+  .refine((p) => p.mode !== "count" || p.seconds_per_rep > 0, {
+    message: "Set the reviewed pace",
+    path: ["seconds_per_rep"],
   })
   .refine((p) => p.mode === "count" || p.minutes * 60 + p.seconds > 0, {
     message: "Give it a time",
@@ -80,14 +88,12 @@ const exerciseSchema = z.object({
   name: z.string().min(1, "Name is required."),
   description: z.string().min(1, "Description is required."),
   duration: z.coerce.number().min(1, "Must be at least 1 minute."),
-  hssTarget: z.string().default("Stable (80-100)"),
   mediaUrl: z.string().optional(),
   videoUrl: z.string().optional(),
   type: z.string().default("General"),
   intensity: z.string().default("Low"),
   goal: z.string().optional(),
   status: z.string().default("draft"),
-  expertValidated: z.boolean().default(false),
   calories: z.coerce.number().min(0).default(0),
   requirements: z.array(z.string()).default([]),
   position: z.string().optional(),
@@ -103,7 +109,7 @@ const exerciseSchema = z.object({
         instruction: z.string(),
         details: z.string().optional(),
         image: z.string().optional(),
-      })
+      }),
     )
     .optional(),
   warmupParts: z.array(partSchema).optional(),
@@ -128,14 +134,12 @@ const EMPTY_FORM = {
   name: "",
   description: "",
   duration: 10,
-  hssTarget: "Stable (80-100)",
   mediaUrl: "",
   videoUrl: "",
   type: "General",
   intensity: "Low",
   goal: "",
   status: "draft",
-  expertValidated: false,
   calories: 0,
   requirements: [],
   position: "",
@@ -169,7 +173,6 @@ const TAB_FIELDS = {
     "type",
     "intensity",
     "goal",
-    "hssTarget",
     "calories",
   ],
   steps: [
@@ -207,14 +210,31 @@ const fromValues = (list) =>
 
 const ExerciseFormModal = ({
   isOpen,
-  onClose,
+  onClose: finishClose,
   exercise,
+  canAuthor = false,
   isPT = false,
   onSave,
+  onReview,
   onDelete,
 }) => {
   const dialogRef = useRef(null);
+  const reduceMotion = useReducedMotion();
+  const errorRef = useRef(null);
+  const inFlight = useRef(false);
+  const pendingUploads = useRef(0);
+  const [partUploads, setPartUploads] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const onClose = () => {
+    if (!inFlight.current && !isUploading && pendingUploads.current === 0)
+      finishClose();
+  };
   useDialogFocus(isOpen, dialogRef, onClose);
+  useEffect(() => {
+    if (saveError) errorRef.current?.focus();
+  }, [saveError]);
 
   const {
     register,
@@ -243,21 +263,40 @@ const ExerciseFormModal = ({
 
   const mediaUrl = v.mediaUrl || "";
   const videoUrl = v.videoUrl || "";
-  const status = v.status || "draft";
+  const status = exercise?.status || v.status || "draft";
   const isBreathing = v.type === "Breathing";
-  const editorProps = { control, register, setValue, errors };
+  const editorProps = {
+    control,
+    register,
+    setValue,
+    errors,
+    onUploadChange: (delta) => {
+      pendingUploads.current += delta;
+      setPartUploads(pendingUploads.current);
+    },
+  };
 
   // Total time, worked out from the parts: warm-up once, the main part each round with rest between, cool-down once.
   const sumParts = (name) =>
-    (v[name] || []).reduce((t, p) => t + partSeconds(p), 0);
+    (v[name] || [])
+      .filter((p) => p.instruction?.trim())
+      .reduce((t, p) => t + partSeconds(p), 0);
   const rounds = Math.max(1, Number(v.rounds) || 1);
   const totalSeconds =
     sumParts("warmupParts") +
     sumParts("mainParts") * rounds +
-    (Number(v.restSeconds) || 0) * (rounds - 1) +
+    (sumParts("mainParts") ? (Number(v.restSeconds) || 0) * (rounds - 1) : 0) +
     sumParts("cooldownParts");
+  const promptTime = (name) =>
+    (v[name] || [])
+      .filter((part) => part.instruction?.trim())
+      .reduce((sum, part) => sum + countedPromptSeconds(part), 0);
+  const guidedSeconds =
+    totalSeconds +
+    promptTime("warmupParts") +
+    promptTime("mainParts") * rounds +
+    promptTime("cooldownParts");
 
-  const [isUploading, setIsUploading] = useState(false);
   // HL-048: upload errors per field ("media" or "guide-<index>"); a rejected file is never saved some other way
   const [uploadErrors, setUploadErrors] = useState({});
   const [picturesNote, setPicturesNote] = useState("");
@@ -297,6 +336,7 @@ const ExerciseFormModal = ({
     setReviewNote("");
     setUploadErrors({});
     setPicturesNote("");
+    setSaveError("");
   }
 
   // Gives the extra pictures to the steps in order: set-up, warm-up, main, cool-down. Only when
@@ -313,19 +353,19 @@ const ExerciseFormModal = ({
     ].flatMap((name) =>
       (v[name] || [])
         .map((row, i) => ({ name, i, row }))
-        .filter(({ row }) => (row.instruction || "").trim())
+        .filter(({ row }) => (row.instruction || "").trim()),
     );
     if (urls.length === 0 || urls.length !== slots.length) {
       setPicturesNote(
-        `There are ${urls.length} pictures and ${slots.length} steps. Add or remove pictures or steps so they match, then try again.`
+        `There are ${urls.length} pictures and ${slots.length} steps. Add or remove pictures or steps so they match, then try again.`,
       );
       return;
     }
     slots.forEach(({ name, i }, n) =>
-      setValue(`${name}.${i}.image`, urls[n], { shouldDirty: true })
+      setValue(`${name}.${i}.image`, urls[n], { shouldDirty: true }),
     );
     setPicturesNote(
-      `Done: ${urls.length} pictures put on the steps in order. Check them in the Steps tab, then save.`
+      `Done: ${urls.length} pictures put on the steps in order. Check them in the Steps tab, then save.`,
     );
   };
 
@@ -344,7 +384,7 @@ const ExerciseFormModal = ({
         .filter(
           (s) =>
             (typeof s === "object" && s?.section ? s.section : "main") ===
-            section
+            section,
         )
         .map(partFromStep);
     const main = inSection("main");
@@ -391,58 +431,82 @@ const ExerciseFormModal = ({
     });
   }, [exercise, isOpen, reset]);
 
-  const onSubmit = (data) => {
-    if (onSave) {
-      const breathing = data.type === "Breathing";
-      const keep = (parts) =>
-        (parts || []).filter((p) => (p.instruction || "").trim());
-      const steps = breathing
-        ? keep(data.mainParts).map((p) => stepFromPart(p, "main", true))
-        : [
-            ...keep(data.warmupParts).map((p) =>
-              stepFromPart(p, "warmup", false)
-            ),
-            ...keep(data.mainParts).map((p) => stepFromPart(p, "main", false)),
-            ...keep(data.cooldownParts).map((p) =>
-              stepFromPart(p, "cooldown", false)
-            ),
-          ];
-      // The three part lists are only for the form; they're saved together as `steps`.
-      const rest = { ...data };
-      delete rest.warmupParts;
-      delete rest.mainParts;
-      delete rest.cooldownParts;
+  const onSubmit = async (data) => {
+    if (
+      !canAuthor ||
+      inFlight.current ||
+      isUploading ||
+      pendingUploads.current > 0
+    )
+      return;
+    inFlight.current = true;
+    setSaving(true);
+    setSaveError("");
+    try {
+      if (onSave) {
+        const breathing = data.type === "Breathing";
+        const keep = (parts) =>
+          (parts || []).filter((p) => (p.instruction || "").trim());
+        const steps = breathing
+          ? keep(data.mainParts).map((p) => stepFromPart(p, "main", true))
+          : [
+              ...keep(data.warmupParts).map((p) =>
+                stepFromPart(p, "warmup", false),
+              ),
+              ...keep(data.mainParts).map((p) =>
+                stepFromPart(p, "main", false),
+              ),
+              ...keep(data.cooldownParts).map((p) =>
+                stepFromPart(p, "cooldown", false),
+              ),
+            ];
+        // The three part lists are only for the form; they're saved together as `steps`.
+        const rest = { ...data };
+        delete rest.warmupParts;
+        delete rest.mainParts;
+        delete rest.cooldownParts;
+        delete rest.expertValidated;
+        delete rest.hssTarget;
 
-      onSave({
-        ...rest,
-        calories: parseInt(data.calories || 0, 10),
-        requirements: (data.requirements || [])
-          .map((r) => r.trim())
-          .filter(Boolean),
-        skipIf: fromValues(data.skipIf),
-        stopIf: fromValues(data.stopIf),
-        setupSteps: (data.setupSteps || [])
-          .filter((s) => (s.instruction || "").trim())
-          .map((s) => ({
-            instruction: s.instruction.trim(),
-            details: (s.details || "").trim(),
-            ...(s.image ? { image: s.image.trim() } : {}),
-          })),
-        steps,
-        // Breathing repeats its breaths until its time is up; everything else adds up its parts.
-        rounds: breathing ? 1 : data.rounds,
-        restSeconds: breathing ? 0 : data.restSeconds,
-        duration: breathing
-          ? data.duration
-          : Math.max(1, Math.ceil(totalSeconds / 60)),
-        position: data.position || null,
-        setting: data.setting || null,
-        guideImages: (data.guideImages || [])
-          .map((g) => (g.url || "").trim())
-          .filter(Boolean),
-      });
+        await onSave({
+          ...rest,
+          calories: parseInt(data.calories || 0, 10),
+          requirements: (data.requirements || [])
+            .map((r) => r.trim())
+            .filter(Boolean),
+          skipIf: fromValues(data.skipIf),
+          stopIf: fromValues(data.stopIf),
+          setupSteps: (data.setupSteps || [])
+            .filter((s) => (s.instruction || "").trim())
+            .map((s) => ({
+              instruction: s.instruction.trim(),
+              details: (s.details || "").trim(),
+              ...(s.image ? { image: s.image.trim() } : {}),
+            })),
+          steps,
+          // Breathing repeats its breaths until its time is up; everything else adds up its parts.
+          rounds: breathing ? 1 : data.rounds,
+          restSeconds: breathing ? 0 : data.restSeconds,
+          duration: breathing
+            ? data.duration
+            : Math.max(1, Math.ceil(totalSeconds / 60)),
+          position: data.position || null,
+          setting: data.setting || null,
+          guideImages: (data.guideImages || [])
+            .map((g) => (g.url || "").trim())
+            .filter(Boolean),
+        });
+      }
+      finishClose();
+    } catch (error) {
+      setSaveError(
+        error?.data?.detail ||
+          "Could not save this routine. Your draft is still here.",
+      );
+    } finally {
+      inFlight.current = false;
+      setSaving(false);
     }
-    onClose();
   };
 
   // A save that fails checks opens the edit view on the first tab with a problem.
@@ -450,8 +514,8 @@ const ExerciseFormModal = ({
     setMode("edit");
     setTab(
       TABS.map(([id]) => id).find((id) =>
-        TAB_FIELDS[id].some((f) => errs[f])
-      ) || "basics"
+        TAB_FIELDS[id].some((f) => errs[f]),
+      ) || "basics",
     );
   };
 
@@ -462,19 +526,47 @@ const ExerciseFormModal = ({
     }, onInvalid)();
   };
 
-  // HL-026: a PT approves (or removes approval) straight from the review view. HL-038: or sends it
-  // back with a note, which stays unapproved so patients don't see it.
-  const saveApproval = (value) => {
-    setValue("expertValidated", value);
-    handleSubmit(
-      (data) =>
-        onSubmit({
-          ...data,
-          expertValidated: value,
-          reviewNote: value ? "" : reviewNote.trim(),
-        }),
-      onInvalid
-    )();
+  const saveApproval = async (value) => {
+    if (!isPT || !exercise || inFlight.current) return;
+    if (!value && !reviewNote.trim()) {
+      setSaveError("Add a review note before requesting changes.");
+      return;
+    }
+    inFlight.current = true;
+    setSaving(true);
+    setSaveError("");
+    try {
+      await onReview({
+        decision: value ? "approve" : "changes_requested",
+        expectedUpdatedAt: exercise.updatedAt,
+        note: value ? null : reviewNote.trim(),
+      });
+      finishClose();
+    } catch (error) {
+      setSaveError(
+        error?.data?.detail ||
+          "Could not save the review. Your feedback is still here.",
+      );
+    } finally {
+      inFlight.current = false;
+      setSaving(false);
+    }
+  };
+
+  const publish = async () => {
+    if (!canAuthor || !exercise || inFlight.current) return;
+    inFlight.current = true;
+    setSaving(true);
+    setSaveError("");
+    try {
+      await onSave({ status: "published" });
+      finishClose();
+    } catch (error) {
+      setSaveError(error?.data?.detail || "Could not publish this revision.");
+    } finally {
+      inFlight.current = false;
+      setSaving(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -492,7 +584,7 @@ const ExerciseFormModal = ({
   const keepParts = (parts) =>
     (parts || []).filter((p) => (p.instruction || "").trim());
   const setup = (v.setupSteps || []).filter((s) =>
-    (s.instruction || "").trim()
+    (s.instruction || "").trim(),
   );
   const reviewSections = [
     ...(setup.length
@@ -536,7 +628,7 @@ const ExerciseFormModal = ({
   const misplaced =
     !isBreathing &&
     keepParts(v.mainParts).some((p) =>
-      /warm.?up|cool.?down/i.test(p.instruction)
+      /warm.?up|cool.?down/i.test(p.instruction),
     );
 
   const notSet = (text = "Not set") => (
@@ -545,12 +637,12 @@ const ExerciseFormModal = ({
   const skipList = fromValues(v.skipIf);
   const stopList = fromValues(v.stopIf);
   const pictureCount = (v.guideImages || []).filter((g) =>
-    (g.url || "").trim()
+    (g.url || "").trim(),
   ).length;
   const tabsWithErrors = new Set(
     TABS.map(([id]) => id).filter((id) =>
-      TAB_FIELDS[id].some((f) => errors[f])
-    )
+      TAB_FIELDS[id].some((f) => errors[f]),
+    ),
   );
 
   const statusChip =
@@ -619,11 +711,6 @@ const ExerciseFormModal = ({
                     {status}
                   </span>
                   <span
-                    className={`${PILL} border-cal-hairline bg-cal-surface-soft text-cal-ink`}
-                  >
-                    For {v.hssTarget}
-                  </span>
-                  <span
                     className={`${PILL} ${
                       approved
                         ? "border-cal-success/25 bg-cal-success/10 text-cal-ink"
@@ -648,7 +735,7 @@ const ExerciseFormModal = ({
             </div>
 
             <div className="flex items-center gap-2">
-              {exercise && (onDelete || status !== "archived") && (
+              {canAuthor && exercise && (onDelete || status !== "archived") && (
                 <div className="relative">
                   <button
                     type="button"
@@ -714,6 +801,7 @@ const ExerciseFormModal = ({
               <button
                 type="button"
                 onClick={onClose}
+                disabled={saving}
                 aria-label="Close"
                 className={iconBtn}
               >
@@ -722,7 +810,7 @@ const ExerciseFormModal = ({
             </div>
           </div>
 
-          {mode === "edit" && (
+          {canAuthor && mode === "edit" && (
             <div
               role="tablist"
               aria-label="Exercise sections"
@@ -736,6 +824,7 @@ const ExerciseFormModal = ({
                     type="button"
                     role="tab"
                     aria-selected={active}
+                    disabled={saving}
                     onClick={() => setTab(id)}
                     className={`group relative flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors cursor-pointer select-none ${
                       active
@@ -747,11 +836,11 @@ const ExerciseFormModal = ({
                       <motion.div
                         layoutId="exercise-form-active-tab"
                         className="absolute inset-0 rounded-full bg-cal-primary shadow-[0_1px_3px_rgba(59,130,246,0.35)]"
-                        transition={{
-                          type: "spring",
-                          stiffness: 420,
-                          damping: 34,
-                        }}
+                        transition={
+                          reduceMotion
+                            ? { duration: 0 }
+                            : { type: "spring", stiffness: 420, damping: 34 }
+                        }
                       />
                     )}
                     <span className="relative z-10">{label}</span>
@@ -771,8 +860,19 @@ const ExerciseFormModal = ({
           )}
         </div>
 
+        {saveError && (
+          <div
+            ref={errorRef}
+            tabIndex={-1}
+            role="alert"
+            className="mx-6 mt-4 rounded-[10px] border border-cal-error/30 bg-cal-error/5 p-3 text-[14px] text-cal-ink"
+          >
+            {saveError}
+          </div>
+        )}
+
         {/* Body */}
-        {mode === "review" ? (
+        {mode === "review" || !canAuthor ? (
           <div className="flex-1 space-y-6 overflow-y-auto px-6 py-5">
             {sentBack && (
               <div className="flex items-start gap-2.5 rounded-[10px] border border-cal-warning/35 bg-cal-warning/15 px-4 py-3 text-[13.5px] text-cal-ink">
@@ -794,7 +894,7 @@ const ExerciseFormModal = ({
             <div className="grid grid-cols-2 gap-px overflow-hidden rounded-[10px] border border-cal-hairline bg-cal-hairline sm:grid-cols-4">
               {[
                 [
-                  "Total time",
+                  "Movement & rest",
                   isBreathing
                     ? `${v.duration} min`
                     : totalSeconds > 0
@@ -825,6 +925,14 @@ const ExerciseFormModal = ({
               ))}
             </div>
 
+            {!isBreathing && guidedSeconds > totalSeconds && (
+              <p className="text-[14px] leading-relaxed text-cal-muted">
+                Guided playback: {formatSeconds(guidedSeconds)}, including
+                get-ready prompts before counted movements. The movement dose
+                and rest times below stay unchanged.
+              </p>
+            )}
+
             {(v.description || v.goal) && (
               <div className="rounded-[10px] border border-cal-hairline bg-cal-surface-soft px-4 py-3.5 text-[14px] leading-[1.6] text-cal-ink">
                 <p>{v.description}</p>
@@ -839,7 +947,7 @@ const ExerciseFormModal = ({
             {/* Guided Routine Sections */}
             <section>
               <h4 className="mb-2.5 text-[14px] font-semibold text-cal-ink">
-                What patients will do
+                Movement timeline
               </h4>
               {misplaced && (
                 <div className="mb-3 flex items-start gap-2.5 rounded-[10px] border border-cal-warning/35 bg-cal-warning/15 px-4 py-3 text-[13.5px] text-cal-ink">
@@ -874,8 +982,8 @@ const ExerciseFormModal = ({
                             ? formatSeconds(
                                 section.parts.reduce(
                                   (t, p) => t + partSeconds(p),
-                                  0
-                                )
+                                  0,
+                                ),
                               )
                             : "None"}
                       </span>
@@ -906,7 +1014,9 @@ const ExerciseFormModal = ({
                           </div>
                           {!section.untimed && (
                             <span className="shrink-0 font-cal-mono text-[12px] font-medium tabular-nums text-cal-muted">
-                              {formatSeconds(partSeconds(p))}
+                              {partSeconds(p) > 0
+                                ? formatSeconds(partSeconds(p))
+                                : "Timing not set"}
                               {p.both_sides ? " · both sides" : ""}
                             </span>
                           )}
@@ -1010,29 +1120,28 @@ const ExerciseFormModal = ({
               </section>
             </div>
 
-            {exercise && <CardiologistGuidance />}
-
-            {isPT && exercise && (
+            {isPT && exercise && status !== "archived" && (
               <section className="space-y-3 rounded-[10px] border border-cal-hairline bg-cal-surface-soft p-4">
                 <label
                   htmlFor="exercise-review-note"
                   className="block text-[13.5px] font-semibold text-cal-ink"
                 >
-                  Send it back for changes{" "}
-                  <span className="font-normal text-cal-muted">(optional)</span>
+                  Review feedback (required when requesting changes)
                 </label>
                 <textarea
                   id="exercise-review-note"
                   rows="2"
                   value={reviewNote}
+                  disabled={saving}
+                  maxLength={500}
                   onChange={(e) => setReviewNote(e.target.value)}
-                  placeholder="e.g. Too intense for patients in the Critical band; add a seated version."
+                  placeholder="Describe the instruction, timing or equipment that needs clarification."
                   className="w-full resize-none rounded-[8px] border border-cal-hairline bg-cal-canvas px-3.5 py-2.5 text-[14px] text-cal-ink placeholder:text-cal-muted-soft focus:border-cal-ink focus:outline-none transition-colors"
                 />
                 <div className="flex justify-end">
                   <button
                     type="button"
-                    disabled={!reviewNote.trim()}
+                    disabled={saving || !reviewNote.trim()}
                     onClick={() => saveApproval(false)}
                     className={secondaryBtn}
                   >
@@ -1044,693 +1153,667 @@ const ExerciseFormModal = ({
           </div>
         ) : (
           <form
-            onSubmit={handleSubmit(onSubmit, onInvalid)}
+            onSubmit={(event) => handleSubmit(onSubmit, onInvalid)(event)}
             className="flex-1 overflow-y-auto px-6 py-5"
           >
-            {tab === "basics" && (
-              <div className="space-y-4">
-                <InputField
-                  id="name"
-                  label="Routine name"
-                  placeholder="e.g. 15-Minute Chair Yoga"
-                  error={errors.name}
-                  {...register("name")}
-                />
-
-                <div>
-                  <label
-                    htmlFor="exercise-description"
-                    className="mb-1.5 block text-[13px] font-medium text-cal-ink"
-                  >
-                    Description
-                  </label>
-                  <textarea
-                    id="exercise-description"
-                    rows="2"
-                    {...register("description")}
-                    className={`w-full resize-none rounded-[8px] border bg-cal-canvas px-3.5 py-2.5 text-[14px] text-cal-ink placeholder:text-cal-muted-soft outline-none transition-colors ${
-                      errors.description
-                        ? "border-cal-error focus:border-cal-error"
-                        : "border-cal-hairline focus:border-cal-ink"
-                    }`}
-                    placeholder="Short text summary of physical benefits…"
+            <fieldset
+              disabled={saving || isUploading || partUploads > 0}
+              className="min-w-0"
+            >
+              {tab === "basics" && (
+                <div className="space-y-4">
+                  <InputField
+                    id="name"
+                    label="Routine name"
+                    placeholder="e.g. 15-Minute Chair Yoga"
+                    error={errors.name}
+                    {...register("name")}
                   />
-                  {errors.description && (
-                    <p className="mt-1 text-[12px] font-medium text-cal-error">
-                      {errors.description.message}
-                    </p>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div>
-                    <label
-                      htmlFor="exercise-type"
-                      className="mb-1.5 block text-[13px] font-medium text-cal-ink"
-                    >
-                      Exercise type
-                    </label>
-                    <div className="relative">
-                      <select
-                        id="exercise-type"
-                        {...register("type")}
-                        className={selectFieldClass()}
-                      >
-                        <option value="Breathing">Breathing</option>
-                        <option value="Light Cardio">Light Cardio</option>
-                        <option value="Stationary">Stationary</option>
-                        <option value="General">General</option>
-                      </select>
-                      <ChevronDown
-                        size={15}
-                        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cal-muted"
-                      />
-                    </div>
-                  </div>
 
                   <div>
                     <label
-                      htmlFor="exercise-intensity"
+                      htmlFor="exercise-description"
                       className="mb-1.5 block text-[13px] font-medium text-cal-ink"
                     >
-                      Intensity
+                      Description
                     </label>
-                    <div className="relative">
-                      <select
-                        id="exercise-intensity"
-                        {...register("intensity")}
-                        className={selectFieldClass()}
-                      >
-                        <option value="None">None</option>
-                        <option value="Low">Low</option>
-                        <option value="Moderate">Moderate</option>
-                        <option value="High">High</option>
-                      </select>
-                      <ChevronDown
-                        size={15}
-                        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cal-muted"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  {isBreathing ? (
-                    <div>
-                      <InputField
-                        id="duration"
-                        type="number"
-                        label="Duration (minutes)"
-                        left={<Clock size={14} />}
-                        error={errors.duration}
-                        className="font-cal-mono tabular-nums"
-                        {...register("duration")}
-                        min="1"
-                      />
-                      <p className="mt-1 text-[12px] text-cal-muted">
-                        The breaths repeat until this time is up.
+                    <textarea
+                      id="exercise-description"
+                      rows="2"
+                      {...register("description")}
+                      className={`w-full resize-none rounded-[8px] border bg-cal-canvas px-3.5 py-2.5 text-[14px] text-cal-ink placeholder:text-cal-muted-soft outline-none transition-colors ${
+                        errors.description
+                          ? "border-cal-error focus:border-cal-error"
+                          : "border-cal-hairline focus:border-cal-ink"
+                      }`}
+                      placeholder="Short text summary of physical benefits…"
+                    />
+                    {errors.description && (
+                      <p className="mt-1 text-[12px] font-medium text-cal-error">
+                        {errors.description.message}
                       </p>
-                    </div>
-                  ) : (
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                      <label className="mb-1.5 block text-[13px] font-medium text-cal-ink">
-                        Total time
+                      <label
+                        htmlFor="exercise-type"
+                        className="mb-1.5 block text-[13px] font-medium text-cal-ink"
+                      >
+                        Exercise type
                       </label>
-                      <div className="flex h-10 items-center gap-2 rounded-[8px] border border-cal-hairline bg-cal-surface-soft px-3.5 font-cal-mono text-[13.5px] font-semibold tabular-nums text-cal-ink">
-                        <Clock size={14} className="text-cal-muted" />
-                        <span>
-                          {totalSeconds > 0
-                            ? formatSeconds(totalSeconds)
-                            : "Add steps in Steps tab"}
-                        </span>
+                      <div className="relative">
+                        <select
+                          id="exercise-type"
+                          {...register("type")}
+                          className={selectFieldClass()}
+                        >
+                          <option value="Breathing">Breathing</option>
+                          <option value="Light Cardio">Light Cardio</option>
+                          <option value="Stationary">Stationary</option>
+                          <option value="General">General</option>
+                        </select>
+                        <ChevronDown
+                          size={15}
+                          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cal-muted"
+                        />
                       </div>
-                      <p className="mt-1 text-[12px] text-cal-muted">
-                        Worked out automatically from the Steps tab.
-                      </p>
                     </div>
-                  )}
+
+                    <div>
+                      <label
+                        htmlFor="exercise-intensity"
+                        className="mb-1.5 block text-[13px] font-medium text-cal-ink"
+                      >
+                        Intensity
+                      </label>
+                      <div className="relative">
+                        <select
+                          id="exercise-intensity"
+                          {...register("intensity")}
+                          className={selectFieldClass()}
+                        >
+                          <option value="None">None</option>
+                          <option value="Low">Low</option>
+                          <option value="Moderate">Moderate</option>
+                          <option value="High">High</option>
+                        </select>
+                        <ChevronDown
+                          size={15}
+                          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cal-muted"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    {isBreathing ? (
+                      <div>
+                        <InputField
+                          id="duration"
+                          type="number"
+                          label="Duration (minutes)"
+                          left={<Clock size={14} />}
+                          error={errors.duration}
+                          className="font-cal-mono tabular-nums"
+                          {...register("duration")}
+                          min="1"
+                        />
+                        <p className="mt-1 text-[12px] text-cal-muted">
+                          The breaths repeat until this time is up.
+                        </p>
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="mb-1.5 block text-[13px] font-medium text-cal-ink">
+                          Total time
+                        </label>
+                        <div className="flex h-10 items-center gap-2 rounded-[8px] border border-cal-hairline bg-cal-surface-soft px-3.5 font-cal-mono text-[13.5px] font-semibold tabular-nums text-cal-ink">
+                          <Clock size={14} className="text-cal-muted" />
+                          <span>
+                            {totalSeconds > 0
+                              ? formatSeconds(totalSeconds)
+                              : "Add steps in Steps tab"}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-[12px] text-cal-muted">
+                          Worked out automatically from the Steps tab.
+                        </p>
+                      </div>
+                    )}
+
+                    <InputField
+                      id="goal"
+                      label="Routine goal"
+                      placeholder="e.g. Builds gentle aerobic endurance…"
+                      {...register("goal")}
+                    />
+                  </div>
 
                   <InputField
-                    id="goal"
-                    label="Routine goal"
-                    placeholder="e.g. Builds gentle aerobic endurance…"
-                    {...register("goal")}
+                    id="calories"
+                    type="number"
+                    label="Estimated calories burned"
+                    left={<Activity size={14} />}
+                    error={errors.calories}
+                    className="font-cal-mono tabular-nums"
+                    {...register("calories")}
+                    min="0"
+                    placeholder="e.g. 150"
                   />
                 </div>
+              )}
 
-                <InputField
-                  id="calories"
-                  type="number"
-                  label="Estimated calories burned"
-                  left={<Activity size={14} />}
-                  error={errors.calories}
-                  className="font-cal-mono tabular-nums"
-                  {...register("calories")}
-                  min="0"
-                  placeholder="e.g. 150"
-                />
+              {tab === "steps" && (
+                <div className="space-y-6">
+                  <SetupEditor {...editorProps} />
 
-                <div className="rounded-[10px] border border-cal-hairline bg-cal-surface-soft p-4">
-                  <label
-                    htmlFor="exercise-hss"
-                    className="block text-[13px] font-semibold text-cal-ink"
-                  >
-                    HSS suitability
-                  </label>
-                  <p className="mt-0.5 mb-2.5 text-[12px] text-cal-muted">
-                    Determines which patients receive this exercise routine
-                    based on clinical HSS status.
-                  </p>
-                  <div className="relative">
-                    <select
-                      id="exercise-hss"
-                      {...register("hssTarget")}
-                      className={selectFieldClass(!!errors.hssTarget)}
-                    >
-                      <option value="Stable (80-100)">Stable (80-100)</option>
-                      <option value="Moderate (60-79)">Moderate (60-79)</option>
-                      <option value="Elevated Risk (50-59)">
-                        Elevated Risk (50-59)
-                      </option>
-                      <option value="Critical (<50)">Critical (&lt;50)</option>
-                    </select>
-                    <ChevronDown
-                      size={15}
-                      className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cal-muted"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {tab === "steps" && (
-              <div className="space-y-6">
-                <SetupEditor {...editorProps} />
-
-                {isBreathing ? (
-                  <PartsEditor
-                    {...editorProps}
-                    name="mainParts"
-                    isBreathing
-                    title="Breaths"
-                    hint="One round of breathing, e.g. breathe in 4 s, hold 4 s, breathe out 6 s. It repeats until the time above is up. Pick what each step asks for so the app's circle can follow it."
-                    addLabel="Add a breath"
-                  />
-                ) : (
-                  <>
+                  {isBreathing ? (
                     <PartsEditor
                       {...editorProps}
-                      name="warmupParts"
-                      title="Warm-up"
-                      hint="Done once at the start, e.g. 2 minutes of slow walking."
-                      addLabel="Add a warm-up part"
+                      name="mainParts"
+                      isBreathing
+                      title="Breaths"
+                      hint="One round of breathing, e.g. breathe in 4 s, hold 4 s, breathe out 6 s. It repeats until the time above is up. Pick what each step asks for so the app's circle can follow it."
+                      addLabel="Add a breath"
                     />
-
-                    <div className="space-y-3">
+                  ) : (
+                    <>
                       <PartsEditor
                         {...editorProps}
-                        name="mainParts"
-                        title="Main part"
-                        hint={
-                          'Use "A count" for moves done a number of times, e.g. lift each leg 10 times. Tick "Both sides" to repeat it on the other side.'
-                        }
-                        addLabel="Add a main part"
+                        name="warmupParts"
+                        title="Warm-up"
+                        hint="Done once at the start, e.g. 2 minutes of slow walking."
+                        addLabel="Add a warm-up part"
                       />
-                      <div className="grid grid-cols-1 gap-4 rounded-[10px] border border-cal-hairline bg-cal-surface-soft p-4 sm:grid-cols-2">
-                        <div>
-                          <InputField
-                            id="rounds"
-                            type="number"
-                            label="Rounds"
-                            min="1"
-                            max="20"
-                            className="font-cal-mono tabular-nums"
-                            error={errors.rounds}
-                            {...register("rounds")}
-                          />
-                          <p className="mt-1 text-[12px] text-cal-muted">
-                            How many times the main part repeats.
-                          </p>
-                        </div>
-                        <InputField
-                          id="restSeconds"
-                          type="number"
-                          label="Rest between rounds (sec)"
-                          min="0"
-                          max="600"
-                          className="font-cal-mono tabular-nums"
-                          error={errors.restSeconds}
-                          {...register("restSeconds")}
-                        />
-                      </div>
-                    </div>
 
-                    <PartsEditor
-                      {...editorProps}
-                      name="cooldownParts"
-                      title="Cool-down"
-                      hint="Done once at the end, e.g. 3 minutes of slower walking."
-                      addLabel="Add a cool-down part"
-                    />
-
-                    <div className="flex items-center justify-between rounded-[10px] border border-cal-hairline bg-cal-surface-soft px-4 py-3 text-[13px]">
-                      <span className="font-medium text-cal-muted">
-                        Calculated workout duration
-                      </span>
-                      <span className="font-cal-mono font-semibold tabular-nums text-cal-ink">
-                        {totalSeconds > 0
-                          ? formatSeconds(totalSeconds)
-                          : "Add parts to see total"}
-                        {rounds > 1 ? ` · main × ${rounds}` : ""}
-                      </span>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-
-            {tab === "safety" && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div>
-                    <label
-                      htmlFor="exercise-position"
-                      className="mb-1.5 block text-[13px] font-medium text-cal-ink"
-                    >
-                      Position
-                    </label>
-                    <div className="relative">
-                      <select
-                        id="exercise-position"
-                        {...register("position")}
-                        className={selectFieldClass()}
-                      >
-                        <option value="">Not set</option>
-                        <option value="Seated">Seated</option>
-                        <option value="Standing">Standing</option>
-                        <option value="Lying down">Lying down</option>
-                        <option value="Walking">Walking</option>
-                      </select>
-                      <ChevronDown
-                        size={15}
-                        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cal-muted"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="exercise-setting"
-                      className="mb-1.5 block text-[13px] font-medium text-cal-ink"
-                    >
-                      Where
-                    </label>
-                    <div className="relative">
-                      <select
-                        id="exercise-setting"
-                        {...register("setting")}
-                        className={selectFieldClass()}
-                      >
-                        <option value="">Not set</option>
-                        <option value="Indoors">Indoors</option>
-                        <option value="Outdoors">Outdoors</option>
-                        <option value="Either">Indoors or outdoors</option>
-                      </select>
-                      <ChevronDown
-                        size={15}
-                        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cal-muted"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <InputField
-                    id="effortHint"
-                    label="How it should feel"
-                    placeholder="e.g. You can still talk while doing it"
-                    {...register("effortHint")}
-                  />
-                  <InputField
-                    id="frequency"
-                    label="How often"
-                    placeholder="e.g. 3 times a week"
-                    {...register("frequency")}
-                  />
-                </div>
-
-                <InputField
-                  id="easierVersion"
-                  label="Easier version"
-                  placeholder="e.g. Do it sitting down, with smaller movements"
-                  {...register("easierVersion")}
-                />
-
-                <div>
-                  <label className="mb-1.5 block text-[13px] font-medium text-cal-ink">
-                    Skip this exercise if…
-                  </label>
-                  <TextListEditor
-                    control={control}
-                    register={register}
-                    name="skipIf"
-                    placeholder="e.g. You have knee pain today"
-                    addLabel="Add a reason to skip"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-0.5 block text-[13px] font-medium text-cal-ink">
-                    Stop right away if…
-                  </label>
-                  <p className="mb-2 text-[12px] text-cal-muted">
-                    Shown with the app&apos;s standard warning signs (chest
-                    pain, dizziness, short of breath).
-                  </p>
-                  <TextListEditor
-                    control={control}
-                    register={register}
-                    name="stopIf"
-                    placeholder="e.g. Your knee starts to hurt"
-                    addLabel="Add a reason to stop"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-0.5 block text-[13px] font-medium text-cal-ink">
-                    Before you start
-                  </label>
-                  <p className="mb-2 text-[12px] text-cal-muted">
-                    Patients tick these off on the app&apos;s &ldquo;Before you
-                    start&rdquo; check.
-                  </p>
-                  <EquipmentPicker
-                    value={v.requirements || []}
-                    onChange={(list) =>
-                      setValue("requirements", list, { shouldDirty: true })
-                    }
-                  />
-                </div>
-              </div>
-            )}
-
-            {tab === "media" && (
-              <div className="space-y-6">
-                {/* Thumbnail Image */}
-                <div>
-                  <label className="mb-1.5 block text-[13px] font-medium text-cal-ink">
-                    Thumbnail image
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      {...register("mediaUrl")}
-                      type="text"
-                      placeholder="Paste image URL…"
-                      className="h-10 flex-1 rounded-[8px] border border-cal-hairline bg-cal-canvas px-3.5 text-[14px] text-cal-ink placeholder:text-cal-muted-soft focus:border-cal-ink focus:outline-none transition-colors"
-                    />
-                    <label className="inline-flex h-10 shrink-0 items-center justify-center rounded-[8px] border border-cal-hairline bg-cal-canvas px-4 text-[13px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer">
-                      {isUploading ? "Uploading…" : "Upload"}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        disabled={isUploading}
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          e.target.value = "";
-                          if (file) {
-                            setIsUploading(true);
-                            setUploadError("media", "");
-                            try {
-                              const data = await apiUpload(file, "exercises");
-                              setValue("mediaUrl", data.url, {
-                                shouldValidate: true,
-                                shouldDirty: true,
-                              });
-                            } catch (err) {
-                              console.error("Upload error:", err);
-                              setUploadError(
-                                "media",
-                                err?.data?.detail ||
-                                  "Upload failed. Please try again."
-                              );
-                            } finally {
-                              setIsUploading(false);
-                            }
+                      <div className="space-y-3">
+                        <PartsEditor
+                          {...editorProps}
+                          name="mainParts"
+                          title="Main part"
+                          hint={
+                            'Use "A count" for moves done a number of times, e.g. lift each leg 10 times. Tick "Both sides" to repeat it on the other side.'
                           }
-                        }}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-                  {uploadErrors.media && (
-                    <p className="mt-1.5 text-[12px] font-medium text-cal-error">
-                      {uploadErrors.media}
-                    </p>
-                  )}
-
-                  {mediaUrl &&
-                    !mediaUrl.includes("youtube.com") &&
-                    !mediaUrl.includes("youtu.be") && (
-                      <div className="mt-3 flex h-28 w-48 items-center justify-center overflow-hidden rounded-[10px] border border-cal-hairline bg-cal-surface-soft">
-                        {mediaUrl.startsWith("data:video") ||
-                        mediaUrl.endsWith(".mp4") ? (
-                          <video
-                            src={resolvedMedia}
-                            className="h-full w-full object-cover"
-                            muted
+                          addLabel="Add a main part"
+                        />
+                        <div className="grid grid-cols-1 gap-4 rounded-[10px] border border-cal-hairline bg-cal-surface-soft p-4 sm:grid-cols-2">
+                          <div>
+                            <InputField
+                              id="rounds"
+                              type="number"
+                              label="Rounds"
+                              min="1"
+                              max="20"
+                              className="font-cal-mono tabular-nums"
+                              error={errors.rounds}
+                              {...register("rounds")}
+                            />
+                            <p className="mt-1 text-[12px] text-cal-muted">
+                              How many times the main part repeats.
+                            </p>
+                          </div>
+                          <InputField
+                            id="restSeconds"
+                            type="number"
+                            label="Rest between rounds (sec)"
+                            min="0"
+                            max="600"
+                            className="font-cal-mono tabular-nums"
+                            error={errors.restSeconds}
+                            {...register("restSeconds")}
                           />
-                        ) : !mediaPreviewError ? (
-                          <img
-                            src={resolvedMedia}
-                            alt="Thumbnail preview"
-                            className="h-full w-full object-cover"
-                            onError={() => setFailedMediaUrl(resolvedMedia)}
-                          />
-                        ) : (
-                          <span className="text-[12px] text-cal-muted">
-                            Could not load image
-                          </span>
-                        )}
+                        </div>
                       </div>
-                    )}
+
+                      <PartsEditor
+                        {...editorProps}
+                        name="cooldownParts"
+                        title="Cool-down"
+                        hint="Done once at the end, e.g. 3 minutes of slower walking."
+                        addLabel="Add a cool-down part"
+                      />
+
+                      <div className="flex items-center justify-between rounded-[10px] border border-cal-hairline bg-cal-surface-soft px-4 py-3 text-[13px]">
+                        <span className="font-medium text-cal-muted">
+                          Calculated workout duration
+                        </span>
+                        <span className="font-cal-mono font-semibold tabular-nums text-cal-ink">
+                          {totalSeconds > 0
+                            ? formatSeconds(totalSeconds)
+                            : "Add parts to see total"}
+                          {rounds > 1 ? ` · main × ${rounds}` : ""}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
+              )}
 
-                {/* Instructional Video Link */}
-                <div>
-                  <label className="mb-1.5 block text-[13px] font-medium text-cal-ink">
-                    Instructional video link
-                  </label>
-                  <input
-                    {...register("videoUrl")}
-                    type="text"
-                    placeholder="Paste YouTube video link…"
-                    className="h-10 w-full rounded-[8px] border border-cal-hairline bg-cal-canvas px-3.5 text-[14px] text-cal-ink placeholder:text-cal-muted-soft focus:border-cal-ink focus:outline-none transition-colors"
-                  />
-
-                  {videoUrl &&
-                    (videoUrl.includes("youtube.com") ||
-                      videoUrl.includes("youtu.be")) && (
-                      <div className="mt-3 aspect-video w-full max-w-md overflow-hidden rounded-[10px] border border-cal-hairline bg-cal-surface-dark">
-                        <iframe
-                          width="100%"
-                          height="100%"
-                          src={videoUrl
-                            .replace("watch?v=", "embed/")
-                            .replace("youtu.be/", "youtube.com/embed/")}
-                          title="YouTube video player"
-                          frameBorder="0"
-                          allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
+              {tab === "safety" && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div>
+                      <label
+                        htmlFor="exercise-position"
+                        className="mb-1.5 block text-[13px] font-medium text-cal-ink"
+                      >
+                        Position
+                      </label>
+                      <div className="relative">
+                        <select
+                          id="exercise-position"
+                          {...register("position")}
+                          className={selectFieldClass()}
+                        >
+                          <option value="">Not set</option>
+                          <option value="Seated">Seated</option>
+                          <option value="Standing">Standing</option>
+                          <option value="Lying down">Lying down</option>
+                          <option value="Walking">Walking</option>
+                        </select>
+                        <ChevronDown
+                          size={15}
+                          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cal-muted"
                         />
                       </div>
-                    )}
-                </div>
+                    </div>
 
-                {/* Extra Pictures */}
-                <div>
-                  <label className="mb-0.5 block text-[13px] font-medium text-cal-ink">
-                    Extra pictures
-                  </label>
-                  <p className="mb-3 text-[12px] text-cal-muted">
-                    Shown in the app&apos;s Pictures tab. Pictures for a single
-                    step go on that step in the Steps tab.
-                  </p>
-
-                  <div className="max-h-60 space-y-2 overflow-y-auto pr-1">
-                    {guideImageFields.map((field, index) => {
-                      const guideUrl = v.guideImages?.[index]?.url || "";
-                      return (
-                        <div
-                          key={field.id}
-                          className="flex items-center gap-3 rounded-[10px] border border-cal-hairline bg-cal-surface-soft p-3"
+                    <div>
+                      <label
+                        htmlFor="exercise-setting"
+                        className="mb-1.5 block text-[13px] font-medium text-cal-ink"
+                      >
+                        Where
+                      </label>
+                      <div className="relative">
+                        <select
+                          id="exercise-setting"
+                          {...register("setting")}
+                          className={selectFieldClass()}
                         >
-                          <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[8px] border border-cal-hairline bg-cal-canvas">
-                            {guideUrl ? (
-                              <img
-                                src={resolveMediaUrl(guideUrl)}
-                                alt="Guide preview"
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <ImageIcon
-                                size={15}
-                                className="text-cal-muted"
-                              />
-                            )}
-                          </div>
-
-                          <div className="min-w-0 flex-1 space-y-1.5">
-                            <div className="flex gap-2">
-                              <input
-                                {...register(`guideImages.${index}.url`)}
-                                type="text"
-                                placeholder="Paste guide image URL…"
-                                className="h-9 flex-1 rounded-[8px] border border-cal-hairline bg-cal-canvas px-3 text-[13px] text-cal-ink placeholder:text-cal-muted-soft focus:border-cal-ink focus:outline-none transition-colors"
-                              />
-                              <label className="inline-flex h-9 shrink-0 items-center justify-center rounded-[8px] border border-cal-hairline bg-cal-canvas px-3 text-[12px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer">
-                                Upload
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  className="hidden"
-                                  onChange={async (e) => {
-                                    const file = e.target.files?.[0];
-                                    e.target.value = "";
-                                    if (file) {
-                                      setUploadError(`guide-${index}`, "");
-                                      try {
-                                        const data = await apiUpload(
-                                          file,
-                                          "exercises"
-                                        );
-                                        setValue(
-                                          `guideImages.${index}.url`,
-                                          data.url,
-                                          {
-                                            shouldValidate: true,
-                                            shouldDirty: true,
-                                          }
-                                        );
-                                      } catch (err) {
-                                        console.error(
-                                          "Guide upload error:",
-                                          err
-                                        );
-                                        setUploadError(
-                                          `guide-${index}`,
-                                          err?.data?.detail ||
-                                            "Upload failed. Please try again."
-                                        );
-                                      }
-                                    }
-                                  }}
-                                />
-                              </label>
-                            </div>
-                            {uploadErrors[`guide-${index}`] && (
-                              <p className="text-[11.5px] font-medium text-cal-error">
-                                {uploadErrors[`guide-${index}`]}
-                              </p>
-                            )}
-                          </div>
-
-                          <div className="flex shrink-0 items-center gap-0.5">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (index > 0) {
-                                  const currentVal =
-                                    v.guideImages?.[index]?.url || "";
-                                  const prevVal =
-                                    v.guideImages?.[index - 1]?.url || "";
-                                  setValue(
-                                    `guideImages.${index}.url`,
-                                    prevVal,
-                                    { shouldDirty: true }
-                                  );
-                                  setValue(
-                                    `guideImages.${index - 1}.url`,
-                                    currentVal,
-                                    { shouldDirty: true }
-                                  );
-                                }
-                              }}
-                              disabled={index === 0}
-                              className="flex h-8 w-8 items-center justify-center rounded-[6px] text-cal-muted hover:bg-cal-canvas hover:text-cal-ink disabled:opacity-30 transition-colors cursor-pointer"
-                              title="Move up"
-                              aria-label="Move up"
-                            >
-                              <ArrowUp size={14} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (index < guideImageFields.length - 1) {
-                                  const currentVal =
-                                    v.guideImages?.[index]?.url || "";
-                                  const nextVal =
-                                    v.guideImages?.[index + 1]?.url || "";
-                                  setValue(
-                                    `guideImages.${index}.url`,
-                                    nextVal,
-                                    { shouldDirty: true }
-                                  );
-                                  setValue(
-                                    `guideImages.${index + 1}.url`,
-                                    currentVal,
-                                    { shouldDirty: true }
-                                  );
-                                }
-                              }}
-                              disabled={index === guideImageFields.length - 1}
-                              className="flex h-8 w-8 items-center justify-center rounded-[6px] text-cal-muted hover:bg-cal-canvas hover:text-cal-ink disabled:opacity-30 transition-colors cursor-pointer"
-                              title="Move down"
-                              aria-label="Move down"
-                            >
-                              <ArrowDown size={14} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => removeGuideImage(index)}
-                              className="flex h-8 w-8 items-center justify-center rounded-[6px] text-cal-muted hover:bg-cal-error/10 hover:text-cal-error transition-colors cursor-pointer"
-                              title="Remove"
-                              aria-label="Remove"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
+                          <option value="">Not set</option>
+                          <option value="Indoors">Indoors</option>
+                          <option value="Outdoors">Outdoors</option>
+                          <option value="Either">Indoors or outdoors</option>
+                        </select>
+                        <ChevronDown
+                          size={15}
+                          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cal-muted"
+                        />
+                      </div>
+                    </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => appendGuideImage({ url: "" })}
-                    className="mt-2.5 inline-flex items-center gap-1.5 rounded-[8px] border border-cal-hairline bg-cal-canvas px-3 py-1.5 text-[12.5px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer"
-                  >
-                    <Plus size={14} />
-                    <span>Add guide image</span>
-                  </button>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <InputField
+                      id="effortHint"
+                      label="How it should feel"
+                      placeholder="e.g. You can still talk while doing it"
+                      {...register("effortHint")}
+                    />
+                    <InputField
+                      id="frequency"
+                      label="How often"
+                      placeholder="e.g. 3 times a week"
+                      {...register("frequency")}
+                    />
+                  </div>
 
-                  {guideImageFields.length > 0 && (
-                    <div className="mt-3 rounded-[10px] border border-cal-hairline bg-cal-surface-soft p-3">
-                      <button
-                        type="button"
-                        onClick={putPicturesOnSteps}
-                        className="inline-flex h-8 items-center rounded-[6px] border border-cal-hairline bg-cal-canvas px-3 text-[12px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer"
-                      >
-                        Put these pictures on the steps
-                      </button>
-                      <p className="mt-1.5 text-[12px] text-cal-muted">
-                        {picturesNote ||
-                          "One picture per step, in order: Get into position first, then warm-up, main part and cool-down."}
-                      </p>
-                    </div>
-                  )}
+                  <InputField
+                    id="easierVersion"
+                    label="Easier version"
+                    placeholder="e.g. Do it sitting down, with smaller movements"
+                    {...register("easierVersion")}
+                  />
+
+                  <div>
+                    <label className="mb-1.5 block text-[13px] font-medium text-cal-ink">
+                      Skip this exercise if…
+                    </label>
+                    <TextListEditor
+                      control={control}
+                      register={register}
+                      name="skipIf"
+                      placeholder="e.g. You have knee pain today"
+                      addLabel="Add a reason to skip"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-0.5 block text-[13px] font-medium text-cal-ink">
+                      Stop right away if…
+                    </label>
+                    <p className="mb-2 text-[12px] text-cal-muted">
+                      Shown with the app&apos;s standard warning signs (chest
+                      pain, dizziness, short of breath).
+                    </p>
+                    <TextListEditor
+                      control={control}
+                      register={register}
+                      name="stopIf"
+                      placeholder="e.g. Your knee starts to hurt"
+                      addLabel="Add a reason to stop"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-0.5 block text-[13px] font-medium text-cal-ink">
+                      Before you start
+                    </label>
+                    <p className="mb-2 text-[12px] text-cal-muted">
+                      Patients tick these off on the app&apos;s &ldquo;Before
+                      you start&rdquo; check.
+                    </p>
+                    <EquipmentPicker
+                      value={v.requirements || []}
+                      onChange={(list) =>
+                        setValue("requirements", list, { shouldDirty: true })
+                      }
+                    />
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+
+              {tab === "media" && (
+                <div className="space-y-6">
+                  {/* Thumbnail Image */}
+                  <div>
+                    <label className="mb-1.5 block text-[13px] font-medium text-cal-ink">
+                      Thumbnail image
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        {...register("mediaUrl")}
+                        type="text"
+                        placeholder="Paste image URL…"
+                        className="h-10 flex-1 rounded-[8px] border border-cal-hairline bg-cal-canvas px-3.5 text-[14px] text-cal-ink placeholder:text-cal-muted-soft focus:border-cal-ink focus:outline-none transition-colors"
+                      />
+                      <label className="inline-flex h-10 shrink-0 items-center justify-center rounded-[8px] border border-cal-hairline bg-cal-canvas px-4 text-[13px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer">
+                        {isUploading ? "Uploading…" : "Upload"}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          disabled={isUploading}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            e.target.value = "";
+                            if (file) {
+                              setIsUploading(true);
+                              setUploadError("media", "");
+                              try {
+                                const data = await apiUpload(file, "exercises");
+                                setValue("mediaUrl", data.url, {
+                                  shouldValidate: true,
+                                  shouldDirty: true,
+                                });
+                              } catch (err) {
+                                console.error("Upload error:", err);
+                                setUploadError(
+                                  "media",
+                                  err?.data?.detail ||
+                                    "Upload failed. Please try again.",
+                                );
+                              } finally {
+                                setIsUploading(false);
+                              }
+                            }
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                    {uploadErrors.media && (
+                      <p className="mt-1.5 text-[12px] font-medium text-cal-error">
+                        {uploadErrors.media}
+                      </p>
+                    )}
+
+                    {mediaUrl &&
+                      !mediaUrl.includes("youtube.com") &&
+                      !mediaUrl.includes("youtu.be") && (
+                        <div className="mt-3 flex h-28 w-48 items-center justify-center overflow-hidden rounded-[10px] border border-cal-hairline bg-cal-surface-soft">
+                          {mediaUrl.startsWith("data:video") ||
+                          mediaUrl.endsWith(".mp4") ? (
+                            <video
+                              src={resolvedMedia}
+                              className="h-full w-full object-cover"
+                              muted
+                            />
+                          ) : !mediaPreviewError ? (
+                            <img
+                              src={resolvedMedia}
+                              alt="Thumbnail preview"
+                              className="h-full w-full object-cover"
+                              onError={() => setFailedMediaUrl(resolvedMedia)}
+                            />
+                          ) : (
+                            <span className="text-[12px] text-cal-muted">
+                              Could not load image
+                            </span>
+                          )}
+                        </div>
+                      )}
+                  </div>
+
+                  {/* Instructional Video Link */}
+                  <div>
+                    <label className="mb-1.5 block text-[13px] font-medium text-cal-ink">
+                      Instructional video link
+                    </label>
+                    <input
+                      {...register("videoUrl")}
+                      type="text"
+                      placeholder="Paste YouTube video link…"
+                      className="h-10 w-full rounded-[8px] border border-cal-hairline bg-cal-canvas px-3.5 text-[14px] text-cal-ink placeholder:text-cal-muted-soft focus:border-cal-ink focus:outline-none transition-colors"
+                    />
+
+                    {videoUrl &&
+                      (videoUrl.includes("youtube.com") ||
+                        videoUrl.includes("youtu.be")) && (
+                        <div className="mt-3 aspect-video w-full max-w-md overflow-hidden rounded-[10px] border border-cal-hairline bg-cal-surface-dark">
+                          <iframe
+                            width="100%"
+                            height="100%"
+                            src={videoUrl
+                              .replace("watch?v=", "embed/")
+                              .replace("youtu.be/", "youtube.com/embed/")}
+                            title="YouTube video player"
+                            frameBorder="0"
+                            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        </div>
+                      )}
+                  </div>
+
+                  {/* Extra Pictures */}
+                  <div>
+                    <label className="mb-0.5 block text-[13px] font-medium text-cal-ink">
+                      Extra pictures
+                    </label>
+                    <p className="mb-3 text-[12px] text-cal-muted">
+                      Shown in the app&apos;s Pictures tab. Pictures for a
+                      single step go on that step in the Steps tab.
+                    </p>
+
+                    <div className="max-h-60 space-y-2 overflow-y-auto pr-1">
+                      {guideImageFields.map((field, index) => {
+                        const guideUrl = v.guideImages?.[index]?.url || "";
+                        return (
+                          <div
+                            key={field.id}
+                            className="flex items-center gap-3 rounded-[10px] border border-cal-hairline bg-cal-surface-soft p-3"
+                          >
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[8px] border border-cal-hairline bg-cal-canvas">
+                              {guideUrl ? (
+                                <img
+                                  src={resolveMediaUrl(guideUrl)}
+                                  alt="Guide preview"
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <ImageIcon
+                                  size={15}
+                                  className="text-cal-muted"
+                                />
+                              )}
+                            </div>
+
+                            <div className="min-w-0 flex-1 space-y-1.5">
+                              <div className="flex gap-2">
+                                <input
+                                  {...register(`guideImages.${index}.url`)}
+                                  type="text"
+                                  placeholder="Paste guide image URL…"
+                                  className="h-9 flex-1 rounded-[8px] border border-cal-hairline bg-cal-canvas px-3 text-[13px] text-cal-ink placeholder:text-cal-muted-soft focus:border-cal-ink focus:outline-none transition-colors"
+                                />
+                                <label className="inline-flex h-9 shrink-0 items-center justify-center rounded-[8px] border border-cal-hairline bg-cal-canvas px-3 text-[12px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer">
+                                  Upload
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={async (e) => {
+                                      const file = e.target.files?.[0];
+                                      e.target.value = "";
+                                      if (file) {
+                                        setUploadError(`guide-${index}`, "");
+                                        try {
+                                          const data = await apiUpload(
+                                            file,
+                                            "exercises",
+                                          );
+                                          setValue(
+                                            `guideImages.${index}.url`,
+                                            data.url,
+                                            {
+                                              shouldValidate: true,
+                                              shouldDirty: true,
+                                            },
+                                          );
+                                        } catch (err) {
+                                          console.error(
+                                            "Guide upload error:",
+                                            err,
+                                          );
+                                          setUploadError(
+                                            `guide-${index}`,
+                                            err?.data?.detail ||
+                                              "Upload failed. Please try again.",
+                                          );
+                                        }
+                                      }
+                                    }}
+                                  />
+                                </label>
+                              </div>
+                              {uploadErrors[`guide-${index}`] && (
+                                <p className="text-[11.5px] font-medium text-cal-error">
+                                  {uploadErrors[`guide-${index}`]}
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="flex shrink-0 items-center gap-0.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (index > 0) {
+                                    const currentVal =
+                                      v.guideImages?.[index]?.url || "";
+                                    const prevVal =
+                                      v.guideImages?.[index - 1]?.url || "";
+                                    setValue(
+                                      `guideImages.${index}.url`,
+                                      prevVal,
+                                      { shouldDirty: true },
+                                    );
+                                    setValue(
+                                      `guideImages.${index - 1}.url`,
+                                      currentVal,
+                                      { shouldDirty: true },
+                                    );
+                                  }
+                                }}
+                                disabled={index === 0}
+                                className="flex h-8 w-8 items-center justify-center rounded-[6px] text-cal-muted hover:bg-cal-canvas hover:text-cal-ink disabled:opacity-30 transition-colors cursor-pointer"
+                                title="Move up"
+                                aria-label="Move up"
+                              >
+                                <ArrowUp size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (index < guideImageFields.length - 1) {
+                                    const currentVal =
+                                      v.guideImages?.[index]?.url || "";
+                                    const nextVal =
+                                      v.guideImages?.[index + 1]?.url || "";
+                                    setValue(
+                                      `guideImages.${index}.url`,
+                                      nextVal,
+                                      { shouldDirty: true },
+                                    );
+                                    setValue(
+                                      `guideImages.${index + 1}.url`,
+                                      currentVal,
+                                      { shouldDirty: true },
+                                    );
+                                  }
+                                }}
+                                disabled={index === guideImageFields.length - 1}
+                                className="flex h-8 w-8 items-center justify-center rounded-[6px] text-cal-muted hover:bg-cal-canvas hover:text-cal-ink disabled:opacity-30 transition-colors cursor-pointer"
+                                title="Move down"
+                                aria-label="Move down"
+                              >
+                                <ArrowDown size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => removeGuideImage(index)}
+                                className="flex h-8 w-8 items-center justify-center rounded-[6px] text-cal-muted hover:bg-cal-error/10 hover:text-cal-error transition-colors cursor-pointer"
+                                title="Remove"
+                                aria-label="Remove"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => appendGuideImage({ url: "" })}
+                      className="mt-2.5 inline-flex items-center gap-1.5 rounded-[8px] border border-cal-hairline bg-cal-canvas px-3 py-1.5 text-[12.5px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer"
+                    >
+                      <Plus size={14} />
+                      <span>Add guide image</span>
+                    </button>
+
+                    {guideImageFields.length > 0 && (
+                      <div className="mt-3 rounded-[10px] border border-cal-hairline bg-cal-surface-soft p-3">
+                        <button
+                          type="button"
+                          onClick={putPicturesOnSteps}
+                          className="inline-flex h-8 items-center rounded-[6px] border border-cal-hairline bg-cal-canvas px-3 text-[12px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer"
+                        >
+                          Put these pictures on the steps
+                        </button>
+                        <p className="mt-1.5 text-[12px] text-cal-muted">
+                          {picturesNote ||
+                            "One picture per step, in order: Get into position first, then warm-up, main part and cool-down."}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </fieldset>
           </form>
         )}
 
@@ -1744,94 +1827,68 @@ const ExerciseFormModal = ({
                       approvedOn ? ` on ${approvedOn}` : ""
                     }.`
                   : isPT
-                    ? "Patients only see this exercise after you approve it."
-                    : "Patients can't see this until a physical therapist approves it."}
+                    ? "Approval applies to this saved revision. Admin publishes separately."
+                    : "PT review and Admin publication are separate steps."}
               </p>
-              {isPT && approved && (
+              {isPT && !approved && status !== "archived" && (
                 <button
                   type="button"
-                  onClick={() => saveApproval(false)}
-                  className={secondaryBtn}
+                  disabled={saving}
+                  onClick={() => saveApproval(true)}
+                  className={primaryBtn}
                 >
-                  Remove approval
+                  <ShieldCheck size={15} />
+                  <span>{saving ? "Saving…" : "Approve this revision"}</span>
                 </button>
               )}
-              {isPT && !approved ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setMode("edit")}
-                    className={secondaryBtn}
-                  >
-                    Edit details
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => saveApproval(true)}
-                    className={primaryBtn}
-                  >
-                    <ShieldCheck size={15} />
-                    <span>Approve for patients</span>
-                  </button>
-                </>
-              ) : (
+              {canAuthor && (
                 <button
                   type="button"
+                  disabled={saving}
                   onClick={() => setMode("edit")}
                   className={primaryBtn}
                 >
                   Edit details
                 </button>
               )}
+              {canAuthor && approved && status === "draft" && (
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={publish}
+                  className={primaryBtn}
+                >
+                  Publish approved revision
+                </button>
+              )}
             </>
           ) : (
             <>
               <p className="min-w-[200px] flex-1 text-[13px] leading-snug text-cal-muted">
-                {isPT
-                  ? ""
-                  : exercise
-                    ? "Saving sends it back to a physical therapist for approval."
-                    : "A physical therapist approves it before patients see it."}
+                {exercise?.status === "published"
+                  ? "Saving withdraws this routine from discovery and new starts until PT review and republication."
+                  : "Save a draft, then ask a PT to review the saved revision."}
               </p>
-              <button type="button" onClick={onClose} className={secondaryBtn}>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={onClose}
+                className={secondaryBtn}
+              >
                 Cancel
               </button>
-              {status === "draft" && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => handleSaveWithStatus("draft")}
-                    className={secondaryBtn}
-                  >
-                    Save draft
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSaveWithStatus("published")}
-                    className={primaryBtn}
-                  >
-                    Publish
-                  </button>
-                </>
-              )}
-              {status === "published" && (
-                <button
-                  type="button"
-                  onClick={() => handleSaveWithStatus("published")}
-                  className={primaryBtn}
-                >
-                  Save changes
-                </button>
-              )}
-              {status === "archived" && (
-                <button
-                  type="button"
-                  onClick={() => handleSaveWithStatus("draft")}
-                  className={primaryBtn}
-                >
-                  Restore to draft
-                </button>
-              )}
+              <button
+                type="button"
+                disabled={saving || isUploading || partUploads > 0}
+                onClick={() => handleSaveWithStatus("draft")}
+                className={primaryBtn}
+              >
+                {saving
+                  ? "Saving…"
+                  : isUploading || partUploads > 0
+                    ? "Uploading…"
+                    : "Save draft"}
+              </button>
             </>
           )}
         </div>

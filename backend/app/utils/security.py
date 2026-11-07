@@ -315,7 +315,7 @@ def get_current_admin_user(request: Request, credentials: Optional[HTTPAuthoriza
 ADMIN_ROLES = {"admin"}
 EXPERT_PERMISSIONS = {
     "Dietitian": {"recipes:review", "meal_logs:read", "meal_logs:write", "vitals:read", "notes:read", "notes:message"},
-    "Physical Therapist": {"exercises:edit", "exercise_logs:read", "vitals:read", "notes:read", "notes:message"},
+    "Physical Therapist": {"exercises:review", "exercise_logs:read", "vitals:read", "notes:read", "notes:message"},
     "Cardiologist": {"meal_logs:read", "meal_logs:write", "exercise_logs:read", "vitals:read", "vitals:write",
                      "notes:read", "notes:guidance"},
 }

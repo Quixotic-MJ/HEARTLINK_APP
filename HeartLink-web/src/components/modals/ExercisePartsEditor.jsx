@@ -39,7 +39,7 @@ function pictureUrl(url) {
 }
 
 /** This step's own picture: a preview, the link, and an Upload button. */
-function ImageField({ value, onChange }) {
+function ImageField({ value, onChange, onUploadChange }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [failedSrc, setFailedSrc] = useState(null);
@@ -66,6 +66,7 @@ function ImageField({ value, onChange }) {
         </div>
         <input
           value={value || ""}
+          aria-label="Step picture URL"
           onChange={(e) => onChange(e.target.value)}
           placeholder="Step picture (optional): paste link or upload"
           className={inputClass}
@@ -82,16 +83,18 @@ function ImageField({ value, onChange }) {
               e.target.value = "";
               if (!file) return;
               setBusy(true);
+              onUploadChange?.(1);
               setError("");
               try {
                 const data = await apiUpload(file, "exercises");
                 onChange(data.url);
               } catch (err) {
                 setError(
-                  err?.data?.detail || "Upload failed. Please try again."
+                  err?.data?.detail || "Upload failed. Please try again.",
                 );
               } finally {
                 setBusy(false);
+                onUploadChange?.(-1);
               }
             }}
           />
@@ -118,6 +121,7 @@ export function PartsEditor({
   hint,
   isBreathing = false,
   addLabel = "Add part",
+  onUploadChange,
 }) {
   const { fields, append, remove, move } = useFieldArray({ control, name });
   const rows = useWatch({ control, name }) || [];
@@ -186,6 +190,7 @@ export function PartsEditor({
                 <div>
                   <input
                     {...register(`${name}.${index}.instruction`)}
+                    aria-label={`${title} instruction ${index + 1}`}
                     className={`${inputClass} font-medium ${
                       err?.instruction
                         ? "border-cal-error focus:border-cal-error"
@@ -206,6 +211,7 @@ export function PartsEditor({
 
                 <input
                   {...register(`${name}.${index}.details`)}
+                  aria-label={`${title} detail ${index + 1}`}
                   className={inputClass}
                   placeholder="Extra detail (optional), e.g. Keep your back straight"
                 />
@@ -217,6 +223,7 @@ export function PartsEditor({
                       <div className="relative">
                         <select
                           {...register(`${name}.${index}.breath`)}
+                          aria-label={`${title} breath phase ${index + 1}`}
                           className={selectClass}
                           title="The app moves the breathing circle to match."
                         >
@@ -237,6 +244,7 @@ export function PartsEditor({
                       <div className="relative">
                         <select
                           {...register(`${name}.${index}.mode`)}
+                          aria-label={`${title} timing mode ${index + 1}`}
                           className={selectClass}
                         >
                           <option value="time">A time</option>
@@ -258,6 +266,7 @@ export function PartsEditor({
                           type="number"
                           min="1"
                           {...register(`${name}.${index}.reps`)}
+                          aria-label={`${title} repetitions ${index + 1}`}
                           className={monoInputClass}
                         />
                       </div>
@@ -267,6 +276,7 @@ export function PartsEditor({
                           type="number"
                           min="1"
                           {...register(`${name}.${index}.seconds_per_rep`)}
+                          aria-label={`${title} seconds per repetition ${index + 1}`}
                           className={monoInputClass}
                           title="About how long one repeat takes"
                         />
@@ -280,6 +290,7 @@ export function PartsEditor({
                           type="number"
                           min="0"
                           {...register(`${name}.${index}.minutes`)}
+                          aria-label={`${title} minutes ${index + 1}`}
                           className={monoInputClass}
                         />
                       </div>
@@ -290,6 +301,7 @@ export function PartsEditor({
                           min="0"
                           max="59"
                           {...register(`${name}.${index}.seconds`)}
+                          aria-label={`${title} seconds ${index + 1}`}
                           className={monoInputClass}
                         />
                       </div>
@@ -317,8 +329,14 @@ export function PartsEditor({
                     {err.seconds.message}
                   </span>
                 )}
+                {(err?.reps || err?.seconds_per_rep) && (
+                  <p role="alert" className="text-[13px] text-cal-error">
+                    {err.reps?.message || err.seconds_per_rep?.message}
+                  </p>
+                )}
 
                 <ImageField
+                  onUploadChange={onUploadChange}
                   value={row.image}
                   onChange={(url) =>
                     setValue(`${name}.${index}.image`, url, {
@@ -396,6 +414,7 @@ export function SetupEditor({
   register,
   setValue,
   name = "setupSteps",
+  onUploadChange,
 }) {
   const { fields, append, remove } = useFieldArray({ control, name });
   const rows = useWatch({ control, name }) || [];
@@ -421,15 +440,18 @@ export function SetupEditor({
             <div className="min-w-0 flex-1 space-y-2.5">
               <input
                 {...register(`${name}.${index}.instruction`)}
+                aria-label={`Setup instruction ${index + 1}`}
                 className={`${inputClass} font-medium`}
                 placeholder="e.g. Sit with your feet flat on the floor"
               />
               <input
                 {...register(`${name}.${index}.details`)}
+                aria-label={`Setup detail ${index + 1}`}
                 className={inputClass}
                 placeholder="Extra detail (optional)"
               />
               <ImageField
+                onUploadChange={onUploadChange}
                 value={rows[index]?.image}
                 onChange={(url) =>
                   setValue(`${name}.${index}.image`, url, { shouldDirty: true })
@@ -465,7 +487,7 @@ export function EquipmentPicker({ value = [], onChange }) {
   const custom = value.filter((v) => !EQUIPMENT_PRESETS.includes(v));
   const toggle = (item) =>
     onChange(
-      value.includes(item) ? value.filter((v) => v !== item) : [...value, item]
+      value.includes(item) ? value.filter((v) => v !== item) : [...value, item],
     );
   const addOther = () => {
     const text = other.trim();
@@ -510,6 +532,7 @@ export function EquipmentPicker({ value = [], onChange }) {
       <div className="flex gap-2">
         <input
           value={other}
+          aria-label="Additional equipment"
           onChange={(e) => setOther(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
@@ -548,6 +571,7 @@ export function TextListEditor({
           <div key={field.id} className="flex items-center gap-2">
             <input
               {...register(`${name}.${index}.value`)}
+              aria-label={`${name === "skipIf" ? "Skip if" : "Stop if"} note ${index + 1}`}
               className={inputClass}
               placeholder={placeholder}
             />

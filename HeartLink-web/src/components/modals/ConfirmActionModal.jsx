@@ -1,11 +1,5 @@
-import { useRef, useState } from "react";
-import {
-  AlertTriangle,
-  Info,
-  Loader2,
-  Trash2,
-  X,
-} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { AlertTriangle, Info, Loader2, Trash2, X } from "lucide-react";
 import { useDialogFocus } from "../../hooks/useDialogFocus";
 
 const VARIANTS = {
@@ -16,18 +10,15 @@ const VARIANTS = {
   },
   warning: {
     iconSurface: "border-cal-warning/35 bg-cal-warning/15 text-cal-ink",
-    btnClass:
-      "bg-cal-primary active:bg-cal-primary-active text-cal-on-primary",
+    btnClass: "bg-cal-primary active:bg-cal-primary-active text-cal-on-primary",
   },
   primary: {
     iconSurface: "border-cal-hairline bg-cal-surface-card text-cal-ink",
-    btnClass:
-      "bg-cal-primary active:bg-cal-primary-active text-cal-on-primary",
+    btnClass: "bg-cal-primary active:bg-cal-primary-active text-cal-on-primary",
   },
   success: {
     iconSurface: "border-cal-success/25 bg-cal-success/10 text-cal-success",
-    btnClass:
-      "bg-cal-primary active:bg-cal-primary-active text-cal-on-primary",
+    btnClass: "bg-cal-primary active:bg-cal-primary-active text-cal-on-primary",
   },
 };
 
@@ -47,25 +38,49 @@ const ConfirmActionModal = ({
   children = null,
 }) => {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const inFlight = useRef(false);
+  const errorRef = useRef(null);
   const dialogRef = useRef(null);
-  useDialogFocus(isOpen, dialogRef, loading ? null : onClose);
+  const close = () => {
+    if (!inFlight.current) onClose?.();
+  };
+  useDialogFocus(isOpen, dialogRef, close);
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (wasOpen !== isOpen) {
+    setWasOpen(isOpen);
+    setError("");
+  }
+  useEffect(() => {
+    if (error) errorRef.current?.focus();
+  }, [error]);
 
   if (!isOpen) return null;
 
   const currentVariant = VARIANTS[variant] || VARIANTS.danger;
-  const IconComponent = CustomIcon || (variant === "danger" ? Trash2 : AlertTriangle);
+  const IconComponent =
+    CustomIcon || (variant === "danger" ? Trash2 : AlertTriangle);
 
   const handleConfirm = async () => {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setLoading(true);
+    setError("");
     try {
       if (onConfirm) {
         await onConfirm();
       }
+      onClose?.();
+    } catch (err) {
+      setError(
+        typeof err?.data?.detail === "string"
+          ? err.data.detail
+          : "The action could not be completed. Please try again.",
+      );
     } finally {
+      inFlight.current = false;
       setLoading(false);
     }
-    // Callers report success/failure via toasts; always dismiss once the action settles.
-    if (onClose) onClose();
   };
 
   return (
@@ -73,7 +88,7 @@ const ConfirmActionModal = ({
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-cal-ink/40 transition-opacity"
-        onClick={!loading ? onClose : undefined}
+        onClick={close}
       />
 
       {/* Modal Dialog (Cal.com 12px Card + Hairline + Whisper Shadow) */}
@@ -88,7 +103,7 @@ const ConfirmActionModal = ({
         {/* Close button */}
         <button
           type="button"
-          onClick={onClose}
+          onClick={close}
           disabled={loading}
           className="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-full border border-cal-hairline bg-cal-canvas text-cal-muted hover:text-cal-ink transition-colors cursor-pointer disabled:opacity-40"
           aria-label="Close modal"
@@ -119,6 +134,16 @@ const ConfirmActionModal = ({
           {description && (
             <p className="mt-1.5 text-[14px] leading-[1.5] text-cal-muted">
               {description}
+            </p>
+          )}
+          {error && (
+            <p
+              ref={errorRef}
+              role="alert"
+              tabIndex={-1}
+              className="mt-3 rounded-[8px] border border-cal-error/30 bg-cal-error/5 p-3 text-[14px] text-cal-ink"
+            >
+              {error}
             </p>
           )}
         </div>
@@ -179,7 +204,7 @@ const ConfirmActionModal = ({
         <div className="mt-6 flex items-center gap-3">
           <button
             type="button"
-            onClick={onClose}
+            onClick={close}
             disabled={loading}
             className="h-10 flex-1 rounded-[8px] border border-cal-hairline bg-cal-canvas px-4 text-[14px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer disabled:opacity-40"
           >

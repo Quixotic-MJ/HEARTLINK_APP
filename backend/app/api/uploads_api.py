@@ -24,8 +24,8 @@ async def upload_file(
 
     effective_target_id = target_id or caller_id
 
-    # HL-012: Admins author recipe media; Physical Therapists author exercise media.
-    bucket_permission = {BUCKET_RECIPES: "recipes:author", BUCKET_EXERCISES: "exercises:edit"}.get(bucket)
+    # Admins author both recipe and routine media; experts only review content.
+    bucket_permission = {BUCKET_RECIPES: "recipes:author", BUCKET_EXERCISES: "exercises:author"}.get(bucket)
     if bucket_permission:
         check_expert_permission(current_user, bucket_permission)
 

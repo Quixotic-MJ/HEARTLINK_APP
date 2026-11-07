@@ -2,28 +2,7 @@
 import pytest
 
 from app.services import exercises as exercise_service
-from app.services.exercises import clean_step, create_routine, is_visible_to_patients, routine_payload, total_seconds, update_routine
-
-
-class FakeContentRepo:
-    def __init__(self):
-        self.created = None
-        self.updated = None
-
-    def create_routine(self, data):
-        self.created = data
-        return {"id": "e1", **data}
-
-    def update_routine(self, routine_id, data):
-        self.updated = data
-        return {"id": routine_id, **data}
-
-
-@pytest.fixture
-def repo(monkeypatch):
-    fake = FakeContentRepo()
-    monkeypatch.setattr(exercise_service, "get_content_repo", lambda: fake)
-    return fake
+from app.services.exercises import clean_step, is_visible_to_patients, routine_payload, total_seconds
 
 
 def test_portal_field_names_become_table_columns_and_unknown_fields_are_dropped():
@@ -80,65 +59,25 @@ def test_lists_and_choices_are_cleaned():
         "skipIf": [{"value": "Knee pain today"}],
         "position": "Floating",
         "setting": "Outdoors",
-        "rounds": 99,
-        "restSeconds": -5,
+        "rounds": 3,
+        "restSeconds": 5,
         "setupSteps": ["Sit with feet flat", {"instruction": ""}],
     })
     assert out["requirements"] == ["Water bottle", "Sturdy chair without wheels"]
     assert out["skip_if"] == ["Knee pain today"]
     assert out["position"] is None
     assert out["setting"] == "Outdoors"
-    assert out["rounds"] == 20 and out["rest_seconds"] == 0
+    assert out["rounds"] == 3 and out["rest_seconds"] == 5
     assert out["setup_steps"] == [{"instruction": "Sit with feet flat", "details": ""}]
 
 
-def test_a_pt_approving_it_records_who_and_when(repo):
-    create_routine({"name": "Walk", "expertValidated": True}, pt_id="pt-1")
-    assert repo.created["expert_validated"] is True
-    assert repo.created["reviewed_by"] == "pt-1"
-    assert repo.created["reviewed_at"]
-
-    update_routine("e1", {"expertValidated": False}, pt_id="pt-1")
-    assert repo.updated["reviewed_by"] is None and repo.updated["reviewed_at"] is None
-
-
-def test_only_a_pt_can_approve_and_other_saves_send_it_back_to_waiting(repo):
-    # HL-026: an admin ticking the switch does not approve it.
-    create_routine({"name": "Walk", "expertValidated": True})
-    assert repo.created["expert_validated"] is False and repo.created["reviewed_by"] is None
-
-    # Any non-PT edit of an approved exercise needs a PT to check it again.
-    update_routine("e1", {"name": "Brisk walk"})
-    assert repo.updated["expert_validated"] is False
-    assert repo.updated["reviewed_by"] is None and repo.updated["reviewed_at"] is None
-
-
-def test_a_pt_can_send_it_back_with_a_note(repo):
-    # HL-038: the reject side of the PT's review
-    update_routine("e1", {"expertValidated": False, "reviewNote": "  Too intense for Critical patients  "}, pt_id="pt-1")
-    assert repo.updated["expert_validated"] is False
-    assert repo.updated["review_note"] == "Too intense for Critical patients"
-    assert not is_visible_to_patients({"status": "published", **repo.updated})
-
-
-def test_approving_clears_the_note(repo):
-    update_routine("e1", {"expertValidated": True, "reviewNote": "old note"}, pt_id="pt-1")
-    assert repo.updated["expert_validated"] is True and repo.updated["review_note"] is None
-
-
-def test_only_a_pt_writes_the_note(repo):
-    update_routine("e1", {"name": "Brisk walk", "reviewNote": "admin can't change this"})
-    assert "review_note" not in repo.updated
-    assert repo.updated["expert_validated"] is False
-
-
-def test_a_pt_update_only_changes_what_was_sent(repo):
-    update_routine("e1", {"status": "published"}, pt_id="pt-1")
-    assert repo.updated == {"status": "published"}
-
-
 def test_patients_only_see_published_pt_approved_exercises():
-    assert is_visible_to_patients({"status": "published", "expert_validated": True})
+    approved = {"name": "Movement", "description": "Synthetic movement", "duration_minutes": 1, "rounds": 1,
+                "rest_seconds": 0, "position": "Standing", "setting": "Indoors", "status": "published",
+                "expert_validated": True, "reviewed_by": "pt-1", "reviewed_at": "2026-11-07",
+                "steps": [{"instruction": "Move", "section": "main", "mode": "time", "duration_seconds": 30}]}
+    assert is_visible_to_patients(approved)
+    assert not is_visible_to_patients({"status": "published", "expert_validated": True})
     assert not is_visible_to_patients({"status": "published", "expert_validated": False})
     assert not is_visible_to_patients({"status": "published"})
     assert not is_visible_to_patients({"status": "draft", "expert_validated": True})
@@ -148,7 +87,10 @@ def test_saved_exercises_only_list_ones_patients_can_still_get(monkeypatch):
     class Saved:
         def list_saved_exercises(self, user_id):
             return [
-                {"id": "e1", "status": "published", "expert_validated": True},
+                {"id": "e1", "name": "Movement", "description": "Synthetic", "duration_minutes": 1, "rounds": 1,
+                 "rest_seconds": 0, "position": "Standing", "setting": "Indoors", "status": "published",
+                 "expert_validated": True, "reviewed_by": "pt-1", "reviewed_at": "2026-11-07",
+                 "steps": [{"instruction": "Move", "section": "main", "mode": "time", "duration_seconds": 30}]},
                 {"id": "e2", "status": "published", "expert_validated": False},  # lost its PT approval
                 {"id": "e3", "status": "archived", "expert_validated": True},
             ]

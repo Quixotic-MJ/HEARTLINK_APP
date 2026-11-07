@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Request, HTTPException, Query, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from typing import List, Dict, Any, Optional
-from app.services.exercises import get_routines, get_exercise_logs, create_exercise_log, delete_exercise_log, create_routine, update_routine, delete_routine, is_visible_to_patients, get_saved_exercises, save_exercise_for_user, unsave_exercise_for_user
+from typing import List, Dict, Any, Literal, Optional
+from pydantic import BaseModel, ConfigDict, Field
+from app.services.exercises import get_routines, get_exercise_logs, create_exercise_log, delete_exercise_log, create_routine, update_routine, delete_routine, is_visible_to_patients, get_saved_exercises, save_exercise_for_user, unsave_exercise_for_user, review_routine, RoutineReviewConflict
 from app.services.hss_service import compute_lifestyle_composite_hss
-from app.utils.security import expert_id_if, require_permission, check_expert_permission, get_current_user, verify_token, get_optional_token, verify_user_access
+from app.utils.security import expert_id_if, has_active_permission, require_permission, check_expert_permission, get_current_user, verify_token, get_optional_token, verify_user_access
 from app.utils.activity_helper import record_admin_activity
 from app.services.admin_notifications import notify_waiting_content
 
@@ -11,21 +12,28 @@ router = APIRouter(prefix="/api/exercises", tags=["Exercises"])
 
 security = HTTPBearer(auto_error=False)
 
+
+class RoutineReviewRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    decision: Literal["approve", "changes_requested"]
+    expected_updated_at: str = Field(alias="expectedUpdatedAt", min_length=1)
+    note: Optional[str] = Field(default=None, max_length=500)
+
+
+def _can_read_unpublished(token: Optional[str]) -> bool:
+    if not token:
+        return False
+    try:
+        return has_active_permission(verify_token(token), "exercises:review")
+    except Exception:
+        return False
+
 @router.get("/", response_model=List[Dict[str, Any]])
 def read_routines(request: Request, credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
     routines = get_routines()
 
-    is_admin = False
     token = get_optional_token(request, credentials)
-    if token:
-        try:
-            payload = verify_token(token)
-            if payload.get("role") in ["admin", "medical_expert"]:
-                is_admin = True
-        except Exception:
-            pass
-
-    if is_admin:
+    if _can_read_unpublished(token):
         return routines
     return [r for r in routines if is_visible_to_patients(r)]
 
@@ -57,24 +65,20 @@ def read_routine(routine_id: str, request: Request, credentials: Optional[HTTPAu
     if not routine:
         raise HTTPException(status_code=404, detail="Routine not found")
         
-    is_admin = False
     token = get_optional_token(request, credentials)
-    if token:
-        try:
-            payload = verify_token(token)
-            if payload.get("role") in ["admin", "medical_expert"]:
-                is_admin = True
-        except Exception:
-            pass
-
-    if not is_admin and not is_visible_to_patients(routine):
+    if not _can_read_unpublished(token) and not is_visible_to_patients(routine):
         raise HTTPException(status_code=404, detail="Routine not found")
         
     return routine
 
 @router.post("/", response_model=Dict[str, Any])
-def add_routine(data: Dict[str, Any], current_user: dict = Depends(require_permission("exercises:edit"))):
-    new_routine = create_routine(data, pt_id=expert_id_if(current_user, "Physical Therapist"))
+def add_routine(data: Dict[str, Any], current_user: dict = Depends(require_permission("exercises:author"))):
+    try:
+        new_routine = create_routine(data)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    if not new_routine or not new_routine.get("id"):
+        raise HTTPException(status_code=400, detail="Unable to save this routine. Your draft has not been published.")
     admin_id = current_user.get("user_id") if current_user else "admin"
     record_admin_activity(
         admin_user_id=admin_id,
@@ -88,11 +92,15 @@ def add_routine(data: Dict[str, Any], current_user: dict = Depends(require_permi
     return new_routine
 
 @router.put("/{routine_id}", response_model=Dict[str, Any])
-def edit_routine(routine_id: str, data: Dict[str, Any], current_user: dict = Depends(require_permission("exercises:edit"))):
+def edit_routine(routine_id: str, data: Dict[str, Any], current_user: dict = Depends(require_permission("exercises:author"))):
+    expected = data.get("expectedUpdatedAt")
+    if not isinstance(expected, str) or not expected.strip():
+        raise HTTPException(status_code=400, detail="expectedUpdatedAt is required to save this routine revision.")
     try:
-        updated_routine = update_routine(routine_id, data, pt_id=expert_id_if(current_user, "Physical Therapist"))
+        updated_routine = update_routine(routine_id, {k: v for k, v in data.items() if k != "expectedUpdatedAt"},
+                                         expected_updated_at=expected)
         if not updated_routine:
-            raise ValueError("Exercise not found")
+            raise HTTPException(status_code=404, detail="Routine not found")
         admin_id = current_user.get("user_id") if current_user else "admin"
         record_admin_activity(
             admin_user_id=admin_id,
@@ -103,11 +111,33 @@ def edit_routine(routine_id: str, data: Dict[str, Any], current_user: dict = Dep
         )
         notify_waiting_content("exercise", updated_routine, expert_id_if(current_user, "Physical Therapist"), admin_id)
         return updated_routine
+    except RoutineReviewConflict:
+        raise HTTPException(status_code=409, detail="This routine changed after you opened it. Refresh before saving.")
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/{routine_id}/review", response_model=Dict[str, Any])
+def review_routine_version(routine_id: str, data: RoutineReviewRequest,
+                           current_user: dict = Depends(require_permission("exercises:review"))):
+    pt_id = expert_id_if(current_user, "Physical Therapist")
+    if not pt_id:
+        raise HTTPException(status_code=403, detail="Only a Physical Therapist may review routines.")
+    try:
+        reviewed = review_routine(routine_id, decision=data.decision, expected_updated_at=data.expected_updated_at,
+                                  pt_id=pt_id, note=data.note)
+    except RoutineReviewConflict:
+        raise HTTPException(status_code=409, detail="This routine changed after you opened it. Refresh before reviewing.")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    if not reviewed:
+        raise HTTPException(status_code=404, detail="Routine not found")
+    record_admin_activity(admin_user_id=pt_id, action="approved" if data.decision == "approve" else "changes_requested",
+                          target_type="exercise", target_id=reviewed.get("id"), target_name=reviewed.get("name"))
+    return reviewed
 
 @router.delete("/{routine_id}", response_model=Dict[str, Any])
-def remove_routine(routine_id: str, current_user: dict = Depends(require_permission("exercises:edit"))):
+def remove_routine(routine_id: str, current_user: dict = Depends(require_permission("exercises:author"))):
     routines = get_routines()
     routine = next((r for r in routines if r["id"] == routine_id), None)
     if not routine:

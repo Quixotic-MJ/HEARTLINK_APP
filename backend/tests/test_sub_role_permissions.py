@@ -56,6 +56,10 @@ def fakes(monkeypatch):
     monkeypatch.setattr("app.api.recipes_api.recipes_api.record_admin_activity", lambda **k: None)
     monkeypatch.setattr("app.api.recipes_api.recipes_api.notify_waiting_content", lambda *a, **k: None)
     monkeypatch.setattr("app.api.exercises.exercises.create_routine", lambda data, **k: {"id": "e1", "name": "Walk"})
+    monkeypatch.setattr("app.api.exercises.exercises.get_routines", lambda: [{"id": "e1", "status": "draft"}])
+    monkeypatch.setattr("app.api.exercises.exercises.update_routine", lambda routine_id, data, **k: {"id": routine_id, "name": "Walk"})
+    monkeypatch.setattr("app.api.exercises.exercises.review_routine", lambda routine_id, **k: {"id": routine_id, "name": "Walk"}, raising=False)
+    monkeypatch.setattr("app.api.exercises.exercises.notify_waiting_content", lambda *a, **k: None)
     monkeypatch.setattr("app.api.exercises.exercises.record_admin_activity", lambda **k: None)
     # Other test modules install app-wide dependency overrides at import time; use the real guards here.
     saved = dict(app.dependency_overrides)
@@ -84,6 +88,8 @@ REVIEW_RECIPE = (
     {"json": {"decision": "approve", "expectedUpdatedAt": "2026-11-07T01:00:00+00:00"}},
 )
 ADD_EXERCISE = ("POST", "/api/exercises/", {"json": {"name": "Walk"}})
+EDIT_EXERCISE = ("PUT", "/api/exercises/e1", {"json": {"name": "Walk", "expectedUpdatedAt": "revision-1"}})
+REVIEW_EXERCISE = ("POST", "/api/exercises/e1/review", {"json": {"decision": "approve", "expectedUpdatedAt": "revision-1"}})
 READ_MEALS = ("GET", f"/api/meals/{PATIENT_ID}", {})
 READ_EXERCISE_LOGS = ("GET", f"/api/exercises/logs/{PATIENT_ID}", {})
 READ_HEALTH = ("GET", f"/api/health-logs/{PATIENT_ID}", {})
@@ -110,8 +116,13 @@ FORBIDDEN = 403
     ("diet-1", READ_ANALYTICS, ALLOWED),
     ("diet-1", ADD_HEALTH, FORBIDDEN),
     ("diet-1", ADD_SLEEP, FORBIDDEN),
-    # Physical Therapist: exercises and exercise logs, reads vitals
-    ("pt-1", ADD_EXERCISE, ALLOWED),
+    # Physical Therapists review routines; only Admin authors them.
+    ("pt-1", ADD_EXERCISE, FORBIDDEN),
+    ("pt-1", EDIT_EXERCISE, FORBIDDEN),
+    ("pt-1", REVIEW_EXERCISE, ALLOWED),
+    ("diet-1", REVIEW_EXERCISE, FORBIDDEN),
+    ("cardio-1", REVIEW_EXERCISE, FORBIDDEN),
+    ("admin-1", REVIEW_EXERCISE, FORBIDDEN),
     ("pt-1", ADD_RECIPE, FORBIDDEN),
     ("pt-1", REVIEW_RECIPE, FORBIDDEN),
     ("pt-1", READ_EXERCISE_LOGS, ALLOWED),
@@ -134,6 +145,7 @@ FORBIDDEN = 403
     ("admin-1", DELETE_RECIPE, ALLOWED),
     ("admin-1", REVIEW_RECIPE, FORBIDDEN),
     ("admin-1", ADD_EXERCISE, ALLOWED),
+    ("admin-1", EDIT_EXERCISE, ALLOWED),
 ])
 def test_permission_boundaries(user_id, call, expected):
     method, path, kwargs = call
@@ -166,6 +178,30 @@ def test_recipe_author_save_requires_an_opened_revision():
     assert response.json()["detail"].startswith("expectedUpdatedAt is required")
 
 
+def test_routine_author_save_requires_an_opened_revision():
+    assert _call("PUT", "/api/exercises/e1", "admin-1", json={"name": "Unversioned"}).status_code == 400
+
+
+def test_stale_routine_review_returns_conflict(monkeypatch):
+    from app.services.exercises import RoutineReviewConflict
+
+    def stale(*args, **kwargs):
+        raise RoutineReviewConflict()
+
+    monkeypatch.setattr("app.api.exercises.exercises.review_routine", stale)
+    assert _call(*REVIEW_EXERCISE[:2], "pt-1", **REVIEW_EXERCISE[2]).status_code == 409
+
+
+@pytest.mark.parametrize("user_id", ["diet-1", "cardio-1", PATIENT_ID])
+def test_other_roles_cannot_read_unpublished_routines(user_id):
+    assert _call("GET", "/api/exercises/", user_id).json() == []
+
+
+def test_deactivated_pt_cannot_read_unpublished_routines(monkeypatch):
+    monkeypatch.setitem(PROFILES, "pt-1", {**PROFILES["pt-1"], "account_status": "deactivated"})
+    assert _call("GET", "/api/exercises/", "pt-1").json() == []
+
+
 @pytest.mark.parametrize("user_id", ["diet-1", "pt-1", "cardio-1"])
 @pytest.mark.parametrize("method, path", [
     ("GET", "/api/admin/dashboard"),
@@ -185,6 +221,7 @@ def test_experts_cannot_use_admin_actions(user_id, method, path):
     ("diet-1", "recipes", True),
     ("pt-1", "recipes", True),
     ("diet-1", "exercises", True),
+    ("pt-1", "exercises", True),
     ("cardio-1", "recipes", True),
     ("cardio-1", "exercises", True),
 ])

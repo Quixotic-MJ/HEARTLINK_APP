@@ -1,7 +1,18 @@
 // Shared by the exercise form and its parts editor: what a part looks like in the form, how long
 // it takes, and how it turns into a saved step and back.
 
-export const NEW_PART = { instruction: "", details: "", mode: "time", minutes: 0, seconds: 30, reps: 10, seconds_per_rep: 3, both_sides: false, breath: "", image: "" };
+export const NEW_PART = {
+  instruction: "",
+  details: "",
+  mode: "time",
+  minutes: 0,
+  seconds: 30,
+  reps: 10,
+  seconds_per_rep: 3,
+  both_sides: false,
+  breath: "",
+  image: "",
+};
 
 /** Seconds one part takes (a count works out its own time); both sides doubles it. */
 export function partSeconds(part) {
@@ -11,6 +22,31 @@ export function partSeconds(part) {
       ? (Number(part.reps) || 0) * (Number(part.seconds_per_rep) || 0)
       : (Number(part.minutes) || 0) * 60 + (Number(part.seconds) || 0);
   return once * (part.both_sides ? 2 : 1);
+}
+
+/** Match the mobile counted-step voice prompt; movement time remains separate. */
+export function countedPromptSeconds(part) {
+  if (part.mode !== "count") return 0;
+  const details =
+    /^(follow the instructions carefully|follow the instructions|n\/a|none)\.?$/i.test(
+      (part.details || "").trim(),
+    )
+      ? ""
+      : part.details;
+  const spoken = [
+    part.instruction,
+    details,
+    `${part.reps} times${part.both_sides ? " on each side" : ""}`,
+  ]
+    .map((text) => (text || "").trim().replace(/\.$/, ""))
+    .filter(Boolean)
+    .join(". ");
+  return (
+    Math.min(
+      8,
+      Math.max(3, Math.ceil((spoken.split(/\s+/).length + 4) / 2.3)),
+    ) * (part.both_sides ? 2 : 1)
+  );
 }
 
 /** 1290 → "21 min 30 s" */
@@ -23,8 +59,9 @@ export function formatSeconds(total) {
 
 /** A saved step → a form row. Old steps have no section, mode or minutes. */
 export function partFromStep(step) {
-  if (typeof step === "string") return { ...NEW_PART, instruction: step };
-  const secs = Number(step?.duration_seconds) || 30;
+  if (typeof step === "string")
+    return { ...NEW_PART, instruction: step, seconds: 0 };
+  const secs = Number(step?.duration_seconds) || 0;
   return {
     ...NEW_PART,
     instruction: step?.instruction || step?.value || "",
@@ -32,8 +69,8 @@ export function partFromStep(step) {
     mode: step?.mode === "count" ? "count" : "time",
     minutes: Math.floor(secs / 60),
     seconds: secs % 60,
-    reps: step?.reps || 10,
-    seconds_per_rep: step?.seconds_per_rep || 3,
+    reps: step?.reps || 0,
+    seconds_per_rep: step?.seconds_per_rep || 0,
     both_sides: !!step?.both_sides,
     breath: step?.breath || "",
     image: step?.image || "",
@@ -47,7 +84,12 @@ export function stepFromPart(part, section, isBreathing) {
     details: (part.details || "").trim(),
     section,
     mode: isBreathing ? "time" : part.mode === "count" ? "count" : "time",
-    duration_seconds: Math.max(1, part.mode === "count" && !isBreathing ? (Number(part.reps) || 1) * (Number(part.seconds_per_rep) || 1) : (Number(part.minutes) || 0) * 60 + (Number(part.seconds) || 0)),
+    duration_seconds: Math.max(
+      1,
+      part.mode === "count" && !isBreathing
+        ? (Number(part.reps) || 1) * (Number(part.seconds_per_rep) || 1)
+        : (Number(part.minutes) || 0) * 60 + (Number(part.seconds) || 0),
+    ),
     both_sides: !isBreathing && !!part.both_sides,
   };
   if (step.mode === "count") {

@@ -13,6 +13,12 @@ DIETITIAN_REVIEWED = {
     "reviewed_by": "diet",
     "reviewed_at": "2026-11-07T01:00:00+00:00",
 }
+PT_REVIEWED = {
+    "expert_validated": True, "reviewed_by": "pt", "reviewed_at": "2026-11-07T01:00:00+00:00",
+    "description": "Synthetic reviewed movement", "duration_minutes": 1, "rounds": 1, "rest_seconds": 0,
+    "position": "Standing", "setting": "Indoors",
+    "steps": [{"instruction": "Move gently", "section": "main", "mode": "time", "duration_seconds": 30}],
+}
 
 
 class Profiles:
@@ -56,8 +62,8 @@ class Content:
 
     def list_routines(self):
         return [
-            {"id": "e1", "name": "Brisk walking", "hss_tier": "Moderate", "status": "published", "expert_validated": True},
-            {"id": "e2", "name": "Band rows", "hss_tier": "Moderate", "status": "published", "expert_validated": True},
+            {"id": "e1", "name": "Brisk walking", "hss_tier": "Moderate", "status": "published", **PT_REVIEWED},
+            {"id": "e2", "name": "Band rows", "hss_tier": "Moderate", "status": "published", **PT_REVIEWED},
             # HL-026: not PT-approved, so patients never get it and the review never lists it.
             {"id": "e3", "name": "Arm circles", "hss_tier": "Moderate", "status": "published", "expert_validated": False},
         ]
