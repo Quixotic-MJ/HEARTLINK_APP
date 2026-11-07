@@ -98,7 +98,7 @@ const ConfirmActionModal = ({
         aria-modal="true"
         aria-labelledby="confirm-action-dialog-title"
         tabIndex={-1}
-        className="relative z-10 w-full max-w-md overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas p-6 sm:p-7 text-left text-cal-ink shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
+        className="relative z-10 max-h-full w-full max-w-md overflow-y-auto rounded-[12px] border border-cal-hairline bg-cal-canvas p-6 sm:p-7 text-left text-cal-ink shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
       >
         {/* Close button */}
         <button

@@ -64,3 +64,19 @@ def test_very_long_reasons_are_cut(profiles):
     fake, _ = profiles
     toggle({"reason": "x" * 500})
     assert len(fake.rows["p1"]["deactivation_reason"]) == admin_api.DEACTIVATION_REASON_MAX
+
+
+@pytest.mark.parametrize("status", ["archived", "legacy", None])
+def test_access_toggle_does_not_restore_unknown_or_archived_accounts(profiles, status):
+    fake, logged = profiles
+    fake.rows["p1"]["account_status"] = status
+    assert toggle().status_code == 400
+    assert fake.rows["p1"]["account_status"] == status
+    assert logged == []
+
+
+def test_a_failed_status_write_is_not_reported_as_success(profiles, monkeypatch):
+    fake, logged = profiles
+    monkeypatch.setattr(fake, "update_profile", lambda *_args, **_kwargs: None)
+    assert toggle().status_code == 500
+    assert logged == []

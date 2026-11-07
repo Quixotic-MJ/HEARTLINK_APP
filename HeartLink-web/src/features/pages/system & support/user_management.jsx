@@ -1,16 +1,14 @@
-import { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Ban,
   CheckCircle2,
   ChevronDown,
-  Crown,
   RefreshCw,
   ShieldAlert,
   ShieldCheck,
-  Trash2,
   User,
 } from "lucide-react";
 import { useAuth } from "../../../contexts/useAuth";
@@ -25,7 +23,7 @@ import AccountActionModal from "../../../components/modals/AccountActionModal";
 import ConfirmActionModal from "../../../components/modals/ConfirmActionModal";
 import TempPasswordModal from "../../../components/modals/TempPasswordModal";
 
-// Patients as the directory shows them, from /api/users/ (HL-035: loaded through React Query)
+// Only account-support fields are returned by the Admin-only directory.
 const NO_USERS = [];
 const toPatients = (patientsData) => {
   const mappedPatients = (patientsData || [])
@@ -34,23 +32,21 @@ const toPatients = (patientsData) => {
       return {
         id: r.id,
         name:
-          `${r.first_name || ""} ${r.last_name || ""}`.trim() ||
-          "Anonymized Patient",
+          `${r.first_name || ""} ${r.last_name || ""}`.trim() || "App account",
         phone: r.phone || "",
         regDate: r.created_at
           ? new Date(r.created_at).toLocaleDateString("en-US", {
-            month: "short",
-            day: "2-digit",
-            year: "numeric",
-          })
+              month: "short",
+              day: "2-digit",
+              year: "numeric",
+              timeZone: "Asia/Manila",
+            })
           : "N/A",
-        status: r.account_status === "active" ? "Active" : "Disabled",
+        status:
+          { active: "Active", disabled: "Disabled", archived: "Archived" }[
+            r.account_status
+          ] || "Unknown",
         deactivationReason: r.deactivation_reason || "",
-        onboardingStatus: r.onboarding_status,
-        hssScore: r.hss_score,
-        hssTier: r.hss_tier,
-        activityStatus: r.activity_status,
-        reviewStatus: r.review_status,
         // HL-084: Premium counts only until its end date
         isPremium:
           r.plan === "premium" &&
@@ -65,9 +61,8 @@ const toPatients = (patientsData) => {
 
 const Users = () => {
   const { user, userId } = useAuth();
-  const currentUserRole = user?.role || "admin";
+  const currentUserRole = user?.role;
   const [activeTab, setActiveTab] = useState("app_users");
-  const navigate = useNavigate();
   const [newStaffCredentials, setNewStaffCredentials] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -78,6 +73,7 @@ const Users = () => {
   const [modalMode, setModalMode] = useState("");
   const [activeEntity, setActiveEntity] = useState(null);
   const [reassignExpertType, setReassignExpertType] = useState("");
+  const reassignExpertTypeRef = useRef("");
 
   // Confirmation Modal State
   const [confirmConfig, setConfirmConfig] = useState({
@@ -135,8 +131,6 @@ const Users = () => {
       setActiveEntity(u);
       setModalMode("view_app_user");
       setIsModalOpen(true);
-    } else {
-      navigate(`/users/${u.id}`);
     }
   };
 
@@ -159,6 +153,7 @@ const Users = () => {
 
   // 1. Staff Status Toggle (with confirmation)
   const requestToggleStaffStatus = (staff) => {
+    closeModal();
     const isActive =
       (staff.account_status || staff.status)?.toLowerCase() === "active";
     const willDisable = isActive;
@@ -168,7 +163,7 @@ const Users = () => {
       title: willDisable ? "Disable staff account?" : "Activate staff account?",
       subtitle: staff.name,
       description: willDisable
-        ? "Disabling this staff member will immediately prevent them from signing in and performing administrative or clinical actions."
+        ? "Disabling this staff member will immediately prevent them from signing in and performing assigned workspace actions."
         : "Re-activating this account restores full access to their assigned staff permissions.",
       confirmText: willDisable ? "Disable account" : "Activate account",
       variant: willDisable ? "warning" : "success",
@@ -181,38 +176,47 @@ const Users = () => {
       },
       impactDetails: willDisable
         ? [
-          "Active session tokens will be invalidated.",
-          "Account status set to inactive.",
-          "Can be re-enabled at any time by an administrator.",
-        ]
+            "Privileged requests are denied while this account is disabled.",
+            "Account status is set to disabled.",
+            "Can be re-enabled at any time by an administrator.",
+          ]
         : [
-          "Sign-in credentials and access will be restored immediately.",
-          "Assigned role privileges reactivated.",
-        ],
+            "Sign-in credentials and access will be restored immediately.",
+            "Assigned role privileges reactivated.",
+          ],
       onConfirm: async () => {
         try {
           await apiFetch(`/api/admin/users/${staff.id}/status`, {
             method: "PUT",
           });
           toast.success(
-            `Staff account ${willDisable ? "disabled" : "activated"} successfully.`
+            `Staff account ${willDisable ? "disabled" : "activated"} successfully.`,
           );
           closeModal();
           closeConfirmModal();
         } catch (e) {
           console.error("Failed to toggle staff status", e);
           toast.error(e.data?.detail || "Failed to update staff status.");
+          throw e;
         }
       },
     });
   };
 
   // 2. Staff Role Change (with confirmation)
-  const requestChangeStaffRole = (staffId, currentRole, newRoleLabel, staffObj) => {
+  const requestChangeStaffRole = (
+    staffId,
+    currentRole,
+    newRoleLabel,
+    staffObj,
+  ) => {
+    closeModal();
     const isTargetExpert =
-      newRoleLabel.includes("Expert") || newRoleLabel === "Authorized Medical Expert";
+      newRoleLabel.includes("Expert") ||
+      newRoleLabel === "Authorized Medical Expert";
 
     setReassignExpertType("");
+    reassignExpertTypeRef.current = "";
 
     setConfirmConfig({
       isOpen: true,
@@ -231,32 +235,34 @@ const Users = () => {
       },
       impactDetails: isTargetExpert
         ? [
-          "Grants clinical case evaluation, meal plan, and exercise validation access.",
-          "Revokes system configuration and administrative account provisioning rights.",
-        ]
+            "Grants only the content-review actions permitted for the selected specialty.",
+            "Revokes system configuration and administrative account provisioning rights.",
+          ]
         : [
-          "Grants system administration, audit log visibility, and support permissions.",
-          "Removes direct clinical decision signing.",
-        ],
+            "Grants system administration, audit log visibility, and support permissions.",
+            "Does not grant specialty content approval or consumer health-record access.",
+          ],
       onConfirm: async () => {
-        if (isTargetExpert && (!reassignExpertType || !reassignExpertType.trim())) {
+        const specialization = reassignExpertTypeRef.current;
+        if (isTargetExpert && !specialization.trim()) {
           toast.error("Please select an expert specialization.");
           throw new Error("Missing expert specialization");
         }
         try {
           const bodyPayload = { role: newRoleLabel };
           if (isTargetExpert) {
-            bodyPayload.expert_type = reassignExpertType;
+            bodyPayload.expert_type = specialization;
           }
           await apiFetch(`/api/admin/staff/${staffId}/role`, {
             method: "PUT",
             body: JSON.stringify(bodyPayload),
           });
           toast.success(
-            `Role updated to ${isTargetExpert
-              ? `Expert Reviewer (${reassignExpertType})`
-              : "System Admin"
-            }.`
+            `Role updated to ${
+              isTargetExpert
+                ? `Expert Reviewer (${specialization})`
+                : "System Admin"
+            }.`,
           );
           closeModal();
           closeConfirmModal();
@@ -271,79 +277,6 @@ const Users = () => {
     });
   };
 
-  // 3. Delete Staff Account (with confirmation)
-  const requestDeleteStaff = (staffId, staffName, staffObj) => {
-    setConfirmConfig({
-      isOpen: true,
-      title: "Permanently delete staff account?",
-      subtitle: staffName,
-      description: `Are you sure you want to permanently delete the staff record for "${staffName}"? This action cannot be undone.`,
-      confirmText: "Delete permanently",
-      variant: "danger",
-      icon: Trash2,
-      entityInfo: {
-        name: staffName,
-        email: staffObj?.email,
-        badge: staffObj?.role,
-        id: staffId,
-      },
-      impactDetails: [
-        "Staff profile and administrative access credentials will be permanently erased.",
-        "Active authentication tokens will be immediately destroyed.",
-        "Action is logged for compliance and security auditing.",
-      ],
-      onConfirm: async () => {
-        try {
-          await apiFetch(`/api/admin/staff/${staffId}`, {
-            method: "DELETE",
-          });
-          toast.success(`Staff account for ${staffName} permanently deleted.`);
-          closeModal();
-          closeConfirmModal();
-        } catch (e) {
-          console.error("Failed to delete staff", e);
-          toast.error(e.data?.detail || "Failed to delete staff account.");
-        }
-      },
-    });
-  };
-
-  // 4. Delete Patient Account (with confirmation)
-  const requestDeleteUser = (targetUserId, userName) => {
-    setConfirmConfig({
-      isOpen: true,
-      title: "Permanently delete patient account?",
-      subtitle: userName,
-      description: `Are you sure you want to permanently purge all data for "${userName}"? All patient telemetry, health scores, and records will be deleted.`,
-      confirmText: "Delete patient record",
-      variant: "danger",
-      icon: Trash2,
-      entityInfo: {
-        name: userName,
-        id: targetUserId,
-        badge: "Patient",
-      },
-      impactDetails: [
-        "All recorded heart vitals, symptom logs, and check-ins will be purged.",
-        "Authentication identity and patient profile permanently removed.",
-        "This operation cannot be reversed.",
-      ],
-      onConfirm: async () => {
-        try {
-          await apiFetch(`/api/admin/users/${targetUserId}`, {
-            method: "DELETE",
-          });
-          toast.success(`Patient record for ${userName} has been purged.`);
-          closeModal();
-          closeConfirmModal();
-        } catch (e) {
-          console.error("Failed to delete user", e);
-          toast.error(e.data?.detail || "Failed to delete user record.");
-        }
-      },
-    });
-  };
-
   // 5. Patient Account Status Toggle (Direct from AccountActionModal)
   // HL-073: the reason picked when disabling is saved and shown on the account until it is enabled again
   const handleToggleAppUserStatus = async (entityId, reason) => {
@@ -352,11 +285,12 @@ const Users = () => {
         method: "PUT",
         body: JSON.stringify(reason ? { reason } : {}),
       });
-      toast.success("Patient account status updated successfully.");
+      toast.success("App account status updated successfully.");
       closeModal();
     } catch (e) {
       console.error("Failed to toggle user status", e);
       toast.error(e.data?.detail || "Failed to change user status.");
+      throw e;
     }
   };
 
@@ -365,61 +299,23 @@ const Users = () => {
     try {
       await apiFetch(`/api/admin/users/${entityId}/plan`, {
         method: "PUT",
-        body: JSON.stringify(premium ? { premium: true, days } : { premium: false }),
+        body: JSON.stringify(
+          premium ? { premium: true, days } : { premium: false },
+        ),
       });
-      toast.success(premium ? `Premium given for ${days} days.` : "Premium removed.");
+      toast.success(
+        premium ? `Premium given for ${days} days.` : "Premium removed.",
+      );
       closeModal();
       closeConfirmModal();
     } catch (e) {
       toast.error(e.data?.detail || "Couldn't change the plan.");
+      throw e;
     }
   };
 
-  const handleChangePlan = (entity, premium, days) => {
-    if (premium) return savePlan(entity.id, true, days);
-    setConfirmConfig({
-      isOpen: true,
-      title: "Remove Premium?",
-      subtitle: entity.name,
-      description: `${entity.name} goes back to the free plan straight away. Their logs and safety features aren't affected.`,
-      confirmText: "Remove Premium",
-      variant: "danger",
-      icon: Crown,
-      entityInfo: { name: entity.name, id: entity.id, badge: "Patient" },
-      impactDetails: [
-        "Premium features stop working for this patient now.",
-        "They can start Premium again from the mobile app.",
-      ],
-      onConfirm: () => savePlan(entity.id, false),
-    });
-  };
-
-  // HL-058: an admin marks a medical expert as a verified clinician (their reviews then count in Model Check)
-  const handleToggleClinician = async (staff) => {
-    const verified = !staff.is_verified_clinician;
-    try {
-      await apiFetch(`/api/admin/staff/${staff.id}/clinician-verification`, {
-        method: "PUT",
-        body: JSON.stringify({ verified }),
-      });
-      toast.success(
-        verified
-          ? `${staff.name} is now a verified clinician.`
-          : `Verification removed for ${staff.name}.`
-      );
-      setActiveEntity((prev) =>
-        prev && prev.id === staff.id
-          ? {
-            ...prev,
-            is_verified_clinician: verified,
-            clinician_verified_at: verified ? new Date().toISOString() : null,
-          }
-          : prev
-      );
-    } catch (e) {
-      toast.error(e.data?.detail || "Couldn't update the clinician verification.");
-    }
-  };
+  const handleChangePlan = (entity, premium, days) =>
+    savePlan(entity.id, premium, days);
 
   // 6. Save/Provision Staff Account
   const handleSaveStaff = async (staffData) => {
@@ -430,8 +326,9 @@ const Users = () => {
       });
       const isExpert = staffData.role?.toLowerCase().includes("expert");
       toast.success("Staff account provisioned", {
-        description: `${staffData.name} has been enrolled as a ${isExpert ? "Medical Expert" : "System Admin"
-          }.`,
+        description: `${staffData.name} has been enrolled as a ${
+          isExpert ? "Medical Expert" : "System Admin"
+        }.`,
       });
       closeModal();
       // HL-044: the one-time temporary password is only available in this response
@@ -443,6 +340,7 @@ const Users = () => {
     } catch (e) {
       console.error("Failed to save staff", e);
       toast.error(e.data?.detail || "Failed to provision staff member.");
+      throw e;
     }
   };
 
@@ -454,7 +352,9 @@ const Users = () => {
 
   const handleTabSwitch = (tab) => {
     if (tab === "system_staff" && currentUserRole !== "admin") {
-      toast.error("Access denied: Only admins can view or modify System Staff records.");
+      toast.error(
+        "Access denied: Only admins can view or modify System Staff records.",
+      );
       return;
     }
     setActiveTab(tab);
@@ -487,10 +387,11 @@ const Users = () => {
               <span>User governance · Accounts &amp; permissions</span>
             </div>
             <h2 className="font-cal-display text-[28px] sm:text-[32px] font-semibold tracking-[-0.8px] leading-[1.15] text-cal-ink">
-              User &amp; staff directory
+              Accounts &amp; staff
             </h2>
             <p className="mt-1.5 max-w-[64ch] text-[14px] leading-[1.5] text-cal-muted">
-              Manage patient mobile access, Premium entitlements, staff provisioning, and clinician verification states.
+              Manage app account access and staff permissions. Consumer health
+              records are not part of this workspace.
             </p>
           </div>
 
@@ -509,11 +410,35 @@ const Users = () => {
         <div
           role="tablist"
           aria-label="Directory section"
+          onKeyDown={(event) => {
+            if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key))
+              return;
+            const tabs = [
+              ...event.currentTarget.querySelectorAll('[role="tab"]'),
+            ];
+            const current = tabs.indexOf(document.activeElement);
+            if (current < 0) return;
+            event.preventDefault();
+            const next =
+              event.key === "Home"
+                ? 0
+                : event.key === "End"
+                  ? tabs.length - 1
+                  : (current +
+                      (event.key === "ArrowRight" ? 1 : -1) +
+                      tabs.length) %
+                    tabs.length;
+            tabs[next].focus();
+            tabs[next].click();
+          }}
           className="relative inline-flex flex-wrap items-center gap-1 rounded-full border border-cal-hairline bg-cal-canvas p-1 shadow-[0_1px_2px_rgba(0,0,0,0.04)] select-none"
         >
           <button
             type="button"
             role="tab"
+            id="app-accounts-tab"
+            tabIndex={activeTab === "app_users" ? 0 : -1}
+            aria-controls="app-accounts-panel"
             aria-selected={activeTab === "app_users"}
             onClick={() => handleTabSwitch("app_users")}
             className={`group relative flex items-center gap-2 rounded-full px-4 py-1.5 text-[13.5px] font-medium transition-colors cursor-pointer select-none ${
@@ -550,6 +475,9 @@ const Users = () => {
             <button
               type="button"
               role="tab"
+              id="system-staff-tab"
+              tabIndex={activeTab === "system_staff" ? 0 : -1}
+              aria-controls="system-staff-panel"
               aria-selected={activeTab === "system_staff"}
               onClick={() => handleTabSwitch("system_staff")}
               className={`group relative flex items-center gap-2 rounded-full px-4 py-1.5 text-[13.5px] font-medium transition-colors cursor-pointer select-none ${
@@ -589,6 +517,9 @@ const Users = () => {
           {activeTab === "app_users" && (
             <motion.div
               key="app_users"
+              id="app-accounts-panel"
+              role="tabpanel"
+              aria-labelledby="app-accounts-tab"
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
@@ -613,6 +544,9 @@ const Users = () => {
           {activeTab === "system_staff" && currentUserRole === "admin" && (
             <motion.div
               key="system_staff"
+              id="system-staff-panel"
+              role="tabpanel"
+              aria-labelledby="system-staff-tab"
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
@@ -632,13 +566,12 @@ const Users = () => {
 
         {/* User Account Actions Modal */}
         <AccountActionModal
+          key={activeEntity?.id || "no-account"}
           isOpen={isModalOpen && modalMode === "view_app_user"}
           onClose={closeModal}
           user={activeEntity}
           onToggleStatus={handleToggleAppUserStatus}
           onChangePlan={handleChangePlan}
-          canDelete={currentUserRole === "admin"}
-          onDeleteUser={requestDeleteUser}
         />
 
         {/* Staff Detail View Modal */}
@@ -650,8 +583,6 @@ const Users = () => {
           currentUserId={userId}
           onToggleStatus={requestToggleStaffStatus}
           onChangeRole={requestChangeStaffRole}
-          onDeleteStaff={requestDeleteStaff}
-          onToggleClinician={handleToggleClinician}
         />
 
         {/* Provision Staff Modal */}
@@ -698,7 +629,10 @@ const Users = () => {
                 <select
                   id="reassign-expert-specialization"
                   value={reassignExpertType}
-                  onChange={(e) => setReassignExpertType(e.target.value)}
+                  onChange={(e) => {
+                    setReassignExpertType(e.target.value);
+                    reassignExpertTypeRef.current = e.target.value;
+                  }}
                   className="h-10 w-full appearance-none rounded-[8px] border border-cal-hairline bg-cal-canvas pl-3.5 pr-9 text-[13.5px] font-medium text-cal-ink focus:border-cal-ink focus:outline-none cursor-pointer"
                 >
                   <option value="">Select specialization…</option>

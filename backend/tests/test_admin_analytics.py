@@ -1,89 +1,36 @@
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
+
 from app.main import app
 from app.utils.security import get_current_admin_user, get_current_user
 
-client = TestClient(app)
 
-def override_admin_user():
-    return {"id": "mock-admin-id", "role": "admin", "email": "admin@heartlink.ph"}
+@pytest.fixture(autouse=True)
+def isolated_overrides():
+    saved = dict(app.dependency_overrides)
+    app.dependency_overrides.clear()
+    app.dependency_overrides[get_current_user] = lambda: {
+        "id": "mock-patient-id", "user_id": "mock-patient-id", "role": "patient"
+    }
+    yield
+    app.dependency_overrides.clear()
+    app.dependency_overrides.update(saved)
 
-def override_patient_user():
-    # Signed-in users carry user_id (see get_current_user); id is kept for older readers.
-    return {"id": "mock-patient-id", "user_id": "mock-patient-id", "role": "patient"}
-
-app.dependency_overrides[get_current_admin_user] = override_admin_user
-app.dependency_overrides[get_current_user] = override_patient_user
 
 def test_admin_dashboard_authorization_non_admin():
-    # Remove admin override to test authorization
-    app.dependency_overrides.pop(get_current_admin_user, None)
-    
-    # Try as patient
-    app.dependency_overrides[get_current_admin_user] = override_patient_user
-    response = client.get("/api/admin/dashboard")
-    assert response.status_code in [401, 403]
-    
-    # Try without auth (FastAPI HTTPBearer usually returns 403 when missing)
-    app.dependency_overrides.pop(get_current_admin_user, None)
-    response = client.get("/api/admin/dashboard")
-    assert response.status_code in [401, 403]
-    
-    # Restore admin override
-    app.dependency_overrides[get_current_admin_user] = override_admin_user
-
-
-RPC_STATS = {
-    "total_users": 4, "active_users": 2, "avg_hss": 71.5,
-    "hss_distribution": {"stable": 1, "moderate": 2, "elevated": 1, "critical": 0},
-    "users_needing_review": {"open_alerts": 3},
-    "user_activity": [],
-    "content_library": {"recipes": 5, "routines": 7},
-}
-
-
-@patch("app.api.admin_api.admin_api.get_admin_repo")
-@patch("app.api.admin_api.admin_api.get_supabase_client")
-def test_admin_dashboard_keeps_the_web_contract(mock_get_client, mock_admin_repo):
-    # The database function's numbers come back with the extra blocks the web dashboard reads.
-    mock_get_client.return_value.rpc.return_value.execute.return_value = MagicMock(data=dict(RPC_STATS))
-    mock_admin_repo.return_value.list_activity.return_value = [{"id": "a1", "action": "created_recipe"}]
-
-    response = client.get("/api/admin/dashboard")
-
-    assert response.status_code == 200
-    data = response.json()
-    mock_get_client.return_value.rpc.assert_called_once_with("get_admin_dashboard_stats", {"days_cutoff": 7})
-    assert data["kpi"] == {"total_users": 4, "active_users": 2, "avg_hss": 71.5, "open_alerts": 3}
-    assert data["content_library"]["exercises"] == 7
-    assert data["recent_activity"][0]["action"] == "created_recipe"
+    client = TestClient(app)
+    app.dependency_overrides[get_current_admin_user] = lambda: {"role": "patient"}
+    assert client.get("/api/admin/dashboard").status_code == 403
+    app.dependency_overrides.pop(get_current_admin_user)
+    assert client.get("/api/admin/dashboard").status_code in (401, 403)
 
 
 @patch("app.api.analytics_api.analytics_api.get_analytics")
 def test_analytics_date_filtering(mock_get_analytics):
+    # The consumer's own mobile analytics contract is separate from portal reporting.
     mock_get_analytics.return_value = {"history": [], "vitals": []}
-    response = client.get("/api/analytics/mock-patient-id?days=30")
+    response = TestClient(app).get("/api/analytics/mock-patient-id?days=30")
     assert response.status_code == 200
-    data = response.json()
-    assert "history" in data
-    assert "vitals" in data
+    assert response.json() == {"history": [], "vitals": []}
     mock_get_analytics.assert_called_once_with("mock-patient-id", days=30)
-
-@patch("app.api.admin_api.admin_api.get_supabase_client")
-def test_admin_dashboard_rpc_failure_handling(mock_get_client):
-    # This test will only pass AFTER the admin_api.py has been refactored to use the RPC with error handling
-    
-    # Setup mock to raise an exception when calling .rpc().execute()
-    mock_rpc = MagicMock()
-    mock_rpc.execute.side_effect = Exception("Database timeout")
-    
-    mock_client = MagicMock()
-    mock_client.rpc.return_value = mock_rpc
-    mock_get_client.return_value = mock_client
-    
-    response = client.get("/api/admin/dashboard")
-    
-    if mock_client.rpc.called:
-        assert response.status_code == 500
-        assert response.json()["detail"] == "Internal Server Error"

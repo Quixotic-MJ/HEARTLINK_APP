@@ -493,9 +493,9 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
 
   // Permitted pages for Quick Search dialog
   const searchablePages = [
-    canOpen("/dashboard") && { label: "Dashboard", path: "/dashboard", section: "Overview", icon: Gauge },
+    canOpen("/dashboard") && { label: "Overview", path: "/dashboard", section: "Workspace", icon: Gauge },
     canOpen("/analytics") && { label: "Analytics", path: "/analytics", section: "Overview", icon: ChartColumn },
-    canOpen("/users") && { label: "Users", path: "/users", section: "Administration", icon: Users },
+    canOpen("/users") && { label: "Accounts & Staff", path: "/users", section: "Operations", icon: Users },
     canOpen("/foods") && { label: "Food & Recipes", path: "/foods", section: "Content", icon: Utensils },
     canOpen("/exercises") && { label: "Exercise Library", path: "/exercises", section: "Content", icon: Dumbbell },
     canOpen("/premium") && { label: "Premium", path: "/premium", section: "Governance", icon: Crown },
@@ -675,7 +675,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
               <NavItem
                 path="/dashboard"
                 icon={Gauge}
-                label="Dashboard"
+                label="Overview"
                 collapsed={collapsed}
                 onNavigate={closeMobileIfNeeded}
               />
@@ -695,7 +695,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
               <NavItem
                 path="/users"
                 icon={Users}
-                label="Users"
+                label="Accounts & Staff"
                 collapsed={collapsed}
                 activeOverride={location.pathname.startsWith("/users/")}
                 onNavigate={closeMobileIfNeeded}

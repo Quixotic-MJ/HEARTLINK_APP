@@ -1,26 +1,18 @@
 from fastapi import APIRouter, Body, Depends, HTTPException
 from typing import Dict, Any, Optional, List
-from datetime import datetime, timedelta, timezone
 import os
-import random
 import hashlib
 import secrets
 import string
 from app.utils.security import get_current_admin_only
-from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
+from app.utils.time import utc_now
 from app.utils.activity_helper import record_admin_activity
 from app.db.client import get_supabase_client
 from app.db.repositories import (
     get_profile_repo,
-    get_health_logs_repo,
-    get_meals_repo,
-    get_exercises_repo,
-    get_sleep_repo,
-    get_hss_repo,
     get_content_repo,
     get_notification_repo,
     get_admin_repo,
-    get_case_review_repo
 )
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
@@ -51,366 +43,71 @@ def _resolve_expert_type(target_role: str, raw: Any) -> Optional[str]:
         return canonical
     return None
 
-def _parse_dt(dt):
-    return parse_utc(dt)
-
 @router.get("/dashboard", response_model=Dict[str, Any])
 def get_admin_dashboard(current_user: dict = Depends(get_current_admin_only)):
     try:
-        supabase_client = get_supabase_client()
-        # Call the PostgreSQL function for fast native aggregation (HL-003)
-        res = supabase_client.rpc("get_admin_dashboard_stats", {"days_cutoff": 7}).execute()
-        if not res.data:
-            raise HTTPException(status_code=500, detail="Dashboard RPC returned empty data")
-        
-        dashboard_data = res.data
+        accounts = dict.fromkeys(
+            ("consumers", "staff", "unknown_role", "active", "disabled", "archived", "unknown_status"), 0
+        )
+        for profile in get_profile_repo().list_portal_account_statuses():
+            role = profile.get("role")
+            group = "consumers" if role == "patient" else "staff" if role in {"admin", "medical_expert"} else "unknown_role"
+            accounts[group] += 1
+            status = profile.get("account_status")
+            accounts[status if status in {"active", "disabled", "archived"} else "unknown_status"] += 1
 
-        # Keep the response contract the web dashboard reads (kpi block, content_library.exercises)
-        dashboard_data["kpi"] = {
-            "total_users": dashboard_data.get("total_users", 0),
-            "active_users": dashboard_data.get("active_users", 0),
-            "avg_hss": dashboard_data.get("avg_hss", 0),
-            "open_alerts": (dashboard_data.get("users_needing_review") or {}).get("open_alerts", 0),
-        }
-        content_library = dashboard_data.get("content_library") or {}
-        content_library.setdefault("exercises", content_library.get("routines", 0))
-        dashboard_data["content_library"] = content_library
+        content = {}
+        repo = get_content_repo()
+        for kind in ("recipes", "exercises"):
+            counts = dict.fromkeys(
+                ("total", "draft", "published", "archived", "unknown_status", "approval_recorded",
+                 "awaiting_review", "changes_requested", "published_without_review"), 0
+            )
+            for row in repo.list_portal_content_statuses(kind):
+                counts["total"] += 1
+                status = row.get("status")
+                counts[status if status in {"draft", "published", "archived"} else "unknown_status"] += 1
+                approved = bool(row.get("expert_validated") and row.get("reviewed_by") and row.get("reviewed_at"))
+                if status != "archived" and approved:
+                    counts["approval_recorded"] += 1
+                elif status == "draft":
+                    counts["changes_requested" if row.get("review_note") else "awaiting_review"] += 1
+                if status == "published" and not approved:
+                    counts["published_without_review"] += 1
+            content[kind] = counts
+        return {"accounts": accounts, "content": content, "generated_at": utc_now().isoformat()}
+    except Exception as error:
+        logger.warning("Operational overview unavailable (%s)", type(error).__name__)
+        raise HTTPException(status_code=500, detail="Operational overview unavailable")
 
-        # Recent Admin Activity still loaded via Python (small payload)
-        admin_activity = get_admin_repo().list_activity(limit=10)
-        recent_activity = []
-        for act in admin_activity:
-            recent_activity.append({
-                "id": act.get("id"),
-                "admin_user_id": act.get("admin_user_id"),
-                "admin_name": act.get("admin_name"),
-                "action": act.get("action"),
-                "target_type": act.get("target_type"),
-                "target_id": act.get("target_id"),
-                "target_name": act.get("target_name"),
-                "created_at": act.get("created_at")
-            })
-            
-        dashboard_data["recent_activity"] = recent_activity
-        return dashboard_data
-        
-    except Exception as e:
-        if isinstance(e, HTTPException):
-            raise
-        logger.error(f"[Dashboard Error] {e}")
-        # The database's own error text stays in the server log, not in the response.
-        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @router.get("/analytics", response_model=Dict[str, Any])
-def get_admin_analytics(period: str = "6months", current_user: dict = Depends(get_current_admin_only)):
-    now = utc_now()
-    
-    all_profiles = get_profile_repo().list_all(exclude_archived=False)
-    actual_patients = [p for p in all_profiles if p.get("role") == "patient"]
-    actual_users = len(actual_patients)
-    archived_patients = sum(1 for p in actual_patients if p.get("account_status") == "archived")
-    
-    num_months = 6
-    if period == "30days":
-        num_months = 1
-    elif period == "3months":
-        num_months = 3
-    elif period == "6months":
-        num_months = 6
-    elif period == "12months":
-        num_months = 12
-
-    if period == "30days":
-        cutoff_current = now - timedelta(days=30)
-        cutoff_prev = now - timedelta(days=60)
-    elif period == "3months":
-        cutoff_current = now - timedelta(days=90)
-        cutoff_prev = now - timedelta(days=180)
-    elif period == "6months":
-        cutoff_current = now - timedelta(days=180)
-        cutoff_prev = now - timedelta(days=360)
-    else:
-        cutoff_current = now - timedelta(days=365)
-        cutoff_prev = now - timedelta(days=730)
-
-    current_registrations = 0
-    prev_registrations = 0
-    for p in actual_patients:
-        created = _parse_dt(p.get("created_at")) or now
-        if cutoff_current <= created <= now:
-            current_registrations += 1
-        elif cutoff_prev <= created < cutoff_current:
-            prev_registrations += 1
-            
-    if prev_registrations > 0:
-        growth_val = round(((current_registrations - prev_registrations) / prev_registrations) * 100)
-        signups_growth = f"{'+' if growth_val >= 0 else ''}{growth_val}%"
-    else:
-        signups_growth = "No comparative data"
-
-    meal_logs = get_meals_repo().list_all_meals()
-    exercise_logs = get_exercises_repo().list_all_logs()
-    sleep_logs = get_sleep_repo().list_all_logs()
-    daily_health_logs = get_health_logs_repo().list_all_logs()
-    hss_history = get_hss_repo().list_all_hss_records()
-    recipes = get_content_repo().list_recipes()
-    exercise_routines = get_content_repo().list_routines()
-
-    def count_logs_in_range(start_dt, end_dt):
-        cnt = 0
-        for m in meal_logs:
-            logged_at = _parse_dt(m.get("logged_at"))
-            if logged_at and start_dt <= logged_at <= end_dt:
-                cnt += 1
-        for ex in exercise_logs:
-            if ex.get("status") != "abandoned":
-                logged_at = _parse_dt(ex.get("logged_at"))
-                if logged_at and start_dt <= logged_at <= end_dt:
-                    cnt += 1
-        for s in sleep_logs:
-            if not s.get("is_deleted"):
-                logged_at = _parse_dt(s.get("logged_at"))
-                if logged_at and start_dt <= logged_at <= end_dt:
-                    cnt += 1
-        for l in daily_health_logs:
-            logged_at = _parse_dt(l.get("logged_at"))
-            if logged_at and start_dt <= logged_at <= end_dt:
-                cnt += 1
-        return cnt
-
-    total_records = count_logs_in_range(cutoff_current, now)
-    prev_records = count_logs_in_range(cutoff_prev, cutoff_current)
-
-    if prev_records > 0:
-        records_growth_val = round(((total_records - prev_records) / prev_records) * 100)
-        records_growth = f"{'+' if records_growth_val >= 0 else ''}{records_growth_val}%"
-    else:
-        records_growth = "No comparative data"
-
-    churn_rate = f"{round(archived_patients / actual_users * 100, 1) if actual_users else 0}%"
-
-    demographics = {
-        "total_signups": actual_users,
-        "signups_growth": signups_growth,
-        "total_records": total_records,
-        "records_growth": records_growth,
-        "archived_accounts": archived_patients,
-        "churn_rate": churn_rate,
-        "monthly_dau": []
-    }
-
-    months_boundaries = []
-    current_month_start = datetime(now.year, now.month, 1, tzinfo=timezone.utc)
-    
-    for i in range(num_months - 1, -1, -1):
-        m = current_month_start.month - i
-        y = current_month_start.year
-        while m <= 0:
-            m += 12
-            y -= 1
-        start_of_month = datetime(y, m, 1, tzinfo=timezone.utc)
-        nm = m + 1
-        ny = y
-        if nm > 12:
-            nm = 1
-            ny += 1
-        end_of_month = datetime(ny, nm, 1, tzinfo=timezone.utc)
-        months_boundaries.append((start_of_month, end_of_month))
-
-    for start_of_month, end_of_month in months_boundaries:
-        active_users_in_month = set()
-        for p in actual_patients:
-            p_id = str(p["id"])
-            has_activity = False
-            for m in meal_logs:
-                if str(m.get("user_id")) == p_id:
-                    logged_at = _parse_dt(m.get("logged_at"))
-                    if logged_at and start_of_month <= logged_at < end_of_month:
-                        has_activity = True
-                        break
-            if has_activity:
-                active_users_in_month.add(p_id)
-                continue
-
-            for ex in exercise_logs:
-                if str(ex.get("user_id")) == p_id and ex.get("status") != "abandoned":
-                    logged_at = _parse_dt(ex.get("logged_at"))
-                    if logged_at and start_of_month <= logged_at < end_of_month:
-                        has_activity = True
-                        break
-            if has_activity:
-                active_users_in_month.add(p_id)
-                continue
-
-            for s in sleep_logs:
-                if str(s.get("user_id")) == p_id and not s.get("is_deleted"):
-                    logged_at = _parse_dt(s.get("logged_at"))
-                    if logged_at and start_of_month <= logged_at < end_of_month:
-                        has_activity = True
-                        break
-            if has_activity:
-                active_users_in_month.add(p_id)
-                continue
-
-            for l in daily_health_logs:
-                if str(l.get("user_id")) == p_id:
-                    logged_at = _parse_dt(l.get("logged_at"))
-                    if logged_at and start_of_month <= logged_at < end_of_month:
-                        has_activity = True
-                        break
-            if has_activity:
-                active_users_in_month.add(p_id)
-
-        demographics["monthly_dau"].append({
-            "name": start_of_month.strftime("%b"),
-            "dau": len(active_users_in_month)
-        })
-
-    wellness_outcomes = []
-    for start_of_month, end_of_month in months_boundaries:
-        stable = 0
-        moderate = 0
-        elevated_risk = 0
-        critical = 0
-        
-        for p in actual_patients:
-            p_id = str(p["id"])
-            p_records = []
-            for entry in hss_history:
-                if str(entry.get("user_id")) != p_id:
-                    continue
-                dt = _parse_dt(entry.get("computed_at"))
-                if dt and dt < end_of_month:
-                    p_records.append((dt, entry))
-            
-            if p_records:
-                p_records.sort(key=lambda x: x[0], reverse=True)
-                latest_entry = p_records[0][1]
-                tier = latest_entry.get("tier", "Moderate")
-                if tier == "Stable": stable += 1
-                elif tier == "Moderate": moderate += 1
-                elif tier == "Elevated Risk": elevated_risk += 1
-                else: critical += 1
-
-        wellness_outcomes.append({
-            "name": start_of_month.strftime("%b"),
-            "stable": stable,
-            "moderate": moderate,
-            "elevated_risk": elevated_risk,
-            "critical": critical
-        })
-
-    scored_recipes = []
-    for r in recipes:
-        r_id = str(r["id"])
-        actual_cooks = sum(1 for m in meal_logs if str(m.get("recipe_id")) == r_id)
-        scored_recipes.append({
-            "name": r.get("name", "Unknown Recipe"),
-            "completions": actual_cooks
-        })
-    scored_recipes = sorted(scored_recipes, key=lambda x: x["completions"], reverse=True)[:5]
-    
-    scored_exercises = []
-    for ex in exercise_routines:
-        ex_id = str(ex["id"])
-        actual_sessions = sum(1 for l in exercise_logs if str(l.get("routine_id")) == ex_id and l.get("status") != "abandoned")
-        scored_exercises.append({
-            "name": ex.get("name", "Unknown Routine"),
-            "completions": actual_sessions
-        })
-    scored_exercises = sorted(scored_exercises, key=lambda x: x["completions"], reverse=True)[:5]
-
-    content_efficacy = {
-        "top_recipes": scored_recipes,
-        "top_exercises": scored_exercises
-    }
-
-    symptoms_map = {}
-    for l in daily_health_logs:
-        for sym in (l.get("symptoms") or []):
-            symptoms_map[sym] = symptoms_map.get(sym, 0) + 1
-    symptoms_frequency = []
-    for sym, count in sorted(symptoms_map.items(), key=lambda x: x[1], reverse=True):
-        formatted_name = str(sym).replace("_", " ").title()
-        symptoms_frequency.append({"name": formatted_name, "count": count})
-
-    recipes_dist = {"Stable": 0, "Moderate": 0, "Elevated Risk": 0, "Critical": 0}
-    for r in recipes:
-        tier = r.get("hss_tier", "Stable")
-        if tier in recipes_dist:
-            recipes_dist[tier] += 1
-            
-    exercises_dist = {"Stable": 0, "Moderate": 0, "Elevated Risk": 0, "Critical": 0}
-    for ex in exercise_routines:
-        tier = ex.get("hss_tier", "Stable")
-        if tier in exercises_dist:
-            exercises_dist[tier] += 1
-            
-    content_distribution = {
-        "recipes": recipes_dist,
-        "exercises": exercises_dist
-    }
-
-    activity_over_time = []
-    for start_of_month, end_of_month in months_boundaries:
-        meals_count = 0
-        for m in meal_logs:
-            logged_at = _parse_dt(m.get("logged_at"))
-            if logged_at and start_of_month <= logged_at < end_of_month:
-                meals_count += 1
-
-        ex_count = 0
-        for e in exercise_logs:
-            if e.get("status") != "abandoned":
-                logged_at = _parse_dt(e.get("logged_at"))
-                if logged_at and start_of_month <= logged_at < end_of_month:
-                    ex_count += 1
-
-        sleep_count = 0
-        for s in sleep_logs:
-            if not s.get("is_deleted"):
-                logged_at = _parse_dt(s.get("logged_at"))
-                if logged_at and start_of_month <= logged_at < end_of_month:
-                    sleep_count += 1
-        
-        vitals_count = 0
-        symptoms_count = 0
-        for l in daily_health_logs:
-            logged_at = _parse_dt(l.get("logged_at"))
-            if logged_at and start_of_month <= logged_at < end_of_month:
-                vitals_count += 1
-                symptoms_count += len(l.get("symptoms") or [])
-                
-        activity_over_time.append({
-            "name": start_of_month.strftime("%b"),
-            "meals": meals_count,
-            "exercises": ex_count,
-            "sleep": sleep_count,
-            "vitals": vitals_count,
-            "symptoms": symptoms_count
-        })
-
+def get_admin_analytics(current_user: dict = Depends(get_current_admin_only)):
     return {
-        "demographics": demographics,
-        "wellness_outcomes": wellness_outcomes,
-        "content_efficacy": content_efficacy,
-        "symptoms_frequency": symptoms_frequency,
-        "content_distribution": content_distribution,
-        "activity_over_time": activity_over_time
+        "status": "unavailable",
+        "message": "Operational analytics is not available yet. Use the overview for current account and content statuses.",
     }
+
 
 @router.get("/staff")
 def get_system_staff(current_user: dict = Depends(get_current_admin_only)):
-    all_profiles = get_profile_repo().list_all(exclude_archived=False)
+    try:
+        all_profiles = get_profile_repo().list_portal_staff()
+    except Exception as error:
+        logger.warning("Staff directory unavailable (%s)", type(error).__name__)
+        raise HTTPException(status_code=500, detail="Staff directory unavailable")
     staff = [p for p in all_profiles if p.get("role") in ["medical_expert", "admin"]]
     result = []
     for s in staff:
         if s.get("role") == "admin":
             role_label = "System Admin"
-            perms = ["All Administrative Permissions"]
+            perms = ["Author and publish content", "Manage accounts and operations"]
         else:
             role_label = "Authorized Medical Expert"
-            perms = ["Validate Recipes", "Verify Exercises", "Evaluate Cases"]
+            perms = {
+                "Dietitian": ["Review recipes"],
+                "Physical Therapist": ["Review exercise routines"],
+            }.get(normalize_expert_type(s.get("expert_type")), ["No specialty approval assigned"])
             
         result.append({
             "id": s.get("id"),
@@ -422,8 +119,8 @@ def get_system_staff(current_user: dict = Depends(get_current_admin_only)):
             "is_verified_clinician": bool(s.get("is_verified_clinician")),
             "clinician_verified_at": s.get("clinician_verified_at"),
             "permissions": perms,
-            "account_status": s.get("account_status", "active"),
-            "status": s.get("account_status", "active").capitalize(),
+            "account_status": s.get("account_status"),
+            "status": str(s.get("account_status") or "unknown").capitalize(),
             "created_at": s.get("created_at")
         })
     return result
@@ -676,7 +373,9 @@ def toggle_user_status(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
         
-    current_status = user.get("account_status", "active")
+    current_status = user.get("account_status")
+    if current_status not in {"active", "disabled"}:
+        raise HTTPException(status_code=400, detail="Access changes are unavailable for this account state")
     user_role = user.get("role", "patient")
     
     is_staff = user_role in ["admin", "medical_expert"]
@@ -696,7 +395,9 @@ def toggle_user_status(
     reason = str((payload or {}).get("reason") or "").strip()[:DEACTIVATION_REASON_MAX] or None
     if new_status == "active":
         reason = None
-    profile_repo.update_profile(user_id, {"account_status": new_status, "deactivation_reason": reason})
+    updated = profile_repo.update_profile(user_id, {"account_status": new_status, "deactivation_reason": reason})
+    if not updated:
+        raise HTTPException(status_code=500, detail="Account status could not be updated")
     
     admin_id = current_user.get("user_id") if current_user else "admin"
     user_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip() or user.get("email") or user_id
@@ -808,88 +509,6 @@ def delete_user_or_staff(user_id: str, current_user: dict = Depends(get_current_
     )
 
     return {"status": "success", "message": f"Account {user_name} deleted successfully"}
-
-@router.get("/users/{user_id}/timeline")
-def get_user_timeline(user_id: str, current_user: dict = Depends(get_current_admin_only)):
-    logs = []
-    
-    from app.services.health_logs import get_health_logs
-    daily_health_logs = get_health_logs(user_id)
-    for log in daily_health_logs:
-        logs.append({
-            "type": "Vitals",
-            "timestamp": log.get("logged_at"),
-            "data": {
-                "systolic": log.get("systolic_bp"),
-                "diastolic": log.get("diastolic_bp"),
-                "heart_rate": log.get("heart_rate_bpm"),
-                "weight_kg": log.get("weight_kg"),
-                "blood_sugar": log.get("blood_sugar")
-            }
-        })
-        if log.get("symptoms"):
-            logs.append({
-                "type": "Symptoms",
-                "timestamp": log.get("logged_at"),
-                "data": {
-                    "symptoms": log.get("symptoms"),
-                    "severity_map": log.get("severity_map"),
-                    "context": log.get("context")
-                }
-            })
-            
-    meal_logs = get_meals_repo().list_user_meals(user_id)
-    for m in meal_logs:
-        logs.append({
-            "type": "Meal",
-            "timestamp": m.get("logged_at"),
-            "data": {
-                "meal_name": m.get("meal_name"),
-                "calories": m.get("calories"),
-                "sodium_mg": m.get("sodium_mg")
-            }
-        })
-        
-    exercise_logs = get_exercises_repo().list_user_logs(user_id)
-    for e in exercise_logs:
-        logs.append({
-            "type": "Exercise",
-            "timestamp": e.get("logged_at"),
-            "data": {
-                "routine_name": e.get("routine_name"),
-                "duration_minutes": e.get("duration_minutes"),
-                "status": e.get("status")
-            }
-        })
-        
-    sleep_logs = get_sleep_repo().list_user_logs(user_id)
-    for s in sleep_logs:
-        logs.append({
-            "type": "Sleep",
-            "timestamp": s.get("logged_at"),
-            "data": {
-                "duration_hours": s.get("duration_hours"),
-                "quality": s.get("quality")
-            }
-        })
-        
-    hss_logs = get_hss_repo().list_hss_history(user_id)
-    for h in hss_logs:
-        logs.append({
-            "type": "HSS",
-            "timestamp": h.get("computed_at"),
-            "data": {
-                "score": h.get("score"),
-                "tier": h.get("tier")
-            }
-        })
-        
-    def parse_dt(x):
-        dt = _parse_dt(x.get("timestamp"))
-        return dt if dt else UTC_MIN
-        
-    logs.sort(key=parse_dt, reverse=True)
-    return logs
 
 @router.get("/broadcasts", response_model=list)
 def get_broadcasts(current_user: dict = Depends(get_current_admin_only)):

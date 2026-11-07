@@ -6,12 +6,15 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime
 import uuid
 import logging
-from app.db.repositories.base import handle_db_error, resolve_uuid, serialize_for_db
+from app.db.repositories.base import handle_db_error, resolve_uuid, serialize_for_db, list_projected_rows
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 
 logger = logging.getLogger(__name__)
 
 class ContentRepository:
+    def list_portal_content_statuses(self, kind: str) -> List[Dict[str, Any]]:
+        raise NotImplementedError
+
     # Recipes
     def list_recipes(self) -> List[Dict[str, Any]]:
         raise NotImplementedError
@@ -75,6 +78,12 @@ class ContentRepository:
 class SupabaseContentRepository(ContentRepository):
     def __init__(self, client):
         self.client = client
+
+    def list_portal_content_statuses(self, kind: str) -> List[Dict[str, Any]]:
+        table = {"recipes": "recipes", "exercises": "exercise_routines"}[kind]
+        return list_projected_rows(
+            self.client, table, "status,expert_validated,reviewed_by,reviewed_at,review_note"
+        )
 
     def _resolve_user_uuid(self, user_id: str) -> Optional[str]:
         valid_uuid = resolve_uuid(user_id)

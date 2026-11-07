@@ -36,6 +36,11 @@ class PostgrestQueryBuilder:
         self.params["limit"] = str(count)
         return self
 
+    def range(self, start: int, end: int):
+        self.params["offset"] = str(start)
+        self.params["limit"] = str(end - start + 1)
+        return self
+
     def execute(self):
         query_string = urllib.parse.urlencode(self.params)
         url = f"{self.base_url}?{query_string}" if query_string else self.base_url

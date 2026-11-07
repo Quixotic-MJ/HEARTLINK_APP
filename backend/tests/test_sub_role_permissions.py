@@ -210,7 +210,6 @@ def test_deactivated_pt_cannot_read_unpublished_routines(monkeypatch):
     ("POST", "/api/admin/broadcasts"),
     ("DELETE", "/api/admin/broadcasts/b1"),
     ("PUT", f"/api/admin/users/{PATIENT_ID}/status"),
-    ("GET", f"/api/admin/users/{PATIENT_ID}/timeline"),
     ("GET", "/api/admin/activity"),
 ])
 def test_experts_cannot_use_admin_actions(user_id, method, path):

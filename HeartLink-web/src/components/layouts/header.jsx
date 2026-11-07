@@ -21,7 +21,7 @@ const DESKTOP = "(min-width: 1024px)";
 
 function resolveRouteMeta(pathname) {
   if (pathname === "/dashboard") {
-    return { section: "Overview", title: "Dashboard" };
+    return { section: "Workspace", title: "Overview" };
   }
   if (pathname === "/analytics") {
     return { section: "Overview", title: "Analytics" };
@@ -33,10 +33,10 @@ function resolveRouteMeta(pathname) {
     return { section: "Content", title: "Exercise Library" };
   }
   if (pathname === "/users") {
-    return { section: "Administration", title: "Users" };
+    return { section: "Operations", title: "Accounts & Staff" };
   }
   if (pathname.startsWith("/users/")) {
-    return { section: "Users", sectionPath: "/users", title: "Wellness Profile" };
+    return { section: "Operations", title: "Accounts & Staff" };
   }
   if (pathname === "/feedbacks") {
     return { section: "Support", title: "Get Help" };

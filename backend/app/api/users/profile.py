@@ -1,5 +1,5 @@
 from fastapi import APIRouter, status, HTTPException, Depends, Request, Response
-from app.utils.security import get_current_user, set_auth_cookies, REFRESH_COOKIE_NAME, STAFF_ROLES
+from app.utils.security import get_current_user, get_current_admin_only, set_auth_cookies, REFRESH_COOKIE_NAME, STAFF_ROLES
 from app.services.session_service import restart_after_password_change
 from app.utils.rate_limiter import limiter, user_or_ip_key
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
@@ -30,162 +30,13 @@ router = APIRouter(prefix="/users", tags=["Users"])
 
 
 @router.get("/", status_code=status.HTTP_200_OK)
-async def read_all_users(current_user: dict = Depends(get_current_user)):
-    caller_role = current_user.get("role")
-    caller_id = current_user.get("user_id")
-    if caller_role not in STAFF_ROLES:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access Denied: Admins/Experts only",
-        )
-
-    enriched_profiles = []
-    from datetime import datetime, timedelta, timezone
-    from app.db.repositories import (
-        get_profile_repo,
-        get_hss_repo,
-        get_health_logs_repo,
-        get_meals_repo,
-        get_exercises_repo,
-        get_sleep_repo,
-        get_case_review_repo,
-        get_baseline_repo,
-    )
-    
-    all_profiles = get_profile_repo().list_all(exclude_archived=False)
-
-    # Medical experts may only list patients assigned to their care team (TKT-SEC-01)
-    if caller_role == "medical_expert":
-        assigned_user_ids = set()
-        for p in all_profiles:
-            pid = p.get("id")
-            if pid:
-                care_team = get_baseline_repo().list_care_team(pid)
-                if any(c.get("contact_user_id") == caller_id or c.get("user_id") == caller_id for c in care_team):
-                    assigned_user_ids.add(pid)
-        all_profiles = [p for p in all_profiles if p.get("id") in assigned_user_ids]
-
-    
-    # --- BULK AGGREGATION TO PREVENT N+1 QUERY ---
-    import logging
-    logger = logging.getLogger(__name__)
-
-    all_hss = all_meals = all_exercises = all_sleeps = all_health_logs = []
-    reviewed_patient_ids = set()
-
+async def read_all_users(current_user: dict = Depends(get_current_admin_only)):
+    from app.db.repositories import get_profile_repo
     try:
-        all_hss = get_hss_repo().list_all_hss_records()
-    except Exception as e:
-        logger.error(f"[read_all_users] Failed to fetch HSS records: {e}", exc_info=True)
-
-    try:
-        all_meals = get_meals_repo().list_all_meals()
-    except Exception as e:
-        logger.error(f"[read_all_users] Failed to fetch meal logs: {e}", exc_info=True)
-
-    try:
-        all_exercises = get_exercises_repo().list_all_logs()
-    except Exception as e:
-        logger.error(f"[read_all_users] Failed to fetch exercise logs: {e}", exc_info=True)
-
-    try:
-        all_sleeps = get_sleep_repo().list_all_logs()
-    except Exception as e:
-        logger.error(f"[read_all_users] Failed to fetch sleep logs: {e}", exc_info=True)
-
-    try:
-        all_health_logs = get_health_logs_repo().list_all_logs()
-    except Exception as e:
-        logger.error(f"[read_all_users] Failed to fetch health logs: {e}", exc_info=True)
-
-    try:
-        reviewed_patient_ids = set(get_case_review_repo().list_reviewed_patient_ids())
-    except Exception as e:
-        logger.error(f"[read_all_users] Failed to fetch case reviews: {e}", exc_info=True)
-
-    # Build memory maps
-    hss_map = {}
-    for r in all_hss:
-        uid = r.get("user_id")
-        # Since it's ordered by computed_at desc in the repo, the first one encountered is the latest.
-        if uid and uid not in hss_map:
-            hss_map[uid] = r
-
-    activity_map = {}
-    cutoff = utc_now() - timedelta(days=7)
-    
-    def parse_dt(x):
-        if x is None:
-            return UTC_MIN
-        dt = x
-        if isinstance(x, dict):
-            dt = x.get("created_at") or x.get("logged_at") or x.get("timestamp") or x.get("computed_at")
-        parsed = parse_utc(dt)
-        return parsed if parsed else UTC_MIN
-
-    def add_dates(data_list):
-        for r in data_list:
-            uid = r.get("user_id")
-            if not uid: continue
-            if uid not in activity_map:
-                activity_map[uid] = []
-            activity_map[uid].append(parse_dt(r))
-
-    add_dates(all_meals)
-    add_dates(all_exercises)
-    add_dates(all_sleeps)
-    add_dates(all_health_logs)
-    
-    review_set = reviewed_patient_ids
-    # ---------------------------------------------
-
-    for p in all_profiles:
-        if p.get("role") != "patient":
-            # Sanitize passwords before returning
-            clean_p = {k: v for k, v in p.items() if k not in ["password", "password_hash", "token", "secret"]}
-            enriched_profiles.append(clean_p)
-            continue
-
-        try:
-            uid = p.get("id")
-            # Compute HSS
-            latest_hss = hss_map.get(uid)
-            if latest_hss:
-                hss_score = latest_hss.get("score")
-                hss_tier = latest_hss.get("tier")
-            else:
-                hss_score = None
-                hss_tier = "N/A"
-                
-            # Compute Activity Status
-            user_dates = activity_map.get(uid, [])
-            recent_logs = [d for d in user_dates if d >= cutoff]
-            if recent_logs:
-                activity_status = "Recently Active"
-            elif user_dates:
-                activity_status = "Inactive"
-            else:
-                activity_status = "New User"
-                
-            # Compute Review Status
-            review_status = "Evaluated" if uid in review_set else "Pending Review"
-            
-            p_copy = {k: v for k, v in p.items() if k not in ["password", "password_hash", "token", "secret"]}
-            p_copy["hss_score"] = hss_score
-            p_copy["hss_tier"] = hss_tier
-            p_copy["activity_status"] = activity_status
-            p_copy["review_status"] = review_status
-            enriched_profiles.append(p_copy)
-        except Exception as enrich_err:
-            logger.warning(f"[read_all_users] Enrichment logic failed for user {p.get('id')}: {enrich_err}")
-            p_copy = {k: v for k, v in p.items() if k not in ["password", "password_hash", "token", "secret"]}
-            p_copy["hss_score"] = None
-            p_copy["hss_tier"] = "N/A"
-            p_copy["activity_status"] = "Unknown"
-            p_copy["review_status"] = "Pending Review"
-            enriched_profiles.append(p_copy)
-        
-    return enriched_profiles
+        return [row for row in get_profile_repo().list_portal_accounts() if row.get("role") == "patient"]
+    except Exception as error:
+        logger.warning("Account directory unavailable (%s)", type(error).__name__)
+        raise HTTPException(status_code=500, detail="Account directory unavailable")
 
 
 

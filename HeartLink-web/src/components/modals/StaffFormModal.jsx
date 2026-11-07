@@ -28,12 +28,16 @@ const staffSchema = z
 
 const StaffFormModal = ({ isOpen, onClose, onSave }) => {
   const dialogRef = useRef(null);
+  const errorRef = useRef(null);
+  const pending = useRef(false);
   const {
     register,
     control,
     handleSubmit,
     reset,
     setValue,
+    setError,
+    clearErrors,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(staffSchema),
@@ -47,7 +51,10 @@ const StaffFormModal = ({ isOpen, onClose, onSave }) => {
     mode: "onTouched",
   });
 
-  useDialogFocus(isOpen, dialogRef, isSubmitting ? null : onClose);
+  const close = () => {
+    if (!pending.current) onClose();
+  };
+  useDialogFocus(isOpen, dialogRef, close);
 
   const selectedRole = useWatch({ control, name: "role" });
   const isExpertRole = selectedRole === "Authorized Medical Expert";
@@ -69,8 +76,21 @@ const StaffFormModal = ({ isOpen, onClose, onSave }) => {
   }, [isOpen, reset]);
 
   const onSubmit = async (data) => {
-    if (onSave) {
+    if (pending.current) return;
+    pending.current = true;
+    clearErrors("root");
+    try {
       await onSave(data);
+    } catch (error) {
+      setError("root", {
+        message:
+          error.data?.detail ||
+          error.message ||
+          "Could not provision the account. Try again.",
+      });
+      requestAnimationFrame(() => errorRef.current?.focus());
+    } finally {
+      pending.current = false;
     }
   };
 
@@ -81,7 +101,7 @@ const StaffFormModal = ({ isOpen, onClose, onSave }) => {
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-cal-ink/40 transition-opacity"
-        onClick={!isSubmitting ? onClose : undefined}
+        onClick={close}
       />
 
       {/* Modal Panel */}
@@ -113,7 +133,7 @@ const StaffFormModal = ({ isOpen, onClose, onSave }) => {
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={close}
             disabled={isSubmitting}
             aria-label="Close modal"
             className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-hairline bg-cal-canvas text-cal-muted hover:text-cal-ink transition-colors cursor-pointer disabled:opacity-40"
@@ -125,9 +145,19 @@ const StaffFormModal = ({ isOpen, onClose, onSave }) => {
         {/* Scrollable Form */}
         <form
           id="staff-provision-form"
-          onSubmit={handleSubmit(onSubmit)}
+          onSubmit={(event) => handleSubmit(onSubmit)(event)}
           className="flex-1 overflow-y-auto p-6 space-y-4"
         >
+          {errors.root && (
+            <p
+              ref={errorRef}
+              role="alert"
+              tabIndex={-1}
+              className="rounded-lg border border-cal-error p-3 text-sm"
+            >
+              {errors.root.message}
+            </p>
+          )}
           <InputField
             id="name"
             label="Full name"
@@ -171,7 +201,9 @@ const StaffFormModal = ({ isOpen, onClose, onSave }) => {
                     : "border-cal-hairline focus:border-cal-ink"
                 }`}
               >
-                <option value="Authorized Medical Expert">Expert Reviewer</option>
+                <option value="Authorized Medical Expert">
+                  Expert Reviewer
+                </option>
                 <option value="System Admin">System Admin</option>
               </select>
               <ChevronDown
@@ -180,7 +212,9 @@ const StaffFormModal = ({ isOpen, onClose, onSave }) => {
               />
             </div>
             {errors.role && (
-              <p className="text-[12px] font-medium text-cal-error">{errors.role.message}</p>
+              <p className="text-[12px] font-medium text-cal-error">
+                {errors.role.message}
+              </p>
             )}
           </div>
 
@@ -223,7 +257,9 @@ const StaffFormModal = ({ isOpen, onClose, onSave }) => {
           <div className="flex items-start gap-2.5 rounded-[10px] border border-cal-hairline bg-cal-surface-soft p-3.5 text-[12.5px] leading-[1.45] text-cal-body">
             <Info size={14.5} className="mt-0.5 shrink-0 text-cal-ink" />
             <p className="m-0">
-              A one-time temporary password will be generated and shown to you once. The new staff member must choose their own password the first time they sign in.
+              A one-time temporary password will be generated and shown to you
+              once. The new staff member must choose their own password the
+              first time they sign in.
             </p>
           </div>
         </form>
@@ -232,7 +268,7 @@ const StaffFormModal = ({ isOpen, onClose, onSave }) => {
         <div className="flex shrink-0 items-center justify-end gap-2.5 border-t border-cal-hairline bg-cal-canvas px-6 py-4">
           <button
             type="button"
-            onClick={onClose}
+            onClick={close}
             disabled={isSubmitting}
             className="h-10 rounded-[8px] border border-cal-hairline bg-cal-canvas px-4 text-[13.5px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer disabled:opacity-40"
           >
