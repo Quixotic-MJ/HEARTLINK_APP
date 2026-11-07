@@ -60,7 +60,7 @@ const FEATURES = [
   {
     icon: Dumbbell,
     title: "Score-matched routines",
-    text: "Browse clinician-checked recipes and exercises filtered by need—low-sodium, quick prep, seated movement, or guided breathing.",
+    text: "Browse recipes and exercises filtered by need—low-sodium, quick prep, seated movement, or guided breathing.",
   },
   {
     icon: SlidersHorizontal,
@@ -93,7 +93,7 @@ const STEPS = [
   {
     step: "01",
     title: "Set up your profile",
-    text: "Answer a short health questionnaire with plain-language 'Why we ask' notes. HeartLink computes your starting Heart score from 37 inputs.",
+    text: "Answer a short health questionnaire with plain-language 'Why we ask' notes. HeartLink works out your starting Heart score from your answers.",
     fragment: (
       <div className="mt-auto rounded-[8px] border border-cal-hairline bg-cal-canvas p-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
         <div className="flex items-center justify-between text-[13px]">
@@ -115,7 +115,7 @@ const STEPS = [
   {
     step: "02",
     title: "Check in each day",
-    text: "Log your blood pressure, meals, exercise, sleep and medicine—even offline. Each habit moves your daily score up or down.",
+    text: "Log your blood pressure, meals, exercise, sleep and medicine—even offline. Your Heart score looks at your last 7 days.",
     fragment: (
       <div className="mt-auto rounded-[8px] border border-cal-hairline bg-cal-canvas p-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
         <div className="grid grid-cols-2 gap-2 text-[12px]">
@@ -608,7 +608,7 @@ function PricingSection() {
                   "Personal Heart Stability Score (HSS) + Today's note",
                   "Emergency warnings & one-tap Call 911",
                   "Meal barcode scanner & allergy warnings",
-                  "Expert-approved recipes & exercises",
+                  "Recipes & exercises for heart health",
                   "7-day Trends, offline sync & Cebu clinic map",
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-3">
@@ -1022,15 +1022,17 @@ export default function Landing() {
             <div className="flex flex-col gap-4 lg:col-span-5">
               <span className="inline-flex w-fit items-center gap-2 rounded-full bg-cal-primary/10 px-3 py-1 text-[13px] font-semibold text-cal-primary">
                 <ShieldCheck size={15} aria-hidden="true" />
-                NHANES 2017–2018 · 5,569 adults
+                NHANES 2017–2018 · Life's Essential 8
               </span>
               <h2 className="m-0 font-cal-display text-[28px] font-semibold leading-[1.1] tracking-[-1px] text-cal-ink sm:text-[38px] lg:text-[48px] lg:tracking-[-1.5px]">
                 What your Heart score means
               </h2>
               <p className="m-0 text-[16px] leading-[1.5] text-cal-body">
-                Your starting score comes from a logistic-regression baseline trained on health
-                survey data from 5,569 adults (NHANES 2017–2018). After that, guideline-based blood
-                pressure rules and daily habits move it.
+                Your first score is a machine learning model's estimate of a Life's Essential 8 score, trained
+                on health survey data from 3,703 adults (NHANES 2017–2018). Once you log, your score is based on the
+                American Heart Association's Life's Essential 8: it averages points for your blood pressure, activity,
+                sleep, nicotine, body weight and diet, and high blood pressure limits how high it can go. It
+                isn't the official AHA score, and it hasn't been validated.
               </p>
               <div className="rounded-[12px] bg-cal-surface-card p-5">
                 <div className="text-[14px] font-semibold text-cal-ink">

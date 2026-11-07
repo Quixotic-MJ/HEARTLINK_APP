@@ -95,6 +95,7 @@ def world(monkeypatch):
 # --- which scorer produced the app's level ----------------------------------------------------------
 
 @pytest.mark.parametrize("row, scorer", [
+    ({"source": "telemetry", "score": 73, "tier": "Moderate", "contributing_factors": {"source": "heart_score"}}, "heart_score"),
     ({"source": "baseline", "score": 70, "tier": "Moderate"}, "baseline_model"),
     ({"source": "telemetry", "score": 52, "tier": "Elevated Risk"}, "bp_rules"),
     ({"source": "telemetry", "score": 81, "tier": "Stable", "contributing_factors": {"source": "lifestyle_composite"}}, "lifestyle_points"),

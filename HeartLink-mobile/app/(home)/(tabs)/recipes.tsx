@@ -335,7 +335,7 @@ export default function RecipesScreen({
               Recipes
             </Text>
             <Text style={{ fontSize: 12.5, color: c.slate }}>
-              Heart-healthy, dietitian-approved meals
+              Heart-healthy meals
             </Text>
           </View>
         </View>

@@ -42,6 +42,26 @@ class ExerciseScreeningRequest(BaseModel):
     answers: dict[str, bool]
 
 
+# HL-114: the Heart score answers that can change after setup
+class HeartAnswersUpdate(BaseModel):
+    ever_smoked: bool
+    smoke_now: Optional[Literal["Every day", "Some days", "Not at all"]] = None
+    smoke_quit_when: Optional[Literal["under_1_year", "1_to_5_years", "5_plus_years"]] = None
+    fruit_veg_servings: Literal["0-1", "2-3", "4-5", "6+"]
+    fried_food_freq: Literal["rarely", "sometimes", "often", "daily"]
+    salty_food_freq: Literal["rarely", "sometimes", "often", "daily"]
+
+    @model_validator(mode="after")
+    def clean_smoking_answers(self):
+        if self.ever_smoked and not self.smoke_now:
+            raise ValueError("smoke_now is required when ever_smoked is true")
+        if not self.ever_smoked:
+            self.smoke_now = None
+        if self.smoke_now != "Not at all":
+            self.smoke_quit_when = None
+        return self
+
+
 # Unified Onboarding Baseline
 class BaselineOnboardingRequest(BaseModel):
     # Physical Activity
@@ -60,6 +80,7 @@ class BaselineOnboardingRequest(BaseModel):
     sleep_hours: float = Field(..., ge=1.0, le=24.0)
     ever_smoked: bool
     smoke_now: Optional[Literal["Every day", "Some days", "Not at all"]] = None
+    smoke_quit_when: Optional[Literal["under_1_year", "1_to_5_years", "5_plus_years"]] = None
     
     # Alcohol
     ever_drank: bool
@@ -94,6 +115,8 @@ class BaselineOnboardingRequest(BaseModel):
             # Clean smoking when false
             if not data.get("ever_smoked"):
                 data["smoke_now"] = None
+            if data.get("smoke_now") != "Not at all":
+                data["smoke_quit_when"] = None
             # Clean drinking
             if not data.get("ever_drank") or data.get("drink_frequency") == "Never":
                 data["drinks_per_occasion"] = None

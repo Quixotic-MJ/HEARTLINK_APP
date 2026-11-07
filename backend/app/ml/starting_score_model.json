@@ -1,9 +1,11 @@
 {
-  "version": "starting-score-2",
-  "trained_at": "2026-10-22T15:31:24Z",
-  "data": "NHANES 2017-2018, adults 20+",
-  "label": "Ever told heart failure, coronary heart disease, angina, heart attack or stroke (NHANES MCQ160B-F)",
-  "label_status": "pending cardiologist review",
+  "version": "starting-score-le8-1",
+  "kind": "linear regression, estimates an LE8 score",
+  "trained_at": "2026-11-07T08:16:24Z",
+  "data": "NHANES 2017-2018, adults 20+ with all 8 areas, not pregnant, no heart disease or stroke",
+  "label": "Life's Essential 8 score, worked out with the AHA's published points from NHANES 2017-2018 measurements and answers",
+  "bmi_row": "AHA Asian and Pacific row for everyone",
+  "label_status": "pending expert review",
   "inputs": [
     "age",
     "male",
@@ -16,72 +18,155 @@
     "drinks_week",
     "binge_days_year"
   ],
+  "features": [
+    "bmi_points",
+    "activity_points",
+    "sleep_points",
+    "nicotine_points",
+    "age",
+    "male"
+  ],
   "medians": {
-    "age": 53.0,
+    "age": 50.0,
     "male": 0.0,
     "bmi": 28.6,
     "current_smoker": 0.0,
     "former_smoker": 0.0,
-    "active_min_week": 60.0,
+    "active_min_week": 90.0,
     "sitting_hours": 5.0,
     "sleep_hours": 7.5,
-    "drinks_week": 0.5192,
+    "drinks_week": 0.2308,
     "binge_days_year": 0.0
   },
   "means": [
-    51.503681,
-    0.485186,
-    29.740636,
-    0.180643,
-    0.238642,
-    266.226971,
-    5.501571,
-    7.60334,
-    2.452574,
-    10.019573
+    45.10532,
+    54.815015,
+    82.100999,
+    74.574669,
+    49.386443,
+    0.477451
   ],
   "scales": [
-    17.811256,
-    0.49978,
-    7.015499,
-    0.384722,
-    0.426254,
-    465.051231,
-    3.323433,
-    1.657312,
-    6.470407,
-    40.621249
+    32.616599,
+    46.805163,
+    25.275443,
+    38.143011,
+    17.023454,
+    0.499491
   ],
   "weights": [
-    1.275824,
-    0.211298,
-    0.236424,
-    0.285797,
-    0.225397,
-    -0.160807,
-    0.181415,
-    0.019776,
-    -0.030532,
-    0.015826
+    6.506181,
+    6.773618,
+    3.41352,
+    4.944618,
+    -2.914272,
+    -1.217247
   ],
-  "intercept": -2.625151,
+  "intercept": 62.472995,
   "metrics_cross_validated": {
-    "people": 5569,
-    "label_rate": 0.124,
-    "auc": 0.808,
-    "auc_age_only": 0.787,
-    "brier": 0.093,
-    "band_share": {
-      "Stable": 0.773,
-      "Moderate": 0.177,
-      "Elevated Risk": 0.033,
-      "Critical": 0.017
+    "people": 3703,
+    "average_score": 62.5,
+    "spread_of_scores_sd": 15.0,
+    "share_by_level": {
+      "Stable": 0.14,
+      "Moderate": 0.428,
+      "Elevated Risk": 0.221,
+      "Critical": 0.21
     },
-    "label_rate_by_band": {
-      "Stable": 0.07,
-      "Moderate": 0.264,
-      "Elevated Risk": 0.411,
-      "Critical": 0.581
+    "this_model": {
+      "rmse": 8.11,
+      "mean_error_points": 6.46,
+      "r2": 0.709,
+      "within_10_points": 0.779,
+      "same_level": 0.639,
+      "weighted_kappa": 0.752,
+      "too_optimistic_level": 0.172
+    },
+    "plain_aha_rules_on_setup_answers": {
+      "rmse": 11.78,
+      "mean_error_points": 9.42,
+      "r2": 0.386,
+      "within_10_points": 0.62,
+      "same_level": 0.554,
+      "weighted_kappa": 0.723,
+      "too_optimistic_level": 0.287
+    },
+    "linear_on_raw_answers": {
+      "rmse": 10.67,
+      "mean_error_points": 8.58,
+      "r2": 0.496,
+      "within_10_points": 0.64,
+      "same_level": 0.514,
+      "weighted_kappa": 0.576,
+      "too_optimistic_level": 0.248
+    },
+    "guessing_the_average": {
+      "rmse": 15.04,
+      "mean_error_points": 12.21,
+      "r2": -0.0,
+      "within_10_points": 0.472,
+      "same_level": 0.428,
+      "weighted_kappa": 0.0,
+      "too_optimistic_level": 0.432
+    },
+    "age_alone": {
+      "rmse": 14.49,
+      "mean_error_points": 11.76,
+      "r2": 0.072,
+      "within_10_points": 0.481,
+      "same_level": 0.383,
+      "weighted_kappa": 0.132,
+      "too_optimistic_level": 0.346
+    },
+    "gradient_boosting": {
+      "rmse": 8.39,
+      "mean_error_points": 6.66,
+      "r2": 0.689,
+      "within_10_points": 0.772,
+      "same_level": 0.618,
+      "weighted_kappa": 0.742,
+      "too_optimistic_level": 0.175
+    },
+    "if_setup_also_asked_told_bp_cholesterol_diabetes": {
+      "rmse": 7.72,
+      "mean_error_points": 6.16,
+      "r2": 0.736,
+      "within_10_points": 0.798,
+      "same_level": 0.645,
+      "weighted_kappa": 0.767,
+      "too_optimistic_level": 0.169
+    },
+    "by_group": {
+      "women": {
+        "people": 1935,
+        "mean_error_points": 6.32,
+        "average_real": 63.9,
+        "average_estimate": 63.9
+      },
+      "men": {
+        "people": 1768,
+        "mean_error_points": 6.62,
+        "average_real": 60.9,
+        "average_estimate": 60.9
+      },
+      "age_20_39": {
+        "people": 1222,
+        "mean_error_points": 6.15,
+        "average_real": 68.2,
+        "average_estimate": 67.8
+      },
+      "age_40_59": {
+        "people": 1247,
+        "mean_error_points": 6.74,
+        "average_real": 60.8,
+        "average_estimate": 61.4
+      },
+      "age_60_plus": {
+        "people": 1234,
+        "mean_error_points": 6.49,
+        "average_real": 58.5,
+        "average_estimate": 58.3
+      }
     }
   }
 }

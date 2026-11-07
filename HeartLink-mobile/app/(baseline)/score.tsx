@@ -65,6 +65,7 @@ async function submitBaseline(data: BaselineData, userId: string, token: string)
       sleep_hours: mapSleepHours(data.sleep_hours || "7-8"),
       ever_smoked: !!data.ever_smoked,
       smoke_now: data.ever_smoked ? data.smoke_now || "Not at all" : null,
+      smoke_quit_when: data.ever_smoked && data.smoke_now === "Not at all" ? data.smoke_quit_when ?? null : null,
       ever_drank: drinks,
       drink_frequency: drinks ? data.drink_frequency || "Never" : null,
       drinks_per_occasion: drinks && data.drink_frequency && data.drink_frequency !== "Never" ? data.drinks_per_occasion : null,

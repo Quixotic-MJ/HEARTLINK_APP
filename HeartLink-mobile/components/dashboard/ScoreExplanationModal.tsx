@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { View, Text, Modal, TouchableOpacity, ScrollView, Animated, Easing, Dimensions, PanResponder } from "react-native";
+import { View, Text, Modal, TouchableOpacity, ScrollView, Animated, Easing, Dimensions, Linking, PanResponder } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
@@ -7,30 +7,14 @@ import DsButton from "../onboarding/DsButton";
 import { useDs } from "../onboarding/useDs";
 import { DsColors } from "../../constants/theme";
 import { bandTag } from "./ScoreCard";
-
-/** The score's parts as the backend stores them (hss_service.compute_lifestyle_composite_hss). */
-type ScoreFactors = {
-  base_score?: number;
-  meal_points?: number;
-  exercise_points?: number;
-  sleep_points?: number;
-  medication_points?: number;
-  blood_sugar_points?: number;
-  weight_gain_points?: number;
-  symptom_points?: number;
-  streak_points?: number;
-  staleness_points?: number;
-  /** Older name some records may still carry. */
-  staleness_penalty?: number;
-  total_lifestyle_adjustment?: number;
-};
+import { AHA_PAPER_URL, AREA_ROWS, areaDetail, HeartFactors, LAB_AREAS, ruleText } from "../../services/heartScore";
 
 interface ScoreExplanationModalProps {
   visible: boolean;
   score: number;
   tierLabel: string;
   hasLoggedData: boolean;
-  factors?: ScoreFactors | null;
+  factors?: HeartFactors | null;
   onClose: () => void;
   onNavigateToLogging: () => void;
 }
@@ -50,25 +34,6 @@ const BANDS = [
   { from: 60, to: 79, tint: (c: DsColors) => c.yellow, edge: (c: DsColors) => c.warmText },
   { from: 80, to: 100, tint: (c: DsColors) => c.sky, edge: (c: DsColors) => c.line },
 ];
-
-const LIFESTYLE_CAP = 20;
-
-function factorRows(f: ScoreFactors, c: DsColors) {
-  const rows: { label: string; value: number | undefined; icon: keyof typeof Feather.glyphMap; tint: string }[] = [
-    { label: "Meals: sodium, fat and fibre", value: f.meal_points, icon: "coffee", tint: c.peach },
-    { label: "Movement", value: f.exercise_points, icon: "activity", tint: c.mint },
-    { label: "Sleep, 7 to 9 hours", value: f.sleep_points, icon: "moon", tint: c.lavender },
-    { label: "Medication taken", value: f.medication_points, icon: "check-square", tint: c.sky },
-    { label: "Blood sugar", value: f.blood_sugar_points, icon: "droplet", tint: c.rose },
-    { label: "Weight change", value: f.weight_gain_points, icon: "bar-chart-2", tint: c.sky },
-    { label: "Symptoms", value: f.symptom_points, icon: "alert-circle", tint: c.rose },
-    { label: "Logging streak", value: f.streak_points, icon: "zap", tint: c.lavender },
-    { label: "Missing readings", value: f.staleness_points ?? f.staleness_penalty, icon: "clock", tint: c.surfaceAlt },
-  ];
-  return rows.filter((r): r is typeof r & { value: number } => typeof r.value === "number" && r.value !== 0);
-}
-
-const signed = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${Math.abs(n)}` : "0");
 
 export function ScoreExplanationModal({
   visible,
@@ -134,11 +99,8 @@ export function ScoreExplanationModal({
   const close = () => animateOut(onClose);
   const logBloodPressure = () => animateOut(onNavigateToLogging);
 
-  const rows = factors ? factorRows(factors, c) : [];
-  const change = factors?.total_lifestyle_adjustment ?? rows.reduce((sum, r) => sum + r.value, 0);
-  // Older records don't store the starting point; it is the score before today's change.
-  const start = factors?.base_score ?? score - change;
-  const capped = Math.abs(rows.reduce((sum, r) => sum + r.value, 0)) > LIFESTYLE_CAP;
+  const areas = factors?.areas ?? null;
+  const rule = ruleText(factors?.rule);
   const needsCheck = tierLabel === "Elevated Risk" || tierLabel === "Critical";
 
   return (
@@ -223,74 +185,94 @@ export function ScoreExplanationModal({
 
               <View style={{ gap: 12 }}>
                 <Text accessibilityRole="header" style={{ fontSize: 17, fontWeight: "600", color: c.ink }}>
-                  What moved your score today
+                  What&apos;s in your score
                 </Text>
 
-                <View style={{ borderWidth: 1, borderColor: c.hairline, borderRadius: 12, overflow: "hidden" }}>
-                  <View
-                    accessible
-                    accessibilityLabel={`Starting point: ${start}`}
-                    style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 14, paddingHorizontal: 16, backgroundColor: c.surface, gap: 12 }}
-                  >
-                    <Text style={{ flex: 1, fontSize: 15, fontWeight: "500", color: c.ink }}>Starting point</Text>
-                    <Text style={{ fontSize: 17, fontWeight: "600", color: c.ink, fontVariant: ["tabular-nums"] }}>{start}</Text>
-                  </View>
-
-                  {rows.length > 0 ? (
+                {areas ? (
+                  <View style={{ borderWidth: 1, borderColor: c.hairline, borderRadius: 12, overflow: "hidden" }}>
                     <View style={{ paddingHorizontal: 16, paddingVertical: 6 }}>
-                      {rows.map((r, i) => (
-                        <View
-                          key={r.label}
-                          accessible
-                          accessibilityLabel={`${r.label}: ${r.value > 0 ? "plus" : "minus"} ${Math.abs(r.value)} points`}
-                          style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                            gap: 12,
-                            paddingVertical: 12,
-                            borderBottomWidth: i < rows.length - 1 ? 1 : 0,
-                            borderBottomColor: c.hairlineSoft,
-                          }}
-                        >
-                          <View style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: r.tint, alignItems: "center", justifyContent: "center" }}>
-                            <Feather name={r.icon} size={15} color={c.charcoal} />
-                          </View>
-                          <Text style={{ flex: 1, fontSize: 15, color: c.ink }}>{r.label}</Text>
-                          <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: r.value > 0 ? c.mint : c.peach }}>
-                            <Text style={{ fontSize: 14, fontWeight: "600", color: r.value > 0 ? c.charcoal : c.warmText, fontVariant: ["tabular-nums"] }}>
-                              {signed(r.value)}
+                      {AREA_ROWS.map((row, i) => {
+                        const area = areas[row.key];
+                        const detail = area ? areaDetail(row.key, area) : row.missing;
+                        return (
+                          <View
+                            key={row.key}
+                            accessible
+                            accessibilityLabel={`${row.label}: ${area ? `${area.points} points` : "not scored"}. ${detail}`}
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 12,
+                              paddingVertical: 12,
+                              borderBottomWidth: i < AREA_ROWS.length - 1 ? 1 : 0,
+                              borderBottomColor: c.hairlineSoft,
+                            }}
+                          >
+                            <View style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: c[row.tint], alignItems: "center", justifyContent: "center" }}>
+                              <Feather name={row.icon} size={15} color={c.charcoal} />
+                            </View>
+                            <View style={{ flex: 1, gap: 1 }}>
+                              <Text style={{ fontSize: 15, color: c.ink }}>{row.label}</Text>
+                              <Text style={{ fontSize: 13, lineHeight: 18, color: c.slate }}>{detail}</Text>
+                            </View>
+                            <Text style={{ fontSize: 17, fontWeight: "600", color: area ? c.ink : c.steel, fontVariant: ["tabular-nums"] }}>
+                              {area ? area.points : "–"}
                             </Text>
                           </View>
-                        </View>
-                      ))}
+                        );
+                      })}
                     </View>
-                  ) : (
-                    <Text style={{ paddingHorizontal: 16, paddingVertical: 14, fontSize: 14, lineHeight: 20, color: c.slate }}>
-                      Nothing logged yet today.
-                    </Text>
-                  )}
 
-                  {rows.length > 0 ? (
-                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", paddingVertical: 12, paddingHorizontal: 16, borderTopWidth: 1, borderTopColor: c.hairline }}>
-                    <Text style={{ fontSize: 15, color: c.charcoal }}>
-                      {"Today's change"}
-                      {capped ? <Text style={{ fontSize: 13, color: c.slate }}> (limited to 20 either way)</Text> : null}
-                    </Text>
-                    <Text style={{ fontSize: 15, fontWeight: "600", color: c.ink, fontVariant: ["tabular-nums"] }}>{signed(change)}</Text>
+                    {typeof factors?.average === "number" ? (
+                      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", paddingVertical: 12, paddingHorizontal: 16, borderTopWidth: 1, borderTopColor: c.hairline }}>
+                        <Text style={{ fontSize: 15, color: c.charcoal }}>{`Average of ${factors.areas_used} areas`}</Text>
+                        <Text style={{ fontSize: 15, fontWeight: "600", color: c.ink, fontVariant: ["tabular-nums"] }}>{factors.average}</Text>
+                      </View>
+                    ) : null}
+                    {rule ? (
+                      <Text style={{ paddingHorizontal: 16, paddingBottom: 12, fontSize: 14, lineHeight: 20, color: c.charcoal }}>{rule}</Text>
+                    ) : null}
+                    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", paddingVertical: 14, paddingHorizontal: 16, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.hairline }}>
+                      <Text style={{ fontSize: 15, fontWeight: "600", color: c.ink }}>Your score</Text>
+                      <Text style={{ fontSize: 17, fontWeight: "700", color: c.ink, fontVariant: ["tabular-nums"] }}>{score}</Text>
+                    </View>
                   </View>
-                  ) : null}
-                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", paddingVertical: 14, paddingHorizontal: 16, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.hairline }}>
-                    <Text style={{ fontSize: 15, fontWeight: "600", color: c.ink }}>Your score today</Text>
-                    <Text style={{ fontSize: 17, fontWeight: "700", color: c.ink, fontVariant: ["tabular-nums"] }}>{score}</Text>
-                  </View>
-                </View>
+                ) : (
+                  <Text style={{ fontSize: 15, lineHeight: 22, color: c.charcoal }}>
+                    {"This first score is an estimate from your setup answers. Once you log something, it's based on your blood pressure, activity, sleep, nicotine, body weight and diet."}
+                  </Text>
+                )}
+
+                <Text style={{ fontSize: 13, lineHeight: 19, color: c.slate }}>
+                  {`${LAB_AREAS.join(" and ")} aren't scored for now because they need lab results.`}
+                </Text>
 
                 {needsCheck ? (
                   <DsButton label="Log blood pressure" variant="secondary" block={false} onPress={logBloodPressure} style={{ alignSelf: "flex-start", height: 44 }} />
                 ) : null}
+              </View>
 
-                <Text style={{ fontSize: 13, lineHeight: 19, color: c.slate }}>
-                  {"Your starting point comes from your setup answers and your blood pressure readings: a healthy reading never lowers it, and an emergency-level one drops it at once. Today's habits move it up to 20 points either way. It isn't a diagnosis."}
+              <View style={{ height: 1, backgroundColor: c.hairlineSoft }} />
+
+              <View style={{ gap: 10 }}>
+                <Text accessibilityRole="header" style={{ fontSize: 17, fontWeight: "600", color: c.ink }}>
+                  Where the points come from
+                </Text>
+                <Text style={{ fontSize: 14, lineHeight: 20, color: c.charcoal }}>
+                  {"The points for blood pressure, activity, sleep, nicotine and body weight come from the American Heart Association's Life's Essential 8. The diet points and the limits on your score are HeartLink's own, and they're waiting for expert review."}
+                </Text>
+                <Text style={{ fontSize: 14, lineHeight: 20, color: c.charcoal }}>
+                  {"Your first score, before any logs, is a machine learning model's estimate of a Life's Essential 8 score. It was trained on a US health survey of 3,703 adults (NHANES 2017-2018)."}
+                </Text>
+                <Text style={{ fontSize: 14, lineHeight: 20, color: c.charcoal }}>
+                  {"This isn't the official AHA score and it hasn't been validated. It's a wellness guide, not a diagnosis."}
+                </Text>
+                <Text
+                  accessibilityRole="link"
+                  onPress={() => Linking.openURL(AHA_PAPER_URL)}
+                  style={{ fontSize: 14, lineHeight: 20, color: c.link, paddingVertical: 4 }}
+                >
+                  Read the AHA paper
                 </Text>
               </View>
             </>

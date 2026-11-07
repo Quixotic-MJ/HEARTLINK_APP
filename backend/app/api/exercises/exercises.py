@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request, HTTPException, Query, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import List, Dict, Any, Optional
 from app.services.exercises import get_routines, get_exercise_logs, create_exercise_log, delete_exercise_log, create_routine, update_routine, delete_routine, is_visible_to_patients, get_saved_exercises, save_exercise_for_user, unsave_exercise_for_user
-from app.services.hss_service import compute_lifestyle_composite_hss
+from app.services.heart_score import recalculate_score
 from app.utils.security import expert_id_if, require_permission, check_expert_permission, get_current_user, verify_token, get_optional_token, verify_user_access
 from app.utils.activity_helper import record_admin_activity
 from app.services.admin_notifications import notify_waiting_content
@@ -195,12 +195,12 @@ def add_exercise_log(user_id: str, data: Dict[str, Any], current_user: dict = De
 
     log = create_exercise_log(user_id, data)
 
-    # Recalculate dynamic lifestyle composite HSS (Pillar B)
+    # Recalculate the Heart score
     try:
-        compute_lifestyle_composite_hss(user_id, trigger="exercise_log")
+        recalculate_score(user_id, "exercise_log")
     except Exception as e:
         import logging
-        logging.getLogger(__name__).warning("Failed to update lifestyle composite HSS after exercise log: %s", e)
+        logging.getLogger(__name__).warning("Failed to update the Heart score after exercise log: %s", e)
 
     return {"success": True, "message": "Exercise log saved", "data": log}
 
@@ -227,10 +227,9 @@ def delete_log(user_id: str, log_id: str, current_user: dict = Depends(get_curre
     if not success:
         raise HTTPException(status_code=status_code, detail=message)
 
-    # Recalculate lifestyle composite HSS after exercise log deletion (HL-ENG-29)
+    # Recalculate the Heart score after exercise log deletion (HL-ENG-29)
     try:
-        from app.services.hss_service import compute_lifestyle_composite_hss
-        compute_lifestyle_composite_hss(user_id, trigger="exercise_delete")
+        recalculate_score(user_id, "exercise_delete")
     except Exception as e:
         import logging
         logging.getLogger(__name__).warning(f"Failed to recalculate composite HSS after exercise deletion for {user_id}: {e}")

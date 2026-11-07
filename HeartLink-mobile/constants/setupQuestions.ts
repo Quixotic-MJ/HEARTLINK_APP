@@ -25,12 +25,19 @@ export const SETUP_PART_LIST: SetupPart[] = [
   { n: 4, name: "Food & goals", summary: "Meals, salt, goals, allergies", tint: "peach", icon: "leaf" },
 ];
 
+export const QUIT_OPTIONS = [
+  { value: "under_1_year", label: "Less than a year ago" },
+  { value: "1_to_5_years", label: "1 to 5 years ago" },
+  { value: "5_plus_years", label: "5 or more years ago" },
+];
+
 type BooleanField = "vigorous_activity" | "moderate_activity" | "walk_bike_transport" | "ever_smoked" | "ever_drank";
 type ChoiceField =
   | "sex"
   | "sedentary_hours"
   | "sleep_hours"
   | "smoke_now"
+  | "smoke_quit_when"
   | "drink_frequency"
   | "drinks_per_occasion"
   | "binge_drinking_freq"
@@ -211,6 +218,18 @@ export const SETUP_QUESTIONS: SetupQuestion[] = [
     ],
   },
   {
+    id: "smoke-quit",
+    part: 3,
+    kind: "choice",
+    field: "smoke_quit_when",
+    tag: "Because you said you've quit",
+    title: "When did you quit?",
+    subtitle: "A rough answer is fine.",
+    why: "The longer it's been since you quit, the more your heart benefits. Your score reflects that.",
+    showIf: (d) => d.ever_smoked === true && d.smoke_now === "Not at all",
+    options: QUIT_OPTIONS,
+  },
+  {
     id: "alcohol",
     part: 3,
     kind: "yesno",
@@ -333,7 +352,7 @@ export const SETUP_QUESTIONS: SetupQuestion[] = [
     title: "What should HeartLink focus on?",
     subtitle: "Pick one or more. This shapes your daily missions.",
     options: [
-      { value: "bp", label: "Blood pressure", desc: "Track, manage and steady your blood pressure" },
+      { value: "bp", label: "Blood pressure", desc: "Track it and build steady habits for your blood pressure" },
       { value: "cholesterol", label: "Cholesterol & lipids", desc: "Keep an eye on blood fats through food" },
       { value: "recovery", label: "Cardiac recovery", desc: "Pacing and rest after a heart event" },
       { value: "preventive", label: "Preventive longevity", desc: "General heart wellness and fitness" },

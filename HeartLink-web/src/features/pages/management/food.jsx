@@ -505,7 +505,7 @@ const Foods = () => {
             <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none text-cal-ink">
               {loading ? "—" : approvedCount}
             </div>
-            <div className="mt-2 text-[12px] text-cal-muted">Clinically validated nutrition</div>
+            <div className="mt-2 text-[12px] text-cal-muted">Approved in this portal</div>
           </div>
 
           <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">

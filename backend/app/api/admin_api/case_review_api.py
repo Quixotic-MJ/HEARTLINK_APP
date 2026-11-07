@@ -144,7 +144,7 @@ def archive_review_round(round_id: str, current_user: dict = Depends(_require_ad
     return {"status": "success"}
 
 
-# --- HL-059: clinical dataset export (retraining happens outside the app) ----------------------------
+# --- HL-059: clinical dataset export (checked outside the app) ----------------------------
 from fastapi.responses import JSONResponse
 from app.services import clinical_dataset
 from app.utils.security import get_current_admin_only

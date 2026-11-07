@@ -316,6 +316,14 @@ export default function SettingsScreen() {
                 onPress={() => router.push("/(home)/(health)/goals-thresholds")}
               />
               <SettingsRow
+                icon="edit-3"
+                label="Smoking and diet answers"
+                subtitle="Keep your Heart score up to date"
+                iconBg={isDark ? "rgba(245, 158, 11, 0.16)" : "#FEF3C7"}
+                iconColor={isDark ? "#FBBF24" : "#D97706"}
+                onPress={() => router.push("/(home)/(settings)/heart-answers")}
+              />
+              <SettingsRow
                 icon="users"
                 label="My care team"
                 subtitle="Doctors, specialists, contacts"

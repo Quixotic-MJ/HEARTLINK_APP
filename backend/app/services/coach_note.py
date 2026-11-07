@@ -104,9 +104,10 @@ def day_facts(
 
 def improve_note(title: str, body: str, icon: str, action: Optional[str], kind: str, diff: int, score: int, f: Dict[str, Any]):
     """Give the rules' note real numbers and a step that fits the time of day. `kind` is what moved the score:
-    "meal", "exercise", "reading", "stale", "removed" or "" (nothing new). Emergency notes never come here."""
-    # A stale score, a removed log and a critical score keep the rules' own words and step
-    if kind in ("stale", "removed") or (kind == "" and score < 50):
+    "meal", "exercise", "sleep", "reading", "stale", "removed", "update" or "" (nothing new). Emergency notes never
+    come here."""
+    # A stale score, a removed log, a method change, sleep and a critical score keep the rules' own words and step
+    if kind in ("stale", "removed", "update", "sleep") or (kind == "" and score < 50):
         return title, body, icon, action
     left = f["sodium_limit"] - f["sodium_mg"]
     sodium_line = (

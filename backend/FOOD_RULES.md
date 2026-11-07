@@ -15,9 +15,7 @@ forbidden. Allergy and diet warnings are different: they stay strong and specifi
 | Saturated fat in one portion | Over 6 g / 3.1 to 6 g | "High in saturated fat" / "Moderate", with the amount | Scan result, Estimate meal | **HeartLink's own choice** |
 | Sodium, whole day | Running total against the patient's limit | Sodium left today, or how far over | Log review, Meal logged (`foodLogging.ts`) | Limit: AHA, WHO |
 | Sodium, whole day | Over 2,000 mg | Note suggesting a lighter, lower-salt dinner | Companion note (`companionService.ts`) | WHO |
-| Sodium, whole day | Within the limit +2, over it −3, over 1.5 times it −5 | Score points | `hss_service.py` | Limit: AHA. **Points are HeartLink's own choice** |
-| Saturated fat, per meal | Over 5 g −2, under 1 g +1 | Score points | `hss_service.py` | **HeartLink's own choice** |
-| Fibre, per meal | Over 5 g +2 | Score points | `hss_service.py` | **HeartLink's own choice** |
+| Sodium, last 7 days | No days over the limit 2, 1-2 days 1, 3 or more days 0, once 3 days have meals | Part of the Heart score's adapted diet points | `heart_score.py` | Limit: AHA. **Points are HeartLink's own choice** |
 | Sodium left today | Under 500 mg | Lowest-sodium approved recipes are suggested first | `dashboard.py` | **HeartLink's own choice** |
 | Recipe sodium | Under 300 mg a serving | Listed as a low-sodium meal in Explore | `explore.ts` | **HeartLink's own choice** |
 | Score band | Recipes approved for the patient's band or "Stable" | Which recipes are suggested | `dashboard.py` | Dietitian tags each recipe |

@@ -27,6 +27,7 @@ export type BaselineData = {
   sleep_hours: string;
   ever_smoked: boolean;
   smoke_now?: string;
+  smoke_quit_when?: string;
   ever_drank: boolean;
   drink_frequency?: string;
   drinks_per_occasion?: string;

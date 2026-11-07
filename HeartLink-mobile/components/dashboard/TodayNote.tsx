@@ -29,8 +29,6 @@ export type Insight = {
   title?: string;
   body: string;
   icon?: string;
-  /** Small print: habit points the check-in itself added, and yesterday's habit points resetting at midnight. */
-  side_note?: string | null;
   /** The one step offered under the note; older backends leave it out. */
   action?: NoteAction | null;
   /** True when the AI coach wrote the body. */
@@ -369,9 +367,6 @@ export function TodayNote({
                 <Text style={{ fontSize: 14.5, lineHeight: 21, color: c.charcoal }}>
                   {detail}
                 </Text>
-              ) : null}
-              {insight.side_note && !emergency ? (
-                <Text style={{ fontSize: 12.5, lineHeight: 17, color: c.steel }}>{insight.side_note}</Text>
               ) : null}
             </View>
           ) : (

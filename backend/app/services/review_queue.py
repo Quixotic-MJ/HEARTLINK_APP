@@ -29,7 +29,7 @@ from app.utils.time import parse_utc, to_local_date, utc_now
 
 logger = logging.getLogger(__name__)
 
-SCORERS = ("baseline_model", "bp_rules", "lifestyle_points", "unknown")
+SCORERS = ("heart_score", "baseline_model", "bp_rules", "lifestyle_points", "unknown")
 SECTIONS = ("cardiology", "nutrition", "exercise")
 _MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
@@ -72,7 +72,9 @@ def current_app_status(user_id: str) -> Dict[str, Any]:
         latest = history[0]
         source = latest.get("source")
         factors = latest.get("contributing_factors") or {}
-        if source == "baseline":
+        if factors.get("source") == "heart_score":
+            scorer = "heart_score"
+        elif source == "baseline":
             scorer = "baseline_model"
         elif source == "telemetry" and factors.get("source") == "lifestyle_composite":
             scorer = "lifestyle_points"

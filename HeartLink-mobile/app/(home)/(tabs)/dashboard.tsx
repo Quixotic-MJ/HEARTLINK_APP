@@ -850,7 +850,7 @@ export default function DashboardScreen() {
                       label={theme.label}
                       hasScore={hasHssScore}
                       change={scoreChange}
-                      parts={data?.score_parts ?? null}
+                      factors={data?.hss_factors ?? null}
                       reason={streakDays > 1 ? `${streakDays}-day logging streak` : null}
                       onExplain={() => {
                         Haptics.selectionAsync();

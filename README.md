@@ -80,8 +80,8 @@ flowchart TB
 **Only the backend talks to Supabase.** The mobile app and web portal call the backend; direct table access with the public Supabase key is blocked (migration 020).
 
 ### How the Heart Stability Score (HSS) is calculated
-* **At onboarding:** a scikit-learn **Logistic Regression** model (`backend/app/ml/heartlink_model.pkl`) reads 37 questionnaire and diet inputs and predicts the chance of "higher risk". The score is `HSS = (1 − probability) × 99 + 1`.
-* **After that:** logged blood pressure and heart rate are scored with fixed guideline rules, and daily meals, exercise and sleep add or subtract lifestyle points.
+* **At setup:** a linear regression trained on NHANES 2017-2018 estimates a Life's Essential 8 score from the setup answers. Details: `backend/app/ml/STARTING_SCORE.md`.
+* **From the first log:** each area (blood pressure, activity, sleep, nicotine, body weight, diet) gets the American Heart Association's Life's Essential 8 points, and the score is the average of the areas with data. HeartLink's own blood pressure rules then set limits on it. It's based on that method, not the official score, and it hasn't been validated or reviewed yet. Details: `app/ml/HEART_SCORE.md`.
 * **Levels:** 80–100 Stable · 60–79 Moderate · 50–59 Elevated Risk · 1–49 Critical.
 
 ## 👥 User Roles & Access

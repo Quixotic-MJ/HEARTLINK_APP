@@ -109,6 +109,15 @@ describe("a day's scores", () => {
     expect(list[3].after).toBe("your 185/95 reading");
   });
 
+  it("names what set each score on the new method", () => {
+    const newMethod = (trigger: string, extra = {}) => ({ score: 73, source: "telemetry", contributing_factors: { source: "heart_score", trigger, ...extra }, computed_at: at(6, 8) });
+    const why = (row: ReturnType<typeof newMethod>) => scoresOfDay([row], days[6])[0].why;
+    expect(why(newMethod("health_log", { systolic: 134, diastolic: 86 }))).toBe("Reading 134/86");
+    expect(why(newMethod("sleep_log"))).toBe("Sleep logged");
+    expect(why(newMethod("meal_log"))).toBe("Meal logged");
+    expect(why(newMethod("daily_update"))).toBe("Score updated");
+  });
+
   it("finds the longest run of days with a score", () => {
     expect(longestStreak([70, 72, null, 74, 75, 76, null])).toBe(3);
     expect(longestStreak([null, null])).toBe(0);

@@ -28,7 +28,9 @@ backend/
 │   │   ├── recipes_api/, notifications_api/, analytics_api/, companion/
 │   │   └── admin_api/       # Web portal: users, staff, content, case review queue, calibration.
 │   ├── services/            # The rules and calculations.
-│   │   ├── hss_service.py       # Heart Stability Score (model, blood-pressure rules, lifestyle points).
+│   │   ├── heart_score.py       # The Heart score, based on Life's Essential 8 (see app/ml/HEART_SCORE.md).
+│   │   ├── starting_score.py    # The first score after setup, from the machine learning model.
+│   │   ├── hss_service.py       # The level names and the emergency thresholds.
 │   │   ├── feature_transform.py # Turns onboarding answers into the model's 37 inputs.
 │   │   ├── review_rules.py      # Case review queue thresholds (proposed values, pending the cardiologist).
 │   │   ├── review_queue.py      # Urgent / sample / re-review lanes.

@@ -145,7 +145,7 @@ def test_the_ai_keeps_the_title_and_a_rejected_line_falls_back(monkeypatch):
     monkeypatch.setattr(dashboard, "_ai_insight_calls", {})
     f = facts(meals=[{"meal_name": "Chicken adobo", "sodium_mg": 420, "logged_at": at()}],
               vitals=[{"systolic_bp": 120, "diastolic_bp": 78, "logged_at": at()}])
-    hist = scores(84, 82, factors={"source": "lifestyle_composite", "trigger": "meal_log"})
+    hist = scores(84, 82, factors={"source": "heart_score", "trigger": "meal_log"})
 
     FakeGroq.reply = "Nice choice, Ana! Your adobo had 420 mg sodium, so 1,200 mg is left."
     note = _generate_insight(hist, None, "Ana", "u1", f)
@@ -156,58 +156,6 @@ def test_the_ai_keeps_the_title_and_a_rejected_line_falls_back(monkeypatch):
     note = _generate_insight(hist, None, "Ana", "u2", f)
     assert note["title"] == "Up 2 from Chicken adobo." and note["ai_written"] is True
     assert note["body"].startswith("Nice choice, Ana!")
-
-
-# --- Each log shows its own points (the case from 2026-11-01) ------------------------------------------------
-
-def rec(score, minutes_ago=0, days_ago=0, **factors):
-    when = datetime.now(timezone.utc) - timedelta(days=days_ago, minutes=minutes_ago)
-    return {"score": score, "computed_at": when.isoformat(), "contributing_factors": factors}
-
-
-def comp(score, adj, trigger, **kw):
-    return rec(score, source="lifestyle_composite", trigger=trigger, total_lifestyle_adjustment=adj, **kw)
-
-
-YESTERDAY = [
-    comp(79, 2, "meal_log", days_ago=1),
-    comp(77, 0, "health_log", days_ago=1, minutes_ago=30),
-    rec(77, days_ago=1, minutes_ago=31, trigger="health_log", reading_kind="other", previous_base=89),
-]
-READING_TODAY = [
-    comp(74, 0, "health_log", minutes_ago=2),
-    rec(74, minutes_ago=3, trigger="health_log", reading_kind="other", systolic=120, diastolic=80, previous_base=77),
-]
-
-
-def test_the_first_reading_of_the_day_shows_its_own_points_and_the_midnight_reset(monkeypatch):
-    monkeypatch.delenv("GROQ_API_KEY", raising=False)
-    history = READING_TODAY + YESTERDAY  # 79 yesterday -> 74 now: -3 from the reading, -2 habits reset
-    note = _generate_insight(history, None)
-    assert note["title"] == "Down 3 after your 120/80 reading."
-    assert note["side_note"] == "Yesterday's +2 habit points reset at midnight, as they do every day."
-    assert dashboard._score_parts(history) == {"readings": 74, "habits": 0, "habits_today": True}
-
-
-def test_a_good_meal_after_it_says_up_2_whatever_yesterday_was(monkeypatch):
-    monkeypatch.delenv("GROQ_API_KEY", raising=False)
-    history = [comp(76, 2, "meal_log", minutes_ago=1)] + READING_TODAY + YESTERDAY
-    note = _generate_insight(history, None)
-    assert note["title"] == "Up 2 from your meal." and note["side_note"] is None
-    assert dashboard._score_parts(history) == {"readings": 74, "habits": 2, "habits_today": True}
-
-
-def test_medicine_points_from_a_check_in_are_told_apart_from_the_reading(monkeypatch):
-    monkeypatch.delenv("GROQ_API_KEY", raising=False)
-    today = [comp(76, 2, "health_log", minutes_ago=2)] + READING_TODAY[1:]
-    note = _generate_insight(today + YESTERDAY, None)
-    assert note["title"] == "Down 3 after your 120/80 reading."
-    assert note["side_note"].startswith("Your check-in also added 2 habit points.")
-
-
-def test_before_any_log_today_the_score_still_shows_yesterdays_habits():
-    parts = dashboard._score_parts(YESTERDAY)
-    assert parts == {"readings": 77, "habits": 2, "habits_today": False}
 
 
 def test_trends_gets_the_weekly_insights_for_short_and_long_periods(monkeypatch):

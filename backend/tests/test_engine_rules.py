@@ -1,7 +1,6 @@
 """The engine review (2026-10-28): allergies, diets, which exercises are offered, meal sodium and sleep in the score."""
 import pytest
 
-from app.services import hss_service
 from app.services.dashboard import _recipe_is_safe, allergy_words, exercise_suits
 from app.utils.time import utc_now
 
@@ -75,59 +74,3 @@ def test_during_the_rest_after_a_severe_symptom_only_breathing():
 
 
 # --- the score: meals against the day's sodium limit, and sleep ranges ------------------------------------------
-
-class Repo:
-    def __init__(self):
-        self.saved = []
-
-    def list_hss_history(self, uid, *a, **k):
-        return [{"score": 80, "computed_at": utc_now().isoformat(), "contributing_factors": {"trigger": "health_log"}}]
-
-    def create_hss_record(self, uid, data):
-        self.saved.append(data)
-        return data
-
-
-class Rows:
-    def __init__(self, rows=()):
-        self.rows = list(rows)
-
-    def __getattr__(self, _):
-        return lambda *a, **k: self.rows
-
-
-def lifestyle(monkeypatch, meals=(), sleep_hours=None):
-    import app.db.repositories as repos
-    now = utc_now().isoformat()
-    repo = Repo()
-    monkeypatch.setattr(repos, "get_hss_repo", lambda: repo)
-    monkeypatch.setattr(repos, "get_meals_repo", lambda: Rows([{"logged_at": now, **m} for m in meals]))
-    monkeypatch.setattr(repos, "get_exercises_repo", lambda: Rows())
-    sleep = [{"logged_at": now, "duration_hours": sleep_hours}] if sleep_hours is not None else []
-    monkeypatch.setattr(repos, "get_sleep_repo", lambda: Rows(sleep))
-    monkeypatch.setattr("app.services.health_logs.get_health_logs", lambda uid, cutoff=None: [])
-    monkeypatch.setattr(hss_service, "_sodium_limit", lambda uid: 1500.0)
-    hss_service.compute_lifestyle_composite_hss("u1", trigger="meal_log")
-    return repo.saved[-1]["contributing_factors"]
-
-
-def test_five_700mg_meals_now_cost_points(monkeypatch):
-    """3,500 mg in a day against a 1,500 mg limit: before, each meal was under 800 mg, so it cost nothing."""
-    factors = lifestyle(monkeypatch, meals=[{"sodium_mg": 700, "saturated_fat_g": 2}] * 5)
-    assert factors["sodium_total_mg"] == 3500 and factors["sodium_limit_mg"] == 1500
-    assert factors["meal_points"] == -5
-
-
-def test_a_day_just_over_the_limit_and_one_under_it(monkeypatch):
-    assert lifestyle(monkeypatch, meals=[{"sodium_mg": 900, "saturated_fat_g": 2}] * 2)["meal_points"] == -3
-    assert lifestyle(monkeypatch, meals=[{"sodium_mg": 400, "saturated_fat_g": 2}] * 2)["meal_points"] == 2
-
-
-def test_no_meals_no_meal_points(monkeypatch):
-    assert lifestyle(monkeypatch)["meal_points"] == 0
-
-
-@pytest.mark.parametrize("hours, points", [(8, 3), (6.5, 1), (9.5, 1), (5.5, 0), (4.5, -2), (12, -2)])
-def test_sleep_scores_by_range(monkeypatch, hours, points):
-    """6.5 and 9.5 hours used to score 0: only exactly 6 or 10 counted."""
-    assert lifestyle(monkeypatch, sleep_hours=hours)["sleep_points"] == points

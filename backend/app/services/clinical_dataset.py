@@ -5,7 +5,8 @@ One row per completed review round whose Cardiologist review is clinical (by a v
 the starting score's inputs, what the app said, the Cardiologist's level and a yes/no label. Practice, archived and
 incomplete reviews are left out, and the export lists why. No patient id, names or free-text notes are included.
 
-Retraining happens outside the app: `scripts/train_starting_score.py --clinical-export <file>` reads this export.
+`scripts/train_starting_score.py --clinical-export <file>` checks the current model against this export. Retraining from it
+is switched off: its yes/no labels don't fit a model that estimates a Life's Essential 8 score.
 """
 import math
 import os

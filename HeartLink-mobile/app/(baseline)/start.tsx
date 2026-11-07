@@ -12,7 +12,8 @@ import { useDs } from "../../components/onboarding/useDs";
 const POINTS: { yes: boolean; title: string; body: string }[] = [
   { yes: true, title: "Made for everyday heart health", body: "For adults who want to look after their heart, or who may be at risk of high blood pressure." },
   { yes: true, title: "Helps you build daily habits", body: "Blood pressure, meals, sleep and movement in one place." },
-  { yes: true, title: "Shows your trend as a score", body: "One number that moves with what you log." },
+  { yes: true, title: "Already have high blood pressure?", body: "You can use it to keep track. Keep following your doctor's plan." },
+  { yes: true, title: "Shows your week as a score", body: "One number, based on your last 7 days of logs." },
   { yes: false, title: "It isn't a diagnosis", body: "It doesn't replace your doctor or your medicine." },
   { yes: false, title: "Not a care plan for heart conditions", body: "If you've been diagnosed with heart disease or had a stroke, ask your doctor before following its exercise or food suggestions." },
 ];

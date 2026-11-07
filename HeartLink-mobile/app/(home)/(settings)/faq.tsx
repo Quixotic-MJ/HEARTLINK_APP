@@ -10,7 +10,7 @@ import { Feather } from "@expo/vector-icons";
 const faqs = [
   {
     question: "How does the Heart score work?",
-    answer: "Your Heart score is a wellness guide based on your setup answers, blood pressure readings and daily habits. A higher score means steadier readings and habits. It doesn't diagnose or predict any condition."
+    answer: "Your first Heart score is a machine learning model's estimate from your setup answers. Once you log something, it's a wellness guide based on the American Heart Association's Life's Essential 8. It averages the points for your blood pressure, activity, sleep, nicotine, body weight and diet, using your last 7 days and your answers. High blood pressure limits how high it can go, so good habits can't hide it. It isn't the official AHA score, it hasn't been validated, and it doesn't diagnose or predict any condition."
   },
   {
     question: "How do I manage my Care Team contacts?",
