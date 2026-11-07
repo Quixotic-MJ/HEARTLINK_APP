@@ -9,14 +9,12 @@ from app.db.repositories import get_admin_repo
 from app.db.repositories.base import resolve_uuid
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 import logging
-import re
 
 logger = logging.getLogger(__name__)
 
 VALID_TYPES = {"feedback", "staff", "security", "system", "content", "notes"}
 VALID_SEVERITIES = {"info", "warning"}
 VALID_ROUTES = {"/feedbacks", "/users", "/settings", "/foods", "/exercises"}
-PATIENT_ROUTE = re.compile(r"^/patients/[A-Za-z0-9-]+$")
 
 # HL-082: medical experts get notifications too. recipient_roles names an expert type as "expert:<type>".
 EXPERT_TYPES = ("Cardiologist", "Dietitian", "Physical Therapist")
@@ -32,6 +30,20 @@ def recipient_keys(role: Optional[str], expert_type: Optional[str]) -> set:
     if role == "medical_expert" and expert_type:
         keys.add(expert_recipient(expert_type))
     return keys
+
+
+def portal_notification(item: Dict[str, Any], role: str, expert_type: Optional[str] = None) -> Dict[str, Any]:
+    """Keep stored history/read state; retired or unauthorized destinations reveal no old payload."""
+    allowed = set()
+    if role == "admin":
+        allowed = VALID_ROUTES
+    elif role == "medical_expert":
+        allowed = {"Dietitian": {"/foods"}, "Physical Therapist": {"/exercises"}}.get(expert_type, set())
+    if item.get("type") not in {"notes", "case", "clinical"} and item.get("route") in allowed:
+        return dict(item)
+    return {**item, "type": "system", "title": "Unavailable notification",
+            "message": "This destination is no longer available for your account.",
+            "route": None, "target_id": None}
 
 def create_admin_notification(
     type: str,
@@ -53,7 +65,7 @@ def create_admin_notification(
             return None
         if severity not in VALID_SEVERITIES:
             return None
-        if route not in VALID_ROUTES and not PATIENT_ROUTE.match(route):
+        if route not in VALID_ROUTES:
             return None
 
         data = {
@@ -102,9 +114,9 @@ def notify_waiting_content(kind: str, item: Optional[Dict[str, Any]], approver_i
     name = item.get("name") or item.get("title") or "Untitled"
     if kind == "recipe":
         notify_experts(["Dietitian"], "content", "Recipe waiting for approval",
-                       f"\"{name}\" was added or changed and needs a Dietitian's approval before patients see it.",
+                       f"\"{name}\" was added or changed and needs a Dietitian's review before publication.",
                        "/foods", actor_id=actor_id, target_id=item.get("id"))
     else:
         notify_experts(["Physical Therapist"], "content", "Exercise waiting for approval",
-                       f"\"{name}\" was added or changed and needs a Physical Therapist's approval before patients see it.",
+                       f"\"{name}\" was added or changed and needs a Physical Therapist's review before publication.",
                        "/exercises", actor_id=actor_id, target_id=item.get("id"))

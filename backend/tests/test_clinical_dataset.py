@@ -1,11 +1,16 @@
 """HL-059: the clinical dataset export (clinical reviews only, starting-score inputs, yes/no label)."""
 import pytest
 from fastapi.testclient import TestClient
+from fastapi import FastAPI
 
-from app.main import app
+from app.api.admin_api.case_review_api import router
 from app.services import clinical_dataset
 from app.services.feature_transform import INPUTS
 from app.utils.security import get_current_admin_user
+
+# Preserve archive/export unit contracts without reopening these routes in the actual app.
+app = FastAPI()
+app.include_router(router, prefix="/api/admin")
 
 SAVED_INPUTS = {"age": 50.0, "male": 1.0, "bmi": 24.0, "current_smoker": 0.0, "former_smoker": 0.0,
                 "active_min_week": 150.0, "sitting_hours": 5.0, "sleep_hours": 7.0, "drinks_week": 0.0,

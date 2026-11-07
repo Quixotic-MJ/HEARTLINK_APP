@@ -20,6 +20,8 @@ import { apiFetch } from "../../api";
 import { useApiQuery } from "../../hooks/useApiQuery";
 import { useLiveNotifications } from "../../hooks/useLiveNotifications";
 import { markNotificationsRead } from "../../utils/notificationCache";
+import { useAuth } from "../../contexts/useAuth";
+import { safeNotificationRoute } from "../../app/access";
 
 const BELL_PATH = "/api/admin/notifications";
 const BELL_KEY = ["api", BELL_PATH];
@@ -27,6 +29,7 @@ const NO_NOTIFICATIONS = [];
 
 export default function AdminNotificationDropdown({ userId }) {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [actionError, setActionError] = useState(null);
   const dropdownRef = useRef(null);
@@ -85,9 +88,12 @@ export default function AdminNotificationDropdown({ userId }) {
     try {
       await apiFetch(`/api/admin/notifications/${id}/read`, { method: "PUT" });
 
-      if (route) {
-        navigate(route);
+      const destination = safeNotificationRoute(user, route);
+      if (destination) {
+        navigate(destination);
         setIsOpen(false);
+      } else if (route) {
+        setActionError("This destination is no longer available for your account.");
       }
     } catch (error) {
       console.error("Failed to mark as read:", error);

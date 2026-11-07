@@ -14,6 +14,7 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/useAuth";
 import { apiFetch } from "../../api";
+import { homeFor } from "../../app/access";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -351,19 +352,19 @@ const PORTAL_ROLES = [
     initials: "CA",
     fill: "bg-cal-badge-orange",
     role: "Cardiologist",
-    task: "Risk level, check-up flag & weekly case review",
+    task: "General safety and wellness claims feedback",
   },
   {
     initials: "RD",
     fill: "bg-cal-badge-emerald",
     role: "Dietitian",
-    task: "Low-sodium & allergy-safe recipe verification",
+    task: "Recipe review and nutrition feedback",
   },
   {
     initials: "PT",
     fill: "bg-cal-badge-violet",
     role: "Physical Therapist",
-    task: "Exercise intensity & seated movement safety",
+    task: "Routine review and movement feedback",
   },
   {
     initials: "AD",
@@ -395,10 +396,8 @@ export default function HeartLinkAdminLogin() {
     if (!loading && isAuthenticated && user) {
       if (user.mustChangePassword) {
         navigate("/set-password", { replace: true });
-      } else if (user.role === "medical_expert") {
-        navigate("/cases", { replace: true });
       } else {
-        navigate("/dashboard", { replace: true });
+        navigate(homeFor(user), { replace: true });
       }
     }
   }, [isAuthenticated, user, loading, navigate]);
@@ -494,10 +493,8 @@ export default function HeartLinkAdminLogin() {
 
         if (response.must_change_password) {
           navigate("/set-password");
-        } else if (response.role === "medical_expert") {
-          navigate("/cases");
         } else {
-          navigate("/dashboard");
+          navigate(homeFor(response), { replace: true });
         }
       }
     } catch (error) {
@@ -534,10 +531,8 @@ export default function HeartLinkAdminLogin() {
 
         if (response.must_change_password) {
           navigate("/set-password");
-        } else if (response.role === "medical_expert") {
-          navigate("/cases");
         } else {
-          navigate("/dashboard");
+          navigate(homeFor(response), { replace: true });
         }
       }
     } catch (error) {
@@ -802,14 +797,14 @@ export default function HeartLinkAdminLogin() {
           <div>
             <span className="inline-flex items-center gap-2 rounded-full border border-cal-hairline bg-cal-canvas px-3 py-1 text-[13px] font-medium text-cal-ink shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
               <span className="h-2 w-2 rounded-full bg-cal-success" />
-              Clinical &amp; administrative workspace
+              Content &amp; account workspace
             </span>
             <h2 className="mt-4 mb-0 font-cal-display text-[28px] font-semibold leading-[1.2] tracking-[-0.5px] text-cal-ink">
-              One workspace for clinical audits, approved routines, and patient safety.
+              Thoughtful content, reviewed together.
             </h2>
             <p className="mt-2.5 mb-0 text-[15px] leading-[1.5] text-cal-body">
-              Coordinate weekly anonymized case reviews and keep recipes, exercises, and clinic
-              directories calibrated across specialties.
+              Create practical recipes and beginner routines, exchange specialist feedback,
+              and publish reviewed content for everyday wellness.
             </p>
           </div>
 

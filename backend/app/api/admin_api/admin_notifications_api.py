@@ -6,6 +6,7 @@ from app.db.repositories import get_admin_repo, get_profile_repo
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 from app.utils.security import get_current_admin_user
 from app.services import live_events
+from app.services.admin_notifications import portal_notification
 
 router = APIRouter(prefix="/api/admin/notifications", tags=["Admin Notifications"])
 
@@ -32,7 +33,9 @@ def get_admin_notifications(include_archived: bool = False, current_user: dict =
     caller_role = current_user.get("role")
     try:
         # HL-019: notifications over 72 hours old are archived; ?include_archived=true lists them too.
-        return get_admin_repo().list_admin_notifications(caller_role, caller_id, include_archived, _expert_type(current_user))
+        expert_type = _expert_type(current_user)
+        result = get_admin_repo().list_admin_notifications(caller_role, caller_id, include_archived, expert_type)
+        return {**result, "items": [portal_notification(item, caller_role, expert_type) for item in result["items"]]}
     except Exception:
         return {"items": [], "unread_count": 0, "total": 0}
 

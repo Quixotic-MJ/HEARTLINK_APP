@@ -4,13 +4,12 @@ import { Link, Navigate, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "../../contexts/useAuth";
 import { apiFetch } from "../../api";
+import { homeFor } from "../../app/access";
 import { HeartLogoIcon, ErrorBanner, FieldError } from "./login";
 import { inputBase, inputState, labelText, primaryButton, textLink, focusRing } from "./authStyles";
 
 // HL-044: staff created by an admin start with a one-time temporary password and land here
 // on first login. The backend blocks every other request until the password is replaced.
-
-const homeFor = (role) => (role === "medical_expert" ? "/cases" : "/dashboard");
 
 function PasswordInput({ id, label, value, onChange, autoComplete, hasError, describedBy }) {
   const [visible, setVisible] = useState(false);

@@ -8,12 +8,9 @@ import {
   CircleHelp,
   CornerDownLeft,
   Crown,
-  Database,
   Dumbbell,
   EllipsisVertical,
   Gauge,
-  HeartPulse,
-  ListChecks,
   LogOut,
   Mail,
   Megaphone,
@@ -27,7 +24,7 @@ import {
   X,
 } from "lucide-react";
 import { useAuth } from "../../contexts/useAuth";
-import { canAccess } from "../../app/access";
+import { canAccess, searchPathFor } from "../../app/access";
 import { useApiQuery } from "../../hooks/useApiQuery";
 import { useDialogFocus } from "../../hooks/useDialogFocus";
 
@@ -216,7 +213,7 @@ function NavItem({
 }
 
 // ─── Quick Search / Command Dialog ────────────────────────────────────────────
-function QuickSearchModal({ isOpen, onClose, items, userRole, onSelectPath, onSubmitRecordSearch }) {
+function QuickSearchModal({ isOpen, onClose, items, searchPath, onSelectPath, onSubmitRecordSearch }) {
   const dialogRef = useRef(null);
   const inputRef = useRef(null);
   const [query, setQuery] = useState("");
@@ -247,10 +244,7 @@ function QuickSearchModal({ isOpen, onClose, items, userRole, onSelectPath, onSu
   const trimmedQuery = query.trim();
   const safeIndex = Math.min(selectedIndex, Math.max(filteredItems.length - 1, 0));
 
-  const recordSearchHint =
-    userRole === "medical_expert"
-      ? `Search patient or case reference for "${trimmedQuery}"`
-      : `Search user profiles for "${trimmedQuery}"`;
+  const recordSearchHint = `Search ${searchPath === "/users" ? "accounts" : "content"} for "${trimmedQuery}"`;
 
   const handleKeyDown = (e) => {
     if (e.key === "ArrowDown") {
@@ -267,7 +261,7 @@ function QuickSearchModal({ isOpen, onClose, items, userRole, onSelectPath, onSu
       e.preventDefault();
       if (filteredItems[safeIndex]) {
         onSelectPath(filteredItems[safeIndex].path);
-      } else if (trimmedQuery) {
+      } else if (trimmedQuery && searchPath) {
         onSubmitRecordSearch(trimmedQuery);
       }
     }
@@ -301,10 +295,9 @@ function QuickSearchModal({ isOpen, onClose, items, userRole, onSelectPath, onSu
             }}
             onKeyDown={handleKeyDown}
             placeholder={
-              userRole === "medical_expert"
-                ? "Jump to page or search USR-… / CASE-…"
-                : "Jump to page or search profiles…"
+              searchPath ? "Jump to a page or search…" : "Find a page…"
             }
+            aria-label="Search pages and permitted records"
             className="h-full w-full bg-transparent text-[14px] text-cal-ink placeholder:text-cal-muted outline-none"
           />
           <button
@@ -346,7 +339,7 @@ function QuickSearchModal({ isOpen, onClose, items, userRole, onSelectPath, onSu
             );
           })}
 
-          {trimmedQuery && (
+          {trimmedQuery && searchPath && (
             <div className="mt-1 border-t border-cal-hairline pt-1">
               <button
                 type="button"
@@ -359,7 +352,7 @@ function QuickSearchModal({ isOpen, onClose, items, userRole, onSelectPath, onSu
             </div>
           )}
 
-          {filteredItems.length === 0 && !trimmedQuery && (
+          {filteredItems.length === 0 && (!trimmedQuery || !searchPath) && (
             <div className="py-8 text-center text-[13px] text-cal-muted">
               No matching pages found.
             </div>
@@ -472,13 +465,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
   const handleRecordSearch = (trimmedQuery) => {
     setSearchOpen(false);
     closeMobileIfNeeded();
-    if (role === "medical_expert") {
-      // HL-081: experts see patients by reference only, and cases by their code
-      const target = /^case/i.test(trimmedQuery) ? "/cases" : "/patients";
-      navigate(`${target}?search=${encodeURIComponent(trimmedQuery)}`);
-    } else {
-      navigate(`/users?search=${encodeURIComponent(trimmedQuery)}`);
-    }
+    const target = searchPathFor(user);
+    if (target) navigate(`${target}?search=${encodeURIComponent(trimmedQuery)}`);
   };
 
   const handleLogout = () => {
@@ -497,35 +485,19 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
     role === "admin" && { label: "Provision staff account", path: "/users", icon: UserPlus },
     role === "admin" && { label: "Send announcement", path: "/broadcasts", icon: Megaphone },
     user?.role === "admin" && { label: "Add food or recipe", path: "/foods", icon: Utensils },
-    canOpen("/exercises") && { label: "Add exercise", path: "/exercises", icon: Dumbbell },
-    role === "medical_expert" && canOpen("/patients") && {
-      label: expertType === "Cardiologist" ? "Open cardiologist roster" : "Open patient roster",
-      path: "/patients",
-      icon: HeartPulse,
-    },
-    canOpen("/cases") && { label: "Review HSS cases", path: "/cases", icon: ListChecks },
-    role === "medical_expert" && canOpen("/calibration") && {
-      label: "Run model check",
-      path: "/calibration",
-      icon: Database,
-    },
+    role === "admin" && { label: "Add routine", path: "/exercises", icon: Dumbbell },
+    role === "medical_expert" && canOpen("/foods") && { label: "Review recipes", path: "/foods", icon: Utensils },
+    role === "medical_expert" && canOpen("/exercises") && { label: "Review routines", path: "/exercises", icon: Dumbbell },
+    canOpen("/notifications") && { label: "Open inbox", path: "/notifications", icon: Bell },
   ].filter(Boolean);
 
   // Permitted pages for Quick Search dialog
   const searchablePages = [
     canOpen("/dashboard") && { label: "Dashboard", path: "/dashboard", section: "Overview", icon: Gauge },
-    canOpen("/cases") && { label: "Case Review", path: "/cases", section: "HSS Evaluation", icon: ListChecks },
     canOpen("/analytics") && { label: "Analytics", path: "/analytics", section: "Overview", icon: ChartColumn },
-    canOpen("/patients") && {
-      label: expertType === "Cardiologist" ? "Cardiologist dashboard" : "Patients",
-      path: "/patients",
-      section: "Care Team",
-      icon: HeartPulse,
-    },
     canOpen("/users") && { label: "Users", path: "/users", section: "Administration", icon: Users },
-    canOpen("/foods") && { label: "Food & Recipes", path: "/foods", section: "Clinical & Library", icon: Utensils },
-    canOpen("/exercises") && { label: "Exercise Library", path: "/exercises", section: "Clinical & Library", icon: Dumbbell },
-    canOpen("/calibration") && { label: "Model Check", path: "/calibration", section: "Clinical & Library", icon: Database },
+    canOpen("/foods") && { label: "Food & Recipes", path: "/foods", section: "Content", icon: Utensils },
+    canOpen("/exercises") && { label: "Exercise Library", path: "/exercises", section: "Content", icon: Dumbbell },
     canOpen("/premium") && { label: "Premium", path: "/premium", section: "Governance", icon: Crown },
     canOpen("/broadcasts") && { label: "Announcements", path: "/broadcasts", section: "Governance", icon: Megaphone },
     canOpen("/activity-log") && { label: "Activity Log", path: "/activity-log", section: "Governance", icon: Activity },
@@ -709,34 +681,12 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
               />
             )}
 
-            {canOpen("/cases") && (
-              <NavItem
-                path="/cases"
-                icon={ListChecks}
-                label="Case Review"
-                collapsed={collapsed}
-                activeOverride={location.pathname.startsWith("/cases/")}
-                onNavigate={closeMobileIfNeeded}
-              />
-            )}
-
             {canOpen("/analytics") && (
               <NavItem
                 path="/analytics"
                 icon={ChartColumn}
                 label="Analytics"
                 collapsed={collapsed}
-                onNavigate={closeMobileIfNeeded}
-              />
-            )}
-
-            {canOpen("/patients") && (
-              <NavItem
-                path="/patients"
-                icon={HeartPulse}
-                label={expertType === "Cardiologist" ? "Cardiologist dashboard" : "Patients"}
-                collapsed={collapsed}
-                activeOverride={location.pathname.startsWith("/patients/")}
                 onNavigate={closeMobileIfNeeded}
               />
             )}
@@ -753,10 +703,10 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
             )}
           </div>
 
-          {/* Secondary Section: Clinical & Library ("Documents" equivalent) */}
-          {(canOpen("/foods") || canOpen("/exercises") || canOpen("/calibration") || role === "admin") && (
+          {/* Content and operations */}
+          {(canOpen("/foods") || canOpen("/exercises") || role === "admin") && (
             <div className="space-y-0.5">
-              <SectionLabel label="Clinical & Library" collapsed={collapsed} />
+              <SectionLabel label="Content & Operations" collapsed={collapsed} />
 
               {canOpen("/foods") && (
                 <NavItem
@@ -773,16 +723,6 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
                   path="/exercises"
                   icon={Dumbbell}
                   label="Exercise Library"
-                  collapsed={collapsed}
-                  onNavigate={closeMobileIfNeeded}
-                />
-              )}
-
-              {canOpen("/calibration") && (
-                <NavItem
-                  path="/calibration"
-                  icon={Database}
-                  label="Model Check"
                   collapsed={collapsed}
                   onNavigate={closeMobileIfNeeded}
                 />
@@ -1009,7 +949,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
         isOpen={searchOpen}
         onClose={() => setSearchOpen(false)}
         items={searchablePages}
-        userRole={role}
+        searchPath={searchPathFor(user)}
         onSelectPath={handleNavigate}
         onSubmitRecordSearch={handleRecordSearch}
       />

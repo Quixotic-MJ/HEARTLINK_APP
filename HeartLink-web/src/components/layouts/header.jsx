@@ -3,9 +3,8 @@ import {
   ChevronDown,
   ChevronRight,
   Clock,
-  Database,
-  HeartPulse,
-  ListChecks,
+  Dumbbell,
+  Utensils,
   Megaphone,
   PanelLeft,
   Search,
@@ -15,41 +14,23 @@ import {
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/useAuth";
-import { canAccess } from "../../app/access";
+import { canAccess, searchPathFor } from "../../app/access";
 import AdminNotificationDropdown from "./AdminNotificationDropdown";
 
 const DESKTOP = "(min-width: 1024px)";
 
-function resolveRouteMeta(pathname, expertType) {
-  const patientsLabel = expertType === "Cardiologist" ? "Cardiologist dashboard" : "Patients";
-
+function resolveRouteMeta(pathname) {
   if (pathname === "/dashboard") {
     return { section: "Overview", title: "Dashboard" };
   }
   if (pathname === "/analytics") {
     return { section: "Overview", title: "Analytics" };
   }
-  if (pathname === "/cases") {
-    return { section: "Clinical & Library", title: "Case Review" };
-  }
-  if (pathname.startsWith("/cases/")) {
-    return { section: "Case Review", sectionPath: "/cases", title: "Evaluation Detail" };
-  }
-  if (pathname === "/calibration") {
-    return { section: "Clinical & Library", title: "Model Check" };
-  }
-  if (pathname === "/patients") {
-    return { section: "Care Team", title: patientsLabel };
-  }
-  // HL-039: a patient page's last segment is the patient's id, which must never be shown
-  if (pathname.startsWith("/patients/")) {
-    return { section: patientsLabel, sectionPath: "/patients", title: "Patient Record" };
-  }
   if (pathname === "/foods") {
-    return { section: "Clinical & Library", title: "Food & Recipes" };
+    return { section: "Content", title: "Food & Recipes" };
   }
   if (pathname === "/exercises") {
-    return { section: "Clinical & Library", title: "Exercise Library" };
+    return { section: "Content", title: "Exercise Library" };
   }
   if (pathname === "/users") {
     return { section: "Administration", title: "Users" };
@@ -103,8 +84,8 @@ export default function Header({
   const searchInputRef = useRef(null);
 
   const userRole = user?.role;
-  const expertType = user?.expert_type;
-  const routeMeta = resolveRouteMeta(location.pathname, expertType);
+  const searchPath = searchPathFor(user);
+  const routeMeta = resolveRouteMeta(location.pathname);
   const title = propTitle || routeMeta.title;
   const quickActionsOpen = qaState.open && qaState.path === location.pathname;
 
@@ -168,14 +149,8 @@ export default function Header({
   const handleSearch = (e) => {
     if (e.key === "Enter") {
       const trimmedQuery = searchQuery.trim();
-      if (!trimmedQuery) return;
-      if (userRole === "medical_expert") {
-        // HL-081: experts see patients by reference only (names are hidden), and cases by their code
-        const target = /^case/i.test(trimmedQuery) ? "/cases" : "/patients";
-        navigate(`${target}?search=${encodeURIComponent(trimmedQuery)}`);
-      } else {
-        navigate(`/users?search=${encodeURIComponent(trimmedQuery)}`);
-      }
+      if (!trimmedQuery || !searchPath) return;
+      navigate(`${searchPath}?search=${encodeURIComponent(trimmedQuery)}`);
       setSearchQuery("");
       searchInputRef.current?.blur();
     } else if (e.key === "Escape") {
@@ -185,9 +160,7 @@ export default function Header({
   };
 
   const searchPlaceholder =
-    userRole === "medical_expert"
-      ? "Find patient (USR-…) or case (CASE-…)"
-      : "Search profiles or content…";
+    userRole === "medical_expert" ? "Search content…" : "Search accounts…";
 
   const actionItems =
     userRole === "admin"
@@ -196,20 +169,15 @@ export default function Header({
         { label: "Provision staff account", path: "/users", icon: UserPlus },
       ]
       : [
-        canAccess(user, "/patients") && {
-          label: expertType === "Cardiologist" ? "Cardiologist roster" : "Patient roster",
-          path: "/patients",
-          icon: HeartPulse,
+        canAccess(user, "/foods") && {
+          label: "Review recipes",
+          path: "/foods",
+          icon: Utensils,
         },
-        canAccess(user, "/cases") && {
-          label: "Review HSS cases",
-          path: "/cases",
-          icon: ListChecks,
-        },
-        canAccess(user, "/calibration") && {
-          label: "Run model check",
-          path: "/calibration",
-          icon: Database,
+        canAccess(user, "/exercises") && {
+          label: "Review routines",
+          path: "/exercises",
+          icon: Dumbbell,
         },
       ].filter(Boolean);
 
@@ -267,7 +235,7 @@ export default function Header({
       {/* ─── Right Cluster: Search Input, Monospace Clock, Actions & Bell ─── */}
       <div className="flex items-center justify-end gap-2.5">
         {/* Cal.com Hairline Search Input */}
-        <div className="group flex h-9 w-[170px] sm:w-[240px] lg:w-[290px] items-center gap-2 rounded-[8px] border border-cal-hairline bg-cal-surface-soft px-3 transition-colors focus-within:border-cal-ink focus-within:bg-cal-canvas">
+        {searchPath && <div className="group hidden sm:flex h-9 w-[240px] lg:w-[290px] items-center gap-2 rounded-[8px] border border-cal-hairline bg-cal-surface-soft px-3 transition-colors focus-within:border-cal-ink focus-within:bg-cal-canvas">
           <Search
             size={14}
             className="shrink-0 text-cal-muted group-focus-within:text-cal-ink transition-colors"
@@ -299,7 +267,7 @@ export default function Header({
               /
             </kbd>
           )}
-        </div>
+        </div>}
 
         {/* Live Tabular Clock Widget (JetBrains Mono) */}
         <div
@@ -317,7 +285,7 @@ export default function Header({
         </div>
 
         {/* Quick Actions Dropdown (Cal.com Secondary Button + 12px Popover) */}
-        <div className="relative hidden md:block" ref={qaMenuRef}>
+        {actionItems.length > 0 && <div className="relative hidden md:block" ref={qaMenuRef}>
           <button
             type="button"
             onClick={() =>
@@ -351,7 +319,7 @@ export default function Header({
               className="absolute right-0 top-[calc(100%+8px)] z-50 w-[224px] rounded-[12px] border border-cal-hairline bg-cal-canvas p-1.5 shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
             >
               <div className="px-2.5 py-1.5 text-[11.5px] font-medium text-cal-muted">
-                {userRole === "admin" ? "System actions" : "Clinical actions"}
+                {userRole === "admin" ? "System actions" : "Content review"}
               </div>
               <div className="space-y-0.5">
                 {actionItems.map((item) => {
@@ -375,7 +343,7 @@ export default function Header({
               </div>
             </div>
           )}
-        </div>
+        </div>}
 
         {/* Notifications Bell (HL-082: medical experts have their own bell) */}
         {(userRole === "admin" || userRole === "medical_expert") && (

@@ -1,11 +1,15 @@
-"""HL-039 / HL-013 / HL-040: Cardiologist dashboard, guidance and the Dietitian / PT thread."""
+"""Preserved legacy care contracts in an isolated app; the General Wellness app does not mount this router."""
 import uuid
 
 import pytest
 from fastapi.testclient import TestClient
+from fastapi import FastAPI
 
-from app.main import app
+from app.api.admin_api.patient_care_api import router
 from app.utils.security import create_access_token, revoked_token_hashes
+
+app = FastAPI()
+app.include_router(router)
 
 PATIENT_ID = "11111111-1111-1111-1111-111111111111"
 OTHER_PATIENT_ID = "22222222-2222-2222-2222-222222222222"

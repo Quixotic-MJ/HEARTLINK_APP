@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { canAuthorRecipes, canReviewRecipes, homeFor } from "./access.js";
+import {
+  canAccess,
+  canAuthorRecipes,
+  canReviewRecipes,
+  homeFor,
+  safeNotificationRoute,
+  searchPathFor,
+} from "./access.js";
 
 const admin = { role: "admin" };
 const dietitian = { role: "medical_expert", expert_type: "Dietitian" };
@@ -23,5 +30,31 @@ test("experts land in the part of the portal they own", () => {
   assert.equal(homeFor(admin), "/dashboard");
   assert.equal(homeFor(dietitian), "/foods");
   assert.equal(homeFor(physicalTherapist), "/exercises");
-  assert.equal(homeFor(cardiologist), "/patients");
+  assert.equal(homeFor(cardiologist), "/notifications");
+  assert.equal(homeFor({ role: "medical_expert", expert_type: null }), "/notifications");
+  assert.equal(homeFor({ role: "patient" }), "/");
+});
+
+test("retired and unknown staff routes are denied", () => {
+  for (const path of ["/cases", "/cases/round-1", "/calibration", "/patients", "/patients/p1"])
+    assert.equal(canAccess(admin, path), false);
+  assert.equal(canAccess(admin, "/not-a-portal-page"), false);
+  assert.equal(canAccess(admin, "/foods/unknown"), false);
+  assert.equal(canAccess(admin, "/users/u1/unknown"), false);
+  assert.equal(canAccess(admin, "/users/u1"), true);
+});
+
+test("staff search stays inside the content or account area they own", () => {
+  assert.equal(searchPathFor(admin), "/users");
+  assert.equal(searchPathFor(dietitian), "/foods");
+  assert.equal(searchPathFor(physicalTherapist), "/exercises");
+  assert.equal(searchPathFor(cardiologist), null);
+});
+
+test("notifications only open an allowlisted route for the current staff member", () => {
+  assert.equal(safeNotificationRoute(dietitian, "/foods?search=soup"), "/foods?search=soup");
+  assert.equal(safeNotificationRoute(dietitian, "/exercises"), null);
+  assert.equal(safeNotificationRoute(admin, "/patients/p1"), null);
+  assert.equal(safeNotificationRoute(admin, "/foods/../patients/p1"), null);
+  assert.equal(safeNotificationRoute(admin, "https://example.test/foods"), null);
 });

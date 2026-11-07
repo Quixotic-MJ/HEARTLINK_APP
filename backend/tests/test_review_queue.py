@@ -260,7 +260,7 @@ def test_check_with_nothing_recommended_counts_as_done(world):
 
 # --- API -----------------------------------------------------------------------------------------------
 
-def test_only_admins_draw_the_sample(world, monkeypatch):
+def test_retired_sampling_endpoint_is_unavailable(world, monkeypatch):
     from app.main import app
     from app.utils.security import create_access_token, revoked_token_hashes
 
@@ -272,7 +272,7 @@ def test_only_admins_draw_the_sample(world, monkeypatch):
     try:
         token = create_access_token({"user_id": "e1", "role": "medical_expert"})
         res = TestClient(app).post("/api/admin/review-queue/sample", headers={"Authorization": f"Bearer {token}"})
-        assert res.status_code == 403
+        assert res.status_code == 404
     finally:
         app.dependency_overrides.update(saved)
 

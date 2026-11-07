@@ -77,7 +77,34 @@ def test_a_non_uuid_actor_is_left_out_but_the_notice_still_goes(sent):
     assert "actor_id" not in sent.rows[0]
 
 
-def test_guidance_goes_to_dietitians_and_pts_and_replies_to_everyone_but_the_writer(sent, monkeypatch):
+@pytest.mark.parametrize("route", ["/patients/synthetic-person", "/cases/round-1", "/calibration"])
+def test_retired_destinations_never_create_new_notices(sent, route):
+    assert notes_service.create_admin_notification(
+        "notes", "Old workflow", "Synthetic message", "info", ["admin"], route,
+    ) is None
+    assert sent.rows == []
+
+
+def test_retired_notice_response_keeps_history_without_exposing_its_payload():
+    original = {"id": "old-notice", "type": "notes", "title": "Synthetic private reference",
+                "message": "Retired synthetic payload", "route": "/patients/synthetic-person",
+                "target_id": "synthetic-person", "read_by": [DIET], "archived": True}
+    result = notes_service.portal_notification(original, "medical_expert", "Dietitian")
+    assert result["route"] is None and result["target_id"] is None
+    assert result["title"] == "Unavailable notification"
+    assert "synthetic-person" not in str(result) and "private reference" not in str(result)
+    assert result["read_by"] == [DIET] and result["archived"] is True
+    assert original["route"] == "/patients/synthetic-person"
+
+
+def test_notification_destinations_follow_the_recipient_role():
+    row = {"type": "content", "route": "/foods", "target_id": "recipe-1", "title": "Review recipe"}
+    assert notes_service.portal_notification(row, "medical_expert", "Dietitian") == row
+    assert notes_service.portal_notification(row, "admin")["route"] == "/foods"
+    assert notes_service.portal_notification(row, "medical_expert", "Physical Therapist")["route"] is None
+
+
+def test_preserved_care_notes_do_not_emit_portal_notifications(sent, monkeypatch):
     from app.services import patient_notes
 
     class NotesRepo:
@@ -89,15 +116,8 @@ def test_guidance_goes_to_dietitians_and_pts_and_replies_to_everyone_but_the_wri
     monkeypatch.setattr("app.utils.security.get_profile_repo", lambda: Profiles())
 
     patient_notes.add_note(PATIENT, "guidance", "Keep sodium low this week.", {"user_id": CARDIO, "role": "medical_expert"})
-    g = sent.rows[-1]
-    assert g["recipient_roles"] == ["expert:Dietitian", "expert:Physical Therapist"]
-    assert g["type"] == "notes" and g["route"] == f"/patients/{PATIENT}" and g["actor_id"] == CARDIO
-
     patient_notes.add_note(PATIENT, "message", "Swapped the dinner recipe.", {"user_id": DIET, "role": "medical_expert"})
-    m = sent.rows[-1]
-    assert m["recipient_roles"] == ["expert:Cardiologist", "expert:Dietitian", "expert:Physical Therapist"]
-    assert m["actor_id"] == DIET  # other Dietitians see it; the writer doesn't (see the listing test)
-    assert "Swapped" not in m["message"]  # the bell doesn't repeat the note itself
+    assert sent.rows == []
 
 
 # --- who sees what ------------------------------------------------------------------------------------------
@@ -229,3 +249,20 @@ def test_experts_can_open_their_bell(client):
 def test_patients_still_cant(client):
     http, headers, _ = client
     assert http.get("/api/admin/notifications", headers=headers(PATIENT)).status_code == 403
+
+
+def test_bell_api_neutralizes_retired_history(client, monkeypatch):
+    http, headers, _ = client
+
+    class Repo:
+        def list_admin_notifications(self, *args):
+            return {"items": [{"id": "old-notice", "type": "notes", "route": f"/patients/{PATIENT}",
+                               "target_id": PATIENT, "title": "Old care note", "message": "Old private payload",
+                               "read_by": [], "archived": True}], "unread_count": 0, "total": 1}
+
+    monkeypatch.setattr("app.api.admin_api.admin_notifications_api.get_admin_repo", lambda: Repo())
+    response = http.get("/api/admin/notifications?include_archived=true", headers=headers(DIET))
+    assert response.status_code == 200
+    assert PATIENT not in response.text and "private payload" not in response.text
+    assert response.json()["items"][0]["archived"] is True
+    assert response.json()["total"] == 1

@@ -4,11 +4,6 @@ import Broadcasts from "../features/pages/system & support/system_broadcast";
 import Feedbacks from "../features/pages/system & support/feedback_reports";
 import Users from "../features/pages/system & support/user_management";
 import Notifications from "../features/pages/system & support/notifications";
-import Calibrations from "../features/pages/clinical portal/calibration_history";
-import Cases from "../features/pages/clinical portal/case_review";
-import CaseReviewDetail from "../features/pages/clinical portal/case_review_detail";
-import Patients from "../features/pages/care team/patients";
-import PatientDetail from "../features/pages/care team/patient_detail";
 import Exercises from "../features/pages/management/exercise";
 import Foods from "../features/pages/management/food";
 import Analytics from "../features/pages/overview/analytics";
@@ -107,14 +102,10 @@ export default function App() {
           <Route path="/settings" element={<RoleRoute><Settings /></RoleRoute>} />
           <Route path="/activity-log" element={<RoleRoute><ActivityLog /></RoleRoute>} />
           
-          {/* Clinical Routes */}
-          <Route path="/cases" element={<RoleRoute><Cases /></RoleRoute>} />
-          <Route path="/cases/:roundId" element={<RoleRoute><CaseReviewDetail /></RoleRoute>} />
-          <Route path="/calibration" element={<RoleRoute><Calibrations /></RoleRoute>} />
-
-          {/* Care team (HL-039 / HL-040) */}
-          <Route path="/patients" element={<RoleRoute><Patients /></RoleRoute>} />
-          <Route path="/patients/:id" element={<RoleRoute><PatientDetail /></RoleRoute>} />
+          {/* Retired bookmarks pass through auth/access and return to the staff role home. */}
+          <Route path="/cases/*" element={<RoleRoute><Navigate to="/" replace /></RoleRoute>} />
+          <Route path="/calibration/*" element={<RoleRoute><Navigate to="/" replace /></RoleRoute>} />
+          <Route path="/patients/*" element={<RoleRoute><Navigate to="/" replace /></RoleRoute>} />
           
           {/* Unknown paths go to the home page */}
           <Route path="*" element={<Navigate to="/" replace />} />

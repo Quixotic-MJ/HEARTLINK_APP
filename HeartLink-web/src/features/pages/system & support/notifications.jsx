@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
-  Activity,
   AlertCircle,
   Bell,
   Check,
@@ -20,7 +19,6 @@ import {
   Search,
   Settings as SettingsIcon,
   ShieldAlert,
-  StickyNote,
   UserPlus,
   X,
 } from "lucide-react";
@@ -32,6 +30,7 @@ import { useApiQuery } from "../../../hooks/useApiQuery";
 import { markNotificationsRead } from "../../../utils/notificationCache";
 import LoadError from "../../../components/ui/LoadError";
 import { Skeleton } from "../../../components/ui/Skeleton";
+import { safeNotificationRoute } from "../../../app/access";
 
 const NOTIFICATIONS_PATH = "/api/admin/notifications?include_archived=true";
 const NOTIFICATIONS_KEY = ["api", NOTIFICATIONS_PATH];
@@ -47,12 +46,6 @@ const getNotificationBadge = (type) => {
         label: "Feedback",
         className: "border-cal-warning/35 bg-cal-warning/15 text-cal-ink",
       };
-    case "case":
-    case "clinical":
-      return {
-        label: "Case review",
-        className: "border-cal-error/25 bg-cal-error/10 text-cal-ink",
-      };
     case "staff":
     case "user":
       return {
@@ -66,13 +59,8 @@ const getNotificationBadge = (type) => {
       };
     case "content":
       return {
-        label: "Approval",
+        label: "Content review",
         className: "border-cal-brand-accent/25 bg-cal-brand-accent/10 text-cal-ink",
-      };
-    case "notes":
-      return {
-        label: "Patient notes",
-        className: "border-cal-badge-emerald/35 bg-cal-badge-emerald/15 text-cal-ink",
       };
     case "system":
       return {
@@ -108,11 +96,6 @@ const getNotificationIcon = (type, severity) => {
           aria-hidden="true"
         />
       );
-    case "case":
-    case "clinical":
-      return (
-        <Activity size={15} className="text-cal-error" aria-hidden="true" />
-      );
     case "security":
       return (
         <ShieldAlert size={15} className="text-cal-error" aria-hidden="true" />
@@ -130,14 +113,6 @@ const getNotificationIcon = (type, severity) => {
         <ClipboardCheck
           size={15}
           className="text-cal-brand-accent"
-          aria-hidden="true"
-        />
-      );
-    case "notes":
-      return (
-        <StickyNote
-          size={15}
-          className="text-cal-success"
           aria-hidden="true"
         />
       );
@@ -193,6 +168,7 @@ const Notifications = () => {
   const navigate = useNavigate();
   const { userId, user } = useAuth();
   const isExpert = user?.role === "medical_expert";
+  const reduceMotion = useReducedMotion();
 
   const queryClient = useQueryClient();
   const notificationsQuery = useApiQuery(NOTIFICATIONS_PATH);
@@ -250,8 +226,11 @@ const Notifications = () => {
 
   const handleNavigate = (id, route) => {
     markAsRead(id);
-    if (route) {
-      navigate(route);
+    const destination = safeNotificationRoute(user, route);
+    if (destination) {
+      navigate(destination);
+    } else if (route) {
+      toast.info("This destination is no longer available for your account.");
     }
   };
 
@@ -286,17 +265,11 @@ const Notifications = () => {
   const unreadItemsCount = activeNotifications.filter(
     (n) => !n.read_by?.includes(userId)
   ).length;
-  const clinicalCasesCount = notifications.filter(
-    (n) => n.type === "case" || n.type === "clinical"
-  ).length;
-  const feedbackTicketsCount = notifications.filter(
+  const feedbackTicketsCount = activeNotifications.filter(
     (n) => n.type === "feedback"
   ).length;
-  const approvalsCount = notifications.filter(
+  const approvalsCount = activeNotifications.filter(
     (n) => n.type === "content"
-  ).length;
-  const patientNotesCount = notifications.filter(
-    (n) => n.type === "notes"
   ).length;
 
   // Pagination logic
@@ -337,8 +310,8 @@ const Notifications = () => {
             </h2>
             <p className="mt-1.5 max-w-[64ch] text-[14px] leading-[1.5] text-cal-muted">
               {isExpert
-                ? "Pending recipe and exercise approvals, cardiologist guidance notices, and care team patient-note replies."
-                : "Real-time feed of clinical escalations, support inquiries, staff events, and system security alerts."}
+                ? "Content review updates and account notices for your workspace."
+                : "Content reviews, support requests, staff events, and account security updates."}
             </p>
           </div>
 
@@ -403,83 +376,23 @@ const Notifications = () => {
               {loading ? "—" : unreadItemsCount}
             </div>
             <div className="mt-2 text-[12px] text-cal-muted">
-              Requires administrative review
+              Not yet read
             </div>
           </div>
 
-          {isExpert ? (
-            <>
-              <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[12.5px] font-medium text-cal-muted">
-                    Approvals
-                  </span>
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-brand-accent/25 bg-cal-brand-accent/10 text-cal-brand-accent">
-                    <ClipboardCheck size={14.5} aria-hidden="true" />
-                  </span>
-                </div>
-                <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
-                  {loading ? "—" : approvalsCount}
-                </div>
-                <div className="mt-2 text-[12px] text-cal-muted">
-                  Content awaiting verification
-                </div>
+          {[
+            { label: "Content review", count: approvalsCount, description: "Active content notices", icon: ClipboardCheck },
+            { label: "Feedback & support", count: feedbackTicketsCount, description: "Active support notices", icon: MessageSquare },
+          ].map(({ label, count, description, icon: Icon }) => (
+            <div key={label} className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[12.5px] font-medium text-cal-muted">{label}</span>
+                <Icon size={16} className="text-cal-brand-accent" aria-hidden="true" />
               </div>
-
-              <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[12.5px] font-medium text-cal-muted">
-                    Patient notes
-                  </span>
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-badge-emerald/35 bg-cal-badge-emerald/15 text-cal-ink">
-                    <StickyNote size={14.5} aria-hidden="true" />
-                  </span>
-                </div>
-                <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
-                  {loading ? "—" : patientNotesCount}
-                </div>
-                <div className="mt-2 text-[12px] text-cal-muted">
-                  Replies &amp; cardiologist guidance
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[12.5px] font-medium text-cal-muted">
-                    Clinical cases
-                  </span>
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-error/25 bg-cal-error/10 text-cal-error">
-                    <Activity size={14.5} aria-hidden="true" />
-                  </span>
-                </div>
-                <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
-                  {loading ? "—" : clinicalCasesCount}
-                </div>
-                <div className="mt-2 text-[12px] text-cal-muted">
-                  Case reviews &amp; evaluations
-                </div>
-              </div>
-
-              <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[12.5px] font-medium text-cal-muted">
-                    Feedback &amp; support
-                  </span>
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-warning/35 bg-cal-warning/15 text-cal-ink">
-                    <MessageSquare size={14.5} aria-hidden="true" />
-                  </span>
-                </div>
-                <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
-                  {loading ? "—" : feedbackTicketsCount}
-                </div>
-                <div className="mt-2 text-[12px] text-cal-muted">
-                  User tickets &amp; inquiries
-                </div>
-              </div>
-            </>
-          )}
+              <div className="mt-2 font-cal-display text-[28px] font-semibold tabular-nums">{loading ? "—" : count}</div>
+              <div className="mt-2 text-[12px] text-cal-muted">{description}</div>
+            </div>
+          ))}
         </div>
 
         {/* ─── 3. MAIN INBOX CARD: FILTERS & FEED ───────────────────────────── */}
@@ -518,7 +431,7 @@ const Notifications = () => {
                       <motion.div
                         layoutId="notifications-status-filter-tab"
                         className="absolute inset-0 rounded-full bg-cal-primary shadow-xs"
-                        transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                        transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }}
                       />
                     )}
                     {tab.dot && (
@@ -588,13 +501,13 @@ const Notifications = () => {
                   <option value="all">All alert types</option>
                   {isExpert ? (
                     <>
-                      <option value="content">Approvals</option>
-                      <option value="notes">Patient notes</option>
+                      <option value="content">Content review</option>
+                      <option value="system">Account &amp; system</option>
                     </>
                   ) : (
                     <>
                       <option value="feedback">Feedback</option>
-                      <option value="case">Clinical cases</option>
+                      <option value="content">Content review</option>
                       <option value="staff">Staff accounts</option>
                       <option value="user">User accounts</option>
                       <option value="security">Security</option>
@@ -660,8 +573,7 @@ const Notifications = () => {
                 return (
                   <div
                     key={n.id}
-                    onClick={() => handleNavigate(n.id, n.route)}
-                    className={`flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5 transition-colors group cursor-pointer ${
+                    className={`flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5 transition-colors group ${
                       isRead
                         ? "bg-cal-canvas hover:bg-cal-surface-soft/60"
                         : "bg-cal-surface-soft/80 hover:bg-cal-surface-card"
@@ -718,9 +630,8 @@ const Notifications = () => {
                     {/* Right Actions */}
                     <div
                       className="flex items-center gap-2 sm:self-center shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-cal-hairline"
-                      onClick={(e) => e.stopPropagation()}
                     >
-                      {n.route && (
+                      {safeNotificationRoute(user, n.route) && (
                         <button
                           type="button"
                           onClick={() => handleNavigate(n.id, n.route)}
@@ -762,7 +673,7 @@ const Notifications = () => {
                   <p className="max-w-sm text-[13px] text-cal-muted">
                     {isFilterActive
                       ? "No alerts match your applied filter or search parameters."
-                      : "You are completely caught up with all administrative notifications."}
+                      : "You are caught up with your workspace notifications."}
                   </p>
                   {isFilterActive && (
                     <button

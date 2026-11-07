@@ -1,7 +1,7 @@
 // HL-034: which portal pages each staff member can open. The routes (App.jsx), the layout
 // and the side menu all read these rules, so they can't disagree. They mirror the backend's
 // HL-012 rules (backend/app/utils/security.py EXPERT_PERMISSIONS): Admins author recipes,
-// Dietitians review recipes, Physical Therapists edit exercises, Cardiologists edit neither.
+// Dietitians review recipes; routine author/review parity is tracked separately.
 
 // HL-074: one Admin role; Super Admin was merged into it.
 export const ADMIN_ROLES = ["admin"];
@@ -21,28 +21,47 @@ export const PAGE_ACCESS = {
   // HL-084: Premium settings and members
   "/premium": ADMINS,
   "/broadcasts": ADMINS,
-  // HL-082: experts have their own notifications (approvals waiting, guidance, patient-note replies)
+  // Experts use notifications for content, account, and security work assigned to them.
   "/notifications": ALL_STAFF,
   "/settings": ADMINS,
   "/activity-log": ADMINS,
-  "/cases": ALL_STAFF,
-  "/calibration": ALL_STAFF,
-  // HL-039/040: the Cardiologist dashboard, and each patient's logs and care-team notes
-  "/patients": { roles: ADMIN_ROLES, expertTypes: EXPERT_TYPES },
 };
 
 /** The rule for a path, matching "/users/123" to "/users". */
 export function ruleFor(pathname) {
-  const key = Object.keys(PAGE_ACCESS).find((p) => pathname === p || pathname.startsWith(`${p}/`));
+  const path = pathname.replace(/\/$/, "");
+  const key = Object.hasOwn(PAGE_ACCESS, path) ? path : /^\/users\/[^/]+$/.test(path) ? "/users" : null;
   return key ? PAGE_ACCESS[key] : null;
 }
 
 export function canAccess(user, pathname) {
   const rule = ruleFor(pathname);
-  if (!rule) return true; // pages without a rule (login, set password) are handled elsewhere
+  if (!rule) return false;
   const role = user?.role;
   if (rule.roles.includes(role)) return true;
   return role === "medical_expert" && !!rule.expertTypes?.includes(user?.expert_type);
+}
+
+export function searchPathFor(user) {
+  if (ADMIN_ROLES.includes(user?.role)) return "/users";
+  if (user?.role !== "medical_expert") return null;
+  if (user?.expert_type === "Dietitian") return "/foods";
+  if (user?.expert_type === "Physical Therapist") return "/exercises";
+  return null;
+}
+
+export function safeNotificationRoute(user, route) {
+  if (typeof route !== "string" || !route.startsWith("/") || route.startsWith("//")) return null;
+  try {
+    const origin = "https://portal.heartlink.invalid";
+    const parsed = new URL(route, origin);
+    if (parsed.origin !== origin || !ruleFor(parsed.pathname) || !canAccess(user, parsed.pathname)) {
+      return null;
+    }
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return null;
+  }
 }
 
 export function canAuthorRecipes(user) {
@@ -56,7 +75,8 @@ export function canReviewRecipes(user) {
 /** Where someone lands after being turned away from a page. */
 export function homeFor(user) {
   if (ADMIN_ROLES.includes(user?.role)) return "/dashboard";
+  if (user?.role !== "medical_expert") return "/";
   if (user?.expert_type === "Dietitian") return "/foods";
   if (user?.expert_type === "Physical Therapist") return "/exercises";
-  return user?.expert_type === "Cardiologist" ? "/patients" : "/cases";
+  return "/notifications";
 }

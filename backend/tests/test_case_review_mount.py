@@ -1,10 +1,10 @@
-"""HL-050: the case review router is mounted once, under /api/admin only."""
+"""General Wellness never mounts legacy clinical portal routers; stored history is retained."""
 import re
 import warnings
 
 from fastapi.testclient import TestClient
 
-from app.api.admin_api import case_review_api
+from app.api.admin_api import case_review_api, patient_care_api
 from app.main import app
 
 # The app's own address list (what /docs shows). Newer FastAPI keeps included routers in a private wrapper, so
@@ -27,11 +27,12 @@ def test_no_endpoint_is_registered_twice():
     assert duplicated - GET_AND_HEAD == set()
 
 
-def test_case_review_lives_only_under_api_admin():
+def test_clinical_portal_routes_are_not_exposed():
     paths, _ = _schema()
     case_review_paths = {f"/api/admin{cr.path}" for cr in case_review_api.router.routes}
-    assert case_review_paths, "case review routes should be mounted"
-    assert case_review_paths <= set(paths)
+    patient_paths = {cr.path for cr in patient_care_api.router.routes}
+    assert case_review_paths and patient_paths
+    assert not (case_review_paths | patient_paths) & set(paths)
     assert not any(p.startswith("/api/expert") for p in paths)
 
 
@@ -41,12 +42,17 @@ def test_old_expert_prefix_returns_404():
         assert client.get(path).status_code == 404
 
 
-def test_admin_prefix_still_requires_login():
-    # Other modules install app-wide dependency overrides at import time; exercise the real auth here.
+def test_retired_routes_return_404_even_to_signed_in_staff():
     saved_overrides = dict(app.dependency_overrides)
     app.dependency_overrides.clear()
     try:
-        # 401 (not 404) proves the endpoint exists and is still protected
-        assert TestClient(app).get("/api/admin/review-queue").status_code == 401
+        from app.utils.security import get_current_admin_user
+        for role in ("admin", "medical_expert"):
+            app.dependency_overrides[get_current_admin_user] = lambda: {"user_id": "synthetic-staff", "role": role}
+            client = TestClient(app)
+            for path in ("/api/admin/review-queue", "/api/admin/model-check/export", "/api/admin/patients",
+                         "/api/admin/patients/synthetic/notes", "/api/admin/patients/synthetic/logs"):
+                for method in ("GET", "POST", "PUT", "DELETE"):
+                    assert client.request(method, path).status_code == 404
     finally:
         app.dependency_overrides.update(saved_overrides)
