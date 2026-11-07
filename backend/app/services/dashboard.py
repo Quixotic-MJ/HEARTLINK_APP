@@ -378,12 +378,10 @@ def _generate_insight(
 
     title, body, icon, action = _note_for_latest_event(user_hss, latest_log)
 
-    # The fact stays the title; real numbers, a step for the time of day and one weekly pattern are added
-    pattern = None
+    # The fact stays the title; real numbers and a step for the time of day are added. The week's patterns are on Trends.
     if facts and action != "see_what_to_do":
         kind, diff, score = _note_kind(user_hss)
         title, body, icon, action = coach_note.improve_note(title, body, icon, action, kind, diff, score, facts)
-        pattern = coach_note.weekly_pattern(facts)
 
     ai_written = False
     # Try to enhance the body with Groq AI if available
@@ -411,13 +409,13 @@ def _generate_insight(
                     context_str = "Today's score was affected by: " + ", ".join(points) + "."
 
             today = to_local_date(utc_now()).isoformat()
-            cache_key = (user_id or first_name, today, title, body, pattern, context_str)
+            cache_key = (user_id or first_name, today, title, body, context_str)
             ai_body = _ai_insight_lines.get(cache_key)
             if ai_body is None and _ai_insight_allowed(user_id or first_name, today):
                 # The AI only rewords the second line; anything with a new number or a medical claim is dropped
-                facts_text = " ".join(x for x in (title, body, pattern or "") if x)
+                facts_text = " ".join(x for x in (title, body) if x)
                 ai_body = coach_note.checked_ai_line(
-                    _ask_ai_for_insight(client, coach_note.ai_prompt(first_name, title, body, pattern)), facts_text
+                    _ask_ai_for_insight(client, coach_note.ai_prompt(first_name, title, body)), facts_text
                 )
                 if ai_body:
                     _remember_ai_insight(cache_key, ai_body)
@@ -431,7 +429,7 @@ def _generate_insight(
 
     side_note = None if action == "see_what_to_do" else _side_note(user_hss)
     return {
-        "title": title, "body": body, "icon": icon, "action": action, "pattern": pattern, "side_note": side_note,
+        "title": title, "body": body, "icon": icon, "action": action, "side_note": side_note,
         "ai_written": ai_written,
     }
 
@@ -603,7 +601,7 @@ def _get_today_activity(user_id: str) -> dict:
         "latest_blood_sugar": blood_sugar,
         "streak_data": _calculate_streak_data(meal_logs, exercise_logs, daily_health_logs, sleep_logs),
         # For Today's note (coach_note.day_facts); taken out before the dashboard is sent
-        "_logs": {"meals": meal_logs, "exercises": exercise_logs, "vitals": daily_health_logs},
+        "_logs": {"meals": meal_logs, "exercises": exercise_logs, "vitals": daily_health_logs, "sleep": sleep_logs},
     }
 
 
@@ -828,6 +826,7 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
         "hidden_items": [{"type": t, "id": i} for t, i in sorted(hidden)],
         "checkup_reminder": review_feedback.checkup_reminder(canonical_id),
         "insight": insight,
+        "weekly_report": coach_note.weekly_report_status(logs, profile.get("created_at")),
         "today_activity": today_activity,
         "nutrition_budget": {
             "sodium": {

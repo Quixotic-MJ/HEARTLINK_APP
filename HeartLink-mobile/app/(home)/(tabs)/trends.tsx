@@ -22,6 +22,7 @@ import { useNetInfo } from "@react-native-community/netinfo";
 import { bandTag } from "../../../components/dashboard/ScoreCard";
 import { TrendChart } from "../../../components/trends/TrendChart";
 import { LongTermTrends } from "../../../components/trends/LongTermTrends";
+import { WeeklyInsight, type WeeklyInsightLine } from "../../../components/trends/WeeklyInsight";
 import { isPremiumProfile } from "../../../services/premium";
 import { isLongTerm, periodName } from "../../../services/longTermTrends";
 import {
@@ -67,6 +68,7 @@ type Analytics = {
   exercise_logs?: ExerciseRow[];
   sleep_logs?: SleepRow[];
   thresholds?: { sodium_limit_mg?: number | null; active_minutes_goal?: number | null } | null;
+  weekly_insights?: WeeklyInsightLine[];
 };
 
 let isCurrentlySharing = false;
@@ -320,6 +322,7 @@ export default function TrendsTabScreen() {
 
           {data && !long ? (
             <>
+              {data.weekly_insights ? <WeeklyInsight lines={data.weekly_insights} /> : null}
               <View style={{ gap: 12 }}>
                 <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "600", color: c.ink }}>
                   Day by day

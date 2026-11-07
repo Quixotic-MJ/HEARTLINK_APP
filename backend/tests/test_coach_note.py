@@ -1,5 +1,5 @@
 """Today's note with real numbers: the fact stays the title, the line under it says why, one step fits the time of
-day, one weekly pattern, and the AI may only reword (checked)."""
+day, the AI may only reword (checked), and the week's patterns are for Trends."""
 import sys
 from datetime import datetime, timedelta, timezone
 
@@ -74,17 +74,44 @@ def test_an_emergency_note_is_never_changed(monkeypatch):
     today = datetime.now(timezone.utc).isoformat()
     log = {"systolic_bp": 185, "diastolic_bp": 95, "logged_at": today}
     note = _generate_insight(scores(30, 82), log, facts=facts())
-    assert note["action"] == "see_what_to_do" and note["pattern"] is None
+    assert note["action"] == "see_what_to_do" and "pattern" not in note
 
 
-def test_weekly_patterns():
-    vit = [{"systolic_bp": s, "diastolic_bp": 80, "logged_at": at(d)} for d, s in [(0, 128), (1, 130), (2, 129), (8, 140), (9, 138), (10, 139)]]
-    assert coach_note.weekly_pattern(facts(vitals=vit)) == "Your top number averaged 129 this week, 10 lower than last week."
-    salty = [{"meal_name": "x", "sodium_mg": 2500, "logged_at": at(d)} for d in range(4)]
-    assert coach_note.weekly_pattern(facts(meals=salty)) == "Sodium went over your limit on 4 of the 4 days you logged meals this week."
+def line(kind, f):
+    return next((x["text"] for x in coach_note.weekly_insights(f) if x["kind"] == kind), None)
+
+
+def test_weekly_insights_for_blood_pressure():
+    def readings(*rows):
+        return facts(vitals=[{"systolic_bp": s, "diastolic_bp": 80, "logged_at": at(d)} for d, s in rows])
+
+    this_week = [(0, 128), (1, 130), (2, 129)]
+    assert line("pressure", readings(*this_week)) == "Your top number averaged 129 this week."
+    assert line("pressure", readings(*this_week, (8, 140), (9, 138), (10, 139))) == "Your top number averaged 129 this week, 10 lower than last week."
+    assert line("pressure", readings(*this_week, (8, 120), (9, 118), (10, 119))) == "Your top number averaged 129 this week, 10 higher than last week."
+    assert line("pressure", readings(*this_week, (8, 130), (9, 128), (10, 129))) == "Your top number averaged 129 this week, about the same as last week."
+    assert line("pressure", readings((0, 128), (1, 130))) is None  # 2 readings aren't enough
+
+
+def test_weekly_insights_for_sodium_and_movement():
+    def meals(mg, count):
+        return facts(meals=[{"meal_name": "x", "sodium_mg": mg, "logged_at": at(d)} for d in range(count)])
+
+    assert line("sodium", meals(2500, 4)) == "Sodium went over your limit on 4 of the 4 days you logged meals this week."
+    assert line("sodium", meals(500, 3)) == "Sodium stayed within your limit on all 3 days you logged meals this week."
+    assert line("sodium", meals(2500, 2)) is None  # 2 days aren't enough
     walks = [{"duration_minutes": 35, "logged_at": at(d)} for d in range(5)]
-    assert coach_note.weekly_pattern(facts(exercises=walks)) == "You reached your movement goal on 5 of the last 7 days."
-    assert coach_note.weekly_pattern(facts()) is None
+    assert line("movement", facts(exercises=walks)) == "You reached your movement goal on 5 of the last 7 days."
+    assert coach_note.weekly_insights(facts()) == []
+
+
+def test_todays_note_stays_about_today(monkeypatch):
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    vit = [{"systolic_bp": 128, "diastolic_bp": 78, "logged_at": at(d)} for d in range(3)]
+    walks = [{"duration_minutes": 35, "logged_at": at(d)} for d in range(5)]
+    note = _generate_insight(scores(82, 82), None, facts=facts(vitals=vit, exercises=walks, sleep=7))
+    assert "pattern" not in note
+    assert "this week" not in note["body"] and "last 7 days" not in note["body"]
 
 
 def test_the_ai_line_is_checked():
@@ -181,3 +208,45 @@ def test_medicine_points_from_a_check_in_are_told_apart_from_the_reading(monkeyp
 def test_before_any_log_today_the_score_still_shows_yesterdays_habits():
     parts = dashboard._score_parts(YESTERDAY)
     assert parts == {"readings": 77, "habits": 2, "habits_today": False}
+
+
+def test_trends_gets_the_weekly_insights_for_short_and_long_periods(monkeypatch):
+    """Errors here are hidden from the patient (Trends still loads), so both paths are run for real."""
+    from types import SimpleNamespace
+
+    import app.db.repositories as repositories
+    from app.services import analytics, health_logs
+
+    now = datetime.now(timezone.utc)
+    logged = lambda days: (now - timedelta(days=days)).isoformat()  # noqa: E731
+    vitals = [{"systolic_bp": 128, "diastolic_bp": 78, "logged_at": logged(d)} for d in range(3)]
+    walks = [{"duration_minutes": 35, "logged_at": logged(d)} for d in range(2)]
+    meals = [{"meal_name": "x", "sodium_mg": 500, "logged_at": logged(d)} for d in range(3)]
+    targets = {"sodium_mg": {"value": 1500}}
+    expected = ["pressure", "sodium", "movement"]
+
+    # 30 days: the logs Trends already loaded are enough
+    long_period = analytics._weekly_insights("pat", 30, vitals, walks, meals, {"active_minutes_goal": 30}, targets)
+    assert [x["kind"] for x in long_period] == expected
+
+    # 7 days: loads two weeks itself, and uses those instead of the short list it was given
+    monkeypatch.setattr(health_logs, "get_health_logs", lambda user_id, cutoff=None: vitals)
+    monkeypatch.setattr(repositories, "get_exercises_repo", lambda: SimpleNamespace(list_user_logs=lambda user_id, cutoff=None: walks))
+    monkeypatch.setattr(repositories, "get_meals_repo", lambda: SimpleNamespace(list_user_meals=lambda user_id, cutoff=None: meals))
+    short_period = analytics._weekly_insights("pat", 7, [], [], [], None, targets)
+    assert [x["kind"] for x in short_period] == expected
+
+
+def test_weekly_report_status_counts_days_with_a_log():
+    logs = {
+        "meals": [{"logged_at": at(0)}, {"logged_at": at(0, hour_utc=5)}],  # the same day counts once
+        "exercises": [{"logged_at": at(1)}, {"logged_at": at(2), "status": "abandoned"}],
+        "vitals": [{"logged_at": at(3)}, {"logged_at": at(4), "deleted_at": "2026-10-30"}],
+        "sleep": [{"logged_at": at(5)}, {"logged_at": at(6), "is_deleted": True}, {"logged_at": at(7)}],
+    }
+    status = coach_note.weekly_report_status(logs, at(10), now=NOW)
+    assert status == {"logged_days": 4, "account_age_days": 10}  # today, 1, 3 and 5 days ago; 7 days ago is too old
+
+
+def test_weekly_report_status_without_a_signup_date_is_not_old_enough():
+    assert coach_note.weekly_report_status({}, None, now=NOW) == {"logged_days": 0, "account_age_days": 0}

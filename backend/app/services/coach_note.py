@@ -132,9 +132,6 @@ def improve_note(title: str, body: str, icon: str, action: Optional[str], kind: 
         return title, body, icon, (None if to_go == 0 or f["exercise_paused"] else "start_walk")
 
     if kind == "reading":
-        week = f["top_avg_week"]
-        if week:
-            body = f"{body} Your top number averaged {week} this week."
         return title, body, icon, action
 
     # Nothing new moved the score: point to the next useful thing for this time of day
@@ -152,19 +149,45 @@ def improve_note(title: str, body: str, icon: str, action: Optional[str], kind: 
     return title, body, icon, action
 
 
-# ── C: one weekly pattern ──────────────────────────────────────────────────────────────────────────────────
+# ── C: the week's patterns, shown on Trends ──────────────────────────────────────────────────────────────────────────────────
 
 
-def weekly_pattern(f: Dict[str, Any]) -> Optional[str]:
-    """At most one line about the last 7 days, most useful first; None when nothing stands out."""
+def weekly_insights(f: Dict[str, Any]) -> List[Dict[str, str]]:
+    """Up to one line each on blood pressure, sodium and movement over the last 7 days, when there's enough logged."""
+    lines: List[Dict[str, str]] = []
     week, last = f["top_avg_week"], f["top_avg_last_week"]
-    if week and last and abs(week - last) >= 5:
-        return f"Your top number averaged {week} this week, {abs(week - last)} {'lower' if week < last else 'higher'} than last week."
-    if f["meal_days"] >= 3 and f["sodium_over_days"] >= 3:
-        return f"Sodium went over your limit on {f['sodium_over_days']} of the {f['meal_days']} days you logged meals this week."
-    if f["goal_days"] >= 4:
-        return f"You reached your movement goal on {f['goal_days']} of the last 7 days."
-    return None
+    if week:
+        if not last:
+            text = f"Your top number averaged {week} this week."
+        elif abs(week - last) >= 5:
+            text = f"Your top number averaged {week} this week, {abs(week - last)} {'lower' if week < last else 'higher'} than last week."
+        else:
+            text = f"Your top number averaged {week} this week, about the same as last week."
+        lines.append({"kind": "pressure", "text": text})
+    if f["meal_days"] >= 3:
+        text = (
+            f"Sodium went over your limit on {f['sodium_over_days']} of the {f['meal_days']} days you logged meals this week."
+            if f["sodium_over_days"]
+            else f"Sodium stayed within your limit on all {f['meal_days']} days you logged meals this week."
+        )
+        lines.append({"kind": "sodium", "text": text})
+    if f["goal_days"]:
+        lines.append({"kind": "movement", "text": f"You reached your movement goal on {f['goal_days']} of the last 7 days."})
+    return lines
+
+
+def weekly_report_status(logs: Dict[str, List[dict]], created_at: Any, now: datetime | None = None) -> Dict[str, int]:
+    """What the app needs to decide if the weekly report is ready: days with a log in the last 7, and the account's age."""
+    today = _local_now(now).date()
+    week = {today - timedelta(days=i) for i in range(7)}
+    days = {
+        _day(row.get("logged_at"))
+        for name in ("meals", "exercises", "vitals", "sleep")
+        for row in logs.get(name, [])
+        if _alive(row) and row.get("status") != "abandoned"
+    }
+    created = _day(created_at)
+    return {"logged_days": len(days & week), "account_age_days": (today - created).days if created else 0}
 
 
 # ── D: the AI only rewords, and is checked ────────────────────────────────────────────────────────────────
@@ -194,8 +217,8 @@ def checked_ai_line(text: str, facts_text: str) -> Optional[str]:
     return line
 
 
-def ai_prompt(first_name: str, title: str, body: str, pattern: Optional[str]) -> str:
-    facts = " ".join(x for x in (title, body, pattern or "") if x)
+def ai_prompt(first_name: str, title: str, body: str) -> str:
+    facts = " ".join(x for x in (title, body) if x)
     return (
         f"Rewrite this note for {first_name} in a warm, plain, encouraging voice, in at most 2 short sentences. "
         "Keep every number exactly as written and do not add any new number, fact or advice. "
