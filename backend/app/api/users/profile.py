@@ -9,7 +9,8 @@ from app.schemas.user import (
     DeleteAccountRequest,
     RemindersUpdateRequest,
     CareTeamContactRequest,
-    BaselineOnboardingRequest
+    BaselineOnboardingRequest,
+    ExerciseScreeningRequest,
 )
 from app.services.users import (
     update_profile,
@@ -391,6 +392,38 @@ async def update_user_reminders_route(
 
 from app.services.hss_service import compute_initial_hss, HSSModelError
 from datetime import datetime
+
+def _own_account(current_user: dict, user_id: str) -> None:
+    if current_user.get("user_id") != user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You may only change your own account.")
+
+
+# HL-093: the pre-exercise safety check
+@router.get("/{user_id}/exercise-screening")
+async def get_exercise_screening(user_id: str, current_user: dict = Depends(get_current_user)):
+    _own_account(current_user, user_id)
+    from app.services import exercise_screening
+
+    return exercise_screening.status_for(user_id)
+
+
+@router.put("/{user_id}/exercise-screening")
+async def save_exercise_screening(
+    user_id: str, payload: ExerciseScreeningRequest, current_user: dict = Depends(get_current_user)
+):
+    _own_account(current_user, user_id)
+    from app.services import exercise_screening
+
+    return exercise_screening.save_answers(user_id, payload.answers)
+
+
+@router.post("/{user_id}/exercise-screening/clear")
+async def clear_exercise_screening(user_id: str, current_user: dict = Depends(get_current_user)):
+    _own_account(current_user, user_id)
+    from app.services import exercise_screening
+
+    return exercise_screening.clear(user_id)
+
 
 @router.post("/{user_id}/baseline/complete", status_code=status.HTTP_201_CREATED)
 async def complete_baseline_onboarding(

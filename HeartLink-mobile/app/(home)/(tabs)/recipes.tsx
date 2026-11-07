@@ -1,3 +1,4 @@
+import { bandName } from "../../../constants/theme";
 import React, { useState, useMemo, useCallback } from "react";
 import {
   View,
@@ -440,7 +441,7 @@ export default function RecipesScreen({
                 }}
               >
                 <Text style={{ fontSize: 11.5, fontWeight: "600", color: isDark ? "#34D399" : "#059669" }}>
-                  {patientTier}
+                  {bandName(patientTier)}
                 </Text>
               </View>
             ) : null}

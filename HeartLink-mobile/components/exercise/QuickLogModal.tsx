@@ -19,6 +19,7 @@ import { useUser } from "../../contexts/UserContext";
 import { useLogExercise } from "../../hooks/useLogExercise";
 import AnimatedButton from "../ui/AnimatedButton";
 import DsButton from "../onboarding/DsButton";
+import { EffortPicker } from "./EffortPicker";
 import { useDs } from "../onboarding/useDs";
 import { ExerciseHistoryLink } from "./ExerciseBits";
 
@@ -50,6 +51,7 @@ export function QuickLogModal({ visible, onClose }: QuickLogModalProps) {
   const logExercise = useLogExercise(userId, token);
   const [name, setName] = useState("");
   const [minutes, setMinutes] = useState(30);
+  const [effort, setEffort] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [focused, setFocused] = useState(false);
 
@@ -104,6 +106,7 @@ export function QuickLogModal({ visible, onClose }: QuickLogModalProps) {
     animateOut(() => {
       setName("");
       setMinutes(30);
+      setEffort(null);
       setError("");
       onClose(saved);
     });
@@ -120,7 +123,7 @@ export function QuickLogModal({ visible, onClose }: QuickLogModalProps) {
       return;
     }
     // The screen updates straight away; the hook saves it offline if there's no connection.
-    logExercise.mutate({ routine_name: activity, duration_minutes: minutes, duration_seconds: minutes * 60, status: "completed" });
+    logExercise.mutate({ ...(effort === null ? {} : { effort_rating: effort }), routine_name: activity, duration_minutes: minutes, duration_seconds: minutes * 60, status: "completed" });
     close(true);
   };
 
@@ -255,6 +258,10 @@ export function QuickLogModal({ visible, onClose }: QuickLogModalProps) {
                 </View>
               </View>
 
+              <View style={{ gap: 8 }}>
+                <Text style={{ fontSize: 15, fontWeight: "600", color: c.ink }}>How hard was it? (optional)</Text>
+                <EffortPicker value={effort} onChange={setEffort} />
+              </View>
               <DsButton label="Save activity" onPress={save} />
               <DsButton
                 label="Follow a guided exercise instead"

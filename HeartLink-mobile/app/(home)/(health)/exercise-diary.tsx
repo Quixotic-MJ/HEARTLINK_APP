@@ -14,7 +14,7 @@ import DsButton from "../../../components/onboarding/DsButton";
 import { useDs } from "../../../components/onboarding/useDs";
 import { QuickLogModal } from "../../../components/exercise/QuickLogModal";
 import { IconBadge, SquareIconButton, Tag } from "../../../components/exercise/ExerciseBits";
-import { formatDuration } from "../../../services/exerciseSession";
+import { effortLabel, formatDuration } from "../../../services/exerciseSession";
 
 // Screen 8: every exercise saved, guided or logged by hand, newest first and grouped by day,
 // with this week's totals. Each row can be deleted.
@@ -27,6 +27,7 @@ export type ExerciseLog = {
   duration_minutes: number;
   duration_seconds?: number | null;
   status: "completed" | "incomplete_due_to_symptoms" | string;
+  effort_rating?: number | null;
   logged_at: string;
   deleted_at?: string | null;
 };
@@ -137,7 +138,10 @@ export default function ExerciseDiaryScreen() {
             {item.routine_name || "Exercise"}
           </Text>
           <Text style={{ fontSize: 13, color: c.slate }}>{logDetail(item)}</Text>
-          {unwell ? <Tag label="Stopped, felt unwell" tone="rose" /> : item.routine_id ? <Tag label="Guided" tone="sky" /> : null}
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+            {unwell ? <Tag label="Stopped, felt unwell" tone="rose" /> : item.routine_id ? <Tag label="Guided" tone="sky" /> : null}
+            {typeof item.effort_rating === "number" ? <Tag label={`Effort ${item.effort_rating}/10, ${effortLabel(item.effort_rating).toLowerCase()}`} /> : null}
+          </View>
         </View>
         <AnimatedButton
           onPress={() => setToDelete(item)}

@@ -580,8 +580,8 @@ export function readingLevel(sys: number, dia: number): { text: string; emergenc
 }
 
 /** Page 3: the latest blood pressure and pulse. */
-export function LatestReadingPage({ systolic, diastolic, bpm, when, onLog }: {
-  systolic: number | null; diastolic: number | null; bpm: number | null; when: string | null; onLog: () => void;
+export function LatestReadingPage({ systolic, diastolic, bpm, pulseContext, when, onLog }: {
+  systolic: number | null; diastolic: number | null; bpm: number | null; pulseContext?: string | null; when: string | null; onLog: () => void;
 }) {
   const { c, isDark } = useDs();
   const t = isDark ? dark : light;
@@ -612,7 +612,7 @@ export function LatestReadingPage({ systolic, diastolic, bpm, when, onLog }: {
         </View>
         {bpm ? (
           <View style={{ paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999, backgroundColor: c.surfaceAlt }}>
-            <Text style={{ fontSize: 13, fontWeight: "600", color: c.charcoal }}>Pulse {bpm} bpm</Text>
+            <Text style={{ fontSize: 13, fontWeight: "600", color: c.charcoal }}>Pulse {bpm} bpm{pulseContext === "resting" ? " at rest" : pulseContext === "after_exercise" ? " after activity" : ""}</Text>
           </View>
         ) : null}
       </View>

@@ -6,6 +6,8 @@ import {
   formatClock,
   formatDuration,
   isWorkoutPaused,
+  needsScreening,
+  effortLabel,
   stepCue,
   timedStepAt,
   toRoutine,
@@ -87,6 +89,25 @@ describe("exercise session rules", () => {
     expect(isWorkoutPaused({ hss_score: 72, hss_tier: "Stable" }, "cardio")).toBe(false);
     // No score yet (0) is not treated as critical.
     expect(isWorkoutPaused({ hss_score: 0 }, "cardio")).toBe(false);
+  });
+
+  it("pauses active workouts, not breathing, while the safety check asks for a professional's OK", () => {
+    const paused = { hss_score: 90, exercise_screening: { answered: true, paused: true } };
+    expect(isWorkoutPaused(paused, "cardio")).toBe(true);
+    expect(isWorkoutPaused(paused, "breathing")).toBe(false);
+    expect(isWorkoutPaused({ hss_score: 90, exercise_screening: { answered: true, paused: false } }, "cardio")).toBe(false);
+  });
+
+  it("names every effort rating", () => {
+    expect([0, 1, 3, 5, 7, 10].map(effortLabel)).toEqual(["No effort", "Very easy", "Easy", "Moderate", "Hard", "Very hard"]);
+  });
+
+  it("asks the safety check first when it hasn't been answered, except for breathing or on older servers", () => {
+    const notYet = { exercise_screening: { answered: false, paused: false } };
+    expect(needsScreening(notYet, "cardio")).toBe(true);
+    expect(needsScreening(notYet, "breathing")).toBe(false);
+    expect(needsScreening({ exercise_screening: { answered: true, paused: false } }, "cardio")).toBe(false);
+    expect(needsScreening({ hss_score: 80 }, "cardio")).toBe(false);
   });
 
   it("counts time from the clock and leaves out pauses", () => {

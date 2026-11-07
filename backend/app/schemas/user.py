@@ -37,6 +37,11 @@ class ProfileUpdate(BaseModel):
         return v.strip()
 
 
+# HL-093: the pre-exercise safety check
+class ExerciseScreeningRequest(BaseModel):
+    answers: dict[str, bool]
+
+
 # Unified Onboarding Baseline
 class BaselineOnboardingRequest(BaseModel):
     # Physical Activity

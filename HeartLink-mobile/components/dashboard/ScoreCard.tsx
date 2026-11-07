@@ -4,20 +4,20 @@ import { Feather } from "@expo/vector-icons";
 import AnimatedButton from "../ui/AnimatedButton";
 import DsButton from "../onboarding/DsButton";
 import { useDs } from "../onboarding/useDs";
-import { DsColors } from "../../constants/theme";
+import { bandName, DsColors } from "../../constants/theme";
 
 /** The band's tag: one tint per band, as HEARTLINK.md sets out. */
 export function bandTag(label: string, hasScore: boolean, c: DsColors): { text: string; bg: string; fg: string } {
   if (!hasScore) return { text: "No score yet", bg: c.surfaceAlt, fg: c.charcoal };
   switch (label) {
     case "Stable":
-      return { text: "Stable", bg: c.tint, fg: c.onTint };
+      return { text: bandName(label), bg: c.tint, fg: c.onTint };
     case "Moderate":
-      return { text: "Moderate", bg: c.yellow, fg: c.warmText };
+      return { text: bandName(label), bg: c.yellow, fg: c.warmText };
     case "Elevated Risk":
-      return { text: "Elevated risk", bg: c.peach, fg: c.warmText };
+      return { text: bandName(label), bg: c.peach, fg: c.warmText };
     case "Critical":
-      return { text: "Critical", bg: c.rose, fg: c.charcoal };
+      return { text: bandName(label), bg: c.rose, fg: c.charcoal };
     default:
       return { text: label, bg: c.surfaceAlt, fg: c.charcoal };
   }

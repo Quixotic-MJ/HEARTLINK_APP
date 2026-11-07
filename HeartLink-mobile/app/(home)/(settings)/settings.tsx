@@ -237,6 +237,16 @@ export default function SettingsScreen() {
           />
           {familyOnly ? null : (
             <SettingsRow
+              icon="clipboard"
+              label="Exercise safety check"
+              subtitle="Answer again if your health changes"
+              iconBg={c.surface}
+              iconColor={c.slate}
+              onPress={() => router.push("/(home)/(health)/exercise-screening")}
+            />
+          )}
+          {familyOnly ? null : (
+            <SettingsRow
               icon="star"
               label="HeartLink Premium"
               subtitle={isPremium ? "You're on Premium" : "Reports, long-term trends, family sharing"}
@@ -376,6 +386,14 @@ export default function SettingsScreen() {
         {/* ── 4. Support & Legal ── */}
         <SectionLabel title="SUPPORT AND LEGAL" />
         <SettingsGroup>
+          <SettingsRow
+            icon="book-open"
+            label="Heart health basics"
+            subtitle="Blood pressure, sodium, activity, sleep"
+            iconBg={isDark ? c.surfaceAlt : "#F1F5F9"}
+            iconColor={isDark ? c.steel : c.slate}
+            onPress={() => router.push("/(home)/(settings)/heart-basics")}
+          />
           <SettingsRow
             icon="help-circle"
             label="Help and FAQ"

@@ -894,6 +894,7 @@ export default function DashboardScreen() {
                       systolic={latestSbp}
                       diastolic={latestDbp}
                       bpm={latestBpm}
+                      pulseContext={data?.latest_vitals?.context}
                       when={latestWhen}
                       onLog={() => handleMissionPress("vitals")}
                     />

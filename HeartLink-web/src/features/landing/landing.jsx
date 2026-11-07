@@ -106,7 +106,7 @@ const STEPS = [
         <div className="mt-2.5 flex items-center justify-between text-[13px]">
           <span className="font-semibold text-cal-ink">Starting Heart score</span>
           <span className="rounded-full bg-cal-surface-card px-2.5 py-0.5 font-cal-mono text-[12px] font-medium text-cal-ink">
-            78 · Moderate
+            78 · Room to improve
           </span>
         </div>
       </div>
@@ -162,31 +162,31 @@ const STEPS = [
 const BANDS = [
   {
     range: "80–100",
-    name: "Stable",
-    text: "Keep up your daily habits.",
+    name: "On track",
+    text: "Your readings and habits look steady. Keep it up.",
     dot: "bg-cal-success",
     pill: "Healthy rhythm",
   },
   {
     range: "60–79",
-    name: "Moderate",
-    text: "Small daily changes in salt, sleep or movement will help.",
+    name: "Room to improve",
+    text: "Small changes in salt, sleep or movement can help.",
     dot: "bg-cal-warning",
     pill: "Watch habits",
   },
   {
     range: "50–59",
-    name: "Elevated risk",
-    text: "Watch your readings closely and plan an in-person check-up.",
+    name: "Needs attention",
+    text: "Take it easy, skip salty snacks and check your blood pressure again later.",
     dot: "bg-cal-badge-orange",
     pill: "Plan check-up",
   },
   {
     range: "01–49",
-    name: "Critical",
-    text: "See a doctor soon. In an emergency, call 911 right away.",
+    name: "Get checked",
+    text: "Rest, and see a doctor soon. If you feel unwell, call 911.",
     dot: "bg-cal-error",
-    pill: "Urgent care",
+    pill: "See a doctor",
   },
 ];
 
@@ -214,7 +214,7 @@ const FAQS = [
   {
     question: "Are my health logs private and how are recommendations vetted?",
     answer:
-      "Your logs are tied strictly to your authenticated account—never sold or exposed publicly. All recipes and exercise routines are audited before appearing in the app, and independent cardiologists, dietitians, and physical therapists review anonymized weekly samples to keep scoring calibrated.",
+      "Your logs are tied strictly to your authenticated account—never sold or exposed publicly. In the HeartLink portal, dietitians approve recipes, physical therapists approve exercises and cardiologists review selected cases. The score's values are still being reviewed by experts.",
   },
   {
     question: "Why is HeartLink installed via an Android APK?",
@@ -226,7 +226,7 @@ const FAQS = [
 const HERO_TABS = [
   { id: "today", label: "Today" },
   { id: "trends", label: "7-day trends" },
-  { id: "review", label: "Expert audit" },
+  { id: "review", label: "Expert review" },
 ];
 
 const CARE_TEAM_AVATARS = [
@@ -320,7 +320,7 @@ function HeroProductCard() {
             </div>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-cal-surface-card px-3 py-1 text-[13px] font-medium text-cal-ink">
               <span className="h-2 w-2 rounded-full bg-cal-success" />
-              Stable
+              On track
             </span>
           </div>
 
@@ -432,8 +432,8 @@ function HeroProductCard() {
         <div className="mt-5 flex flex-col gap-3.5">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-[13px] font-medium text-cal-muted">Weekly sample audit</div>
-              <div className="mt-0.5 text-[18px] font-semibold text-cal-ink">Multi-clinician safety check</div>
+              <div className="text-[13px] font-medium text-cal-muted">Expert review</div>
+              <div className="mt-0.5 text-[18px] font-semibold text-cal-ink">How specialists use the portal</div>
             </div>
             <span className="rounded-full bg-cal-surface-card px-3 py-1 text-[12px] font-medium text-cal-ink">
               Portal view
@@ -446,19 +446,19 @@ function HeroProductCard() {
                 initials: "CA",
                 fill: "bg-cal-badge-orange",
                 role: "Cardiologist",
-                note: "Risk band & check-up flag verified",
+                note: "Reviews selected cases",
               },
               {
                 initials: "RD",
                 fill: "bg-cal-badge-emerald",
                 role: "Dietitian",
-                note: "Low-sodium recipe match approved",
+                note: "Approves recipes",
               },
               {
                 initials: "PT",
                 fill: "bg-cal-badge-violet",
                 role: "Physical Therapist",
-                note: "Brisk walk intensity safe for profile",
+                note: "Approves exercise routines",
               },
             ].map((item) => (
               <div
@@ -991,8 +991,9 @@ export default function Landing() {
                 Everything built into HeartLink
               </h2>
               <p className="mt-3 mb-0 text-[16px] leading-[1.5] text-cal-body">
-                Designed for adults and families in Cebu City who want steady daily heart support
-                between clinical check-ups.
+                Made for adults in Cebu City who want to build heart-healthy habits, including people
+                who may be at risk of high blood pressure. If you have a diagnosed heart condition or
+                have had a stroke, ask your doctor before following its exercise or food suggestions.
               </p>
             </div>
 
@@ -1033,11 +1034,12 @@ export default function Landing() {
               </p>
               <div className="rounded-[12px] bg-cal-surface-card p-5">
                 <div className="text-[14px] font-semibold text-cal-ink">
-                  Audited by three clinical specialties
+                  How content gets reviewed
                 </div>
                 <p className="mt-1.5 mb-0 text-[14px] leading-[1.5] text-cal-body">
-                  Independent cardiologists verify risk flags, dietitians audit recipes, and physical
-                  therapists review exercise safety on weekly anonymized samples.
+                  In the HeartLink portal, dietitians approve recipes, physical therapists approve
+                  exercises and cardiologists review selected cases. The score's values are still being
+                  reviewed by experts.
                 </p>
                 <p className="mt-2.5 mb-0 text-[13px] text-cal-muted">
                   The Heart score is a wellness guide, not a diagnosis. Always talk to your doctor

@@ -75,17 +75,21 @@ FIELD_NAMES = {
     "stopIf": "stop_if",
     "easierVersion": "easier_version",
     "effortHint": "effort_hint",
+    "difficultyLevel": "difficulty_level",
+    "targetAreas": "target_areas",
 }
 COLUMNS = {
     "name", "description", "duration_minutes", "hss_tier", "type", "intensity", "goal", "steps",
     "media_url", "video_url", "guide_images", "status", "expert_validated", "requirements", "calories",
     "setup_steps", "rounds", "rest_seconds", "position", "setting", "skip_if", "stop_if",
     "easier_version", "effort_hint", "frequency",
+    "difficulty_level", "category", "target_areas", "tempo",
 }
 SECTIONS = {"warmup", "main", "cooldown"}
 BREATHS = {"setup", "in", "hold", "out"}
 POSITIONS = {"Seated", "Standing", "Lying down", "Walking"}
 SETTINGS = {"Indoors", "Outdoors", "Either"}
+LEVELS = {"Beginner", "Intermediate", "Advanced"}
 INTENSITIES = {"None", "Low", "Moderate", "High"}
 STATUSES = {"draft", "published", "archived"}
 
@@ -199,6 +203,14 @@ def routine_payload(data: Dict[str, Any], partial: bool = False) -> Dict[str, An
         out["position"] = out["position"] if out["position"] in POSITIONS else None
     if "setting" in out:
         out["setting"] = out["setting"] if out["setting"] in SETTINGS else None
+    if "difficulty_level" in out:
+        out["difficulty_level"] = out["difficulty_level"] if out["difficulty_level"] in LEVELS else None
+    if "category" in out:
+        out["category"] = _text(out["category"], 60) or None
+    if "tempo" in out:
+        out["tempo"] = _text(out["tempo"], 120) or None
+    if "target_areas" in out:
+        out["target_areas"] = _text_list(out["target_areas"], 10)
     if "calories" in out:
         out["calories"] = _int(out["calories"], 0, 0, 5000)
     if "rounds" in out or not partial:

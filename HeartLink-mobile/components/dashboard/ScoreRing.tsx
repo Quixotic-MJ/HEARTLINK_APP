@@ -19,7 +19,7 @@ import Svg, {
   Stop,
 } from "react-native-svg";
 import * as Haptics from "expo-haptics";
-import { theme } from "../../constants/theme";
+import { bandName, theme } from "../../constants/theme";
 
 /**
  * ScoreRing — stroke-drawn beating heart gauge (ported template).
@@ -411,7 +411,7 @@ export function ScoreRing({
 
   const cycleStates = useMemo(() => {
     const states: { label: string; value: string; unit: string; small?: boolean }[] = [
-      { label: "SCORE", value: hasScore ? String(fillScore) : "--", unit: tokens.label },
+      { label: "SCORE", value: hasScore ? String(fillScore) : "--", unit: bandName(tokens.label) },
     ];
 
     if (hasBp) {
@@ -450,7 +450,7 @@ export function ScoreRing({
       activeOpacity={0.9}
       accessible={true}
       accessibilityRole="button"
-      accessibilityLabel={`Heart score ${hasScore ? targetScore : "unavailable"} of 100, ${tokens.label}. Showing ${current.label}.${cycleStates.length > 1 ? " Tap to cycle views." : ""}`}
+      accessibilityLabel={`Heart score ${hasScore ? targetScore : "unavailable"} of 100, ${bandName(tokens.label)}. Showing ${current.label}.${cycleStates.length > 1 ? " Tap to cycle views." : ""}`}
       onPress={() => {
         if (cycleStates.length <= 1) return;
         Haptics.selectionAsync();

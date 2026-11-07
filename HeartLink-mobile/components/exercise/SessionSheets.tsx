@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import DsButton from "../onboarding/DsButton";
 import { SheetModal, SheetOption } from "./ExerciseBits";
 import { formatDuration } from "../../services/exerciseSession";
+import { EffortPicker } from "./EffortPicker";
 
 // The questions a guided exercise asks: why you're stopping, how you feel after, and
 // whether to keep a very short session.
@@ -29,12 +30,24 @@ export function StopSheet({
   );
 }
 
+/** HL-095: after "I feel fine": how hard it felt, which can be skipped. Feeling unwell is asked separately, before this. */
+export function EffortSheet({ visible, onDone }: { visible: boolean; onDone: (effort?: number) => void }) {
+  const [effort, setEffort] = useState<number | null>(null);
+  return (
+    <SheetModal visible={visible} onRequestClose={() => onDone()} title="How hard was it?" body="This is about effort only.">
+      <EffortPicker value={effort} onChange={setEffort} />
+      <DsButton label="Save" disabled={effort === null} onPress={() => onDone(effort ?? undefined)} />
+      <DsButton label="Skip" variant="quiet" onPress={() => onDone()} />
+    </SheetModal>
+  );
+}
+
 /** After Finish, before anything is saved. */
 export function CheckInSheet({ visible, onFine, onUnwell, onBack }: { visible: boolean; onFine: () => void; onUnwell: () => void; onBack: () => void }) {
   return (
     <SheetModal visible={visible} onRequestClose={onBack} title="How do you feel now?" body="This helps HeartLink spot exercise that doesn't suit you.">
       <DsButton label="I feel fine" onPress={onFine} />
-      <SheetOption tone="rose" title="I had chest pain, dizziness or trouble breathing" onPress={onUnwell} />
+      <SheetOption tone="rose" title="I had chest pain, dizziness, fainting or trouble breathing" onPress={onUnwell} />
     </SheetModal>
   );
 }

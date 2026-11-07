@@ -2,6 +2,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, Depends, status, 
 from typing import List, Dict, Any
 from app.services.health_logs import get_health_logs, create_health_log, delete_health_log, get_paginated_health_logs
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
+from app.services.review_rules import FAINTED_SYMPTOM
 from app.utils.security import get_current_user, verify_user_access, check_expert_permission
 
 router = APIRouter(prefix="/api/health-logs", tags=["Health Logs"])
@@ -184,8 +185,9 @@ def add_health_log(
 
     is_chest_pain = "Chest Discomfort / Tightness" in symptoms and severity_map.get("Chest Discomfort / Tightness", 1) >= 7
     is_sob_rest = "Shortness of Breath" in symptoms and context_val == "resting"
+    is_fainted = FAINTED_SYMPTOM in symptoms
 
-    if is_chest_pain or is_sob_rest:
+    if is_chest_pain or is_sob_rest or is_fainted:
         try:
             from datetime import datetime
             from app.db.repositories import get_health_logs_repo
@@ -196,6 +198,8 @@ def add_health_log(
                 details_list.append(f"Severe Chest Discomfort (Level {lvl}/10)")
             if is_sob_rest:
                 details_list.append("Shortness of Breath at rest")
+            if is_fainted:
+                details_list.append("Fainted or nearly fainted")
                 
             get_health_logs_repo().create_alert({
                 "user_id": user_id,

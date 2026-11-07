@@ -9,8 +9,8 @@ import { Feather } from "@expo/vector-icons";
 
 const faqs = [
   {
-    question: "How does the HSS (Health Stability Score) work?",
-    answer: "The HSS is an algorithmic score that evaluates your daily health logs, baseline clinical data, and lifestyle metrics to give you a single comprehensive snapshot of your cardiovascular stability. A higher score indicates better daily health consistency."
+    question: "How does the Heart score work?",
+    answer: "Your Heart score is a wellness guide based on your setup answers, blood pressure readings and daily habits. A higher score means steadier readings and habits. It doesn't diagnose or predict any condition."
   },
   {
     question: "How do I manage my Care Team contacts?",

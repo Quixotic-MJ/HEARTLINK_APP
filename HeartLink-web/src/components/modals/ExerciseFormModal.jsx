@@ -92,6 +92,10 @@ const exerciseSchema = z.object({
   requirements: z.array(z.string()).default([]),
   position: z.string().optional(),
   setting: z.string().optional(),
+  difficultyLevel: z.string().optional(),
+  category: z.string().optional(),
+  targetAreas: z.string().optional(),
+  tempo: z.string().optional(),
   effortHint: z.string().optional(),
   frequency: z.string().optional(),
   easierVersion: z.string().optional(),
@@ -140,6 +144,10 @@ const EMPTY_FORM = {
   requirements: [],
   position: "",
   setting: "",
+  difficultyLevel: "",
+  category: "",
+  targetAreas: "",
+  tempo: "",
   effortHint: "",
   frequency: "",
   easierVersion: "",
@@ -153,6 +161,20 @@ const EMPTY_FORM = {
   restSeconds: 0,
   guideImages: [],
 };
+
+// HL-094: from the physiotherapist consultation; separate from Type, which decides how the session plays.
+const EXERCISE_CATEGORIES = [
+  "Walking and marching",
+  "Sit-to-stand",
+  "Squat variations",
+  "Wall or chair push-ups",
+  "Side steps",
+  "Leg movements",
+  "Balance",
+  "Mobility",
+  "Stretching",
+  "Breathing",
+];
 
 // The edit view's tabs, and which fields live on each, so a save that fails opens the right tab.
 const TABS = [
@@ -183,6 +205,10 @@ const TAB_FIELDS = {
   safety: [
     "position",
     "setting",
+    "difficultyLevel",
+    "category",
+    "targetAreas",
+    "tempo",
     "effortHint",
     "frequency",
     "easierVersion",
@@ -370,6 +396,10 @@ const ExerciseFormModal = ({
         .filter(Boolean),
       position: exercise.position || "",
       setting: exercise.setting || "",
+      difficultyLevel: exercise.difficultyLevel || "",
+      category: exercise.category || "",
+      targetAreas: (exercise.targetAreas || []).join(", "),
+      tempo: exercise.tempo || "",
       effortHint: exercise.effortHint || "",
       frequency: exercise.frequency || "",
       easierVersion: exercise.easierVersion || "",
@@ -435,6 +465,13 @@ const ExerciseFormModal = ({
         duration: breathing
           ? data.duration
           : Math.max(1, Math.ceil(totalSeconds / 60)),
+        difficultyLevel: data.difficultyLevel || null,
+        category: data.category || null,
+        targetAreas: (data.targetAreas || "")
+          .split(",")
+          .map((a) => a.trim())
+          .filter(Boolean),
+        tempo: data.tempo || null,
         position: data.position || null,
         setting: data.setting || null,
         guideImages: (data.guideImages || [])
@@ -945,6 +982,14 @@ const ExerciseFormModal = ({
                       ? "Indoors or outdoors"
                       : v.setting || notSet()}
                   </dd>
+                  <dt className="text-cal-muted">Level</dt>
+                  <dd className="text-cal-ink">{v.difficultyLevel || notSet()}</dd>
+                  <dt className="text-cal-muted">Category</dt>
+                  <dd className="text-cal-ink">{v.category || notSet()}</dd>
+                  <dt className="text-cal-muted">Body areas</dt>
+                  <dd className="text-cal-ink">{v.targetAreas || notSet()}</dd>
+                  <dt className="text-cal-muted">Tempo</dt>
+                  <dd className="text-cal-ink">{v.tempo || notSet()}</dd>
                   <dt className="text-cal-muted">Should feel</dt>
                   <dd className="text-cal-ink">{v.effortHint || notSet()}</dd>
                   <dt className="text-cal-muted">How often</dt>
@@ -1362,6 +1407,75 @@ const ExerciseFormModal = ({
                       />
                     </div>
                   </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label
+                      htmlFor="exercise-level"
+                      className="mb-1.5 block text-[13px] font-medium text-cal-ink"
+                    >
+                      Level
+                    </label>
+                    <div className="relative">
+                      <select
+                        id="exercise-level"
+                        {...register("difficultyLevel")}
+                        className={selectFieldClass()}
+                      >
+                        <option value="">Not set</option>
+                        <option value="Beginner">Beginner</option>
+                        <option value="Intermediate">Intermediate</option>
+                        <option value="Advanced">Advanced</option>
+                      </select>
+                      <ChevronDown
+                        size={15}
+                        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cal-muted"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="exercise-category"
+                      className="mb-1.5 block text-[13px] font-medium text-cal-ink"
+                    >
+                      Category
+                    </label>
+                    <div className="relative">
+                      <select
+                        id="exercise-category"
+                        {...register("category")}
+                        className={selectFieldClass()}
+                      >
+                        <option value="">Not set</option>
+                        {EXERCISE_CATEGORIES.map((name) => (
+                          <option key={name} value={name}>
+                            {name}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown
+                        size={15}
+                        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cal-muted"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <InputField
+                    id="targetAreas"
+                    label="Body areas it works"
+                    placeholder="e.g. Thighs, hips, balance (separate with commas)"
+                    {...register("targetAreas")}
+                  />
+                  <InputField
+                    id="tempo"
+                    label="Tempo"
+                    placeholder="e.g. Slow and steady, about 3 seconds each"
+                    {...register("tempo")}
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

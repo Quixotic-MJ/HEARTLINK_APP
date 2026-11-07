@@ -116,7 +116,10 @@ const TABLES = {
         (r) =>
           r.heart_rate_bpm != null ? (
             <span className="font-cal-mono tabular-nums text-cal-ink">
-              {r.heart_rate_bpm} <span className="text-[11.5px] text-cal-muted">bpm</span>
+              {r.heart_rate_bpm}{" "}
+              <span className="text-[11.5px] text-cal-muted">
+                bpm{r.context === "resting" ? ", at rest" : r.context === "after_exercise" ? ", after activity" : ""}
+              </span>
             </span>
           ) : (
             dash
@@ -133,7 +136,7 @@ const TABLES = {
                 : "border-cal-hairline bg-cal-surface-card text-cal-muted"
             }`}
           >
-            {r.medication_taken ? "Yes" : "No"}
+            {r.medication_taken ? "Yes" : r.medication_taken === null ? "Doesn't take any" : "No"}
           </span>
         ),
       ],
@@ -201,6 +204,16 @@ const TABLES = {
             <span className="font-cal-mono tabular-nums text-cal-ink">
               {r.duration_minutes} <span className="text-[11.5px] text-cal-muted">min</span>
             </span>
+          ) : (
+            dash
+          ),
+      ],
+      [
+        "effort",
+        "Effort",
+        (r) =>
+          r.effort_rating != null ? (
+            <span className="font-cal-mono tabular-nums text-cal-ink">{r.effort_rating}/10</span>
           ) : (
             dash
           ),

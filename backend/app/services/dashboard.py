@@ -2,7 +2,8 @@ import os
 import zoneinfo
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
-from app.services import coach_note
+from app.services import coach_note, exercise_screening
+from app.services.review_rules import FAINTED_SYMPTOM
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 from app.services.exercises import is_visible_to_patients, calories_burned
 from app.services.nutrition_targets import compute_targets
@@ -318,7 +319,7 @@ def _note_for_latest_event(user_hss: list, latest_log: dict | None) -> tuple:
         return title, "Keep it up.", "trending-up", None
     if diff < 0:
         if source == "meal" and not removed:
-            return (f"{moved} after your meal.", "It was high in sodium or saturated fat. Review today's meals to see which.",
+            return (f"{moved} after your meal.", "Today's sodium or this meal's saturated fat is on the high side. Review today's meals to see which.",
                     "trending-down", "review_meals")
         if removed:
             return (f"{moved} after removing your {source or 'log'}.", "Your score counts only what's logged today.",
@@ -326,7 +327,7 @@ def _note_for_latest_event(user_hss: list, latest_log: dict | None) -> tuple:
         return (f"Your score went down {abs(diff)}.", "Log your vitals and meals so the score reflects your day.",
                 "trending-down", "log_vitals")
     if score < 50:
-        return ("Your score is in the critical range.", "Keep logging your readings, and see your care team in person.",
+        return ("Your score is in the lowest range.", "Keep logging your readings, and see your care team in person.",
                 "alert-circle", "log_vitals")
     return ("Your score is holding steady.", f"It stays at {score}.", "check-circle", None)
 
@@ -576,7 +577,7 @@ def _get_today_activity(user_id: str) -> dict:
 
     # Context, Severe Symptoms, Weight Gain, Blood Sugar
     vitals_context = vitals_today[0].get("context") if vitals_today else None
-    severe_symptom_count = sum(1 for l in vitals_today if any(s in l.get("symptoms", []) for s in ["Chest Discomfort / Tightness", "Shortness of Breath"]))
+    severe_symptom_count = sum(1 for l in vitals_today if any(s in l.get("symptoms", []) for s in ["Chest Discomfort / Tightness", "Shortness of Breath", FAINTED_SYMPTOM]))
     rapid_weight_gain = False # Requires alert fetch, implemented in hss_service
     blood_sugar = vitals_today[0].get("blood_sugar") if vitals_today else None
 
@@ -653,7 +654,7 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
             is_chest_pain = "Chest Discomfort / Tightness" in symptoms and severity_map.get("Chest Discomfort / Tightness", 1) >= 7
             is_sob_rest = "Shortness of Breath" in symptoms and context_val == "resting"
             
-            if is_chest_pain or is_sob_rest:
+            if is_chest_pain or is_sob_rest or FAINTED_SYMPTOM in symptoms:
                 has_recent_severe_symptom = True
                 break
         except Exception:
@@ -708,10 +709,12 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
     # An exercise is tagged with the band it was approved for (Stable = the most active, Critical = the gentlest).
     # A patient gets their own band's or gentler ones, never more active ones; during the 24-hour rest after a severe
     # symptom, breathing exercises only (the exercise screen says the same).
+    # HL-093: while the safety check asks for a professional's OK, only breathing is suggested (as during a rest day)
+    screening = exercise_screening.status_for(canonical_id)
     reco_exercises = [
         e
         for e in exercise_routines
-        if exercise_suits(e, tier, has_recent_severe_symptom)
+        if exercise_suits(e, tier, has_recent_severe_symptom or screening["paused"])
         and is_visible_to_patients(e)
         and e.get("id") not in today_exercise_ids
         and ("exercise", str(e.get("id"))) not in hidden
@@ -776,6 +779,7 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
             sleep_hours=today_activity.get("total_sleep_hours") or 0,
             sodium_limit=sodium_limit,
             movement_goal=(threshold or {}).get("active_minutes_goal") or 30,
+            exercise_paused=bool(has_recent_severe_symptom or screening["paused"] or tier == "Critical"),
         )
     except Exception as e:  # the plain note still works without the extra facts
         logger.warning(f"Today's note facts failed: {e}")
@@ -816,6 +820,7 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
             "trend": trend,
             "trend_since": _trend_since(user_hss),
             "logged_at": latest_log.get("logged_at") if latest_log else None,
+            "context": latest_log.get("context") if latest_log else None,
         },
         "latest_alert": latest_alert,
         "recommendations": recommendations,
@@ -854,6 +859,7 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
         },
         "streak": today_activity["streak_data"],
         "has_recent_severe_symptom": has_recent_severe_symptom,
+        "exercise_screening": screening,
     }
 
 

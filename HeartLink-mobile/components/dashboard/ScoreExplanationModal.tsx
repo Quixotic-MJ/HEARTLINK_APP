@@ -37,10 +37,10 @@ interface ScoreExplanationModalProps {
 
 // One short line per band; same advice as the earlier sheet, fewer words.
 const FRAMING: Record<string, string> = {
-  Stable: "Your heart is doing great. Keep up your daily habits.",
-  Moderate: "Doing okay. Water, a short walk or some rest will help today.",
-  "Elevated Risk": "Your heart is working harder today. Take a break, skip salty snacks and check your blood pressure.",
-  Critical: "Your heart is under a lot of stress. Sit down, rest, and contact your doctor or family if you feel unwell.",
+  Stable: "Your readings and habits look steady. Keep it up.",
+  Moderate: "Small changes in salt, sleep or movement can help.",
+  "Elevated Risk": "Take it easy, skip salty snacks and check your blood pressure again later.",
+  Critical: "Rest, and see a doctor soon. If you feel unwell, call 911.",
 };
 
 // Bands as in the dashboard's getScoreTheme: under 50, 50–59, 60–79, 80 and up.
@@ -312,7 +312,7 @@ function BandBar({ c, score }: { c: DsColors; score: number }) {
   return (
     <View
       accessible
-      accessibilityLabel={`Score bands: Critical under 50, Elevated risk 50 to 59, Moderate 60 to 79, Stable 80 and up. You are at ${score}.`}
+      accessibilityLabel={`Score levels: Get checked under 50, Needs attention 50 to 59, Room to improve 60 to 79, On track 80 and up. You are at ${score}.`}
       style={{ gap: 4 }}
     >
       <View style={{ height: 30 }}>

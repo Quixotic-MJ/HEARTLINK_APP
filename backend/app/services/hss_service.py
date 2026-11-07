@@ -6,6 +6,7 @@ from typing import Dict, Any, Tuple, Optional
 
 import numpy as np
 import pandas as pd
+from app.services.review_rules import FAINTED_SYMPTOM
 from app.services.feature_transform import INPUTS, transform_to_model_features
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 
@@ -283,7 +284,7 @@ def compute_lifestyle_composite_hss(user_id: str, trigger: str = "lifestyle_even
     factors["medication_points"] = med_pts
 
     symptom_pts = 0
-    if any(any(s in l.get("symptoms", []) for s in ["Chest Discomfort / Tightness", "Shortness of Breath"]) for l in vitals_today):
+    if any(any(s in l.get("symptoms", []) for s in ["Chest Discomfort / Tightness", "Shortness of Breath", FAINTED_SYMPTOM]) for l in vitals_today):
         symptom_pts = -10
     lifestyle_points += symptom_pts
     factors["symptom_points"] = symptom_pts

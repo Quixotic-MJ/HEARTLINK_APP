@@ -66,7 +66,7 @@ def test_no_reading_today_asks_for_one_first(monkeypatch):
 def test_a_critical_score_keeps_its_own_words(monkeypatch):
     monkeypatch.delenv("GROQ_API_KEY", raising=False)
     note = _generate_insight(scores(40, 40), None, facts=facts())
-    assert note["title"] == "Your score is in the critical range." and note["action"] == "log_vitals"
+    assert note["title"] == "Your score is in the lowest range." and note["action"] == "log_vitals"
 
 
 def test_an_emergency_note_is_never_changed(monkeypatch):

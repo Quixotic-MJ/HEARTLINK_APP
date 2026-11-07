@@ -42,6 +42,7 @@ def day_facts(
     sleep_hours: float,
     sodium_limit: float,
     movement_goal: float,
+    exercise_paused: bool = False,
     now: datetime | None = None,
 ) -> Dict[str, Any]:
     """What the note may talk about: today's numbers, the latest meal and exercise, and the last two weeks."""
@@ -75,6 +76,7 @@ def day_facts(
     this_tops, last_tops = tops(set(week)), tops(set(last_week))
     return {
         "hour": local.hour,
+        "exercise_paused": exercise_paused,
         "sodium_mg": round(sodium_on(today)),
         "sodium_limit": round(sodium_limit),
         "movement_mins": round(minutes_on(today)),
@@ -127,7 +129,7 @@ def improve_note(title: str, body: str, icon: str, action: Optional[str], kind: 
             f"You've moved {f['movement_mins']} of {f['movement_goal']} minutes today."
             + (" Today's movement goal is reached." if to_go == 0 else f" {to_go} minutes to go.")
         )
-        return title, body, icon, (None if to_go == 0 else "start_walk")
+        return title, body, icon, (None if to_go == 0 or f["exercise_paused"] else "start_walk")
 
     if kind == "reading":
         week = f["top_avg_week"]
@@ -143,7 +145,7 @@ def improve_note(title: str, body: str, icon: str, action: Optional[str], kind: 
         return title, "Log how long you slept last night.", icon, "log_sleep"
     if f["meals_today"] == 0 and hour >= 13:
         return title, f"No meals logged yet today. {sodium_line}", icon, "log_meal"
-    if hour >= 16 and to_go > 0:
+    if hour >= 16 and to_go > 0 and not f["exercise_paused"]:
         return title, f"You've moved {f['movement_mins']} of {f['movement_goal']} minutes today.", icon, "start_walk"
     if f["meals_today"]:
         return title, sodium_line, icon, ("low_sodium_ideas" if left < 600 else action)

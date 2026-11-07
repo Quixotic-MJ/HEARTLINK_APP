@@ -16,6 +16,7 @@ import { AmountStepper, FoodHeader, ImpactNote, NutrientField } from "../../../c
 import { mealTimeForHour } from "../../../services/foodLogging";
 
 // ─── Filipino Staple Presets ──────────────────────────────────────────────────
+// Rough averages with no recorded source; the dietitian checks them against FNRI's tables (backend/FOOD_RULES.md).
 
 const FILIPINO_QUICK_PRESETS: Record<
   string,
@@ -46,12 +47,12 @@ const FILIPINO_QUICK_PRESETS: Record<
 
 const GUIDE = [
   {
-    title: "1. Ask Google",
-    body: 'Search "calories in 1 cup pork adobo" or "sodium in pancit canton". Online fitness databases usually have rough averages you can copy.',
+    title: "1. Look it up",
+    body: "FNRI's Philippine Food Composition Tables are free online at i.fnri.dost.gov.ph, or search for something like \"sodium in pancit canton\". Rough averages are fine.",
   },
   {
     title: "2. Beware hidden sodium",
-    body: "Carinderia and street foods rely heavily on sauces. Remember: just 1 tablespoon of soy sauce or patis has nearly 900mg of sodium!",
+    body: "Carinderia and street foods rely heavily on sauces. 1 tablespoon of soy sauce can have about 900 mg of sodium, and patis can have more.",
   },
   {
     title: "3. Rough is better than blank",

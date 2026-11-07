@@ -29,7 +29,7 @@ export default function FirstReadingScreen() {
   const { name } = useLocalSearchParams<{ name?: string }>();
   const [reading, setReading] = useState<Reading | null>(null);
 
-  const next = () => router.replace({ pathname: "/(baseline)/reminders", params: { name: name ?? "" } });
+  const next = () => router.replace({ pathname: "/(baseline)/exercise-check", params: { name: name ?? "" } });
 
   // When coming back from the log screen, look for a reading saved in the last few minutes.
   useFocusEffect(

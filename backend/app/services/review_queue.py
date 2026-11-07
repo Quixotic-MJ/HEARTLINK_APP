@@ -104,6 +104,8 @@ def urgent_reason(user_id: str, status: Dict[str, Any], now=None) -> Optional[st
             return f"Chest discomfort, severity {severity}, logged {when}"
         if rules.BREATH_SYMPTOM in symptoms and log.get("context") in rules.BREATH_URGENT_CONTEXTS:
             return f"Shortness of breath at rest logged {when}"
+        if rules.FAINTED_SYMPTOM in symptoms:
+            return f"Fainted or nearly fainted, logged {when}"
     return None
 
 

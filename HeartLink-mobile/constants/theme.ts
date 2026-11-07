@@ -159,13 +159,25 @@ export const gradients = {
 } as const;
 
 // ---- Health Stability Score bands ----
+// What patients read for each level (HL-091: a wellness indicator, not a risk result). The stored names
+// ("Elevated Risk", "Critical"...) stay: the server's rules, recipes, exercises and the staff portal use them.
+const BAND_NAMES: Record<string, string> = {
+  Stable: "On track",
+  Moderate: "Room to improve",
+  "Elevated Risk": "Needs attention",
+  Critical: "Get checked",
+};
+export function bandName(tier: string): string {
+  return BAND_NAMES[tier] ?? tier;
+}
+
 // The same cut-offs and names as the server (hss_service.determine_tier) and the dashboard: 80 / 60 / 50.
 export type ScoreBand = 'critical' | 'elevated' | 'moderate' | 'good';
 export function scoreBand(score: number, c: ThemeColors) {
-  if (score < 50) return { key: 'critical' as const, label: 'Critical',      ring: c.dangerMid,  text: c.dangerText,  tint: c.dangerTint };
-  if (score < 60) return { key: 'elevated' as const, label: 'Elevated risk', ring: c.warningMid, text: c.warningText, tint: c.warningTint };
-  if (score < 80) return { key: 'moderate' as const, label: 'Moderate',      ring: c.limeMid,    text: c.limeText,    tint: c.limeTint };
-  return              { key: 'good' as const,     label: 'Stable',        ring: c.successMid, text: c.successText, tint: c.successTint };
+  if (score < 50) return { key: 'critical' as const, label: BAND_NAMES.Critical, ring: c.dangerMid,  text: c.dangerText,  tint: c.dangerTint };
+  if (score < 60) return { key: 'elevated' as const, label: BAND_NAMES["Elevated Risk"], ring: c.warningMid, text: c.warningText, tint: c.warningTint };
+  if (score < 80) return { key: 'moderate' as const, label: BAND_NAMES.Moderate, ring: c.limeMid,    text: c.limeText,    tint: c.limeTint };
+  return              { key: 'good' as const,     label: BAND_NAMES.Stable, ring: c.successMid, text: c.successText, tint: c.successTint };
 }
 
 // ---- Limit bars (sodium, sat fat): green under 70%, orange to 100%, red over ----

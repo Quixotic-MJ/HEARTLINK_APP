@@ -18,6 +18,7 @@ export default function BaselineLayout() {
       <Stack.Screen name="part-done" />
       <Stack.Screen name="score" options={{ animation: "fade", gestureEnabled: false }} />
       <Stack.Screen name="first-reading" options={{ gestureEnabled: false }} />
+      <Stack.Screen name="exercise-check" options={{ gestureEnabled: false }} />
       <Stack.Screen name="reminders" options={{ gestureEnabled: false }} />
       <Stack.Screen name="day-one" options={{ gestureEnabled: false }} />
     </Stack>

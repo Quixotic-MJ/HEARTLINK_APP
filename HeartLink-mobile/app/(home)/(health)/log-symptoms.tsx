@@ -18,6 +18,7 @@ import { ds, DsColors } from "../../../constants/theme";
 import { postLogAck } from "../../../services/companionCopy";
 import {
   CHEST,
+  FAINTED,
   completeReading,
   isHypertensiveCrisis as crisisFor,
   isSevereHypotension as lowFor,
@@ -38,6 +39,7 @@ const SYMPTOMS: { id: string; label: string }[] = [
   { id: FINE, label: "I feel fine" },
   { id: CHEST, label: "Chest discomfort" },
   { id: "Shortness of Breath", label: "Short of breath" },
+  { id: FAINTED, label: "Fainted or nearly" },
   { id: "Dizziness / Lightheadedness", label: "Dizzy" },
   { id: "Palpitations", label: "Heart racing" },
   { id: "Fatigue / Weakness", label: "Tired or weak" },
@@ -77,6 +79,8 @@ export default function LogSymptomsScreen() {
   const [systolic, setSystolic] = useState("");
   const [diastolic, setDiastolic] = useState("");
   const [pulse, setPulse] = useState("");
+  // HL-096: a resting pulse and one after exercise mean different things. Symptoms have their own "when" below.
+  const [pulseWhen, setPulseWhen] = useState<"resting" | "after_exercise">(fromExercise ? "after_exercise" : "resting");
   const [weight, setWeight] = useState("");
   const [showWeight, setShowWeight] = useState(false);
   const [medicine, setMedicine] = useState<Medicine | null>(null);
@@ -184,7 +188,7 @@ export default function LogSymptomsScreen() {
     if (noMedsKey) AsyncStorage.setItem(noMedsKey, m === "none" ? "true" : "false").catch(() => {});
   };
 
-  const unrated = hasRealSymptoms ? symptoms.filter((s) => !strength[s]) : [];
+  const unrated = hasRealSymptoms ? symptoms.filter((s) => s !== FAINTED && !strength[s]) : [];
   const needsWhen = hasRealSymptoms && !context;
   const blockedReason =
     unrated.length > 0
@@ -262,8 +266,8 @@ export default function LogSymptomsScreen() {
       weight_kg: w,
       medication_taken: medicationTaken(medicine),
       symptoms,
-      severity_map: hasRealSymptoms ? Object.fromEntries(symptoms.map((s) => [s, strength[s]])) : {},
-      context: hasRealSymptoms || fromExercise ? CONTEXTS.find((x) => x.id === context)?.stored ?? null : null,
+      severity_map: hasRealSymptoms ? Object.fromEntries(symptoms.filter((s) => s !== FAINTED).map((s) => [s, strength[s]])) : {},
+      context: hasRealSymptoms || fromExercise ? CONTEXTS.find((x) => x.id === context)?.stored ?? null : hr ? pulseWhen : null,
       triggered_by_exercise_id: params.triggered_by_exercise_id || null,
       notes: "",
     };
@@ -440,6 +444,30 @@ export default function LogSymptomsScreen() {
                 <Text style={{ fontSize: 13, color: c.slate }}>bpm</Text>
               </View>
             </View>
+            {pulse && !hasRealSymptoms && !fromExercise ? (
+              <View accessibilityRole="radiogroup" accessibilityLabel="When you measured your pulse" style={{ flexDirection: "row", gap: 8, padding: 10 }}>
+                {(
+                  [
+                    { id: "resting", label: "At rest" },
+                    { id: "after_exercise", label: "After exercise" },
+                  ] as const
+                ).map((o) => {
+                  const on = pulseWhen === o.id;
+                  return (
+                    <AnimatedButton
+                      key={o.id}
+                      onPress={() => setPulseWhen(o.id)}
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: on }}
+                      accessibilityLabel={o.label}
+                      style={{ flex: 1, height: 44, borderRadius: 8, alignItems: "center", justifyContent: "center", borderWidth: on ? 2 : 1, borderColor: on ? c.line : c.hairline, backgroundColor: on ? c.tint : c.canvas }}
+                    >
+                      <Text style={{ fontSize: 14, fontWeight: on ? "600" : "400", color: on ? c.onTint : c.charcoal }}>{o.label}</Text>
+                    </AnimatedButton>
+                  );
+                })}
+              </View>
+            ) : null}
           </View>
 
           {/* ── Medicines ── */}
@@ -491,7 +519,7 @@ export default function LogSymptomsScreen() {
             </View>
 
             {hasRealSymptoms
-              ? symptoms.map((id) => {
+              ? symptoms.filter((id) => id !== FAINTED).map((id) => {
                   const label = SYMPTOMS.find((s) => s.id === id)?.label ?? id;
                   const value = strength[id];
                   const tag = value ? strengthTag(value, c) : null;
@@ -586,7 +614,9 @@ export default function LogSymptomsScreen() {
                 body={
                   symptoms.includes(CHEST) && (strength[CHEST] ?? 0) >= 7
                     ? `Chest discomfort rated ${strength[CHEST]} out of 10 can be a sign of a heart attack. Call 911 if it doesn't ease.`
-                    : "Shortness of breath while resting can be a sign of a heart problem. Call 911 if it doesn't ease."
+                    : symptoms.includes(FAINTED)
+                      ? "Fainting or nearly fainting can be a sign of a heart problem. Call 911 or get checked right away."
+                      : "Shortness of breath while resting can be a sign of a heart problem. Call 911 if it doesn't ease."
                 }
                 onCall={call911}
                 onClinic={findClinic}
@@ -651,7 +681,9 @@ export default function LogSymptomsScreen() {
                   ? "Your blood pressure reading is very high (180/120 mmHg or higher)."
                   : symptoms.includes(CHEST) && (strength[CHEST] ?? 0) >= 7
                     ? `You rated your chest discomfort ${strength[CHEST]} out of 10. This can be a sign of a heart attack.`
-                    : "You are short of breath while resting. This can be a sign of a heart problem."}
+                    : symptoms.includes(FAINTED)
+                      ? "You fainted or nearly fainted. This can be a sign of a heart problem."
+                      : "You are short of breath while resting. This can be a sign of a heart problem."}
             </Text>
             <AnimatedButton
               onPress={call911}

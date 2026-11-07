@@ -1,3 +1,4 @@
+import { bandName } from "../../../constants/theme";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   RefreshControl,
@@ -118,7 +119,8 @@ export default function ExploreTabScreen() {
           exercises,
           tier,
           2,
-          scoreQuery.data?.hidden
+          scoreQuery.data?.hidden,
+          scoreQuery.data?.exercisesPaused
         )
       ),
     [scoreQuery.data, recipes, exercises, tier]
@@ -416,7 +418,7 @@ export default function ExploreTabScreen() {
                       }}
                     >
                       <Text style={{ fontSize: 12, fontWeight: "700", color: band.fg }}>
-                        {score !== null ? `${tier} • ${Math.round(score)}` : tier}
+                        {score !== null ? `${bandName(tier ?? "")} • ${Math.round(score)}` : bandName(tier ?? "")}
                       </Text>
                     </View>
                     <Text style={{ fontSize: 12.5, color: c.slate }}>
