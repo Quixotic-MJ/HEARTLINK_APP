@@ -28,14 +28,6 @@ import RecipeImage from "../../../components/ui/RecipeImage";
 import { useAuth } from "../../../contexts/useAuth";
 import { canAuthorRecipes, canReviewRecipes } from "../../../app/access";
 
-// Database hss_tier -> the label the recipe form uses
-const HSS_TIER_LABELS = {
-  Stable: "Stable (80-100)",
-  Moderate: "Moderate (60-79)",
-  "Elevated Risk": "Elevated Risk (50-59)",
-  Critical: "Critical (<50)",
-};
-
 const STATUS_TABS = [
   ["all", "All"],
   ["published", "Published"],
@@ -57,17 +49,13 @@ const NO_RECIPES = [];
 const toRecipes = (res) => {
   const list = Array.isArray(res) ? res : res.data || [];
   const mapped = list.map((r) => {
-    // The API returns database column names (hss_tier, sodium_mg, ...). Reading the wrong
+    // The API returns database column names (sodium_mg, ...). Reading the wrong
     // names showed 0 here, and saving the recipe then wrote those 0s back.
-    const hssTier = HSS_TIER_LABELS[r.hss_tier] ? r.hss_tier : "Stable";
-
     return {
       id: r.id,
       name: r.name,
       category: r.category || "Breakfast",
       categoryOther: r.category_other || "",
-      hssTarget: HSS_TIER_LABELS[hssTier],
-      hssTier: hssTier,
       prepTimeMinutes: r.prep_time_minutes || 15,
       servings: r.servings || 1,
       difficulty: r.difficulty || "Easy",
@@ -76,7 +64,6 @@ const toRecipes = (res) => {
       satFat: r.saturated_fat_g || 0,
       cholesterol: r.cholesterol_mg || 0,
       fiber: r.fiber_g || 0,
-      heartBenefit: r.heart_benefit || "",
       status: r.status || "draft",
       expertValidated: r.expert_validated || false,
       reviewedAt: r.reviewed_at || null,
@@ -92,28 +79,6 @@ const toRecipes = (res) => {
   return mapped;
 };
 
-const getHssBadge = (tier, label) => {
-  if (tier === "Stable") {
-    return {
-      tone: "border-cal-success/25 bg-cal-success/10 text-cal-ink",
-      dot: "bg-cal-success",
-      text: label,
-    };
-  }
-  if (tier === "Moderate") {
-    return {
-      tone: "border-cal-warning/35 bg-cal-warning/15 text-cal-ink",
-      dot: "bg-cal-warning",
-      text: label,
-    };
-  }
-  return {
-    tone: "border-cal-error/25 bg-cal-error/10 text-cal-ink",
-    dot: "bg-cal-error",
-    text: label,
-  };
-};
-
 const getStatusPill = (status) => {
   if (status === "published") {
     return "border-cal-success/25 bg-cal-success/10 text-cal-ink";
@@ -127,7 +92,6 @@ const getStatusPill = (status) => {
 const Foods = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [filterHss, setFilterHss] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterFoodSource, setFilterFoodSource] = useState("all");
   const [filterReview, setFilterReview] = useState("all");
@@ -224,8 +188,8 @@ const Foods = () => {
     setConfirmConfig({
       isOpen: true,
       title: "Archive recipe?",
-      subtitle: "Hide from mobile patients",
-      description: `Archive "${recipe.name}"? This recipe will be hidden from mobile patient recommendations while remaining accessible in your library.`,
+      subtitle: "Remove from discovery",
+      description: `Archive "${recipe.name}"? It will be hidden from discovery and new recommendations while existing records remain intact.`,
       confirmText: "Archive recipe",
       cancelText: "Cancel",
       variant: "warning",
@@ -233,11 +197,11 @@ const Foods = () => {
       entityInfo: {
         name: recipe.name,
         badge: "Published → Archived",
-        email: `${categoryLabel(recipe)} · ${recipe.hssTarget}`,
+        email: categoryLabel(recipe),
         id: recipe.id,
       },
       impactDetails: [
-        "Hidden from patient search results and personalized meal plans.",
+        "Hidden from discovery and new recommendations.",
         "Can be restored back to Draft status at any time.",
       ],
       onConfirm: async () => {
@@ -277,7 +241,7 @@ const Foods = () => {
       entityInfo: {
         name: recipe.name,
         badge: recipe.status?.toUpperCase() || "RECIPE",
-        email: `${categoryLabel(recipe)} · ${recipe.hssTarget}`,
+        email: categoryLabel(recipe),
         id: recipe.id,
       },
       impactDetails: [
@@ -331,7 +295,6 @@ const Foods = () => {
   const clearFilters = () => {
     clearSearch();
     setFilterStatus("all");
-    setFilterHss("all");
     setFilterCategory("all");
     setFilterFoodSource("all");
     setFilterReview("all");
@@ -357,7 +320,6 @@ const Foods = () => {
       (r.tags && r.tags.some((t) => t.toLowerCase().includes(q)));
 
     const matchesStatus = filterStatus === "all" || r.status === filterStatus;
-    const matchesHss = filterHss === "all" || r.hssTier === filterHss;
     const matchesCategory =
       filterCategory === "all" || r.category === filterCategory;
     const matchesFoodSource =
@@ -373,7 +335,6 @@ const Foods = () => {
     return (
       matchesSearch &&
       matchesStatus &&
-      matchesHss &&
       matchesCategory &&
       matchesFoodSource &&
       matchesReview
@@ -382,7 +343,6 @@ const Foods = () => {
   const hasActiveFilters =
     Boolean(searchQuery) ||
     filterStatus !== "all" ||
-    filterHss !== "all" ||
     filterCategory !== "all" ||
     filterFoodSource !== "all" ||
     filterReview !== "all";
@@ -398,13 +358,14 @@ const Foods = () => {
           <div>
             <div className="mb-2.5 inline-flex items-center gap-2 rounded-full border border-cal-hairline bg-cal-canvas px-3 py-1 text-[12px] font-medium text-cal-muted">
               <Utensils size={13.5} className="text-cal-ink" />
-              <span>Clinical &amp; library · Nutritional database</span>
+              <span>Content library · Recipes</span>
             </div>
             <h2 className="font-cal-display text-[28px] sm:text-[32px] font-semibold tracking-[-0.8px] leading-[1.15] text-cal-ink">
               Food &amp; recipe library
             </h2>
             <p className="mt-1.5 max-w-[64ch] text-[14px] leading-[1.5] text-cal-muted">
-              Manage heart-healthy meals, nutritional macros, clinical HSS suitability tiers, and dietitian sign-offs.
+              {canReview ? "Review ingredients, portions and preparation. Your decision applies to the saved recipe revision."
+                : "Author recipes, respond to Dietitian feedback, and publish the approved revision."}
             </p>
           </div>
 
@@ -458,7 +419,7 @@ const Foods = () => {
             <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none text-cal-ink">
               {loading ? "—" : approvedCount}
             </div>
-            <div className="mt-2 text-[12px] text-cal-muted">Clinically validated nutrition</div>
+            <div className="mt-2 text-[12px] text-cal-muted">Recorded content review</div>
           </div>
 
           <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
@@ -551,29 +512,6 @@ const Foods = () => {
             {/* Secondary Facet Row */}
             <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
               <div className="grid w-full grid-cols-2 gap-2 sm:grid-cols-4 md:flex md:w-auto md:flex-wrap">
-                {/* HSS Tier */}
-                <div className="relative">
-                  <label htmlFor="filter-hss" className="sr-only">
-                    Filter by HSS tier
-                  </label>
-                  <select
-                    id="filter-hss"
-                    value={filterHss}
-                    onChange={(e) => setFilterHss(e.target.value)}
-                    className={selectClass}
-                  >
-                    <option value="all">All HSS tiers</option>
-                    <option value="Stable">Stable</option>
-                    <option value="Moderate">Moderate</option>
-                    <option value="Elevated Risk">Elevated Risk</option>
-                    <option value="Critical">Critical</option>
-                  </select>
-                  <ChevronDown
-                    size={13.5}
-                    className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-cal-muted"
-                  />
-                </div>
-
                 {/* Category */}
                 <div className="relative">
                   <label htmlFor="filter-category" className="sr-only">
@@ -675,7 +613,7 @@ const Foods = () => {
                     Food / meal
                   </th>
                   <th scope="col" className="px-4 py-3 text-[12px] font-medium text-cal-muted">
-                    HSS suitability
+                    Recipe yield
                   </th>
                   <th scope="col" className="px-4 py-3 text-[12px] font-medium text-cal-muted">
                     Nutrition snapshot
@@ -724,7 +662,7 @@ const Foods = () => {
                       </p>
                       <p className="mt-1 text-[13px] text-cal-muted">
                         {recipes.length === 0
-                          ? "Create your first heart-healthy recipe or nutritional entry to populate mobile meal plans."
+                          ? canAuthor ? "Create a draft recipe to begin the review workflow." : "Recipes available for your review will appear here."
                           : "Try resetting one or more active filters or clearing your search query."}
                       </p>
                       {recipes.length > 0 && hasActiveFilters && (
@@ -740,7 +678,6 @@ const Foods = () => {
                   </tr>
                 ) : (
                   filteredRecipes.map((recipe) => {
-                    const hss = getHssBadge(recipe.hssTier, recipe.hssTarget);
                     return (
                       <tr
                         key={recipe.id}
@@ -761,9 +698,9 @@ const Foods = () => {
                             />
                             <div className="min-w-0 pr-2">
                               <div className="flex flex-wrap items-center gap-2">
-                                <p className="truncate text-[13.5px] font-semibold text-cal-ink group-hover:underline">
+                                <button type="button" onClick={(event) => { event.stopPropagation(); openModal(recipe); }} className="truncate text-left text-[13.5px] font-semibold text-cal-ink group-hover:underline">
                                   {recipe.name}
-                                </p>
+                                </button>
                                 <span
                                   className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10.5px] font-medium capitalize ${getStatusPill(
                                     recipe.status
@@ -779,12 +716,9 @@ const Foods = () => {
                           </div>
                         </td>
 
-                        {/* HSS Suitability */}
+                        {/* Recipe yield */}
                         <td className="px-4 py-3.5 align-middle">
-                          <span className={`${PILL} ${hss.tone}`}>
-                            <span className={`h-1.5 w-1.5 rounded-full ${hss.dot}`} />
-                            <span>{hss.text}</span>
-                          </span>
+                          <span className="text-[13px] tabular-nums">{recipe.servings} {recipe.servings === 1 ? "serving" : "servings"}</span>
                         </td>
 
                         {/* Nutrition */}

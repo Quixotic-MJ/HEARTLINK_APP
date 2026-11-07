@@ -1,1233 +1,497 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
 import {
-  Activity,
   ArrowRight,
-  Check,
+  BookOpen,
   ChevronDown,
-  CloudOff,
+  ClipboardList,
   Download,
   Dumbbell,
-  FileText,
-  HeartHandshake,
-  MapPin,
   Menu,
-  PhoneCall,
   ShieldCheck,
-  SlidersHorizontal,
   Utensils,
   X,
 } from "lucide-react";
 import { HeartLogoIcon } from "../auth/login";
+import { safeDownloadUrl } from "../../app/publicLinks";
 
-// The public home page of the portal: what the app does, pricing, FAQs, and where to get it. Staff sign in at /login.
-// Styled with the Cal.com Design System preview tokens (--color-cal-*, --font-cal-*) so it can be
-// evaluated safely without modifying portal-wide ds-* components.
-const APK_URL = import.meta.env.VITE_APK_URL || "";
-
-// Matches DEFAULT_CONFIG in backend/app/db/repositories/premium.py & HeartLink-mobile/services/premium.ts
-const PRICING_DEFAULTS = {
-  monthlyPhp: 99,
-  yearlyPhp: 899,
-  trialDays: 7,
-};
-const YEARLY_SAVINGS_PHP = PRICING_DEFAULTS.monthlyPhp * 12 - PRICING_DEFAULTS.yearlyPhp; // ₱289
-
-const focusRing =
-  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cal-primary";
-
-const focusRingOnDark =
-  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cal-primary";
-
-const btnPrimary = `inline-flex h-10 items-center justify-center gap-2 rounded-[8px] bg-cal-primary px-5 font-cal-sans text-[14px] font-semibold leading-none text-cal-on-primary no-underline active:bg-cal-primary-active ${focusRing}`;
-
-const btnSecondary = `inline-flex h-10 items-center justify-center gap-2 rounded-[8px] border border-cal-hairline bg-cal-canvas px-5 font-cal-sans text-[14px] font-semibold leading-none text-cal-ink no-underline active:bg-cal-surface-soft ${focusRing}`;
-
-const btnOnDark = `inline-flex h-10 items-center justify-center gap-2 rounded-[8px] bg-cal-primary px-5 font-cal-sans text-[14px] font-semibold leading-none text-cal-on-primary no-underline active:bg-cal-primary-active ${focusRingOnDark}`;
-
-const FEATURES = [
-  {
-    icon: Activity,
-    title: "Daily check-ins & 911 alerts",
-    text: "Log blood pressure, pulse, medicine and symptoms. If a reading hits an emergency threshold, HeartLink warns you immediately with a Call 911 action.",
-  },
+const APK_URL = safeDownloadUrl(import.meta.env.VITE_APK_URL);
+const focus =
+  "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cal-primary";
+const primary = `inline-flex min-h-11 items-center justify-center gap-2 rounded-[12px] bg-cal-primary px-5 py-3 text-[14px] font-semibold text-cal-on-primary no-underline transition-colors hover:bg-cal-primary-active ${focus}`;
+const secondary = `inline-flex min-h-11 items-center justify-center gap-2 rounded-[12px] border border-cal-hairline bg-cal-canvas px-5 py-3 text-[14px] font-semibold text-cal-ink no-underline transition-colors hover:bg-cal-surface-soft ${focus}`;
+const navigation = [
+  ["#features", "The everyday essentials"],
+  ["#how", "How it fits"],
+  ["#faq", "Questions"],
+];
+const features = [
   {
     icon: Utensils,
-    title: "Meals & barcode scanner",
-    text: "Scan packaged food barcodes or search meals to check sodium and sugar, with automatic warnings for your allergies and diet.",
+    title: "Make room for practical meals",
+    text: "Recipes with ingredients, portions and preparation steps. Sodium and energy information belong beside a clear source and serving basis.",
   },
   {
     icon: Dumbbell,
-    title: "Score-matched routines",
-    text: "Browse clinician-checked recipes and exercises filtered by need—low-sodium, quick prep, seated movement, or guided breathing.",
+    title: "Move with clear instructions",
+    text: "Beginner routines with a complete movement timeline, equipment and setting. Content review checks the routine as written.",
   },
   {
-    icon: SlidersHorizontal,
-    title: "Personal targets & limits",
-    text: "Set custom daily sodium, fluid intake, movement, and target blood pressure goals tailored to your routine.",
-  },
-  {
-    icon: PhoneCall,
-    title: "My Care Team speed-dial",
-    text: "Keep your cardiologist, primary doctor, and family emergency contacts in one place to call or SMS in a single tap.",
-  },
-  {
-    icon: FileText,
-    title: "Doctor-ready PDF reports",
-    text: "Generate a clean 1- or 3-month PDF summary of blood pressure, medication adherence, and habits to bring to your check-up.",
-  },
-  {
-    icon: CloudOff,
-    title: "Works offline + reminders",
-    text: "Scheduled check-in nudges keep you consistent, and offline logs sync automatically once your phone reconnects.",
-  },
-  {
-    icon: MapPin,
-    title: "Nearby Cebu clinics",
-    text: "Locate nearby clinics and hospitals around Cebu City on an interactive directory map whenever you need an in-person visit.",
+    icon: ClipboardList,
+    title: "Keep your own record",
+    text: "A personal diary for meals, movement and everyday habits. Optional measurements remain your records, without a disease-risk grade.",
   },
 ];
+const questions = [
+  [
+    "What is the General Wellness update?",
+    "HeartLink is being refocused around everyday food and movement habits. The website and content-review workflows are being updated first. This page describes that direction; the new mobile experience is still in development.",
+  ],
+  [
+    "Does HeartLink diagnose or monitor a medical condition?",
+    "No. HeartLink does not diagnose, treat or predict disease, and it is not an emergency monitoring service. Content cannot determine whether a routine or meal is suitable for every person. Follow advice from your own qualified health professional.",
+  ],
+  [
+    "Do I need a blood-pressure monitor?",
+    "Personal measurements are optional in the General Wellness direction. Food and movement habits do not require owning a measurement device. Existing warning and help safeguards remain part of the measurement flows.",
+  ],
+  [
+    "Who reviews the content?",
+    "Admin creates recipes and routines. Dietitians review nutrition content and Physical Therapists review movement content before Admin publication. A review is a content-quality step, not a personal consultation or a guarantee of suitability.",
+  ],
+  [
+    "What about Premium?",
+    "Premium remains optional and secondary. Existing capstone evaluation checkout uses test mode. This website does not collect payment details or start a subscription.",
+  ],
+  [
+    "When can I download the Android app?",
+    APK_URL
+      ? "An Android installation link is configured below. Check the release information supplied with the download before installing. The General Wellness update is still in development."
+      : "There is no public Android download linked yet. A verified release destination and release information will be added here when available. You do not need to enable installation permissions now.",
+  ],
+  [
+    "Where are the privacy and support details?",
+    "Public release privacy, retention and support information is still being finalized. Those details need to be available before public downloads open. Do not send health logs, passwords or personal measurements through general feedback channels.",
+  ],
+];
 
-const STEPS = [
-  {
-    step: "01",
-    title: "Set up your profile",
-    text: "Answer a short health questionnaire with plain-language 'Why we ask' notes. HeartLink computes your starting Heart score from 37 inputs.",
-    fragment: (
-      <div className="mt-auto rounded-[8px] border border-cal-hairline bg-cal-canvas p-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-        <div className="flex items-center justify-between text-[13px]">
-          <span className="font-medium text-cal-muted">Baseline questionnaire</span>
-          <span className="font-cal-mono text-[12px] text-cal-ink">37 / 37 answered</span>
-        </div>
-        <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-cal-hairline-soft">
-          <div className="h-full w-full rounded-full bg-cal-primary" />
-        </div>
-        <div className="mt-2.5 flex items-center justify-between text-[13px]">
-          <span className="font-semibold text-cal-ink">Starting Heart score</span>
-          <span className="rounded-full bg-cal-surface-card px-2.5 py-0.5 font-cal-mono text-[12px] font-medium text-cal-ink">
-            78 · Moderate
-          </span>
-        </div>
+function ProductPreview() {
+  const [focusArea, setFocusArea] = useState("food");
+  const food = focusArea === "food";
+  return (
+    <figure className="relative m-0 rounded-[24px] border border-cal-hairline bg-cal-canvas p-5 shadow-[0_16px_60px_rgba(20,120,184,0.08)] sm:p-7">
+      <div className="flex items-center justify-between gap-4 border-b border-cal-hairline pb-5">
+        <span className="flex items-center gap-2 font-semibold">
+          <HeartLogoIcon size={23} /> Everyday, at your pace
+        </span>
+        <span className="rounded-full bg-cal-surface-soft px-2.5 py-1 text-[12px] text-cal-muted">
+          Preview
+        </span>
       </div>
-    ),
-  },
-  {
-    step: "02",
-    title: "Check in each day",
-    text: "Log your blood pressure, meals, exercise, sleep and medicine—even offline. Each habit moves your daily score up or down.",
-    fragment: (
-      <div className="mt-auto rounded-[8px] border border-cal-hairline bg-cal-canvas p-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-        <div className="grid grid-cols-2 gap-2 text-[12px]">
-          {[
-            { label: "BP", delta: "+2" },
-            { label: "Meal", delta: "+1" },
-            { label: "Move", delta: "+1" },
-            { label: "Sleep", delta: "+1" },
-          ].map((item) => (
-            <div
-              key={item.label}
-              className="flex items-center justify-between rounded-[6px] bg-cal-surface-soft px-2.5 py-1.5"
+      <p className="mt-6 text-[13px] font-medium text-cal-muted">
+        Choose a focus
+      </p>
+      <div
+        role="group"
+        aria-label="Preview wellness focus"
+        className="mt-3 flex flex-wrap gap-2"
+      >
+        {[
+          ["food", "Eat with less sodium"],
+          ["movement", "Move more regularly"],
+        ].map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={focusArea === value}
+            onClick={() => setFocusArea(value)}
+            className={`min-h-11 rounded-full border px-4 text-[13px] font-medium transition-colors ${focus} ${focusArea === value ? "border-cal-primary bg-ds-sky text-ds-on-tint" : "border-cal-hairline bg-cal-canvas text-cal-muted"}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <div
+        className="mt-5 rounded-[20px] bg-cal-surface-soft p-5 sm:p-6"
+        aria-live="polite"
+      >
+        <div
+          className={`mb-5 flex h-12 w-12 items-center justify-center rounded-[16px] ${food ? "bg-ds-mint" : "bg-ds-lavender"}`}
+        >
+          {food ? (
+            <Utensils size={23} aria-hidden="true" />
+          ) : (
+            <Dumbbell size={23} aria-hidden="true" />
+          )}
+        </div>
+        <p className="mb-2 text-[12px] font-semibold uppercase tracking-[0.1em] text-cal-muted">
+          {food ? "Recipe details" : "Routine details"}
+        </p>
+        <h3 className="text-[22px] font-semibold leading-snug tracking-[-0.4px]">
+          {food
+            ? "Know what goes into your meal"
+            : "Know what the routine asks of you"}
+        </h3>
+        <p className="mt-3 text-[14px] leading-relaxed text-cal-body">
+          {food
+            ? "Complete ingredients, clear portions and practical preparation steps, with nutrition shown on a stated basis."
+            : "Instructions, repetitions or time, rest, equipment and setting kept together in one readable guide."}
+        </p>
+        <div className="mt-5 flex flex-wrap gap-2">
+          {(food
+            ? ["Ingredients", "Serving basis", "Preparation"]
+            : ["Movement timeline", "Equipment", "Setting"]
+          ).map((label) => (
+            <span
+              key={label}
+              className="rounded-full bg-cal-canvas px-3 py-1.5 text-[12px] font-medium"
             >
-              <span className="font-medium text-cal-body">{item.label}</span>
-              <span className="font-cal-mono text-cal-success">{item.delta}</span>
-            </div>
+              {label}
+            </span>
           ))}
         </div>
       </div>
-    ),
-  },
-  {
-    step: "03",
-    title: "Bring clarity to check-ups",
-    text: "Follow Today's note for daily adjustments, share scores with family, and bring your Trends or PDF summary to your doctor.",
-    fragment: (
-      <div className="mt-auto rounded-[8px] border border-cal-hairline bg-cal-canvas p-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-        <div className="flex items-center justify-between text-[12px] font-medium text-cal-muted">
-          <span className="inline-flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-cal-success" />
-            Check-up summary
-          </span>
-          <span className="font-cal-mono text-cal-ink">PDF · 30d</span>
-        </div>
-        <p className="mt-1.5 mb-0 text-[13px] leading-[1.45] text-cal-body">
-          Avg BP 119/77 mmHg · 92% medicine logs · 5 walks/wk.
-        </p>
-      </div>
-    ),
-  },
-];
-
-// Same bands as the app's score tag
-const BANDS = [
-  {
-    range: "80–100",
-    name: "Stable",
-    text: "Keep up your daily habits.",
-    dot: "bg-cal-success",
-    pill: "Healthy rhythm",
-  },
-  {
-    range: "60–79",
-    name: "Moderate",
-    text: "Small daily changes in salt, sleep or movement will help.",
-    dot: "bg-cal-warning",
-    pill: "Watch habits",
-  },
-  {
-    range: "50–59",
-    name: "Elevated risk",
-    text: "Watch your readings closely and plan an in-person check-up.",
-    dot: "bg-cal-badge-orange",
-    pill: "Plan check-up",
-  },
-  {
-    range: "01–49",
-    name: "Critical",
-    text: "See a doctor soon. In an emergency, call 911 right away.",
-    dot: "bg-cal-error",
-    pill: "Urgent care",
-  },
-];
-
-const FAQS = [
-  {
-    question: "Is HeartLink a diagnostic medical device?",
-    answer:
-      "No. HeartLink is a supportive cardiovascular wellness tool built as an applied Capstone 2 project at Cebu Technological University – Main Campus. It summarizes what you log and never diagnoses or replaces a licensed physician. In an emergency, always call 911.",
-  },
-  {
-    question: "Are safety features really free forever?",
-    answer:
-      "Yes. Daily check-ins, your Heart Stability Score (HSS), emergency blood-pressure and symptom warnings, nearby clinic lookup, Care Team speed-dial, barcode food scanning, and reminders stay free for every patient.",
-  },
-  {
-    question: "How does HeartLink Premium billing work?",
-    answer:
-      "New patients can start a 7-day free trial inside the app. After that, Premium is ₱99 for 1 month or ₱899 for 1 year via GCash or card—paid once per period with zero automatic renewals. During capstone evaluation, checkout runs in test mode so no real money or payment details are collected.",
-  },
-  {
-    question: "How does Family sharing work for loved ones?",
-    answer:
-      "A patient on Premium generates an invite code in Settings › Family Sharing. A spouse, child, or caregiver installs HeartLink for free, chooses a Family account, enters the code, and receives alerts if a reading reaches an emergency level.",
-  },
-  {
-    question: "Are my health logs private and how are recommendations vetted?",
-    answer:
-      "Your logs are tied strictly to your authenticated account—never sold or exposed publicly. All recipes and exercise routines are audited before appearing in the app, and independent cardiologists, dietitians, and physical therapists review anonymized weekly samples to keep scoring calibrated.",
-  },
-  {
-    question: "Why is HeartLink installed via an Android APK?",
-    answer:
-      "While HeartLink is in capstone rollout and not yet published on Google Play, Android 9+ users can install the signed APK directly from this page in three quick steps.",
-  },
-];
-
-const HERO_TABS = [
-  { id: "today", label: "Today" },
-  { id: "trends", label: "7-day trends" },
-  { id: "review", label: "Expert audit" },
-];
-
-const CARE_TEAM_AVATARS = [
-  { initials: "CA", role: "Cardiologist", fill: "bg-cal-badge-orange" },
-  { initials: "RD", role: "Dietitian", fill: "bg-cal-badge-emerald" },
-  { initials: "PT", role: "Physical Therapist", fill: "bg-cal-badge-violet" },
-  { initials: "AD", role: "Administrator", fill: "bg-cal-badge-pink" },
-];
-
-function DownloadCTA({ children, variant = "primary", className = "" }) {
-  const link = APK_URL
-    ? { href: APK_URL, target: "_blank", rel: "noopener noreferrer" }
-    : { href: "#download" };
-  const base =
-    variant === "on-dark" ? btnOnDark : variant === "secondary" ? btnSecondary : btnPrimary;
-  return (
-    <a {...link} className={`${base} ${className}`}>
-      <Download size={16} aria-hidden="true" />
-      {children}
-    </a>
-  );
-}
-
-/**
- * Cal.com signature `hero-app-mockup-card` + `nav-pill-group`:
- * Embeds real HeartLink product UI chrome inside a 16px hairline card on white canvas.
- */
-function HeroProductCard() {
-  const [activeTab, setActiveTab] = useState("today");
-
-  return (
-    <div
-      role="region"
-      aria-label="Interactive HeartLink product preview"
-      className="w-full rounded-[16px] border border-cal-hairline bg-cal-canvas p-5 shadow-[0_4px_12px_rgba(0,0,0,0.08)] sm:p-6"
-    >
-      {/* Top bar with Cal.com signature nav-pill-group */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cal-hairline-soft pb-4">
-        <div className="flex items-center gap-2">
-          <HeartLogoIcon size={22} />
-          <span className="font-cal-display text-[15px] font-semibold tracking-[-0.3px] text-cal-ink">
-            HeartLink
-          </span>
-        </div>
-
-        <div
-          role="tablist"
-          aria-label="Preview screen"
-          className="relative inline-flex items-center rounded-full bg-cal-surface-soft p-1"
-        >
-          {HERO_TABS.map((tab) => {
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                onClick={() => setActiveTab(tab.id)}
-                className={`relative z-10 cursor-pointer rounded-full border-0 px-3.5 py-1.5 font-cal-sans text-[13px] font-medium leading-[1.2] transition-colors duration-150 ${focusRing} ${
-                  isActive
-                    ? "text-cal-primary font-semibold"
-                    : "text-cal-muted hover:text-cal-ink"
-                }`}
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="heroTabPill"
-                    className="absolute inset-0 rounded-full bg-cal-canvas shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
-                    transition={{
-                      type: "spring",
-                      stiffness: 450,
-                      damping: 35,
-                    }}
-                  />
-                )}
-                <span className="relative z-10">{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Product UI fragment body */}
-      {activeTab === "today" && (
-        <div className="mt-5 flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-[13px] font-medium text-cal-muted">Today · Morning check-in</div>
-              <div className="mt-0.5 text-[18px] font-semibold text-cal-ink">Good morning, Ana</div>
-            </div>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-cal-surface-card px-3 py-1 text-[13px] font-medium text-cal-ink">
-              <span className="h-2 w-2 rounded-full bg-cal-success" />
-              Stable
-            </span>
-          </div>
-
-          <div className="flex items-center gap-5 rounded-[12px] bg-cal-surface-card p-4">
-            <div className="relative h-[108px] w-[108px] shrink-0">
-              <svg width="108" height="108" viewBox="0 0 108 108" aria-hidden="true">
-                <circle
-                  cx="54"
-                  cy="54"
-                  r="44"
-                  fill="none"
-                  className="stroke-cal-hairline"
-                  strokeWidth="9"
-                />
-                <circle
-                  cx="54"
-                  cy="54"
-                  r="44"
-                  fill="none"
-                  className="stroke-cal-primary"
-                  strokeWidth="9"
-                  strokeLinecap="round"
-                  strokeDasharray="226 276"
-                  transform="rotate(-90 54 54)"
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="font-cal-display text-[32px] font-semibold leading-none tracking-[-1px] text-cal-ink">
-                  82
-                </span>
-                <span className="mt-1 text-[11px] font-medium text-cal-muted">Heart score</span>
-              </div>
-            </div>
-
-            <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-              <div className="text-[14px] font-semibold text-cal-ink">Today&apos;s note</div>
-              <p className="m-0 text-[13px] leading-[1.45] text-cal-body">
-                Your <span className="font-cal-mono text-[12px] text-cal-ink">118/76</span> reading is in
-                the healthy range. Keep it up with a short walk after lunch.
-              </p>
-              <span className="text-[12px] text-cal-muted-soft">
-                A wellness guide, not a diagnosis.
-              </span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-4 gap-2 text-center">
-            {[
-              { label: "BP", val: "118/76" },
-              { label: "Meal", val: "Logged" },
-              { label: "Move", val: "25m" },
-              { label: "Sleep", val: "7.5h" },
-            ].map((item) => (
-              <div
-                key={item.label}
-                className="flex flex-col items-center gap-1 rounded-[8px] border border-cal-hairline bg-cal-canvas px-2 py-2.5"
-              >
-                <span className="text-[12px] font-semibold text-cal-ink">{item.label}</span>
-                <span className="font-cal-mono text-[11px] text-cal-muted">{item.val}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {activeTab === "trends" && (
-        <div className="mt-5 flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-[13px] font-medium text-cal-muted">Weekly stability window</div>
-              <div className="mt-0.5 text-[18px] font-semibold text-cal-ink">Oct 23 – Oct 29</div>
-            </div>
-            <span className="rounded-full bg-cal-surface-card px-3 py-1 font-cal-mono text-[12px] font-medium text-cal-ink">
-              Avg 81 · +4 pts
-            </span>
-          </div>
-
-          <div className="rounded-[12px] bg-cal-surface-card p-4">
-            <div className="grid h-[124px] grid-cols-7 items-end gap-2.5 pt-2">
-              {[
-                { day: "M", score: 76, h: "h-[68%]" },
-                { day: "T", score: 78, h: "h-[72%]" },
-                { day: "W", score: 79, h: "h-[75%]" },
-                { day: "T", score: 81, h: "h-[80%]" },
-                { day: "F", score: 80, h: "h-[78%]" },
-                { day: "S", score: 83, h: "h-[86%]" },
-                { day: "S", score: 82, h: "h-[84%]", today: true },
-              ].map((bar, idx) => (
-                <div key={`${bar.day}-${idx}`} className="flex h-full flex-col items-center justify-end gap-1.5">
-                  <span className="font-cal-mono text-[11px] text-cal-muted">{bar.score}</span>
-                  <div
-                    className={`w-full rounded-[6px] ${bar.h} ${bar.today ? "bg-cal-primary" : "bg-cal-surface-strong"
-                      }`}
-                  />
-                  <span className="text-[11px] font-medium text-cal-muted">{bar.day}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between rounded-[8px] border border-cal-hairline px-3.5 py-2.5 text-[13px]">
-            <span className="text-cal-body">7 of 7 daily check-ins completed</span>
-            <span className="font-semibold text-cal-primary">Ready for doctor visit</span>
-          </div>
-        </div>
-      )}
-
-      {activeTab === "review" && (
-        <div className="mt-5 flex flex-col gap-3.5">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-[13px] font-medium text-cal-muted">Weekly sample audit</div>
-              <div className="mt-0.5 text-[18px] font-semibold text-cal-ink">Multi-clinician safety check</div>
-            </div>
-            <span className="rounded-full bg-cal-surface-card px-3 py-1 text-[12px] font-medium text-cal-ink">
-              Portal view
-            </span>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            {[
-              {
-                initials: "CA",
-                fill: "bg-cal-badge-orange",
-                role: "Cardiologist",
-                note: "Risk band & check-up flag verified",
-              },
-              {
-                initials: "RD",
-                fill: "bg-cal-badge-emerald",
-                role: "Dietitian",
-                note: "Low-sodium recipe match approved",
-              },
-              {
-                initials: "PT",
-                fill: "bg-cal-badge-violet",
-                role: "Physical Therapist",
-                note: "Brisk walk intensity safe for profile",
-              },
-            ].map((item) => (
-              <div
-                key={item.role}
-                className="flex items-center gap-3 rounded-[10px] bg-cal-surface-card px-3.5 py-3"
-              >
-                <span
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold text-cal-ink ${item.fill}`}
-                >
-                  {item.initials}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="text-[14px] font-semibold text-cal-ink">{item.role}</div>
-                  <div className="truncate text-[13px] text-cal-muted">{item.note}</div>
-                </div>
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-cal-canvas text-cal-success">
-                  <Check size={14} aria-hidden="true" />
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/**
- * Cal.com `pricing-tier-card` + `pricing-tier-card-featured` (`#101010` dark card)
- * paired with a `nav-pill-group` Yearly / Monthly billing switcher.
- */
-function PricingSection() {
-  const [period, setPeriod] = useState("yearly");
-  const isYearly = period === "yearly";
-
-  return (
-    <section
-      id="pricing"
-      className="scroll-mt-20 border-y border-cal-hairline-soft bg-cal-surface-soft px-6 py-16 md:py-24"
-    >
-      <div className="mx-auto flex max-w-[1200px] flex-col gap-12">
-        <div className="flex flex-wrap items-end justify-between gap-6">
-          <div className="max-w-[620px]">
-            <span className="inline-block rounded-full bg-cal-primary/10 px-3 py-1 text-[13px] font-semibold text-cal-primary">
-              Simple, transparent plans
-            </span>
-            <h2 className="mt-4 mb-0 font-cal-display text-[28px] font-semibold leading-[1.1] tracking-[-1px] text-cal-ink sm:text-[38px] lg:text-[48px] lg:tracking-[-1.5px]">
-              Safety stays free. Upgrade only for the longer view.
-            </h2>
-            <p className="mt-3 mb-0 text-[16px] leading-[1.5] text-cal-body">
-              Every patient gets daily check-ins, emergency alerts, and their Heart score for ₱0.
-              Premium adds multi-month reports and family sharing—paid once, never auto-renewed.
-            </p>
-          </div>
-
-          {/* Animated sliding billing switcher */}
-          <div
-            role="group"
-            aria-label="Billing period"
-            className="relative inline-flex items-center rounded-full border border-cal-hairline bg-cal-canvas p-1 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
-          >
-            <button
-              type="button"
-              aria-pressed={isYearly}
-              onClick={() => setPeriod("yearly")}
-              className={`relative z-10 cursor-pointer rounded-full border-0 px-4 py-2 font-cal-sans text-[14px] font-semibold leading-none transition-colors duration-200 ${focusRing} ${
-                isYearly ? "text-white" : "text-cal-muted hover:text-cal-ink"
-              }`}
-            >
-              {isYearly && (
-                <motion.div
-                  layoutId="billingPill"
-                  className="absolute inset-0 rounded-full bg-cal-primary shadow-[0_2px_8px_rgba(59,130,246,0.35)]"
-                  transition={{
-                    type: "spring",
-                    stiffness: 460,
-                    damping: 34,
-                  }}
-                />
-              )}
-              <span className="relative z-10 inline-flex items-center gap-1.5">
-                Yearly
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[11px] font-semibold transition-colors duration-150 ${
-                    isYearly
-                      ? "bg-white/20 text-white"
-                      : "bg-cal-primary/10 text-cal-primary"
-                  }`}
-                >
-                  Save <span className="font-sans">₱</span>{YEARLY_SAVINGS_PHP}
-                </span>
-              </span>
-            </button>
-
-            <button
-              type="button"
-              aria-pressed={!isYearly}
-              onClick={() => setPeriod("monthly")}
-              className={`relative z-10 cursor-pointer rounded-full border-0 px-4 py-2 font-cal-sans text-[14px] font-semibold leading-none transition-colors duration-200 ${focusRing} ${
-                !isYearly ? "text-white" : "text-cal-muted hover:text-cal-ink"
-              }`}
-            >
-              {!isYearly && (
-                <motion.div
-                  layoutId="billingPill"
-                  className="absolute inset-0 rounded-full bg-cal-primary shadow-[0_2px_8px_rgba(59,130,246,0.35)]"
-                  transition={{
-                    type: "spring",
-                    stiffness: 460,
-                    damping: 34,
-                  }}
-                />
-              )}
-              <span className="relative z-10">Monthly</span>
-            </button>
-          </div>
-        </div>
-
-        {/* 3-tier grid: Standard light, Featured dark, Standard light */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {/* Tier 1: Patient Free (`pricing-tier-card`) */}
-          <article className="flex flex-col justify-between rounded-[16px] border border-cal-hairline bg-cal-canvas p-8 shadow-[0_1px_3px_rgba(0,0,0,0.05)] transition-shadow duration-200 hover:shadow-[0_6px_20px_rgba(0,0,0,0.06)]">
-            <div>
-              <div className="flex items-center justify-between gap-2">
-                <h3 className="m-0 font-cal-sans text-[22px] font-semibold leading-[1.3] tracking-[-0.3px] text-cal-ink">
-                  Core Wellness
-                </h3>
-                <span className="rounded-full bg-cal-surface-card px-3 py-1 text-[13px] font-medium text-cal-ink">
-                  Always free
-                </span>
-              </div>
-
-              <div className="mt-5 flex items-baseline gap-2">
-                <span className="font-cal-display text-[38px] font-semibold leading-[1.1] tracking-[-1px] text-cal-ink">
-                  <span className="font-sans text-[30px] font-semibold mr-0.5">₱</span>0
-                </span>
-                <span className="text-[14px] text-cal-muted">forever</span>
-              </div>
-
-              <p className="mt-3 mb-0 text-[14px] leading-[1.5] text-cal-muted">
-                Full daily heart tracking, personalized routines, and safety alerts for every adult.
-              </p>
-
-              <ul className="mt-6 mb-8 flex list-none flex-col gap-3.5 border-t border-cal-hairline-soft pt-6 p-0 text-[14.5px] text-cal-body">
-                {[
-                  "Daily BP, pulse, meal, move & sleep check-ins",
-                  "Personal Heart Stability Score (HSS) + Today's note",
-                  "Emergency warnings & one-tap Call 911",
-                  "Meal barcode scanner & allergy warnings",
-                  "Expert-approved recipes & exercises",
-                  "7-day Trends, offline sync & Cebu clinic map",
-                ].map((item) => (
-                  <li key={item} className="flex items-start gap-3">
-                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-cal-primary/10 text-cal-primary">
-                      <Check size={12} strokeWidth={2.8} aria-hidden="true" />
-                    </span>
-                    <span className="leading-[1.45] text-cal-body">{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <DownloadCTA variant="secondary" className="w-full">
-              Download free APK
-            </DownloadCTA>
-          </article>
-
-          {/* Tier 2: HeartLink Premium (`pricing-tier-card-featured`: dark card with brand primary accent) */}
-          <article className="relative flex flex-col justify-between rounded-[16px] border-2 border-cal-primary bg-gradient-to-b from-[#141b24] to-[#0c1017] p-8 text-cal-on-dark shadow-[0_12px_36px_rgba(0,0,0,0.35),0_0_24px_rgba(59,130,246,0.18)] transition-all duration-200 hover:shadow-[0_16px_44px_rgba(0,0,0,0.4),0_0_32px_rgba(59,130,246,0.25)]">
-            <div>
-              <div className="flex items-start justify-between gap-3">
-                <h3 className="m-0 font-cal-sans text-[22px] font-semibold leading-[1.25] tracking-[-0.3px] text-cal-on-dark">
-                  HeartLink Premium
-                </h3>
-                <span className="shrink-0 whitespace-nowrap rounded-full bg-cal-primary px-3.5 py-1 text-[12px] font-semibold text-white shadow-xs">
-                  {PRICING_DEFAULTS.trialDays}-day free trial
-                </span>
-              </div>
-
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.div
-                  key={period}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.18, ease: "easeOut" }}
-                >
-                  <div className="mt-5 flex items-baseline gap-2">
-                    <span className="font-cal-display text-[38px] font-semibold leading-[1.1] tracking-[-1px] text-cal-on-dark">
-                      <span className="font-sans text-[30px] font-semibold mr-0.5">₱</span>
-                      {isYearly ? PRICING_DEFAULTS.yearlyPhp : PRICING_DEFAULTS.monthlyPhp}
-                    </span>
-                    <span className="text-[14px] text-cal-on-dark-soft">
-                      {isYearly ? "/ year (one-time)" : "/ month (one-time)"}
-                    </span>
-                  </div>
-
-                  <p className="mt-3 mb-0 text-[14px] leading-[1.5] text-cal-on-dark-soft">
-                    {isYearly
-                      ? `Works out to ~₱${Math.round(PRICING_DEFAULTS.yearlyPhp / 12)}/mo—save ₱${YEARLY_SAVINGS_PHP} vs paying monthly.`
-                      : "Pay once for 30 days via GCash or card—never auto-renews."}
-                  </p>
-                </motion.div>
-              </AnimatePresence>
-
-              <ul className="mt-6 mb-8 flex list-none flex-col gap-3.5 border-t border-cal-surface-dark-elevated pt-6 p-0 text-[14.5px] text-cal-on-dark">
-                {[
-                  "Everything in Core Wellness",
-                  "1- and 3-month doctor-ready PDF health reports",
-                  "90-day & 1-year Trends + month-over-month view",
-                  "Time-of-day blood pressure pattern breakdown",
-                  "Family sharing invite codes with emergency alerts",
-                  "One-time GCash or card pass—no surprise renewals",
-                ].map((item) => (
-                  <li key={item} className="flex items-start gap-3">
-                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-cal-primary/20 text-cal-primary">
-                      <Check size={12} strokeWidth={2.8} aria-hidden="true" />
-                    </span>
-                    <span className="leading-[1.45] text-cal-on-dark">{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="flex flex-col gap-2.5">
-              <DownloadCTA
-                variant="primary"
-                className="w-full shadow-[0_4px_14px_rgba(59,130,246,0.35)] hover:shadow-[0_6px_20px_rgba(59,130,246,0.5)] active:scale-[0.98] transition-all"
-              >
-                Start {PRICING_DEFAULTS.trialDays}-day trial in app
-              </DownloadCTA>
-              <span className="text-center text-[12px] text-cal-on-dark-soft">
-                Academic test mode: <span className="font-sans">₱</span>0 real money charged during capstone demo
-              </span>
-            </div>
-          </article>
-
-          {/* Tier 3: Family Follower (`pricing-tier-card`) */}
-          <article className="flex flex-col justify-between rounded-[16px] border border-cal-hairline bg-cal-canvas p-8 shadow-[0_1px_3px_rgba(0,0,0,0.05)] transition-shadow duration-200 hover:shadow-[0_6px_20px_rgba(0,0,0,0.06)] md:col-span-2 lg:col-span-1">
-            <div>
-              <div className="flex items-center justify-between gap-2">
-                <h3 className="m-0 font-cal-sans text-[22px] font-semibold leading-[1.3] tracking-[-0.3px] text-cal-ink">
-                  Family Companion
-                </h3>
-                <span className="rounded-full bg-cal-surface-card px-3 py-1 text-[13px] font-medium text-cal-ink">
-                  With invite code
-                </span>
-              </div>
-
-              <div className="mt-5 flex items-baseline gap-2">
-                <span className="font-cal-display text-[38px] font-semibold leading-[1.1] tracking-[-1px] text-cal-ink">
-                  <span className="font-sans text-[30px] font-semibold mr-0.5">₱</span>0
-                </span>
-                <span className="text-[14px] text-cal-muted">for invited family</span>
-              </div>
-
-              <p className="mt-3 mb-0 text-[14px] leading-[1.5] text-cal-muted">
-                For spouses, adult children, or caregivers following a loved one on Premium.
-              </p>
-
-              <ul className="mt-6 mb-8 flex list-none flex-col gap-3.5 border-t border-cal-hairline-soft pt-6 p-0 text-[14.5px] text-cal-body">
-                {[
-                  "Dedicated Family home screen—no daily logging required",
-                  "Follow a loved one's latest Heart score & BP check-ins",
-                  "Instant alert if a logged reading hits an emergency level",
-                  "Patient stays in control and can revoke access anytime",
-                  "Switch to tracking your own heart health in one tap",
-                ].map((item) => (
-                  <li key={item} className="flex items-start gap-3">
-                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-cal-primary/10 text-cal-primary">
-                      <HeartHandshake size={12} strokeWidth={2.5} aria-hidden="true" />
-                    </span>
-                    <span className="leading-[1.45] text-cal-body">{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <DownloadCTA variant="secondary" className="w-full">
-              Install for Family
-            </DownloadCTA>
-          </article>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function FaqSection() {
-  const [openIndex, setOpenIndex] = useState(0);
-
-  return (
-    <section id="faq" className="scroll-mt-20 bg-cal-canvas px-6 py-16 md:py-24">
-      <div className="mx-auto grid max-w-[1200px] grid-cols-1 items-start gap-12 lg:grid-cols-12">
-        <div className="flex flex-col gap-3.5 lg:col-span-5">
-          <span className="inline-block w-fit rounded-full bg-cal-primary/10 px-3 py-1 text-[13px] font-semibold text-cal-primary">
-            FAQ
-          </span>
-          <h2 className="m-0 font-cal-display text-[28px] font-semibold leading-[1.1] tracking-[-1px] text-cal-ink sm:text-[38px] lg:text-[48px] lg:tracking-[-1.5px]">
-            Common questions before you install
-          </h2>
-          <p className="m-0 text-[16px] leading-[1.5] text-cal-body">
-            Clear answers on clinical safety, privacy, Android APK setup, and how Free and Premium
-            work.
-          </p>
-        </div>
-
-        <div className="divide-y divide-cal-hairline rounded-[12px] border border-cal-hairline bg-cal-canvas px-6 lg:col-span-7">
-          {FAQS.map((item, idx) => {
-            const isOpen = openIndex === idx;
-            return (
-              <div key={item.question} className="py-5">
-                <button
-                  type="button"
-                  aria-expanded={isOpen}
-                  onClick={() => setOpenIndex(isOpen ? -1 : idx)}
-                  className={`flex w-full cursor-pointer items-center justify-between gap-4 border-0 bg-transparent p-0 text-left font-cal-sans text-[16px] font-semibold leading-[1.4] text-cal-ink ${focusRing}`}
-                >
-                  <span>{item.question}</span>
-                  <ChevronDown
-                    size={18}
-                    aria-hidden="true"
-                    className={`shrink-0 text-cal-muted transition-transform duration-150 ${isOpen ? "rotate-180" : ""
-                      }`}
-                  />
-                </button>
-                {isOpen && (
-                  <p className="mt-3 mb-0 pr-6 text-[15px] leading-[1.55] text-cal-body">
-                    {item.answer}
-                  </p>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
+      <figcaption className="mt-4 text-[12px] leading-relaxed text-cal-muted">
+        Illustration of the planned experience, with no personal records. It is
+        not a screenshot of a released mobile update.
+      </figcaption>
+    </figure>
   );
 }
 
 export default function Landing() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  const navItemClass = `rounded-[6px] px-3 py-1.5 font-cal-sans text-[14px] font-medium leading-[1.4] text-cal-body no-underline ${focusRing}`;
-
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuButton = useRef(null);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const escape = (event) => {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+        menuButton.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", escape);
+    return () => window.removeEventListener("keydown", escape);
+  }, [menuOpen]);
   return (
-    <div className="min-h-screen scroll-smooth bg-cal-canvas font-cal-sans text-cal-ink selection:bg-cal-primary selection:text-cal-on-primary">
-      {/* ─── Top Navigation (`top-nav`: 64px white bar) ─── */}
-      <header className="sticky top-0 z-40 border-b border-cal-hairline-soft bg-cal-canvas">
-        <nav
-          aria-label="Main"
-          className="mx-auto flex h-16 max-w-[1200px] items-center justify-between gap-4 px-6"
-        >
-          <a
-            href="#top"
-            className={`flex items-center gap-2.5 rounded-[6px] text-cal-ink no-underline ${focusRing}`}
+    <div className="min-h-screen bg-cal-surface-soft font-cal-sans text-cal-ink selection:bg-ds-sky">
+      <a
+        href="#main-content"
+        className={`sr-only z-50 rounded-[8px] bg-cal-canvas p-3 focus:not-sr-only focus:fixed focus:left-4 focus:top-4 ${focus}`}
+      >
+        Skip to content
+      </a>
+      <header className="sticky top-0 z-30 border-b border-cal-hairline bg-cal-canvas">
+        <div className="mx-auto flex min-h-[76px] max-w-[1200px] items-center justify-between gap-5 px-5 sm:px-8">
+          <Link
+            to="/"
+            aria-label="HeartLink home"
+            className={`flex items-center gap-2.5 text-[20px] font-semibold tracking-[-0.5px] text-cal-ink no-underline ${focus}`}
           >
-            <HeartLogoIcon size={28} />
-            <span className="font-cal-display text-[20px] font-semibold tracking-[-0.5px] text-cal-ink">
-              HeartLink
-            </span>
-          </a>
-
-          {/* Center nav links (tablet/desktop) */}
-          <div className="hidden items-center gap-1 md:flex">
-            <a href="#how" className={navItemClass}>
-              How it works
-            </a>
-            <a href="#features" className={navItemClass}>
-              Features
-            </a>
-            <a href="#score" className={navItemClass}>
-              Heart score
-            </a>
-            <a href="#pricing" className={navItemClass}>
-              Pricing
-            </a>
-            <a href="#faq" className={navItemClass}>
-              FAQ
-            </a>
-          </div>
-
-          {/* Right action cluster */}
-          <div className="hidden items-center gap-3 md:flex">
+            <HeartLogoIcon size={29} /> HeartLink
+          </Link>
+          <nav
+            aria-label="Main navigation"
+            className="hidden items-center gap-7 lg:flex"
+          >
+            {navigation.map(([href, label]) => (
+              <a
+                key={href}
+                href={href}
+                className={`text-[14px] text-cal-body no-underline hover:text-cal-primary ${focus}`}
+              >
+                {label}
+              </a>
+            ))}
+          </nav>
+          <div className="flex items-center gap-3">
             <Link
               to="/login"
-              className={`inline-flex h-10 items-center rounded-[8px] px-3 text-[14px] font-semibold leading-none text-cal-ink no-underline ${focusRing}`}
+              className={`hidden text-[13px] font-medium text-cal-muted no-underline sm:inline-flex ${focus}`}
             >
               Staff sign in
             </Link>
-            <DownloadCTA>Download APK</DownloadCTA>
+            <span className="hidden sm:block"><a href="#download" className={primary}>
+              Android availability <ArrowRight size={15} aria-hidden="true" />
+            </a></span>
+            <button
+              ref={menuButton}
+              type="button"
+              onClick={() => setMenuOpen((open) => !open)}
+              aria-expanded={menuOpen}
+              aria-controls="mobile-navigation"
+              aria-label={menuOpen ? "Close navigation" : "Open navigation"}
+              className={`flex h-11 w-11 items-center justify-center rounded-[12px] border border-cal-hairline lg:hidden ${focus}`}
+            >
+              {menuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
           </div>
-
-          {/* Mobile menu button (< 768px) */}
-          <button
-            type="button"
-            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-            aria-expanded={mobileMenuOpen}
-            onClick={() => setMobileMenuOpen((v) => !v)}
-            className={`inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-cal-hairline bg-cal-canvas text-cal-ink md:hidden ${focusRing}`}
+        </div>
+        {menuOpen && (
+          <nav
+            id="mobile-navigation"
+            aria-label="Mobile navigation"
+            className="space-y-1 border-t border-cal-hairline px-5 py-4 lg:hidden"
           >
-            {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
-          </button>
-        </nav>
-
-        {/* Mobile sheet (< 768px) */}
-        {mobileMenuOpen && (
-          <div className="border-t border-cal-hairline bg-cal-canvas px-6 py-5 md:hidden">
-            <div className="flex flex-col gap-3">
-              {[
-                { href: "#how", label: "How it works" },
-                { href: "#features", label: "Features" },
-                { href: "#score", label: "Heart score" },
-                { href: "#pricing", label: "Pricing" },
-                { href: "#faq", label: "FAQ" },
-                { href: "#download", label: "Download" },
-              ].map((link) => (
+            {[...navigation, ["#download", "Android availability"]].map(
+              ([href, label]) => (
                 <a
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="py-1.5 text-[16px] font-medium text-cal-ink no-underline"
+                  key={href}
+                  href={href}
+                  onClick={() => setMenuOpen(false)}
+                  className={`block rounded-[8px] px-3 py-3 text-[14px] text-cal-ink no-underline ${focus}`}
                 >
-                  {link.label}
+                  {label}
                 </a>
-              ))}
-              <div className="mt-2 flex flex-col gap-2.5 border-t border-cal-hairline-soft pt-4">
-                <DownloadCTA className="w-full">Download for Android</DownloadCTA>
-                <Link
-                  to="/login"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`${btnSecondary} w-full`}
-                >
-                  Staff sign in
-                </Link>
-              </div>
-            </div>
-          </div>
+              ),
+            )}
+            <Link
+              to="/login"
+              onClick={() => setMenuOpen(false)}
+              className={`block px-3 py-3 text-[14px] text-cal-muted ${focus}`}
+            >
+              Staff sign in
+            </Link>
+          </nav>
         )}
       </header>
-
-      <main>
-        {/* ─── Band 1: Hero (`hero-band` — white canvas, 7/5 split, 96px rhythm) ─── */}
-        <section id="top" className="scroll-mt-20 bg-cal-canvas px-6 py-16 md:py-24">
-          <div className="mx-auto grid max-w-[1200px] grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-10">
-            <div className="flex flex-col items-start gap-6 lg:col-span-7">
-              <span className="inline-flex items-center gap-2 rounded-full bg-cal-primary/10 px-3 py-1 text-[13px] font-semibold leading-[1.4] text-cal-primary">
-                <span className="h-2 w-2 rounded-full bg-cal-primary" />
-                Heart wellness companion · Cebu City
-              </span>
-
-              <h1 className="m-0 font-cal-display text-[32px] font-semibold leading-[1.05] tracking-[-1px] text-cal-ink sm:text-[48px] lg:text-[64px] lg:tracking-[-2px]">
-                Check in with your heart every day, in a few taps.
-              </h1>
-
-              <p className="m-0 max-w-[560px] text-[16px] font-normal leading-[1.5] text-cal-body sm:text-[18px]">
-                HeartLink turns your blood pressure, meals, exercise and sleep into one daily Heart
-                score, then tells you what changed and what to do next.
-              </p>
-
-              <div className="flex flex-wrap items-center gap-3 pt-1">
-                <DownloadCTA>Download for Android</DownloadCTA>
-                <a href="#pricing" className={btnSecondary}>
-                  Compare Free &amp; Premium
-                  <ArrowRight size={15} aria-hidden="true" />
-                </a>
-              </div>
-
-              <p className="m-0 text-[13px] font-medium leading-[1.4] text-cal-muted-soft">
-                Free core safety features · Android 9 or newer · installed via APK, not yet on Google Play
-              </p>
+      <main id="main-content" tabIndex={-1}>
+        <section className="mx-auto grid max-w-[1200px] items-center gap-12 px-5 py-14 sm:px-8 sm:py-20 lg:grid-cols-[1.05fr_1fr] lg:gap-16 lg:py-24">
+          <div>
+            <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-cal-hairline bg-cal-canvas px-3.5 py-2 text-[12px] font-medium text-cal-body">
+              <span
+                className="h-1.5 w-1.5 rounded-full bg-cal-primary"
+                aria-hidden="true"
+              />{" "}
+              General Wellness update · In development
+            </p>
+            <h1 className="max-w-[12ch] text-[42px] font-semibold leading-[1.08] tracking-[-1.8px] sm:text-[58px]">
+              Small habits.
+              <br />A little more clarity.
+            </h1>
+            <p className="mt-6 max-w-[48ch] text-[17px] leading-[1.7] text-cal-body">
+              Make food and movement easier to understand. HeartLink is being
+              shaped around practical recipes, beginner routines and a personal
+              record of your everyday habits.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <a href="#download" className={primary}>
+                Check Android availability{" "}
+                <ArrowRight size={16} aria-hidden="true" />
+              </a>
+              <a href="#features" className={secondary}>
+                Explore the direction
+              </a>
             </div>
-
-            <div className="lg:col-span-5">
-              <HeroProductCard />
-            </div>
+            <p className="mt-5 max-w-[48ch] text-[13px] leading-relaxed text-cal-muted">
+              For general wellness. No disease-risk score, diagnosis or
+              emergency monitoring.
+            </p>
           </div>
+          <ProductPreview />
         </section>
-
-        {/* ─── Band 2: How It Works (3-up `feature-card` in `#f5f5f5` with UI fragments) ─── */}
-        <section
-          id="how"
-          className="scroll-mt-20 border-t border-cal-hairline-soft bg-cal-canvas px-6 py-16 md:py-24"
-        >
-          <div className="mx-auto flex max-w-[1200px] flex-col gap-12">
-            <div className="max-w-[640px]">
-              <span className="inline-block rounded-full bg-cal-primary/10 px-3 py-1 text-[13px] font-semibold text-cal-primary">
-                How it works
-              </span>
-              <h2 className="mt-4 mb-0 font-cal-display text-[28px] font-semibold leading-[1.1] tracking-[-1px] text-cal-ink sm:text-[38px] lg:text-[48px] lg:tracking-[-1.5px]">
-                Three simple habits between doctor visits
-              </h2>
-              <p className="mt-3 mb-0 text-[16px] leading-[1.5] text-cal-body">
-                No complicated charts to decode—just a clear baseline, quick daily logs, and
-                plain-language guidance you can bring to your physician.
-              </p>
-            </div>
-
-            <ol className="m-0 grid list-none grid-cols-1 gap-6 p-0 md:grid-cols-2 lg:grid-cols-3">
-              {STEPS.map((item) => (
-                <li
-                  key={item.title}
-                  className="flex flex-col gap-4 rounded-[12px] bg-cal-surface-card p-8"
-                >
-                  <span className="inline-flex h-8 w-fit items-center rounded-[6px] bg-cal-primary/10 px-2.5 font-cal-mono text-[13px] font-semibold text-cal-primary">
-                    Step {item.step}
-                  </span>
-                  <h3 className="m-0 font-cal-sans text-[18px] font-semibold leading-[1.4] text-cal-ink">
-                    {item.title}
-                  </h3>
-                  <p className="m-0 text-[16px] font-normal leading-[1.5] text-cal-body">{item.text}</p>
-                  {item.fragment}
-                </li>
-              ))}
-            </ol>
-          </div>
-        </section>
-
-        {/* ─── Band 3: Features (`surface-soft` floor + 4-up white `feature-icon-card`) ─── */}
         <section
           id="features"
-          className="scroll-mt-20 border-y border-cal-hairline-soft bg-cal-surface-soft px-6 py-16 md:py-24"
+          className="scroll-mt-24 border-y border-cal-hairline bg-cal-canvas px-5 py-16 sm:px-8 sm:py-20"
         >
-          <div className="mx-auto flex max-w-[1200px] flex-col gap-12">
-            <div className="max-w-[640px]">
-              <span className="inline-block rounded-full bg-cal-primary/10 px-3 py-1 text-[13px] font-semibold text-cal-primary">
-                Capabilities
-              </span>
-              <h2 className="mt-4 mb-0 font-cal-display text-[28px] font-semibold leading-[1.1] tracking-[-1px] text-cal-ink sm:text-[38px] lg:text-[48px] lg:tracking-[-1.5px]">
-                Everything built into HeartLink
-              </h2>
-              <p className="mt-3 mb-0 text-[16px] leading-[1.5] text-cal-body">
-                Designed for adults and families in Cebu City who want steady daily heart support
-                between clinical check-ups.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {FEATURES.map(({ icon: Icon, title, text }) => (
+          <div className="mx-auto max-w-[1136px]">
+            <p className="text-[13px] font-semibold text-cal-primary">
+              The everyday essentials
+            </p>
+            <h2 className="mt-3 max-w-[22ch] text-[30px] font-semibold leading-tight tracking-[-0.7px] sm:text-[38px]">
+              Useful detail, without the noise.
+            </h2>
+            <p className="mt-4 max-w-[65ch] text-[16px] leading-relaxed text-cal-muted">
+              The General Wellness direction keeps the focus on food, movement
+              and your own records. Each part has a clear purpose.
+            </p>
+            <div className="mt-10 grid gap-8 md:grid-cols-3">
+              {features.map(({ icon: Icon, title, text }, index) => (
                 <article
                   key={title}
-                  className="flex flex-col gap-3 rounded-[12px] border border-cal-hairline bg-cal-canvas p-6"
+                  className="border-t border-cal-hairline pt-6"
                 >
-                  <span className="flex h-10 w-10 items-center justify-center rounded-[8px] bg-cal-primary/10 text-cal-primary">
-                    <Icon size={20} aria-hidden="true" />
+                  <span
+                    className={`mb-6 inline-flex h-12 w-12 items-center justify-center rounded-[16px] ${["bg-ds-mint", "bg-ds-lavender", "bg-ds-peach"][index]}`}
+                  >
+                    <Icon size={23} aria-hidden="true" />
                   </span>
-                  <h3 className="m-0 font-cal-sans text-[16px] font-semibold leading-[1.4] text-cal-ink">
+                  <h3 className="text-[20px] font-semibold leading-snug">
                     {title}
                   </h3>
-                  <p className="m-0 text-[14px] font-normal leading-[1.5] text-cal-body">{text}</p>
+                  <p className="mt-3 text-[15px] leading-[1.7] text-cal-muted">
+                    {text}
+                  </p>
                 </article>
               ))}
             </div>
           </div>
         </section>
-
-        {/* ─── Band 4: Heart Score + Clinical Governance (`cal-canvas` + `product-mockup-card`) ─── */}
-        <section id="score" className="scroll-mt-20 bg-cal-canvas px-6 py-16 md:py-24">
-          <div className="mx-auto grid max-w-[1200px] grid-cols-1 items-start gap-12 lg:grid-cols-12">
-            <div className="flex flex-col gap-4 lg:col-span-5">
-              <span className="inline-flex w-fit items-center gap-2 rounded-full bg-cal-primary/10 px-3 py-1 text-[13px] font-semibold text-cal-primary">
-                <ShieldCheck size={15} aria-hidden="true" />
-                NHANES 2017–2018 · 5,569 adults
-              </span>
-              <h2 className="m-0 font-cal-display text-[28px] font-semibold leading-[1.1] tracking-[-1px] text-cal-ink sm:text-[38px] lg:text-[48px] lg:tracking-[-1.5px]">
-                What your Heart score means
-              </h2>
-              <p className="m-0 text-[16px] leading-[1.5] text-cal-body">
-                Your starting score comes from a logistic-regression baseline trained on health
-                survey data from 5,569 adults (NHANES 2017–2018). After that, guideline-based blood
-                pressure rules and daily habits move it.
-              </p>
-              <div className="rounded-[12px] bg-cal-surface-card p-5">
-                <div className="text-[14px] font-semibold text-cal-ink">
-                  Audited by three clinical specialties
+        <section
+          id="how"
+          className="mx-auto grid max-w-[1200px] scroll-mt-24 gap-10 px-5 py-16 sm:px-8 sm:py-20 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20"
+        >
+          <div>
+            <p className="text-[13px] font-semibold text-cal-primary">
+              How it fits
+            </p>
+            <h2 className="mt-3 text-[30px] font-semibold leading-tight tracking-[-0.7px] sm:text-[38px]">
+              Your focus.
+              <br />
+              Your own pace.
+            </h2>
+            <p className="mt-5 max-w-[40ch] text-[16px] leading-relaxed text-cal-muted">
+              A useful routine should fit your day. The update is designed
+              around practical preferences, clear information and optional
+              personal tracking.
+            </p>
+          </div>
+          <ol className="m-0 list-none space-y-7 p-0">
+            {[
+              [
+                "Choose a wellness focus",
+                "Eat with less sodium or move more regularly. A focus expresses what you want to work on; it does not assign a health category.",
+              ],
+              [
+                "Look at the whole recipe or routine",
+                "Check portions, ingredients, instructions and equipment before deciding what fits your day. General content does not replace personal professional advice.",
+              ],
+              [
+                "Keep a record that is yours",
+                "Log what you actually did. Missing entries stay missing, rather than becoming a score or a judgement.",
+              ],
+            ].map(([title, text], index) => (
+              <li key={title} className="flex gap-5">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-cal-hairline bg-cal-canvas text-[13px] font-semibold tabular-nums">
+                  0{index + 1}
+                </span>
+                <div>
+                  <h3 className="text-[18px] font-semibold">{title}</h3>
+                  <p className="mt-2 text-[15px] leading-relaxed text-cal-muted">
+                    {text}
+                  </p>
                 </div>
-                <p className="mt-1.5 mb-0 text-[14px] leading-[1.5] text-cal-body">
-                  Independent cardiologists verify risk flags, dietitians audit recipes, and physical
-                  therapists review exercise safety on weekly anonymized samples.
-                </p>
-                <p className="mt-2.5 mb-0 text-[13px] text-cal-muted">
-                  The Heart score is a wellness guide, not a diagnosis. Always talk to your doctor
-                  about your readings.
+              </li>
+            ))}
+          </ol>
+        </section>
+        <section className="bg-cal-canvas px-5 py-14 sm:px-8">
+          <div className="mx-auto grid max-w-[1136px] gap-7 md:grid-cols-2">
+            <div className="flex items-start gap-4 rounded-[20px] bg-ds-sky p-6">
+              <ShieldCheck
+                size={24}
+                className="mt-1 shrink-0"
+                aria-hidden="true"
+              />
+              <div>
+                <h2 className="text-[20px] font-semibold">
+                  Content quality comes first
+                </h2>
+                <p className="mt-3 text-[15px] leading-relaxed text-cal-body">
+                  Admin authors. The relevant specialist reviews the saved
+                  revision. Admin publishes after approval. Content review is
+                  separate from personal medical care.
                 </p>
               </div>
             </div>
-
-            <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)] lg:col-span-7">
-              <div className="mb-4 flex items-center justify-between border-b border-cal-hairline-soft pb-3">
-                <span className="text-[14px] font-semibold text-cal-ink">
-                  Heart Stability Score (HSS) bands
-                </span>
-                <span className="font-cal-mono text-[12px] text-cal-muted">Scale 01–100</span>
+            <div className="flex items-start gap-4 rounded-[20px] bg-cal-surface-soft p-6">
+              <BookOpen
+                size={24}
+                className="mt-1 shrink-0"
+                aria-hidden="true"
+              />
+              <div>
+                <h2 className="text-[20px] font-semibold">
+                  Premium stays optional
+                </h2>
+                <p className="mt-3 text-[15px] leading-relaxed text-cal-muted">
+                  Existing Premium features remain secondary. Capstone
+                  evaluation checkout uses test mode; there is no checkout or
+                  subscription sign-up on this page.
+                </p>
               </div>
-
-              <ul
-                aria-label="Heart score levels"
-                className="m-0 flex list-none flex-col divide-y divide-cal-hairline-soft p-0"
-              >
-                {BANDS.map((band) => (
-                  <li
-                    key={band.name}
-                    className="flex flex-wrap items-center gap-4 py-4 first:pt-1 last:pb-1"
-                  >
-                    <span className="w-[84px] shrink-0 font-cal-mono text-[16px] font-medium text-cal-ink">
-                      {band.range}
-                    </span>
-                    <div className="min-w-[180px] flex-1">
-                      <div className="flex items-center gap-2">
-                        <span aria-hidden="true" className={`h-2.5 w-2.5 rounded-full ${band.dot}`} />
-                        <strong className="text-[16px] font-semibold text-cal-ink">
-                          {band.name}
-                        </strong>
-                      </div>
-                      <p className="mt-0.5 mb-0 text-[14px] leading-[1.45] text-cal-muted">
-                        {band.text}
-                      </p>
-                    </div>
-                    <span className="rounded-full bg-cal-surface-card px-3 py-1 text-[13px] font-medium text-cal-ink">
-                      {band.pill}
-                    </span>
-                  </li>
-                ))}
-              </ul>
             </div>
           </div>
         </section>
-
-        {/* ─── Band 5: Pricing (`surface-soft` floor + Featured `#101010` Dark Tier) ─── */}
-        <PricingSection />
-
-        {/* ─── Band 6: FAQ (`cal-canvas` accordion) ─── */}
-        <FaqSection />
-
-        {/* ─── Band 7: Pre-Footer CTA (`cta-band-light` `#f5f5f5`) + Care Team Portal Row ─── */}
-        <section id="download" className="scroll-mt-20 bg-cal-canvas px-6 pb-20 md:pb-24">
-          <div className="mx-auto flex max-w-[1200px] flex-col gap-6">
-            {/* Cal.com `cta-band-light`: #f5f5f5, 12px radius, 48px padding */}
-            <div className="grid grid-cols-1 items-center gap-10 rounded-[12px] bg-cal-surface-card p-8 md:p-12 lg:grid-cols-12">
-              <div className="flex flex-col items-start gap-4 lg:col-span-6">
-                <span className="rounded-full bg-cal-primary/10 px-3 py-1 text-[13px] font-semibold text-cal-primary">
-                  Android APK · Free download
-                </span>
-                <h2 className="m-0 font-cal-display text-[26px] font-semibold leading-[1.2] tracking-[-0.5px] text-cal-ink sm:text-[32px]">
-                  Get HeartLink for Android
-                </h2>
-                <p className="m-0 text-[16px] leading-[1.5] text-cal-body">
-                  HeartLink is not on Google Play yet. Download the APK file directly and install it
-                  on your phone in under a minute—for yourself or as a Family follower.
+        <section
+          id="faq"
+          className="mx-auto max-w-[880px] scroll-mt-24 px-5 py-16 sm:px-8 sm:py-20"
+        >
+          <h2 className="text-[30px] font-semibold tracking-[-0.7px] sm:text-[38px]">
+            A few things to know.
+          </h2>
+          <div className="mt-8 divide-y divide-cal-hairline border-y border-cal-hairline">
+            {questions.map(([question, answer]) => (
+              <details key={question} className="group py-5">
+                <summary
+                  className={`flex cursor-pointer list-none items-center justify-between gap-5 text-[16px] font-semibold [&::-webkit-details-marker]:hidden ${focus}`}
+                >
+                  {question}
+                  <ChevronDown
+                    size={18}
+                    aria-hidden="true"
+                    className="shrink-0 group-open:rotate-180"
+                  />
+                </summary>
+                <p className="mt-4 pr-6 text-[15px] leading-[1.75] text-cal-muted">
+                  {answer}
                 </p>
-                <div className="flex flex-wrap items-center gap-3 pt-1">
-                  {APK_URL ? (
-                    <DownloadCTA>Download the APK</DownloadCTA>
-                  ) : (
-                    <span className="inline-flex h-10 items-center rounded-[8px] bg-cal-primary-disabled px-4 text-[14px] font-semibold text-cal-muted">
-                      The download link is coming soon
-                    </span>
-                  )}
-                  <span className="text-[13px] font-medium text-cal-muted">Android 9 or newer</span>
-                </div>
-              </div>
-
-              <ol className="m-0 flex list-none flex-col gap-3 p-0 lg:col-span-6">
-                {[
-                  "Tap Download the APK and open the file when it finishes.",
-                  "If your phone asks, allow installs from this source.",
-                  "Open HeartLink, choose Patient or Family account, and finish setup.",
-                ].map((text, i) => (
-                  <li
-                    key={text}
-                    className="flex items-center gap-3.5 rounded-[10px] border border-cal-hairline bg-cal-canvas px-4 py-3.5"
-                  >
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[6px] bg-cal-primary/10 font-cal-mono text-[13px] font-semibold text-cal-primary">
-                      {i + 1}
-                    </span>
-                    <span className="text-[14px] leading-[1.5] text-cal-body">{text}</span>
-                  </li>
-                ))}
-              </ol>
-            </div>
-
-            {/* Staff & Medical Experts Strip with Cal.com 36px pastel `avatar-circle` tokens */}
-            <div className="flex flex-wrap items-center justify-between gap-6 rounded-[12px] border border-cal-hairline bg-cal-canvas p-6 sm:p-8">
-              <div className="flex flex-wrap items-center gap-5">
-                <div className="flex -space-x-2" aria-hidden="true">
-                  {CARE_TEAM_AVATARS.map((member) => (
-                    <span
-                      key={member.initials}
-                      title={member.role}
-                      className={`flex h-9 w-9 items-center justify-center rounded-full text-[13px] font-medium text-cal-ink ring-2 ring-cal-canvas ${member.fill}`}
-                    >
-                      {member.initials}
-                    </span>
-                  ))}
-                </div>
-                <div>
-                  <h2 className="m-0 font-cal-sans text-[18px] font-semibold leading-[1.4] text-cal-ink">
-                    For administrators and medical experts
-                  </h2>
-                  <p className="mt-1 mb-0 text-[14px] leading-[1.5] text-cal-muted">
-                    Manage recipes, exercises and announcements, approve content and review cases in
-                    the HeartLink portal.
-                  </p>
-                </div>
-              </div>
-
-              <Link to="/login" className={btnSecondary}>
-                Staff sign in
-                <ArrowRight size={15} aria-hidden="true" />
-              </Link>
+              </details>
+            ))}
+          </div>
+        </section>
+        <section
+          id="download"
+          className="scroll-mt-24 px-5 pb-16 sm:px-8 sm:pb-20"
+        >
+          <div className="mx-auto max-w-[1136px] rounded-[24px] border border-cal-hairline bg-cal-canvas p-7 sm:p-12">
+            <div className="max-w-[65ch]">
+              <p className="text-[13px] font-semibold text-cal-primary">
+                Android availability
+              </p>
+              <h2 className="mt-3 text-[28px] font-semibold leading-tight tracking-[-0.7px] sm:text-[36px]">
+                {APK_URL
+                  ? "Android installation link"
+                  : "A little more work before download day."}
+              </h2>
+              <p className="mt-4 text-[16px] leading-relaxed text-cal-muted">
+                {APK_URL
+                  ? "Use the configured destination for the installation file and its release information. The General Wellness update described here is still in development."
+                  : "The General Wellness update is in development, and no verified public download is linked yet. Release, privacy and support information will be added here before downloads open."}
+              </p>
+              {APK_URL ? (
+                <a
+                  href={APK_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`mt-7 ${primary}`}
+                >
+                  <Download size={17} aria-hidden="true" /> Open Android
+                  download
+                </a>
+              ) : (
+                <p className="mt-7 inline-flex rounded-full bg-cal-surface-soft px-4 py-2 text-[13px] font-medium text-cal-body">
+                  Android download not yet available
+                </p>
+              )}
             </div>
           </div>
         </section>
       </main>
-
-      {/* ─── Band 8: Dark Footer (`footer`: `#101010` — closes the long-scroll page) ─── */}
-      <footer className="bg-cal-surface-dark px-6 py-16 text-cal-on-dark-soft">
-        <div className="mx-auto max-w-[1200px]">
-          <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="flex flex-col gap-3 lg:col-span-2">
-              <div className="flex items-center gap-2.5">
-                <HeartLogoIcon size={26} />
-                <span className="font-cal-display text-[19px] font-semibold tracking-[-0.4px] text-cal-on-dark">
-                  HeartLink
-                </span>
-              </div>
-              <p className="m-0 max-w-[520px] text-[14px] leading-[1.55] text-cal-on-dark-soft">
-                HeartLink is a wellness app made for a Cebu Technological University capstone
-                project. It is not a medical device and does not diagnose or treat any condition. In
-                an emergency, call 911. Clinic locations come from a public map directory; HeartLink
-                has no partnership with any clinic.
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-2.5 text-[14px]">
-              <span className="font-semibold text-cal-on-dark">Product</span>
-              <a href="#how" className="w-fit text-cal-on-dark-soft no-underline">
-                How it works
-              </a>
-              <a href="#features" className="w-fit text-cal-on-dark-soft no-underline">
-                Features
-              </a>
-              <a href="#score" className="w-fit text-cal-on-dark-soft no-underline">
-                Heart score
-              </a>
-              <a href="#pricing" className="w-fit text-cal-on-dark-soft no-underline">
-                Pricing
-              </a>
-              <a href="#faq" className="w-fit text-cal-on-dark-soft no-underline">
-                FAQ
-              </a>
-              <a href="#download" className="w-fit text-cal-on-dark-soft no-underline">
-                Android APK
-              </a>
-            </div>
-
-            <div className="flex flex-col gap-2.5 text-[14px]">
-              <span className="font-semibold text-cal-on-dark">Clinical &amp; Admin</span>
-              <Link to="/login" className="w-fit text-cal-on-dark-soft no-underline">
-                Staff sign in
-              </Link>
-              <span className="text-cal-on-dark-soft">CTU Main · Capstone 2</span>
-            </div>
+      <footer className="border-t border-cal-hairline bg-cal-canvas px-5 py-8 sm:px-8">
+        <div className="mx-auto flex max-w-[1136px] flex-wrap items-center justify-between gap-5">
+          <div className="flex items-center gap-2 text-[17px] font-semibold">
+            <HeartLogoIcon size={24} /> HeartLink
           </div>
-
-          <div className="mt-12 flex flex-wrap items-center justify-between gap-4 border-t border-cal-surface-dark-elevated pt-6 text-[13px] text-cal-muted-soft">
-            <span>© 2026 HeartLink</span>
-            <span>Wellness support tool · Not a diagnostic medical device</span>
-          </div>
+          <p className="text-[13px] text-cal-muted">
+            Everyday wellness · General Wellness update in development
+          </p>
+          <Link
+            to="/login"
+            className={`text-[13px] font-medium text-cal-muted underline-offset-4 ${focus}`}
+          >
+            Staff sign in
+          </Link>
         </div>
       </footer>
     </div>

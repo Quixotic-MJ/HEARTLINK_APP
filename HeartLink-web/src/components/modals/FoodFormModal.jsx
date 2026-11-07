@@ -93,11 +93,9 @@ const TAB_FIELDS = {
     "foodSourceType",
     "category",
     "categoryOther",
-    "hssTarget",
     "prepTimeMinutes",
     "servings",
     "difficulty",
-    "heartBenefit",
   ],
   nutrition: ["calories", "sodium", "satFat", "cholesterol", "fiber"],
   ingredients: ["ingredients", "steps"],
@@ -134,11 +132,9 @@ const foodSchema = z
     foodSourceType: z.string().default("Home Recipe"),
     category: z.string().min(1, "Category is required."),
     categoryOther: z.string().max(40, "Keep it under 40 characters.").optional(),
-    hssTarget: z.string().min(1, "HSS Tier is required."),
     prepTimeMinutes: z.coerce.number().min(0, "Cannot be negative").default(15),
     servings: z.coerce.number().min(1, "At least 1 serving").default(1),
     difficulty: z.string().default("Easy"),
-    heartBenefit: z.string().optional(),
     calories: z.coerce.number().min(0, "Cannot be negative"),
     sodium: z.coerce.number().min(0, "Cannot be negative"),
     satFat: z.coerce.number().min(0, "Cannot be negative"),
@@ -185,12 +181,10 @@ const DEFAULT_VALUES = {
   name: "",
   category: "Breakfast",
   categoryOther: "",
-  hssTarget: "Stable (80-100)",
   foodSourceType: "Home Recipe",
   prepTimeMinutes: 15,
   servings: 1,
   difficulty: "Easy",
-  heartBenefit: "",
   sodium: 0,
   calories: 0,
   satFat: 0,
@@ -340,13 +334,11 @@ const FoodFormModal = ({
         name: recipe.name || "",
         category: recipe.category || "Breakfast",
         categoryOther: recipe.categoryOther || "",
-        hssTarget: recipe.hssTarget || "Stable (80-100)",
         foodSourceType: recipe.foodSourceType || "Home Recipe",
         prepTimeMinutes:
           recipe.prepTimeMinutes !== undefined ? recipe.prepTimeMinutes : 15,
         servings: recipe.servings !== undefined ? recipe.servings : 1,
         difficulty: recipe.difficulty || "Easy",
-        heartBenefit: recipe.heartBenefit || "",
         sodium: recipe.sodium || 0,
         calories: recipe.calories || 0,
         satFat: recipe.satFat || 0,
@@ -392,7 +384,6 @@ const FoodFormModal = ({
         prepTimeMinutes: Number(data.prepTimeMinutes) || 15,
         servings: Number(data.servings) || 1,
         difficulty: data.difficulty || "Easy",
-        heartBenefit: data.heartBenefit || "",
         ingredients: mappedIngredients,
         steps: mappedSteps,
       });
@@ -521,11 +512,6 @@ const FoodFormModal = ({
                 <div className="mt-2.5 flex flex-wrap gap-1.5">
                   <span className={`${PILL} capitalize ${statusChip}`}>
                     {status}
-                  </span>
-                  <span
-                    className={`${PILL} border-cal-hairline bg-cal-surface-soft text-cal-ink`}
-                  >
-                    For {v.hssTarget}
                   </span>
                   <span
                     className={`${PILL} ${
@@ -669,15 +655,6 @@ const FoodFormModal = ({
                     {v.foodSourceType}
                   </span>
                 </div>
-                {v.heartBenefit ? (
-                  <p className="text-[14.5px] leading-[1.55] text-cal-body">
-                    {v.heartBenefit}
-                  </p>
-                ) : (
-                  <p className="text-[13.5px] font-medium text-cal-muted">
-                    No heart-health benefit written yet.
-                  </p>
-                )}
               </div>
             </div>
 
@@ -744,7 +721,7 @@ const FoodFormModal = ({
                       >
                         <span className="w-24 shrink-0 font-cal-mono text-[12.5px] text-cal-muted">
                           {[ing.amount, ing.unit].filter(Boolean).join(" ") ||
-                            "To taste"}
+                            "Amount not recorded"}
                         </span>
                         <span className="min-w-0 flex-1 font-medium text-cal-ink">
                           {ing.name}
@@ -903,37 +880,6 @@ const FoodFormModal = ({
                     )}
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label
-                      htmlFor="recipe-hss-target"
-                      className="block text-[13px] font-semibold text-cal-ink"
-                    >
-                      HSS suitability
-                    </label>
-                    <div className="relative">
-                      <select
-                        id="recipe-hss-target"
-                        {...register("hssTarget")}
-                        className={selectFieldClass(!!errors.hssTarget)}
-                      >
-                        <option value="Stable (80-100)">Stable (80-100)</option>
-                        <option value="Moderate (60-79)">Moderate (60-79)</option>
-                        <option value="Elevated Risk (50-59)">
-                          Elevated Risk (50-59)
-                        </option>
-                        <option value="Critical (<50)">Critical (&lt;50)</option>
-                      </select>
-                      <ChevronDown
-                        size={15}
-                        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cal-muted"
-                      />
-                    </div>
-                    {errors.hssTarget && (
-                      <p className="text-[12px] font-medium text-cal-error">
-                        {errors.hssTarget.message}
-                      </p>
-                    )}
-                  </div>
                 </div>
 
                 {/* Prep & Metrics */}
@@ -983,20 +929,13 @@ const FoodFormModal = ({
                   </div>
                 </div>
 
-                <InputField
-                  id="heartBenefit"
-                  label="Heart-health benefit (optional)"
-                  placeholder="e.g. Rich in soluble fiber, low in sodium for blood pressure stability."
-                  error={errors.heartBenefit}
-                  {...register("heartBenefit")}
-                />
               </div>
             )}
 
             {tab === "nutrition" && (
               <div className="space-y-4">
                 <p className="text-[13.5px] text-cal-muted">
-                  Per serving. Patients see these numbers and the mobile app adds them to their daily totals.
+                  Per stated serving. These values are used in recipe details and diary totals.
                 </p>
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                   <InputField

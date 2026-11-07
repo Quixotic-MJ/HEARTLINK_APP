@@ -15,6 +15,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/useAuth";
 import { apiFetch } from "../../api";
 import { homeFor } from "../../app/access";
+import { useDialogFocus } from "../../hooks/useDialogFocus";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -195,10 +196,16 @@ export function ErrorBanner({ error }) {
 
 // ─── Forgot Password Modal (Cal.com Dialog Spec) ─────────────────────────────
 function ForgotPasswordModal({ isOpen, onClose }) {
+  const dialogRef = useRef(null);
+  const errorRef = useRef(null);
+  const inFlight = useRef(false);
   const [identifier, setIdentifier] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  const [recoveryError, setRecoveryError] = useState("");
+  useDialogFocus(isOpen, dialogRef, isSubmitting ? null : onClose);
+  useEffect(() => { if (recoveryError) errorRef.current?.focus(); }, [recoveryError]);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -208,38 +215,35 @@ function ForgotPasswordModal({ isOpen, onClose }) {
     return () => clearInterval(timer);
   }, [cooldown]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
-
   if (!isOpen) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!identifier.trim() || isSubmitting || cooldown > 0) return;
+    if (!identifier.trim() || inFlight.current || cooldown > 0) return;
 
+    inFlight.current = true;
     setIsSubmitting(true);
+    setRecoveryError("");
     try {
       await apiFetch("/api/auth/forgot-password", {
         method: "POST",
         body: JSON.stringify({ identifier: identifier.trim() }),
       });
-    } catch {
-      // Same outcome either way so the form never reveals whether an account exists.
-    } finally {
+      // The backend uses the same reply for existing and unknown accounts.
       setSubmitted(true);
       setCooldown(60);
+    } catch {
+      setRecoveryError("Could not request reset instructions. Try again or ask your administrator.");
+    } finally {
+      inFlight.current = false;
       setIsSubmitting(false);
     }
   };
 
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       className="fixed inset-0 z-50 flex items-center justify-center bg-cal-ink/45 p-4"
       role="dialog"
       aria-modal="true"
@@ -254,6 +258,7 @@ function ForgotPasswordModal({ isOpen, onClose }) {
         <button
           type="button"
           onClick={onClose}
+          disabled={isSubmitting}
           aria-label="Close"
           className={`absolute top-4 right-4 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-cal-hairline bg-cal-canvas text-cal-muted active:bg-cal-surface-soft ${focusRing}`}
         >
@@ -269,8 +274,7 @@ function ForgotPasswordModal({ isOpen, onClose }) {
               Reset your password
             </h3>
             <p className="mt-1.5 mb-0 text-[14px] leading-[1.5] text-cal-muted">
-              Enter the email or username on your staff account and we&apos;ll send instructions to
-              reset your password.
+              Enter the email or username on your staff account to request recovery instructions.
             </p>
 
             <label htmlFor="recovery-identifier" className={`${labelText} mt-5 mb-1.5`}>
@@ -286,9 +290,10 @@ function ForgotPasswordModal({ isOpen, onClose }) {
               onChange={(e) => setIdentifier(e.target.value)}
               className={`${inputBase} ${inputState(false)}`}
             />
+            {recoveryError && <p ref={errorRef} role="alert" tabIndex={-1} className="mt-3 text-[14px] text-cal-error">{recoveryError}</p>}
 
             <div className="mt-6 flex justify-end gap-2.5">
-              <button type="button" onClick={onClose} className={secondaryButton}>
+              <button type="button" onClick={onClose} disabled={isSubmitting} className={secondaryButton}>
                 Cancel
               </button>
               <button
@@ -318,11 +323,11 @@ function ForgotPasswordModal({ isOpen, onClose }) {
               id="forgot-password-title"
               className="mt-3.5 mb-0 font-cal-sans text-[18px] font-semibold leading-[1.4] text-cal-ink"
             >
-              Check your email
+              Request received
             </h3>
             <p className="mt-1.5 mb-0 text-[14px] leading-[1.5] text-cal-muted">
-              If that account exists, reset instructions are on their way. They can take a few
-              minutes to arrive.
+              If the account matches and recovery is available, follow the instructions sent to its
+              registered contact. If nothing arrives, ask your administrator for help.
             </p>
             <div className="mt-6 flex justify-end gap-2.5">
               <button
@@ -382,7 +387,6 @@ export default function HeartLinkAdminLogin() {
   const [remember, setRemember] = useState(false);
   const [structuredError, setStructuredError] = useState(null);
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
-  const [resendCooldown, setResendCooldown] = useState(0);
   const [capsLockOn, setCapsLockOn] = useState(false);
 
   const navigate = useNavigate();
@@ -411,15 +415,6 @@ export default function HeartLinkAdminLogin() {
       return () => clearTimeout(timer);
     }
   }, [step]);
-
-  // ─── 3. Resend Cooldown Countdown ─────────────────────────────────────────
-  useEffect(() => {
-    if (resendCooldown <= 0) return;
-    const timer = setInterval(() => {
-      setResendCooldown((prev) => prev - 1);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [resendCooldown]);
 
   // Forms
   const {
@@ -475,8 +470,8 @@ export default function HeartLinkAdminLogin() {
       if (response.requires_2fa || response.token_2fa) {
         setTemp2faToken(response.token_2fa);
         setStep("2fa");
-        toast.info("Verification code sent", {
-          description: "Enter the 6-digit code to finish signing in.",
+        toast.info("Additional verification required", {
+          description: "Use the verification method configured for this account.",
         });
       } else if (response.success !== false && (response.user_id || response.success)) {
         toast.success("Signed in");
@@ -698,7 +693,7 @@ export default function HeartLinkAdminLogin() {
                   Enter your verification code
                 </h1>
                 <p className="mt-2 mb-0 text-[15px] leading-[1.5] text-cal-muted">
-                  We sent a 6-digit code to your registered device.
+                  Enter the code from the verification method configured for your account.
                 </p>
 
                 <form onSubmit={handle2FASubmit(onVerify2FA)} className="mt-8 space-y-5" noValidate>
@@ -725,9 +720,6 @@ export default function HeartLinkAdminLogin() {
                       }}
                     />
                     <FieldError message={errors2FA.code?.message} />
-                    <p className="mt-2 mb-0 text-[13px] text-cal-muted">
-                      The code expires in 5 minutes.
-                    </p>
                   </div>
 
                   <button type="submit" disabled={isSubmitting2FA} className={primaryButton}>
@@ -752,20 +744,6 @@ export default function HeartLinkAdminLogin() {
                     >
                       <ArrowLeft size={15} />
                       Back
-                    </button>
-                    <button
-                      type="button"
-                      disabled={resendCooldown > 0}
-                      onClick={() => {
-                        if (resendCooldown > 0) return;
-                        setResendCooldown(60);
-                        toast.info("New code sent", {
-                          description: "Check your registered device.",
-                        });
-                      }}
-                      className={`border-0 bg-transparent p-0 text-[13px] ${textLink}`}
-                    >
-                      {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend code"}
                     </button>
                   </div>
                 </form>

@@ -21,6 +21,7 @@ import { useAuth } from "../contexts/useAuth";
 import { Navigate, useLocation } from "react-router-dom";
 import { Toaster, toast } from "sonner";
 import { canAccess, homeFor } from "./access";
+import { MotionConfig } from "framer-motion";
 
 // HL-034: every page is checked against the shared rules in access.js (role and expert type).
 const RoleRoute = ({ children }) => {
@@ -52,6 +53,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
     <AuthProvider>
+      <MotionConfig reducedMotion="user">
       <Toaster
         position="top-right"
         expand={false}
@@ -111,6 +113,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
+      </MotionConfig>
     </AuthProvider>
     </QueryClientProvider>
   );
