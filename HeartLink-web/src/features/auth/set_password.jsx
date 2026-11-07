@@ -69,7 +69,7 @@ export default function SetPassword() {
 
   if (loading) return null;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (!user?.mustChangePassword) return <Navigate to={homeFor(user?.role)} replace />;
+  if (!user?.mustChangePassword) return <Navigate to={homeFor(user)} replace />;
 
   const rules = {
     length: next.length >= 16,
@@ -97,7 +97,7 @@ export default function SetPassword() {
       setConfirm("");
       markPasswordChanged();
       toast.success("Password saved", { description: "Use your new password next time you sign in." });
-      navigate(homeFor(user.role), { replace: true });
+      navigate(homeFor(user), { replace: true });
     } catch (err) {
       const detail = typeof err?.data?.detail === "string" ? err.data.detail : "";
       if (err?.status === 400 && detail.toLowerCase().includes("current password")) {

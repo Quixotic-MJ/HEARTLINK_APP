@@ -308,13 +308,13 @@ def get_current_admin_user(request: Request, credentials: Optional[HTTPAuthoriza
     return payload
 
 # HL-012: what each expert type may do. Admins may do everything (HL-074: one Admin role, no Super Admin).
-# Recipes are the Dietitian's, exercises the PT's; the Cardiologist reads every patient log
-# and may record vitals, but does not edit recipes or exercises.
+# Admins author recipes; Dietitians formally review them. PTs author exercises.
+# The Cardiologist reads every patient log and may record vitals, but edits neither library.
 # Patient notes (HL-039/013/040): every expert reads them; the Cardiologist writes guidance,
 # Dietitians and PTs write to their shared message thread.
 ADMIN_ROLES = {"admin"}
 EXPERT_PERMISSIONS = {
-    "Dietitian": {"recipes:edit", "meal_logs:read", "meal_logs:write", "vitals:read", "notes:read", "notes:message"},
+    "Dietitian": {"recipes:review", "meal_logs:read", "meal_logs:write", "vitals:read", "notes:read", "notes:message"},
     "Physical Therapist": {"exercises:edit", "exercise_logs:read", "vitals:read", "notes:read", "notes:message"},
     "Cardiologist": {"meal_logs:read", "meal_logs:write", "exercise_logs:read", "vitals:read", "vitals:write",
                      "notes:read", "notes:guidance"},
@@ -330,6 +330,24 @@ def has_permission(current_user: dict, permission: str) -> bool:
     # Read the expert type fresh, so a changed specialization applies straight away.
     profile = get_profile_repo().get_by_id(current_user.get("user_id")) or {}
     return permission in EXPERT_PERMISSIONS.get(profile.get("expert_type"), set())
+
+
+def has_active_permission(token_user: dict, permission: str) -> bool:
+    """Check optional-token access against the current active profile, not stale token claims."""
+    profile = get_profile_repo().get_by_id(token_user.get("user_id")) or {}
+    role = token_user.get("role")
+    if (
+        profile.get("account_status") != "active"
+        or profile.get("role") != role
+        or profile.get("must_change_password")
+    ):
+        return False
+    if role in ADMIN_ROLES:
+        return True
+    return (
+        role == "medical_expert"
+        and permission in EXPERT_PERMISSIONS.get(profile.get("expert_type"), set())
+    )
 
 
 def expert_id_if(current_user: Optional[dict], expert_type: str) -> Optional[str]:

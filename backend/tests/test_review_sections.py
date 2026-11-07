@@ -8,6 +8,11 @@ from fastapi import HTTPException
 from app.services import review_sections
 
 ROUND = "11111111-1111-1111-1111-111111111111"
+DIETITIAN_REVIEWED = {
+    "expert_validated": True,
+    "reviewed_by": "diet",
+    "reviewed_at": "2026-11-07T01:00:00+00:00",
+}
 
 
 class Profiles:
@@ -41,10 +46,10 @@ class Cases:
 class Content:
     def list_recipes(self):
         return [
-            {"id": "r2", "name": "Oatmeal with banana", "hss_tier": "Moderate", "status": "published", "expert_validated": True},
-            {"id": "r1", "name": "Garlic tofu", "hss_tier": "Moderate", "status": "published", "expert_validated": True},
+            {"id": "r2", "name": "Oatmeal with banana", "hss_tier": "Moderate", "status": "published", **DIETITIAN_REVIEWED},
+            {"id": "r1", "name": "Garlic tofu", "hss_tier": "Moderate", "status": "published", **DIETITIAN_REVIEWED},
             {"id": "r3", "name": "Draft stew", "hss_tier": "Moderate", "status": "draft", "expert_validated": True},
-            {"id": "r4", "name": "Fried fish", "hss_tier": "Critical", "status": "published", "expert_validated": True},
+            {"id": "r4", "name": "Fried fish", "hss_tier": "Critical", "status": "published", **DIETITIAN_REVIEWED},
             # HL-037: not Dietitian-approved, so the review never lists it.
             {"id": "r5", "name": "Pancit", "hss_tier": "Moderate", "status": "published", "expert_validated": False},
         ]

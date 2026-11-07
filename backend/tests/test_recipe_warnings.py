@@ -10,11 +10,22 @@ PATIENT_ID = "11111111-1111-1111-1111-111111111111"
 PROFILES = {
     PATIENT_ID: {"id": PATIENT_ID, "role": "patient", "account_status": "active"},
     "admin-1": {"id": "admin-1", "role": "admin", "account_status": "active"},
+    "diet-1": {"id": "diet-1", "role": "medical_expert", "expert_type": "Dietitian", "account_status": "active"},
+    "pt-1": {"id": "pt-1", "role": "medical_expert", "expert_type": "Physical Therapist", "account_status": "active"},
+    "cardio-1": {"id": "cardio-1", "role": "medical_expert", "expert_type": "Cardiologist", "account_status": "active"},
+    "disabled-diet": {"id": "disabled-diet", "role": "medical_expert", "expert_type": "Dietitian", "account_status": "disabled"},
+    "password-diet": {"id": "password-diet", "role": "medical_expert", "expert_type": "Dietitian", "account_status": "active", "must_change_password": True},
 }
-VISIBLE = {"status": "published", "expert_validated": True}
+VISIBLE = {
+    "status": "published",
+    "expert_validated": True,
+    "reviewed_by": "diet-1",
+    "reviewed_at": "2026-11-07T01:00:00+00:00",
+}
 SINIGANG = {"id": "r1", "name": "Sinigang na Hipon", "ingredients": [{"name": "Shrimp"}, {"name": "Tamarind"}], **VISIBLE}
 ADOBO = {"id": "r2", "name": "Adobong Baboy", "ingredients": [{"name": "Pork belly"}], "tags": ["pork"], **VISIBLE}
 TINOLA = {"id": "r3", "name": "Chicken Tinola", "ingredients": [{"name": "Chicken"}, {"name": "Ginger"}], **VISIBLE}
+DRAFT = {"id": "d1", "name": "Draft Soup", "ingredients": [{"name": "Squash"}], "status": "draft", "expert_validated": False}
 
 
 def test_a_warning_names_the_ingredient_and_the_allergy():
@@ -64,11 +75,11 @@ def fakes(monkeypatch):
     monkeypatch.setattr("app.utils.security.get_profile_repo", lambda: FakeProfileRepo())
     monkeypatch.setattr("app.utils.security.get_supabase_client", lambda: FakeSupabase())
     monkeypatch.setattr("app.services.food_warnings.get_baseline_repo", lambda: FakeBaselineRepo())
-    recipes = [SINIGANG, ADOBO, TINOLA]
+    recipes = [SINIGANG, ADOBO, TINOLA, DRAFT]
     monkeypatch.setattr("app.api.recipes_api.recipes_api.get_recipes", lambda: recipes)
     monkeypatch.setattr("app.api.recipes_api.recipes_api.get_recipe", lambda rid: next((r for r in recipes if r["id"] == rid), None))
     monkeypatch.setattr("app.api.recipes_api.recipes_api.get_saved_recipes", lambda uid: [SINIGANG])
-    monkeypatch.setattr("app.api.meals.meals.search_meals", lambda q: recipes)
+    monkeypatch.setattr("app.api.meals.meals.search_meals", lambda q: [SINIGANG, ADOBO, TINOLA])
     saved = dict(app.dependency_overrides)
     app.dependency_overrides.clear()
     yield
@@ -99,6 +110,22 @@ def test_a_recipe_page_and_saved_recipes_carry_the_warnings_too():
     assert _get("/api/recipes/r2", PATIENT_ID).json()["warnings"] == ["Contains pork (not Halal)"]
     saved = _get(f"/api/recipes/saved/{PATIENT_ID}", PATIENT_ID).json()
     assert saved[0]["warnings"] == ["Contains shrimp (you're allergic to shellfish)"]
+
+
+@pytest.mark.parametrize(
+    "user_id, expected",
+    [
+        ("admin-1", 200),
+        ("diet-1", 200),
+        ("pt-1", 404),
+        ("cardio-1", 404),
+        ("disabled-diet", 404),
+        ("password-diet", 404),
+        (None, 404),
+    ],
+)
+def test_only_active_recipe_staff_can_read_a_draft(user_id, expected):
+    assert _get("/api/recipes/d1", user_id).status_code == expected
 
 
 @pytest.mark.parametrize("user_id", [None, "admin-1"])

@@ -1,6 +1,5 @@
+from math import isfinite
 from typing import List, Dict, Any, Optional
-from datetime import datetime
-import uuid
 from app.db.repositories import get_content_repo
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 
@@ -57,25 +56,56 @@ def get_recipes() -> List[Dict[str, Any]]:
 
 def is_visible_to_patients(recipe: Dict[str, Any]) -> bool:
     """HL-037: patients only get recipes that are published AND approved by a Dietitian."""
-    return recipe.get("status") == "published" and bool(recipe.get("expert_validated"))
+    return (
+        recipe.get("status") == "published"
+        and bool(recipe.get("expert_validated"))
+        and bool(recipe.get("reviewed_by"))
+        and bool(recipe.get("reviewed_at"))
+    )
 
 
-def _mark_review(payload: Dict[str, Any], data: Dict[str, Any], dietitian_id: Optional[str]) -> None:
-    """HL-037: only a Dietitian approves. A Dietitian's save keeps the switch as sent, records who and
-    when, and may leave a note when sending it back; anyone else's save sends the recipe back to
-    waiting, so a Dietitian checks the version patients see. A note stays until a Dietitian changes it."""
-    if not dietitian_id:
-        payload.update(expert_validated=False, reviewed_by=None, reviewed_at=None)
-        return
-    if "reviewNote" in data or "review_note" in data:
-        note = str(data.get("reviewNote", data.get("review_note")) or "").strip()[:500]
-        payload["review_note"] = note or None
-    if "expert_validated" not in payload:
-        return
-    if payload["expert_validated"]:
-        payload.update(reviewed_by=dietitian_id, reviewed_at=utc_now().isoformat(), review_note=None)
-    else:
-        payload.update(reviewed_by=None, reviewed_at=None)
+class RecipeReviewConflict(Exception):
+    """The recipe changed after the Dietitian opened it."""
+
+
+REVIEW_FIELDS = {
+    "expertValidated",
+    "expert_validated",
+    "reviewNote",
+    "review_note",
+    "reviewedBy",
+    "reviewed_by",
+    "reviewedAt",
+    "reviewed_at",
+}
+
+
+def _reject_review_fields(data: Dict[str, Any]) -> None:
+    if REVIEW_FIELDS.intersection(data):
+        raise ValueError("Review fields may only be changed through the recipe review action.")
+
+
+def _approval_error(recipe: Dict[str, Any]) -> Optional[str]:
+    name = recipe.get("name")
+    ingredients = recipe.get("ingredients")
+    steps = recipe.get("steps")
+    if not isinstance(name, str) or not name.strip():
+        return "name"
+    if not isinstance(ingredients, list) or not ingredients or any(
+        not isinstance(item, dict) or not str(item.get("name") or "").strip()
+        for item in ingredients
+    ):
+        return "ingredients"
+    if not isinstance(steps, list) or not steps or any(not str(step or "").strip() for step in steps):
+        return "steps"
+    for field in ("sodium_mg", "calories"):
+        value = recipe.get(field)
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not isfinite(value) or value < 0:
+            return field
+    servings = recipe.get("servings")
+    if isinstance(servings, bool) or not isinstance(servings, (int, float)) or servings < 1:
+        return "servings"
+    return None
 
 def get_recipe(recipe_id: str) -> Optional[Dict[str, Any]]:
     r = get_content_repo().get_recipe(recipe_id)
@@ -110,7 +140,8 @@ def resolve_category(data: Dict[str, Any]) -> Optional[tuple]:
     return None
 
 
-def create_recipe(data: Dict[str, Any], created_by: Optional[str] = None, dietitian_id: Optional[str] = None) -> Dict[str, Any]:
+def create_recipe(data: Dict[str, Any], created_by: Optional[str] = None) -> Dict[str, Any]:
+    _reject_review_fields(data)
     steps = data.get("steps")
     if steps is None:
         instructions_str = data.get("instructions") or ""
@@ -168,11 +199,6 @@ def create_recipe(data: Dict[str, Any], created_by: Optional[str] = None, dietit
     except Exception:
         servings = 1
 
-    # Status check constraint ('draft', 'published', 'archived')
-    raw_status = (data.get("status") or "published").strip().lower()
-    valid_statuses = {"draft", "published", "archived"}
-    status_val = raw_status if raw_status in valid_statuses else "published"
-
     new_recipe_payload = {
         "name": (data.get("name") or "Untitled Recipe").strip(),
         "subtitle": data.get("subtitle") or None,
@@ -192,19 +218,32 @@ def create_recipe(data: Dict[str, Any], created_by: Optional[str] = None, dietit
         "ingredients": ingredients_list,
         "steps": steps,
         "image_url": data.get("mediaUrl") or data.get("image_url") or "",
-        "status": status_val,
-        "expert_validated": bool(data.get("expertValidated") or data.get("expert_validated", False)),
+        "status": "draft",
+        "expert_validated": False,
+        "reviewed_by": None,
+        "reviewed_at": None,
+        "review_note": None,
     }
     if created_by:
         new_recipe_payload["created_by"] = created_by
     if data.get("id"):
         new_recipe_payload["id"] = data["id"]
-    _mark_review(new_recipe_payload, data, dietitian_id)
-
     res = get_content_repo().create_recipe(new_recipe_payload)
     return normalize_recipe_fields(res)
 
-def update_recipe(recipe_id: str, data: Dict[str, Any], dietitian_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+def update_recipe(
+    recipe_id: str,
+    data: Dict[str, Any],
+    expected_updated_at: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
+    _reject_review_fields(data)
+    repo = get_content_repo()
+    current = repo.get_recipe(recipe_id)
+    if not current:
+        return None
+    if expected_updated_at and current.get("updated_at") != expected_updated_at:
+        raise RecipeReviewConflict()
+
     update_data = {}
     if "name" in data: update_data["name"] = data["name"]
     if "subtitle" in data: update_data["subtitle"] = data["subtitle"]
@@ -265,8 +304,6 @@ def update_recipe(recipe_id: str, data: Dict[str, Any], dietitian_id: Optional[s
         val = str(data["status"]).strip().lower()
         if val in {"draft", "published", "archived"}:
             update_data["status"] = val
-    if "expertValidated" in data or "expert_validated" in data:
-        update_data["expert_validated"] = bool(data.get("expertValidated", data.get("expert_validated")))
     if "mediaUrl" in data or "image_url" in data:
         update_data["image_url"] = data.get("mediaUrl", data.get("image_url"))
     
@@ -305,9 +342,73 @@ def update_recipe(recipe_id: str, data: Dict[str, Any], dietitian_id: Optional[s
                 })
         update_data["ingredients"] = ingredients_list
 
-    _mark_review(update_data, data, dietitian_id)
-    res = get_content_repo().update_recipe(recipe_id, update_data)
+    content_changed = any(current.get(field) != value for field, value in update_data.items() if field != "status")
+    if content_changed:
+        update_data.update(expert_validated=False, reviewed_by=None, reviewed_at=None)
+        if current.get("status") == "published" or update_data.get("status") == "published":
+            update_data["status"] = "draft"
+    elif update_data.get("status") == "published":
+        merged = {**current, **update_data}
+        if not (
+            merged.get("expert_validated")
+            and merged.get("reviewed_by")
+            and merged.get("reviewed_at")
+        ):
+            raise ValueError("Dietitian approval is required before publication.")
+        if _approval_error(merged):
+            raise ValueError("This recipe is incomplete and cannot be published.")
+
+    res = repo.update_recipe(recipe_id, update_data, expected_updated_at=expected_updated_at)
+    if expected_updated_at and not res:
+        raise RecipeReviewConflict()
     return normalize_recipe_fields(res) if res else None
+
+
+def review_recipe(
+    recipe_id: str,
+    *,
+    decision: str,
+    expected_updated_at: str,
+    dietitian_id: str,
+    note: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
+    repo = get_content_repo()
+    current = repo.get_recipe(recipe_id)
+    if not current:
+        return None
+    if not expected_updated_at or current.get("updated_at") != expected_updated_at:
+        raise RecipeReviewConflict()
+    if current.get("status") == "archived":
+        raise ValueError("Archived recipes cannot be reviewed.")
+
+    if decision == "approve":
+        if _approval_error(current):
+            raise ValueError("This recipe is incomplete and cannot be approved.")
+        payload = {
+            "status": "draft",
+            "expert_validated": True,
+            "reviewed_by": dietitian_id,
+            "reviewed_at": utc_now().isoformat(),
+            "review_note": None,
+        }
+    elif decision == "changes_requested":
+        review_note = str(note or "").strip()
+        if not review_note:
+            raise ValueError("A review note is required when requesting changes.")
+        payload = {
+            "status": "draft",
+            "expert_validated": False,
+            "reviewed_by": None,
+            "reviewed_at": None,
+            "review_note": review_note[:500],
+        }
+    else:
+        raise ValueError("Review decision must be approve or changes_requested.")
+
+    updated = repo.update_recipe(recipe_id, payload, expected_updated_at=expected_updated_at)
+    if not updated:
+        raise RecipeReviewConflict()
+    return normalize_recipe_fields(updated)
 
 def delete_recipe(recipe_id: str) -> bool:
     return get_content_repo().delete_recipe(recipe_id)

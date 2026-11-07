@@ -27,7 +27,7 @@ BUCKET_CONFIGS = {
     BUCKET_RECIPES: {
         "max_bytes": 5 * 1024 * 1024, # 5 MB
         "allowed_mimes": {"image/jpeg", "image/png", "image/webp"},
-        "allowed_roles": {"admin", "medical_expert"}  # experts: Dietitians only (HL-012, uploads_api)
+        "allowed_roles": {"admin", "medical_expert"}  # uploads_api enforces the recipe-author permission
     },
     BUCKET_EXERCISES: {
         "max_bytes": 20 * 1024 * 1024, # 20 MB

@@ -3,6 +3,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.services.recipes import RecipeReviewConflict
 from app.utils.security import (
     EXPERT_PERMISSIONS,
     create_access_token,
@@ -44,7 +45,16 @@ def fakes(monkeypatch):
     monkeypatch.setattr("app.api.sleep_logs.sleep_logs.get_sleep_logs", lambda *a, **k: [])
     monkeypatch.setattr("app.api.analytics_api.analytics_api.get_analytics", lambda *a, **k: {"history": []})
     monkeypatch.setattr("app.api.recipes_api.recipes_api.create_recipe", lambda data, **k: {"id": "r1", "name": "Soup"})
+    monkeypatch.setattr("app.api.recipes_api.recipes_api.get_recipe", lambda recipe_id: {"id": recipe_id, "name": "Soup", "status": "draft"})
+    monkeypatch.setattr("app.api.recipes_api.recipes_api.update_recipe", lambda recipe_id, data, **k: {"id": recipe_id, "name": "Soup", "status": "draft"})
+    monkeypatch.setattr("app.api.recipes_api.recipes_api.delete_recipe", lambda recipe_id: True)
+    monkeypatch.setattr(
+        "app.api.recipes_api.recipes_api.review_recipe",
+        lambda recipe_id, **k: {"id": recipe_id, "name": "Soup", "status": "draft", "expert_validated": True},
+        raising=False,
+    )
     monkeypatch.setattr("app.api.recipes_api.recipes_api.record_admin_activity", lambda **k: None)
+    monkeypatch.setattr("app.api.recipes_api.recipes_api.notify_waiting_content", lambda *a, **k: None)
     monkeypatch.setattr("app.api.exercises.exercises.create_routine", lambda data, **k: {"id": "e1", "name": "Walk"})
     monkeypatch.setattr("app.api.exercises.exercises.record_admin_activity", lambda **k: None)
     # Other test modules install app-wide dependency overrides at import time; use the real guards here.
@@ -62,6 +72,17 @@ def _call(method, path, user_id, **kwargs):
 
 
 ADD_RECIPE = ("POST", "/api/recipes", {"json": {"name": "Soup"}})
+EDIT_RECIPE = (
+    "PUT",
+    "/api/recipes/r1",
+    {"json": {"name": "Revised soup", "expectedUpdatedAt": "2026-11-07T01:00:00+00:00"}},
+)
+DELETE_RECIPE = ("DELETE", "/api/recipes/r1", {})
+REVIEW_RECIPE = (
+    "POST",
+    "/api/recipes/r1/review",
+    {"json": {"decision": "approve", "expectedUpdatedAt": "2026-11-07T01:00:00+00:00"}},
+)
 ADD_EXERCISE = ("POST", "/api/exercises/", {"json": {"name": "Walk"}})
 READ_MEALS = ("GET", f"/api/meals/{PATIENT_ID}", {})
 READ_EXERCISE_LOGS = ("GET", f"/api/exercises/logs/{PATIENT_ID}", {})
@@ -76,8 +97,11 @@ FORBIDDEN = 403
 
 
 @pytest.mark.parametrize("user_id, call, expected", [
-    # Dietitian: recipes and food logs, reads vitals
-    ("diet-1", ADD_RECIPE, ALLOWED),
+    # Dietitian: formally reviews recipes, but cannot author or publish them
+    ("diet-1", ADD_RECIPE, FORBIDDEN),
+    ("diet-1", EDIT_RECIPE, FORBIDDEN),
+    ("diet-1", DELETE_RECIPE, FORBIDDEN),
+    ("diet-1", REVIEW_RECIPE, ALLOWED),
     ("diet-1", ADD_EXERCISE, FORBIDDEN),
     ("diet-1", READ_MEALS, ALLOWED),
     ("diet-1", READ_EXERCISE_LOGS, FORBIDDEN),
@@ -89,6 +113,7 @@ FORBIDDEN = 403
     # Physical Therapist: exercises and exercise logs, reads vitals
     ("pt-1", ADD_EXERCISE, ALLOWED),
     ("pt-1", ADD_RECIPE, FORBIDDEN),
+    ("pt-1", REVIEW_RECIPE, FORBIDDEN),
     ("pt-1", READ_EXERCISE_LOGS, ALLOWED),
     ("pt-1", READ_MEALS, FORBIDDEN),
     ("pt-1", READ_HEALTH, ALLOWED),
@@ -101,14 +126,44 @@ FORBIDDEN = 403
     ("cardio-1", READ_SLEEP, ALLOWED),
     ("cardio-1", READ_ANALYTICS, ALLOWED),
     ("cardio-1", ADD_RECIPE, FORBIDDEN),
+    ("cardio-1", REVIEW_RECIPE, FORBIDDEN),
     ("cardio-1", ADD_EXERCISE, FORBIDDEN),
     # Admins keep full access
     ("admin-1", ADD_RECIPE, ALLOWED),
+    ("admin-1", EDIT_RECIPE, ALLOWED),
+    ("admin-1", DELETE_RECIPE, ALLOWED),
+    ("admin-1", REVIEW_RECIPE, FORBIDDEN),
     ("admin-1", ADD_EXERCISE, ALLOWED),
 ])
 def test_permission_boundaries(user_id, call, expected):
     method, path, kwargs = call
     assert _call(method, path, user_id, **kwargs).status_code == expected
+
+
+def test_stale_recipe_review_returns_conflict(monkeypatch):
+    def stale(*args, **kwargs):
+        raise RecipeReviewConflict()
+
+    monkeypatch.setattr("app.api.recipes_api.recipes_api.review_recipe", stale)
+    response = _call(*REVIEW_RECIPE[:2], "diet-1", **REVIEW_RECIPE[2])
+    assert response.status_code == 409
+    assert "changed after you opened it" in response.json()["detail"]
+
+
+def test_stale_recipe_author_save_returns_conflict(monkeypatch):
+    def stale(*args, **kwargs):
+        raise RecipeReviewConflict()
+
+    monkeypatch.setattr("app.api.recipes_api.recipes_api.update_recipe", stale)
+    response = _call(*EDIT_RECIPE[:2], "admin-1", **EDIT_RECIPE[2])
+    assert response.status_code == 409
+    assert "changed after you opened it" in response.json()["detail"]
+
+
+def test_recipe_author_save_requires_an_opened_revision():
+    response = _call("PUT", "/api/recipes/r1", "admin-1", json={"name": "Unversioned"})
+    assert response.status_code == 400
+    assert response.json()["detail"].startswith("expectedUpdatedAt is required")
 
 
 @pytest.mark.parametrize("user_id", ["diet-1", "pt-1", "cardio-1"])
@@ -127,6 +182,7 @@ def test_experts_cannot_use_admin_actions(user_id, method, path):
 
 
 @pytest.mark.parametrize("user_id, bucket, expected_403", [
+    ("diet-1", "recipes", True),
     ("pt-1", "recipes", True),
     ("diet-1", "exercises", True),
     ("cardio-1", "recipes", True),

@@ -1,7 +1,7 @@
 // HL-034: which portal pages each staff member can open. The routes (App.jsx), the layout
 // and the side menu all read these rules, so they can't disagree. They mirror the backend's
-// HL-012 rules (backend/app/utils/security.py EXPERT_PERMISSIONS): Dietitians edit recipes,
-// Physical Therapists edit exercises, Cardiologists edit neither.
+// HL-012 rules (backend/app/utils/security.py EXPERT_PERMISSIONS): Admins author recipes,
+// Dietitians review recipes, Physical Therapists edit exercises, Cardiologists edit neither.
 
 // HL-074: one Admin role; Super Admin was merged into it.
 export const ADMIN_ROLES = ["admin"];
@@ -45,8 +45,18 @@ export function canAccess(user, pathname) {
   return role === "medical_expert" && !!rule.expertTypes?.includes(user?.expert_type);
 }
 
+export function canAuthorRecipes(user) {
+  return ADMIN_ROLES.includes(user?.role);
+}
+
+export function canReviewRecipes(user) {
+  return user?.role === "medical_expert" && user?.expert_type === "Dietitian";
+}
+
 /** Where someone lands after being turned away from a page. */
 export function homeFor(user) {
   if (ADMIN_ROLES.includes(user?.role)) return "/dashboard";
+  if (user?.expert_type === "Dietitian") return "/foods";
+  if (user?.expert_type === "Physical Therapist") return "/exercises";
   return user?.expert_type === "Cardiologist" ? "/patients" : "/cases";
 }

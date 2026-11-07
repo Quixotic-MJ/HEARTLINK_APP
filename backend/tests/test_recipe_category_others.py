@@ -9,12 +9,16 @@ class FakeContentRepo:
     def __init__(self):
         self.created = None
         self.updated = None
+        self.recipe = {"id": "r1", "name": "Original", "category": "Breakfast", "status": "draft"}
+
+    def get_recipe(self, recipe_id):
+        return self.recipe if recipe_id == "r1" else None
 
     def create_recipe(self, data):
         self.created = data
         return {"id": "r1", **data}
 
-    def update_recipe(self, recipe_id, data):
+    def update_recipe(self, recipe_id, data, expected_updated_at=None):
         self.updated = data
         return {"id": recipe_id, **data}
 

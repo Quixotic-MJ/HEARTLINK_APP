@@ -2,11 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   AlertCircle,
-  Archive,
   ArrowDown,
   ArrowUp,
   ChevronDown,
-  Ellipsis,
   Image as ImageIcon,
   Maximize2,
   Minimize2,
@@ -20,7 +18,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { InputField } from "../ui/InputField";
 import { apiUpload } from "../../api";
-import CardiologistGuidance from "../care/CardiologistGuidance";
 import { useDialogFocus } from "../../hooks/useDialogFocus";
 
 // HL-031: ingredient units are picked from a list instead of typed
@@ -210,19 +207,22 @@ const FoodFormModal = ({
   isOpen,
   onClose,
   recipe,
+  canEdit = false,
   isDietitian = false,
   onSave,
-  onDelete,
+  onReview,
 }) => {
   const dialogRef = useRef(null);
-  useDialogFocus(isOpen, dialogRef, onClose);
+  const errorRef = useRef(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  useDialogFocus(isOpen, dialogRef, saving ? () => {} : onClose);
 
   // HL-037: a Dietitian's note when sending a recipe back for changes.
   const [reviewNote, setReviewNote] = useState("");
   // An existing recipe opens in the review view; a new one goes straight to editing.
   const [mode, setMode] = useState("review");
   const [tab, setTab] = useState("basics");
-  const [menuOpen, setMenuOpen] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [failedMediaUrl, setFailedMediaUrl] = useState(null);
   const [noteFor, setNoteFor] = useState(null);
@@ -232,9 +232,14 @@ const FoodFormModal = ({
     setReviewNote("");
     setMode(recipe ? "review" : "edit");
     setTab("basics");
-    setMenuOpen(false);
     setUploadError("");
+    setSaveError("");
+    setSaving(false);
   }
+
+  useEffect(() => {
+    if (saveError) errorRef.current?.focus();
+  }, [saveError]);
 
   // Normal or expanded size; remembered on this browser only.
   const [expanded, setExpanded] = useState(() => {
@@ -358,8 +363,11 @@ const FoodFormModal = ({
     }
   }, [recipe, isOpen, reset]);
 
-  const onSubmit = (data) => {
-    if (onSave) {
+  const onSubmit = async (data) => {
+    if (saving || !onSave) return;
+    setSaving(true);
+    setSaveError("");
+    try {
       const mappedIngredients = (data.ingredients || [])
         .filter((i) => i.name && i.name.trim())
         .map((i) => ({
@@ -375,8 +383,10 @@ const FoodFormModal = ({
         .filter((s) => s.value && s.value.trim())
         .map((s) => s.value.trim());
 
-      onSave({
-        ...data,
+      const payload = { ...data };
+      delete payload.expertValidated;
+      await onSave({
+        ...payload,
         categoryOther:
           data.category === "Others" ? (data.categoryOther || "").trim() : "",
         prepTimeMinutes: Number(data.prepTimeMinutes) || 15,
@@ -386,8 +396,12 @@ const FoodFormModal = ({
         ingredients: mappedIngredients,
         steps: mappedSteps,
       });
+      onClose();
+    } catch (err) {
+      setSaveError(err?.data?.detail || "The recipe was not saved. Your changes are still here.");
+    } finally {
+      setSaving(false);
     }
-    onClose();
   };
 
   // A save that fails checks opens the edit view on the first tab with a problem.
@@ -400,18 +414,22 @@ const FoodFormModal = ({
     );
   };
 
-  // HL-037: a Dietitian approves, or sends it back with a note, and the recipe is saved straight away.
-  const saveReview = (approved) => {
-    setValue("expertValidated", approved);
-    handleSubmit(
-      (data) =>
-        onSubmit({
-          ...data,
-          expertValidated: approved,
-          reviewNote: approved ? "" : reviewNote.trim(),
-        }),
-      onInvalid
-    )();
+  // HL-037: review is a separate exact-version action; it never edits recipe content.
+  const saveReview = async (approved) => {
+    if (saving || !onReview) return;
+    setSaving(true);
+    setSaveError("");
+    try {
+      await onReview({
+        decision: approved ? "approve" : "changes_requested",
+        note: approved ? undefined : reviewNote.trim(),
+      });
+      onClose();
+    } catch (err) {
+      setSaveError(err?.data?.detail || "The review was not saved. Refresh and try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSaveWithStatus = (newStatus) => {
@@ -468,13 +486,14 @@ const FoodFormModal = ({
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-cal-ink/40 transition-opacity"
-        onClick={onClose}
+        onClick={saving ? undefined : onClose}
       />
 
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
+        aria-busy={saving}
         aria-labelledby="recipe-panel-title"
         tabIndex={-1}
         className={`relative z-10 flex w-full flex-col overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas text-cal-ink shadow-[0_12px_36px_rgba(0,0,0,0.12)] ${
@@ -533,57 +552,6 @@ const FoodFormModal = ({
             </div>
 
             <div className="flex items-center gap-2">
-              {recipe && (
-                <div className="relative">
-                  <button
-                    type="button"
-                    aria-label="More actions"
-                    aria-haspopup="menu"
-                    aria-expanded={menuOpen}
-                    onClick={() => setMenuOpen((open) => !open)}
-                    className={iconBtn}
-                  >
-                    <Ellipsis size={17} />
-                  </button>
-                  {menuOpen && (
-                    <div
-                      role="menu"
-                      className="absolute right-0 top-11 z-20 w-48 rounded-[10px] border border-cal-hairline bg-cal-canvas p-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
-                    >
-                      {status !== "archived" && (
-                        <button
-                          type="button"
-                          role="menuitem"
-                          onClick={() => {
-                            setMenuOpen(false);
-                            handleSaveWithStatus("archived");
-                          }}
-                          className="flex w-full items-center gap-2 rounded-[6px] px-3 py-2 text-left text-[13px] font-medium text-cal-ink hover:bg-cal-surface-soft cursor-pointer"
-                        >
-                          <Archive size={14.5} className="text-cal-muted" />
-                          <span>Archive</span>
-                        </button>
-                      )}
-                      {onDelete && (
-                        <button
-                          type="button"
-                          role="menuitem"
-                          onClick={() => {
-                            setMenuOpen(false);
-                            onClose();
-                            onDelete(recipe);
-                          }}
-                          className="flex w-full items-center gap-2 rounded-[6px] px-3 py-2 text-left text-[13px] font-medium text-cal-error hover:bg-cal-error/10 cursor-pointer"
-                        >
-                          <Trash2 size={14.5} />
-                          <span>Delete recipe</span>
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
               <button
                 type="button"
                 onClick={toggleExpanded}
@@ -599,6 +567,7 @@ const FoodFormModal = ({
               <button
                 type="button"
                 onClick={onClose}
+                disabled={saving}
                 aria-label="Close"
                 className={iconBtn}
               >
@@ -621,6 +590,7 @@ const FoodFormModal = ({
                     type="button"
                     role="tab"
                     aria-selected={active}
+                    disabled={saving}
                     onClick={() => setTab(id)}
                     className={`group relative flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors cursor-pointer select-none ${
                       active
@@ -810,29 +780,29 @@ const FoodFormModal = ({
               </section>
             </div>
 
-            {recipe && <CardiologistGuidance />}
-
-            {isDietitian && recipe && (
+            {isDietitian && recipe && status !== "archived" && (
               <section className="space-y-2.5 rounded-[12px] border border-cal-hairline bg-cal-surface-soft p-4">
                 <label
                   htmlFor="review-note"
                   className="block text-[13px] font-semibold text-cal-ink"
                 >
                   Send back for changes{" "}
-                  <span className="font-normal text-cal-muted">(optional)</span>
+                  <span className="font-normal text-cal-muted">(note required)</span>
                 </label>
                 <textarea
                   id="review-note"
                   rows={2}
                   value={reviewNote}
                   onChange={(e) => setReviewNote(e.target.value)}
+                  disabled={saving}
+                  maxLength={500}
                   placeholder="e.g. Prep time is too short for this dish; please check the difficulty."
                   className="w-full resize-none rounded-[8px] border border-cal-hairline bg-cal-canvas px-3 py-2 text-[13.5px] text-cal-ink placeholder:text-cal-muted focus:border-cal-ink focus:outline-none transition-colors"
                 />
                 <div className="flex justify-end">
                   <button
                     type="button"
-                    disabled={!reviewNote.trim()}
+                    disabled={saving || !reviewNote.trim()}
                     onClick={() => saveReview(false)}
                     className={secondaryBtn}
                   >
@@ -845,8 +815,10 @@ const FoodFormModal = ({
         ) : (
           <form
             onSubmit={handleSubmit(onSubmit, onInvalid)}
+            aria-busy={saving}
             className="flex-1 overflow-y-auto px-6 py-5"
           >
+            <fieldset disabled={saving} className="contents">
             {tab === "basics" && (
               <div className="space-y-4">
                 <InputField
@@ -1329,96 +1301,86 @@ const FoodFormModal = ({
                 </div>
               </div>
             )}
+            </fieldset>
           </form>
         )}
 
         {/* Footer: one monochrome #111111 primary CTA per view */}
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2.5 border-t border-cal-hairline bg-cal-canvas px-6 py-4">
+          {saveError && (
+            <p
+              ref={errorRef}
+              role="alert"
+              tabIndex={-1}
+              className="w-full rounded-[8px] border border-cal-error/30 bg-cal-error/10 px-3 py-2 text-[13px] font-medium text-cal-error outline-none"
+            >
+              {saveError}
+            </p>
+          )}
           {mode === "review" ? (
             <>
               <p className="min-w-[200px] flex-1 text-[13px] leading-snug text-cal-muted">
-                {approved
+                {status === "archived" && isDietitian
+                  ? "Archived recipes are read-only and cannot be reviewed."
+                  : approved
                   ? `Approved by a dietitian${approvedOn ? ` on ${approvedOn}` : ""}.`
                   : isDietitian
-                    ? "Patients only see this recipe after you approve it."
+                    ? "Approval keeps this draft ready for an Admin to publish."
                     : "Patients can't see this until a dietitian approves it."}
               </p>
-              {isDietitian && !approved ? (
+              {isDietitian && !approved && status !== "archived" ? (
                 <>
                   <button
                     type="button"
-                    onClick={() => setMode("edit")}
-                    className={secondaryBtn}
-                  >
-                    Edit details
-                  </button>
-                  <button
-                    type="button"
                     onClick={() => saveReview(true)}
+                    disabled={saving}
                     className={primaryBtn}
                   >
                     <ShieldCheck size={15} />
-                    <span>Approve for patients</span>
+                    <span>Approve revision</span>
                   </button>
                 </>
-              ) : (
+              ) : canEdit ? (
                 <button
                   type="button"
                   onClick={() => setMode("edit")}
+                  disabled={saving}
                   className={primaryBtn}
                 >
                   Edit details
+                </button>
+              ) : (
+                <button type="button" onClick={onClose} className={secondaryBtn}>
+                  Close
                 </button>
               )}
             </>
           ) : (
             <>
               <p className="min-w-[200px] flex-1 text-[13px] leading-snug text-cal-muted">
-                {isDietitian
-                  ? ""
+                {recipe?.status === "published"
+                  ? "Saving content changes withdraws this recipe until a Dietitian reviews it again."
                   : recipe
-                    ? "Saving sends it back to a dietitian for approval."
-                    : "A dietitian approves it before patients see it."}
+                    ? "Content changes require a new Dietitian review before publication."
+                    : "A Dietitian reviews this draft before an Admin can publish it."}
               </p>
-              <button type="button" onClick={onClose} className={secondaryBtn}>
+              <button type="button" onClick={onClose} disabled={saving} className={secondaryBtn}>
                 Cancel
               </button>
-              {status === "draft" && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => handleSaveWithStatus("draft")}
-                    className={secondaryBtn}
-                  >
-                    Save draft
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSaveWithStatus("published")}
-                    className={primaryBtn}
-                  >
-                    Publish
-                  </button>
-                </>
-              )}
-              {status === "published" && (
-                <button
-                  type="button"
-                  onClick={() => handleSaveWithStatus("published")}
-                  className={primaryBtn}
-                >
-                  Save changes
-                </button>
-              )}
-              {status === "archived" && (
-                <button
-                  type="button"
-                  onClick={() => handleSaveWithStatus("draft")}
-                  className={primaryBtn}
-                >
-                  Restore to draft
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => handleSaveWithStatus(status === "archived" ? "draft" : status)}
+                disabled={saving}
+                className={primaryBtn}
+              >
+                {saving
+                  ? "Saving..."
+                  : status === "published"
+                    ? "Save changes"
+                    : status === "archived"
+                      ? "Restore to draft"
+                      : "Save draft"}
+              </button>
             </>
           )}
         </div>

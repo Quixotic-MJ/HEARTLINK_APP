@@ -496,7 +496,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
   const quickActions = [
     role === "admin" && { label: "Provision staff account", path: "/users", icon: UserPlus },
     role === "admin" && { label: "Send announcement", path: "/broadcasts", icon: Megaphone },
-    canOpen("/foods") && { label: "Add food or recipe", path: "/foods", icon: Utensils },
+    user?.role === "admin" && { label: "Add food or recipe", path: "/foods", icon: Utensils },
     canOpen("/exercises") && { label: "Add exercise", path: "/exercises", icon: Dumbbell },
     role === "medical_expert" && canOpen("/patients") && {
       label: expertType === "Cardiologist" ? "Open cardiologist roster" : "Open patient roster",

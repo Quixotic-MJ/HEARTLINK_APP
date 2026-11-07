@@ -20,13 +20,13 @@ import { toast } from "sonner";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import FoodFormModal from "../../../components/modals/FoodFormModal";
 import ConfirmActionModal from "../../../components/modals/ConfirmActionModal";
-import { BulkApproveBar, SelectBox } from "../../../components/modals/BulkApprove";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch } from "../../../api";
 import { useApiQuery } from "../../../hooks/useApiQuery";
 import LoadError from "../../../components/ui/LoadError";
 import RecipeImage from "../../../components/ui/RecipeImage";
 import { useAuth } from "../../../contexts/useAuth";
+import { canAuthorRecipes, canReviewRecipes } from "../../../app/access";
 
 // Database hss_tier -> the label the recipe form uses
 const HSS_TIER_LABELS = {
@@ -81,6 +81,7 @@ const toRecipes = (res) => {
       expertValidated: r.expert_validated || false,
       reviewedAt: r.reviewed_at || null,
       reviewNote: r.review_note || "",
+      updatedAt: r.updated_at,
       mediaUrl: r.image_url || "",
       ingredients: r.ingredients || [],
       steps: r.steps || [],
@@ -196,31 +197,13 @@ const Foods = () => {
 
   const handleUpdateStatus = async (recipe, newStatus) => {
     try {
-      const payload = {
-        name: recipe.name,
-        category: recipe.category,
-        categoryOther: recipe.categoryOther,
-        hssTarget: recipe.hssTarget,
-        foodSourceType: recipe.foodSourceType,
-        prepTimeMinutes: recipe.prepTimeMinutes,
-        servings: recipe.servings,
-        difficulty: recipe.difficulty,
-        heartBenefit: recipe.heartBenefit,
-        sodium: recipe.sodium,
-        calories: recipe.calories,
-        satFat: recipe.satFat,
-        cholesterol: recipe.cholesterol,
-        fiber: recipe.fiber,
-        status: newStatus,
-        expertValidated: recipe.expertValidated,
-        mediaUrl: recipe.mediaUrl,
-        ingredients: recipe.ingredients,
-        steps: recipe.steps,
-      };
       await apiFetch(`/api/recipes/${recipe.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          status: newStatus,
+          expectedUpdatedAt: recipe.updatedAt,
+        }),
       });
       toast.success(
         newStatus === "published" ? "Recipe published" : "Recipe restored to draft",
@@ -259,31 +242,13 @@ const Foods = () => {
       ],
       onConfirm: async () => {
         try {
-          const payload = {
-            name: recipe.name,
-            category: recipe.category,
-            categoryOther: recipe.categoryOther,
-            hssTarget: recipe.hssTarget,
-            foodSourceType: recipe.foodSourceType,
-            prepTimeMinutes: recipe.prepTimeMinutes,
-            servings: recipe.servings,
-            difficulty: recipe.difficulty,
-            heartBenefit: recipe.heartBenefit,
-            sodium: recipe.sodium,
-            calories: recipe.calories,
-            satFat: recipe.satFat,
-            cholesterol: recipe.cholesterol,
-            fiber: recipe.fiber,
-            status: "archived",
-            expertValidated: recipe.expertValidated,
-            mediaUrl: recipe.mediaUrl,
-            ingredients: recipe.ingredients,
-            steps: recipe.steps,
-          };
           await apiFetch(`/api/recipes/${recipe.id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
+            body: JSON.stringify({
+              status: "archived",
+              expectedUpdatedAt: recipe.updatedAt,
+            }),
           });
           toast.success("Recipe archived", {
             description: `"${recipe.name}" has been moved to archive.`,
@@ -343,18 +308,8 @@ const Foods = () => {
   const [editingRecipe, setEditingRecipe] = useState(null);
 
   const { user } = useAuth();
-  const userRole = user?.role;
-  // Approving several at once: only the Dietitian who approves sees the checkboxes (HL-026/037).
-  const canApprove =
-    userRole === "medical_expert" && user?.expert_type === "Dietitian";
-  const [selectedIds, setSelectedIds] = useState(() => new Set());
-  const toggleSelected = (id) =>
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  const canAuthor = canAuthorRecipes(user);
+  const canReview = canReviewRecipes(user);
 
   const openModal = (recipe = null) => {
     setEditingRecipe(recipe || null);
@@ -424,10 +379,6 @@ const Foods = () => {
       matchesReview
     );
   });
-  const waitingShown = canApprove
-    ? filteredRecipes.filter((x) => !x.expertValidated)
-    : [];
-
   const hasActiveFilters =
     Boolean(searchQuery) ||
     filterStatus !== "all" ||
@@ -457,14 +408,16 @@ const Foods = () => {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => openModal()}
-            className="inline-flex h-10 items-center gap-2 rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-5 text-[14px] font-semibold text-cal-on-primary transition-colors cursor-pointer"
-          >
-            <Plus size={15.5} />
-            <span>Create new entry</span>
-          </button>
+          {canAuthor && (
+            <button
+              type="button"
+              onClick={() => openModal()}
+              className="inline-flex h-10 items-center gap-2 rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-5 text-[14px] font-semibold text-cal-on-primary transition-colors cursor-pointer"
+            >
+              <Plus size={15.5} />
+              <span>Create new entry</span>
+            </button>
+          )}
         </div>
 
         {/* ─── 2. KPI SUMMARY STRIP ─────────────────────────────────────────── */}
@@ -715,25 +668,6 @@ const Foods = () => {
             <table className="w-full min-w-[820px] border-collapse text-left">
               <thead className="border-b border-cal-hairline bg-cal-surface-soft">
                 <tr>
-                  {canApprove && (
-                    <th scope="col" className="w-10 py-3 pl-4 pr-0 sm:pl-5">
-                      <SelectBox
-                        label="Select every recipe waiting for approval"
-                        checked={
-                          waitingShown.length > 0 &&
-                          waitingShown.every((x) => selectedIds.has(x.id))
-                        }
-                        indeterminate={waitingShown.some((x) => selectedIds.has(x.id))}
-                        onChange={(e) =>
-                          setSelectedIds(
-                            e.target.checked
-                              ? new Set(waitingShown.map((x) => x.id))
-                              : new Set()
-                          )
-                        }
-                      />
-                    </th>
-                  )}
                   <th
                     scope="col"
                     className="w-[36%] px-5 py-3 text-[12px] font-medium text-cal-muted"
@@ -762,14 +696,14 @@ const Foods = () => {
                 {loading ? (
                   [1, 2, 3, 4, 5].map((item) => (
                     <tr key={item}>
-                      <td colSpan={canApprove ? 6 : 5} className="px-5 py-4">
+                      <td colSpan={5} className="px-5 py-4">
                         <Skeleton className="h-10 w-full rounded-[8px] bg-cal-surface-strong/60" />
                       </td>
                     </tr>
                   ))
                 ) : recipesQuery.isError ? (
                   <tr>
-                    <td colSpan={canApprove ? 6 : 5}>
+                    <td colSpan={5}>
                       <LoadError
                         what="the recipe library"
                         onRetry={recipesQuery.refetch}
@@ -780,7 +714,7 @@ const Foods = () => {
                 ) : filteredRecipes.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={canApprove ? 6 : 5}
+                      colSpan={5}
                       className="px-5 py-14 text-center"
                     >
                       <p className="text-[14px] font-semibold text-cal-ink">
@@ -815,21 +749,6 @@ const Foods = () => {
                           recipe.status === "archived" ? "opacity-65 bg-cal-surface-soft/40" : ""
                         }`}
                       >
-                        {canApprove && (
-                          <td
-                            className="py-3.5 pl-4 pr-0 align-middle sm:pl-5"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {!recipe.expertValidated && (
-                              <SelectBox
-                                label={`Select ${recipe.name}`}
-                                checked={selectedIds.has(recipe.id)}
-                                onChange={() => toggleSelected(recipe.id)}
-                              />
-                            )}
-                          </td>
-                        )}
-
                         {/* Food Name & Image */}
                         <td className="px-5 py-3.5 align-middle">
                           <div className="flex items-center gap-3.5">
@@ -935,78 +854,99 @@ const Foods = () => {
                               className="fixed z-50 w-44 rounded-[10px] border border-cal-hairline bg-cal-canvas p-1.5 text-left shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
                               style={menuPos || undefined}
                             >
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveMenuRecipeId(null);
-                                  openModal(recipe);
-                                }}
-                                className="flex w-full items-center gap-2 rounded-[6px] px-2.5 py-2 text-[12.5px] font-medium text-cal-ink hover:bg-cal-surface-soft cursor-pointer"
-                              >
-                                <Edit2 size={13.5} className="text-cal-muted" />
-                                <span>Edit recipe</span>
-                              </button>
-
-                              {recipe.status === "draft" && (
+                              {canReview && (
                                 <button
                                   type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setActiveMenuRecipeId(null);
-                                    handleUpdateStatus(recipe, "published");
+                                    openModal(recipe);
                                   }}
                                   className="flex w-full items-center gap-2 rounded-[6px] px-2.5 py-2 text-[12.5px] font-medium text-cal-ink hover:bg-cal-surface-soft cursor-pointer"
                                 >
-                                  <CheckCircle2 size={13.5} className="text-cal-success" />
-                                  <span>Publish</span>
+                                  <ShieldCheck size={13.5} className="text-cal-muted" />
+                                  <span>
+                                    {recipe.status === "archived" ? "View recipe" : "Review recipe"}
+                                  </span>
                                 </button>
                               )}
 
-                              {recipe.status === "published" && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setActiveMenuRecipeId(null);
-                                    requestArchiveRecipe(recipe);
-                                  }}
-                                  className="flex w-full items-center gap-2 rounded-[6px] px-2.5 py-2 text-[12.5px] font-medium text-cal-ink hover:bg-cal-surface-soft cursor-pointer"
-                                >
-                                  <Archive size={13.5} className="text-cal-muted" />
-                                  <span>Archive</span>
-                                </button>
+                              {canAuthor && (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActiveMenuRecipeId(null);
+                                      openModal(recipe);
+                                    }}
+                                    className="flex w-full items-center gap-2 rounded-[6px] px-2.5 py-2 text-[12.5px] font-medium text-cal-ink hover:bg-cal-surface-soft cursor-pointer"
+                                  >
+                                    <Edit2 size={13.5} className="text-cal-muted" />
+                                    <span>Edit recipe</span>
+                                  </button>
+
+                                  {recipe.status === "draft" && recipe.expertValidated && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActiveMenuRecipeId(null);
+                                        handleUpdateStatus(recipe, "published");
+                                      }}
+                                      className="flex w-full items-center gap-2 rounded-[6px] px-2.5 py-2 text-[12.5px] font-medium text-cal-ink hover:bg-cal-surface-soft cursor-pointer"
+                                    >
+                                      <CheckCircle2 size={13.5} className="text-cal-success" />
+                                      <span>Publish</span>
+                                    </button>
+                                  )}
+
+                                  {recipe.status === "published" && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActiveMenuRecipeId(null);
+                                        requestArchiveRecipe(recipe);
+                                      }}
+                                      className="flex w-full items-center gap-2 rounded-[6px] px-2.5 py-2 text-[12.5px] font-medium text-cal-ink hover:bg-cal-surface-soft cursor-pointer"
+                                    >
+                                      <Archive size={13.5} className="text-cal-muted" />
+                                      <span>Archive</span>
+                                    </button>
+                                  )}
+
+                                  {recipe.status === "archived" && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActiveMenuRecipeId(null);
+                                        handleUpdateStatus(recipe, "draft");
+                                      }}
+                                      className="flex w-full items-center gap-2 rounded-[6px] px-2.5 py-2 text-[12.5px] font-medium text-cal-ink hover:bg-cal-surface-soft cursor-pointer"
+                                    >
+                                      <CheckCircle2 size={13.5} className="text-cal-muted" />
+                                      <span>Restore to draft</span>
+                                    </button>
+                                  )}
+
+                                  <div className="my-1 border-t border-cal-hairline" />
+
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActiveMenuRecipeId(null);
+                                      requestDeleteRecipe(recipe);
+                                    }}
+                                    className="flex w-full items-center gap-2 rounded-[6px] px-2.5 py-2 text-[12.5px] font-medium text-cal-error hover:bg-cal-error/10 cursor-pointer"
+                                  >
+                                    <Trash2 size={13.5} />
+                                    <span>Delete</span>
+                                  </button>
+                                </>
                               )}
-
-                              {recipe.status === "archived" && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setActiveMenuRecipeId(null);
-                                    handleUpdateStatus(recipe, "draft");
-                                  }}
-                                  className="flex w-full items-center gap-2 rounded-[6px] px-2.5 py-2 text-[12.5px] font-medium text-cal-ink hover:bg-cal-surface-soft cursor-pointer"
-                                >
-                                  <CheckCircle2 size={13.5} className="text-cal-muted" />
-                                  <span>Restore to draft</span>
-                                </button>
-                              )}
-
-                              <div className="my-1 border-t border-cal-hairline" />
-
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveMenuRecipeId(null);
-                                  requestDeleteRecipe(recipe);
-                                }}
-                                className="flex w-full items-center gap-2 rounded-[6px] px-2.5 py-2 text-[12.5px] font-medium text-cal-error hover:bg-cal-error/10 cursor-pointer"
-                              >
-                                <Trash2 size={13.5} />
-                                <span>Delete</span>
-                              </button>
                             </div>
                           )}
                         </td>
@@ -1024,23 +964,28 @@ const Foods = () => {
           isOpen={isModalOpen}
           onClose={closeModal}
           recipe={editingRecipe}
-          userRole={userRole}
-          isDietitian={
-            userRole === "medical_expert" && user?.expert_type === "Dietitian"
-          }
+          canEdit={canAuthor}
+          isDietitian={canReview}
           onSave={async (formData) => {
             try {
+              let saved;
               if (editingRecipe?.id) {
-                await apiFetch(`/api/recipes/${editingRecipe.id}`, {
+                saved = await apiFetch(`/api/recipes/${editingRecipe.id}`, {
                   method: "PUT",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify(formData),
+                  body: JSON.stringify({
+                    ...formData,
+                    expectedUpdatedAt: editingRecipe.updatedAt,
+                  }),
                 });
                 toast.success("Recipe updated", {
-                  description: `"${formData.name}" was saved successfully.`,
+                  description:
+                    editingRecipe.status === "published" && saved.status === "draft"
+                      ? `"${formData.name}" was withdrawn until a Dietitian reviews the changes.`
+                      : `"${formData.name}" was saved successfully.`,
                 });
               } else {
-                await apiFetch("/api/recipes", {
+                saved = await apiFetch("/api/recipes", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify(formData),
@@ -1049,36 +994,48 @@ const Foods = () => {
                   description: `"${formData.name}" was added to the food library.`,
                 });
               }
+              return saved;
             } catch (err) {
               console.error("Error saving recipe:", err);
               toast.error("Failed to save recipe", {
                 description:
                   err?.data?.detail || "Could not save recipe to database.",
               });
+              throw err;
             }
           }}
-          onDelete={(recipeToDelete) => {
-            requestDeleteRecipe(recipeToDelete || editingRecipe);
+          onReview={async ({ decision, note }) => {
+            try {
+              const reviewed = await apiFetch(
+                `/api/recipes/${editingRecipe.id}/review`,
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    decision,
+                    expectedUpdatedAt: editingRecipe.updatedAt,
+                    note,
+                  }),
+                }
+              );
+              toast.success(
+                decision === "approve" ? "Recipe approved" : "Changes requested",
+                {
+                  description:
+                    decision === "approve"
+                      ? `"${editingRecipe.name}" is ready for an Admin to publish.`
+                      : `Your note was sent back with "${editingRecipe.name}".`,
+                }
+              );
+              return reviewed;
+            } catch (err) {
+              toast.error("Review was not saved", {
+                description: err?.data?.detail || "Refresh the recipe and try again.",
+              });
+              throw err;
+            }
           }}
         />
-
-        {canApprove && (
-          <BulkApproveBar
-            selected={recipes.filter((x) => selectedIds.has(x.id))}
-            noun="recipe"
-            approve={(x) =>
-              apiFetch(`/api/recipes/${x.id}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ expertValidated: true }),
-              })
-            }
-            onClear={() => setSelectedIds(new Set())}
-            onDone={(failed) => {
-              setSelectedIds(new Set(failed.map((x) => x.id)));
-            }}
-          />
-        )}
 
         {/* Reusable Action Confirmation Modal */}
         <ConfirmActionModal
