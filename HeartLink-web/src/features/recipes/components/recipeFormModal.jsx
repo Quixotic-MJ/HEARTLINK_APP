@@ -49,7 +49,7 @@ const PILL =
 
 const FoodFormModal = ({
   isOpen,
-  onClose,
+  onClose: finishClose,
   recipe,
   canEdit = false,
   isDietitian = false,
@@ -58,9 +58,16 @@ const FoodFormModal = ({
 }) => {
   const dialogRef = useRef(null);
   const errorRef = useRef(null);
+  const inFlight = useRef(false);
+  const uploadInFlight = useRef(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
-  useDialogFocus(isOpen, dialogRef, saving ? () => {} : onClose);
+  const busy = saving || isUploading;
+  const onClose = () => {
+    if (!inFlight.current && !uploadInFlight.current) finishClose();
+  };
+  useDialogFocus(isOpen, dialogRef, onClose);
 
   // HL-037: a Dietitian's note when sending a recipe back for changes.
   const [reviewNote, setReviewNote] = useState("");
@@ -149,15 +156,17 @@ const FoodFormModal = ({
   }, [recipe, isOpen, reset]);
 
   const onSubmit = async (data) => {
-    if (saving || !onSave) return;
+    if (!canEdit || inFlight.current || uploadInFlight.current || !onSave) return;
+    inFlight.current = true;
     setSaving(true);
     setSaveError("");
     try {
       await onSave(recipePayload(data));
-      onClose();
+      finishClose();
     } catch (err) {
       setSaveError(err?.data?.detail || "The recipe was not saved. Your changes are still here.");
     } finally {
+      inFlight.current = false;
       setSaving(false);
     }
   };
@@ -174,7 +183,8 @@ const FoodFormModal = ({
 
   // HL-037: review is a separate exact-version action; it never edits recipe content.
   const saveReview = async (approved) => {
-    if (saving || !onReview) return;
+    if (!isDietitian || inFlight.current || uploadInFlight.current || !onReview) return;
+    inFlight.current = true;
     setSaving(true);
     setSaveError("");
     try {
@@ -182,10 +192,11 @@ const FoodFormModal = ({
         decision: approved ? "approve" : "changes_requested",
         note: approved ? undefined : reviewNote.trim(),
       });
-      onClose();
+      finishClose();
     } catch (err) {
       setSaveError(err?.data?.detail || "The review was not saved. Refresh and try again.");
     } finally {
+      inFlight.current = false;
       setSaving(false);
     }
   };
@@ -244,14 +255,14 @@ const FoodFormModal = ({
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-cal-ink/40 transition-opacity"
-        onClick={saving ? undefined : onClose}
+        onClick={onClose}
       />
 
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-busy={saving}
+        aria-busy={busy}
         aria-labelledby="recipe-panel-title"
         tabIndex={-1}
         className={`relative z-10 flex w-full flex-col overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas text-cal-ink shadow-[0_12px_36px_rgba(0,0,0,0.12)] ${
@@ -320,7 +331,7 @@ const FoodFormModal = ({
               <button
                 type="button"
                 onClick={onClose}
-                disabled={saving}
+                disabled={busy}
                 aria-label="Close"
                 className={iconBtn}
               >
@@ -343,7 +354,7 @@ const FoodFormModal = ({
                     type="button"
                     role="tab"
                     aria-selected={active}
-                    disabled={saving}
+                    disabled={busy}
                     onClick={() => setTab(id)}
                     className={`group relative flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors cursor-pointer select-none ${
                       active
@@ -538,7 +549,7 @@ const FoodFormModal = ({
                   rows={2}
                   value={reviewNote}
                   onChange={(e) => setReviewNote(e.target.value)}
-                  disabled={saving}
+                  disabled={busy}
                   maxLength={500}
                   placeholder="e.g. Prep time is too short for this dish; please check the difficulty."
                   className="w-full resize-none rounded-[8px] border border-cal-hairline bg-cal-canvas px-3 py-2 text-[13.5px] text-cal-ink placeholder:text-cal-muted focus:border-cal-ink focus:outline-none transition-colors"
@@ -546,7 +557,7 @@ const FoodFormModal = ({
                 <div className="flex justify-end">
                   <button
                     type="button"
-                    disabled={saving || !reviewNote.trim()}
+                    disabled={busy || !reviewNote.trim()}
                     onClick={() => saveReview(false)}
                     className={secondaryBtn}
                   >
@@ -558,11 +569,11 @@ const FoodFormModal = ({
           </div>
         ) : (
           <form
-            onSubmit={handleSubmit(onSubmit, onInvalid)}
-            aria-busy={saving}
+            onSubmit={(event) => handleSubmit(onSubmit, onInvalid)(event)}
+            aria-busy={busy}
             className="flex-1 overflow-y-auto px-6 py-5"
           >
-            <fieldset disabled={saving} className="contents">
+            <fieldset disabled={busy} className="contents">
             {tab === "basics" && (
               <div className="space-y-4">
                 <InputField
@@ -979,27 +990,30 @@ const FoodFormModal = ({
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         e.target.value = "";
-                        if (file) {
-                          setUploadError("");
-                          try {
-                            const data = await apiUpload(file, "recipes");
-                            setValue("mediaUrl", data.url, {
-                              shouldValidate: true,
-                              shouldDirty: true,
-                            });
-                          } catch (err) {
-                            // HL-048: a rejected file is never saved some other way
-                            console.error("Recipe image upload error:", err);
-                            setUploadError(
-                              err?.data?.detail || "Upload failed. Please try again."
-                            );
-                          }
+                        if (!file || uploadInFlight.current || inFlight.current) return;
+                        uploadInFlight.current = true;
+                        setIsUploading(true);
+                        setUploadError("");
+                        try {
+                          const data = await apiUpload(file, "recipes");
+                          setValue("mediaUrl", data.url, {
+                            shouldValidate: true,
+                            shouldDirty: true,
+                          });
+                        } catch (err) {
+                          setUploadError(
+                            err?.data?.detail || "Upload failed. Please try again."
+                          );
+                        } finally {
+                          uploadInFlight.current = false;
+                          setIsUploading(false);
                         }
                       }}
                       className="w-full rounded-[8px] border border-cal-hairline bg-cal-canvas px-3 py-2 text-[13px] text-cal-ink transition-colors file:mr-3 file:rounded-[6px] file:border file:border-cal-hairline file:bg-cal-surface-soft file:px-3 file:py-1 file:text-[12px] file:font-semibold file:text-cal-ink hover:file:bg-cal-surface-card cursor-pointer"
                     />
+                    {isUploading && <p role="status" className="mt-1.5 text-[12px] text-cal-muted">Uploading image. Wait for confirmation before saving.</p>}
                     {uploadError && (
-                      <p className="mt-1.5 text-[12px] font-medium text-cal-error">
+                      <p role="alert" className="mt-1.5 text-[12px] font-medium text-cal-error">
                         {uploadError}
                       </p>
                     )}
@@ -1032,14 +1046,14 @@ const FoodFormModal = ({
                   ? `Approved by a dietitian${approvedOn ? ` on ${approvedOn}` : ""}.`
                   : isDietitian
                     ? "Approval keeps this draft ready for an Admin to publish."
-                    : "Patients can't see this until a dietitian approves it."}
+                    : "App users can't see this until a Dietitian approves it and an Admin publishes it."}
               </p>
               {isDietitian && !approved && status !== "archived" ? (
                 <>
                   <button
                     type="button"
                     onClick={() => saveReview(true)}
-                    disabled={saving}
+                    disabled={busy}
                     className={primaryBtn}
                   >
                     <ShieldCheck size={15} />
@@ -1050,7 +1064,7 @@ const FoodFormModal = ({
                 <button
                   type="button"
                   onClick={() => setMode("edit")}
-                  disabled={saving}
+                  disabled={busy}
                   className={primaryBtn}
                 >
                   Edit details
@@ -1070,16 +1084,18 @@ const FoodFormModal = ({
                     ? "Content changes require a new Dietitian review before publication."
                     : "A Dietitian reviews this draft before an Admin can publish it."}
               </p>
-              <button type="button" onClick={onClose} disabled={saving} className={secondaryBtn}>
+              <button type="button" onClick={onClose} disabled={busy} className={secondaryBtn}>
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={() => handleSaveWithStatus(status === "archived" ? "draft" : status)}
-                disabled={saving}
+                disabled={busy}
                 className={primaryBtn}
               >
-                {saving
+                {isUploading
+                  ? "Uploading…"
+                  : saving
                   ? "Saving..."
                   : status === "published"
                     ? "Save changes"

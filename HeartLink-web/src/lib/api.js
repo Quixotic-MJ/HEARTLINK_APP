@@ -134,6 +134,9 @@ export const apiUpload = async (file, bucket = "exercises") => {
       throw { status: response.status, data };
     }
 
+    if (typeof data?.url !== "string" || !data.url.trim()) {
+      throw { status: 502, data: { detail: "The image upload was not confirmed. Try again." } };
+    }
     return data;
   } catch (error) {
     if (error.status) {

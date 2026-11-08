@@ -12,7 +12,6 @@ import {
   Search,
   ShieldAlert,
   ShieldCheck,
-  Trash2,
   Utensils,
   X,
 } from "lucide-react";
@@ -196,7 +195,7 @@ const Foods = () => {
       icon: Archive,
       entityInfo: {
         name: recipe.name,
-        badge: "Published → Archived",
+        badge: `${recipe.status === "published" ? "Published" : "Draft"} → Archived`,
         email: categoryLabel(recipe),
         id: recipe.id,
       },
@@ -222,50 +221,12 @@ const Foods = () => {
           toast.error("Failed to archive recipe", {
             description: err?.data?.detail || "Could not archive recipe.",
           });
+          throw err;
         }
       },
     });
   };
 
-  const requestDeleteRecipe = (recipe) => {
-    if (!recipe) return;
-    setConfirmConfig({
-      isOpen: true,
-      title: "Delete recipe permanently?",
-      subtitle: "Permanent database action",
-      description: `Permanently delete "${recipe.name}"? This action cannot be undone and removes all nutritional profiles, ingredients, and steps.`,
-      confirmText: "Delete permanently",
-      cancelText: "Cancel",
-      variant: "danger",
-      icon: Trash2,
-      entityInfo: {
-        name: recipe.name,
-        badge: recipe.status?.toUpperCase() || "RECIPE",
-        email: categoryLabel(recipe),
-        id: recipe.id,
-      },
-      impactDetails: [
-        "Permanently removed from the nutritional database.",
-        "Patient meal plan logs referencing this recipe retain historical logs only.",
-      ],
-      onConfirm: async () => {
-        try {
-          await apiFetch(`/api/recipes/${recipe.id}`, { method: "DELETE" });
-          toast.success("Recipe deleted", {
-            description: `"${recipe.name}" was permanently removed.`,
-          });
-          if (editingRecipe?.id === recipe.id) {
-            closeModal();
-          }
-        } catch (err) {
-          console.error("Failed to delete recipe", err);
-          toast.error("Failed to delete recipe", {
-            description: err?.data?.detail || "Could not delete recipe.",
-          });
-        }
-      },
-    });
-  };
 
   // Modal & Form State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -835,7 +796,7 @@ const Foods = () => {
                                     </button>
                                   )}
 
-                                  {recipe.status === "published" && (
+                                  {["draft", "published"].includes(recipe.status) && (
                                     <button
                                       type="button"
                                       onClick={(e) => {
@@ -865,20 +826,6 @@ const Foods = () => {
                                     </button>
                                   )}
 
-                                  <div className="my-1 border-t border-cal-hairline" />
-
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setActiveMenuRecipeId(null);
-                                      requestDeleteRecipe(recipe);
-                                    }}
-                                    className="flex w-full items-center gap-2 rounded-[6px] px-2.5 py-2 text-[12.5px] font-medium text-cal-error hover:bg-cal-error/10 cursor-pointer"
-                                  >
-                                    <Trash2 size={13.5} />
-                                    <span>Delete</span>
-                                  </button>
                                 </>
                               )}
                             </div>
