@@ -109,8 +109,10 @@ const Foods = () => {
 
   // A save through apiFetch refreshes this list by itself
   const recipesQuery = useApiQuery("/api/recipes", { select: toRecipes });
-  const recipes = recipesQuery.data ?? NO_RECIPES;
+  const retainContent = !recipesQuery.isError || recipesQuery.error?.status >= 500;
+  const recipes = retainContent ? (recipesQuery.data ?? NO_RECIPES) : NO_RECIPES;
   const loading = recipesQuery.isPending;
+  const refreshBlocked = recipesQuery.isFetching || recipesQuery.isError;
 
   // Confirmation Modal State
   const [confirmConfig, setConfirmConfig] = useState({
@@ -224,6 +226,7 @@ const Foods = () => {
   const canReview = canReviewRecipes(user);
 
   const openModal = (recipe = null) => {
+    if (recipe && refreshBlocked) return;
     setEditingRecipe(recipe || null);
     setIsModalOpen(true);
   };
@@ -278,7 +281,7 @@ const Foods = () => {
   const renderActions = (recipe) => (
     <LibraryActionsMenu
       name={recipe.name}
-      disabled={statusBusy}
+      disabled={statusBusy || refreshBlocked}
       actions={[
         {
           label: canAuthor
@@ -457,6 +460,12 @@ const Foods = () => {
             )}
           </div>
 
+          {recipesQuery.data !== undefined && recipesQuery.isError && retainContent && (
+            <LoadError what="the recipe library" onRetry={recipesQuery.refetch} retained retrying={recipesQuery.isFetching} />
+          )}
+          {recipesQuery.data !== undefined && recipesQuery.isFetching && !recipesQuery.isError && (
+            <p role="status" className="border-b border-cal-hairline px-5 py-3 text-sm text-cal-muted">Refreshing recipes…</p>
+          )}
           {view === "grid" ? (
             loading ? (
               <div
@@ -468,7 +477,7 @@ const Foods = () => {
                   <Skeleton key={id} className="h-72 rounded-2xl" />
                 ))}
               </div>
-            ) : recipesQuery.isError ? (
+            ) : recipesQuery.isError && (recipesQuery.data === undefined || !retainContent) ? (
               <LoadError
                 what="the recipe library"
                 onRetry={recipesQuery.refetch}
@@ -504,6 +513,7 @@ const Foods = () => {
                       type="button"
                       className="library-card-media"
                       aria-label={`Preview ${recipe.name}`}
+                      disabled={refreshBlocked}
                       onClick={() => openModal(recipe)}
                     >
                       <RecipeImage
@@ -519,6 +529,7 @@ const Foods = () => {
                         <h3>
                           <button
                             type="button"
+                            disabled={refreshBlocked}
                             onClick={() => openModal(recipe)}
                           >
                             {recipe.name}
@@ -605,7 +616,7 @@ const Foods = () => {
                         </td>
                       </tr>
                     ))
-                  ) : recipesQuery.isError ? (
+                  ) : recipesQuery.isError && (recipesQuery.data === undefined || !retainContent) ? (
                     <tr>
                       <td colSpan={5}>
                         <LoadError
@@ -667,6 +678,7 @@ const Foods = () => {
                                 <div className="flex flex-wrap items-center gap-2">
                                   <button
                                     type="button"
+                                    disabled={refreshBlocked}
                                     onClick={(event) => {
                                       event.stopPropagation();
                                       openModal(recipe);

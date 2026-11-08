@@ -154,10 +154,6 @@
   min-height: 36px;
   margin-block: 2px;
 }
-.portal-nav-account {
-  margin-top: auto;
-  padding-top: 10px;
-}
 .portal-nav-active {
   background: var(--shell-tint);
 }

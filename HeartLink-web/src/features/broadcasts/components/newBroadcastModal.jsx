@@ -163,7 +163,7 @@ export default function NewBroadcastModal({ onClose, onPublish }) {
                       <input
                         id="broadcast-title"
                         required
-                        maxLength={80}
+                        maxLength={60}
                         value={draft.title}
                         onChange={(e) =>
                           setDraft({ ...draft, title: e.target.value })
@@ -171,7 +171,7 @@ export default function NewBroadcastModal({ onClose, onPublish }) {
                         className="mt-1 block h-11 w-full rounded-lg border border-cal-hairline bg-cal-canvas px-3"
                       />
                       <span className="mt-1 block text-xs text-cal-muted">
-                        {draft.title.length} / 80
+                        {draft.title.length} / 60 characters. Keep details in the message.
                       </span>
                     </label>
                     <label

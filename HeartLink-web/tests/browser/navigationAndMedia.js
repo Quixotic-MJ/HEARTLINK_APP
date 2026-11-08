@@ -303,9 +303,9 @@ export default async function navigationAndMedia(page) {
       await mobileMenu.waitFor();
       if ((await mobileMenu.boundingBox())?.width !== 240)
         throw Error("Desktop collapse leaves the mobile sidebar compressed");
-      await mobileMenu
-        .getByRole("link", { name: "Settings", exact: true })
-        .waitFor();
+      await mobileMenu.getByRole("link", { name: "Account settings", exact: true }).waitFor();
+      if (await mobileMenu.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: /^(Settings|Notifications)$/ }).count())
+        throw Error("Account destinations remain duplicated in the sidebar");
       await local.keyboard.press("Escape");
       await mobileMenu.waitFor({ state: "hidden" });
       await local.setViewportSize({ width: 1440, height: 1000 });
@@ -342,12 +342,21 @@ export default async function navigationAndMedia(page) {
       await accountSettings.click();
       await local.waitForURL(origin + "/settings");
       await local.getByRole("heading", { name: "Settings", exact: true }).waitFor();
+      await header.getByRole("button", { name: "Notifications", exact: true }).click();
+      await local.getByRole("button", { name: "View full inbox", exact: true }).click();
+      await local.waitForURL(origin + "/notifications");
+      await accountSettings.click();
+      await local.waitForURL(origin + "/settings");
+      await local.getByRole("main").getByRole("heading", { name: "Account settings", exact: true }).waitFor();
       await accountTrigger.focus();
       await local.keyboard.press("Enter");
       await accountMenu.waitFor();
+      await local.waitForFunction(() => document.querySelector('[role="menu"][aria-label="Account menu"] [role="menuitem"]') === document.activeElement);
       if (JSON.stringify(await accountMenu.getByRole("menuitem").allTextContents()) !== JSON.stringify(["Sign out"]))
         throw Error("Account menu duplicates navigation or loses Sign out");
       await local.keyboard.press("Escape");
+      await accountMenu.waitFor({ state: "hidden" });
+      await local.waitForFunction(() => document.querySelector('button[aria-label="Account menu"]') === document.activeElement);
       if (!(await accountTrigger.evaluate((el) => el === document.activeElement)))
         throw Error("Account menu did not restore keyboard focus");
       await accountTrigger.click();
@@ -356,11 +365,16 @@ export default async function navigationAndMedia(page) {
       await signOut.getByRole("button", { name: "Cancel", exact: true }).click();
       if (new URL(local.url()).pathname !== "/settings")
         throw Error("Cancelling Sign out navigates away from Settings");
+      await header.getByRole("button", { name: "Notifications", exact: true }).click();
+      await local.getByRole("button", { name: "View full inbox", exact: true }).click();
+      await local.waitForURL(origin + "/notifications");
       await local.setViewportSize({ width: 375, height: 812 });
       await header.getByRole("button", { name: /^(Toggle|Expand) sidebar$/ }).click();
       await sidebar.getByRole("link", { name: "Account settings", exact: true }).click();
+      await local.getByRole("main").getByRole("heading", { name: "Account settings", exact: true }).waitFor();
       await local.waitForFunction(() => document.querySelector(".portal-sidebar")?.inert);
       await header.getByRole("button", { name: /^(Toggle|Expand) sidebar$/ }).click();
+      await local.getByRole("dialog", { name: "Main menu", exact: true }).waitFor();
       await accountTrigger.click();
       const bounds = await accountMenu.boundingBox();
       if (!bounds || bounds.x < 0 || bounds.y < 0 || bounds.x + bounds.width > 375 || bounds.y + bounds.height > 812)

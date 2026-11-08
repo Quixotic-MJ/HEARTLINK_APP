@@ -45,6 +45,10 @@ def _can_read_unpublished(token: Optional[str]) -> bool:
         return False
     try:
         return has_active_permission(verify_token(token), "recipes:review")
+    except HTTPException as error:
+        if error.status_code >= 500:
+            raise
+        return False
     except Exception:
         return False
 

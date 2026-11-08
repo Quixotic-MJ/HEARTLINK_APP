@@ -71,7 +71,7 @@ export default async function operationalVisuals(page) {
           json: [
             {
               id: "synthetic-notice",
-              title: "Scheduled app maintenance",
+              title: "Legacy announcement title ".padEnd(80, "x"),
               message:
                 "Synthetic service notice for visual testing, not an actual announcement.",
               type: "Maintenance",
@@ -124,7 +124,7 @@ export default async function operationalVisuals(page) {
       if (path === "/broadcasts")
         await local
           .getByRole("main")
-          .getByText("Scheduled app maintenance", { exact: true })
+          .getByText("Legacy announcement title ".padEnd(80, "x"), { exact: true })
           .waitFor();
       if (path === "/settings")
         await local
@@ -195,12 +195,20 @@ export default async function operationalVisuals(page) {
       }
       const dialog = local.getByRole("dialog");
       if (path === "/broadcasts") {
+        const legacyTitle = "Legacy announcement title ".padEnd(80, "x");
+        await local.getByText(legacyTitle, { exact: true }).click();
+        await dialog.getByRole("heading", { name: legacyTitle, exact: true }).waitFor();
+        await dialog.getByRole("button", { name: "Close announcement details", exact: true }).click();
         await local
           .getByRole("button", { name: "Create announcement", exact: true })
           .click();
-        await dialog
-          .getByLabel("Announcement title", { exact: false })
-          .fill("Synthetic draft service notice");
+        const title = dialog.getByLabel("Announcement title", { exact: false });
+        if ((await title.getAttribute("maxlength")) !== "60")
+          throw Error("New announcement titles retain the old 80-character UI limit");
+        await title.fill("Synthetic ".repeat(9));
+        if ((await title.inputValue()).length !== 60)
+          throw Error("Announcement input does not enforce its 60-character limit");
+        await title.fill("Synthetic draft service notice");
         await dialog
           .getByLabel("Announcement message", { exact: false })
           .fill("A factual synthetic service update.");

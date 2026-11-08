@@ -105,6 +105,7 @@ npm run dev -- --host 127.0.0.1 --port 5180 --strictPort
 | `visualWorkspaces.js` | Gallery/list views, exclusive workflow filters, three-dot menu keyboard/focus, compact labels, aligned footers, two-column previews and responsive archive/draft controls |
 | `operationalVisuals.js` | Operational layouts/dialogs, readable Activity typography, row hover and keyboard-accessible references |
 | `navigationAndMedia.js` | Four-role global/local search handoff, account Settings shortcut and Sign out menu, responsive shell, photo/video/fallback routine media, keyboard/player controls and no autoplay |
+| `libraryRefresh.js` | One-item archive, delayed/failed refetch with retained recipe/routine grid and list content, stale-action locks, explicit retry and initial-load failure |
 
 Stop that dedicated frontend process when finished. Browser fixtures prove UI
 behavior, not actual API/database integration, device delivery or release readiness.
@@ -126,18 +127,33 @@ page filter; it is not a new cross-account/global-record API. Page-local search
 stays with its library/table. The global shortcut does not interrupt an active
 editor or another dialog.
 
-Sidebar links are grouped into Workspace, Content, Operations and Account using
-the same role-filtered page catalogue as the header and search dialog. Empty
+Sidebar links are grouped into Workspace, Content and Operations using
+the same role-filtered page catalogue as the header and search dialog. Account
+pages remain in the catalogue for breadcrumbs and portal search, not sidebar links. Empty
 groups are omitted. Creation belongs to each page's Add/Create control; duplicate
 shell Actions/Quick Create links, the sidebar Search entry and the live clock are
-removed. The notification bell opens recent notices; Notifications in the sidebar
-opens the full inbox. Recipe/exercise active accents complement their workspaces
+removed. The notification bell opens recent notices and its View full inbox action
+opens notification history. Recipe/exercise active accents complement their workspaces
 without changing permissions or HeartLink branding.
 
 Content contains Recipes and Exercises; Announcements belongs to Operations.
 The footer avatar/name opens the signed-in account's existing Settings page. Its
 separate three-dot menu contains only Sign out, retaining the confirmation dialog.
-Notifications and Settings remain visible sidebar destinations, not menu duplicates.
+Settings and Notifications are no longer sidebar destinations: use the account
+identity link or header bell. Their existing URLs, permissions and portal-search
+entries are unchanged.
+
+An archive/save refresh does not replace already loaded library content when a
+background read has a service/network failure. Access-denied replies still hide
+cached rows. An explicit warning and retry remain visible, and stale
+preview/lifecycle actions are blocked until refresh succeeds. A first-load failure
+still shows an error, not an empty catalogue. API permission-store service errors
+also stay errors rather than silently downgrading staff reads to a filtered public
+catalogue. These safeguards do not establish why any particular live request failed.
+
+New website announcement titles allow 60 characters; details belong in the message.
+Previously stored titles are not truncated. The backend's existing 80-character
+validation and mobile/storage contract remain unchanged.
 
 Exercise list and gallery media share the existing thumbnail/video fields. Native
 uploaded videos have controlled playback in the read-only preview; nothing

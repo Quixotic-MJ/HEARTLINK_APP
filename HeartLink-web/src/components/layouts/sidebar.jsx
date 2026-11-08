@@ -12,7 +12,6 @@ import { EllipsisVertical, LogOut, X } from "lucide-react";
 import { useAuth } from "../../contexts/useAuth.js";
 import { homeFor } from "../../app/access.js";
 import { portalNavigationFor } from "../../app/portalNavigation.js";
-import { useApiQuery } from "../../hooks/useApiQuery.js";
 import { useDialogFocus } from "../../hooks/useDialogFocus.js";
 
 // HL-083: the sidebar is a slide-in menu below the lg breakpoint (1024px) and always visible above it
@@ -23,8 +22,6 @@ const subscribeToWidth = (onChange) => {
   return () => query.removeEventListener("change", onChange);
 };
 const isDesktopWidth = () => window.matchMedia(DESKTOP).matches;
-
-const BELL_PATH = "/api/admin/notifications";
 
 // ─── Brand Logo Emblem (Exempted Brand Gradient Stops) ────────────────────────
 function HeartLogoIcon({ size = 20 }) {
@@ -163,7 +160,6 @@ function NavItem({
   icon: Icon,
   label,
   collapsed,
-  badge = null,
   activeOverride = false,
   onNavigate,
 }) {
@@ -234,19 +230,6 @@ function NavItem({
         <span className="truncate whitespace-nowrap block">{label}</span>
       </div>
 
-      {badge !== null && badge > 0 && (
-        <div
-          className={`relative z-10 overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] ${
-            collapsed
-              ? "max-w-0 opacity-0 pointer-events-none"
-              : "ml-auto max-w-[50px] opacity-100"
-          }`}
-        >
-          <span className="inline-flex items-center justify-center rounded-full bg-cal-surface-card px-2 py-0.5 font-cal-mono text-[11px] font-medium text-cal-ink whitespace-nowrap">
-            {badge}
-          </span>
-        </div>
-      )}
     </Link>
   );
 }
@@ -276,10 +259,6 @@ const Sidebar = ({
   useDialogFocus(isMobileMenu && sidebarOpen, asideRef, () =>
     setSidebarOpen(false),
   );
-
-  // Shares cache with AdminNotificationDropdown so unread badge stays live with zero duplicate fetches
-  const notificationsQuery = useApiQuery(BELL_PATH);
-  const unreadCount = notificationsQuery.data?.unread_count || 0;
 
   const userMenuOpen =
     userMenuState.open && userMenuState.path === location.pathname;
@@ -407,22 +386,16 @@ const Sidebar = ({
         </div>
 
         <nav aria-label="Main navigation" className="portal-navigation">
-          {["Workspace", "Content", "Operations", "Account"].map((section) => {
+          {["Workspace", "Content", "Operations"].map((section) => {
             const items = pages.filter((page) => page.section === section);
             return items.length ? (
-              <div
-                key={section}
-                className={
-                  section === "Account" ? "portal-nav-account" : undefined
-                }
-              >
+              <div key={section}>
                 <SectionLabel label={section} collapsed={collapsed} />
                 {items.map((page) => (
                   <NavItem
                     key={page.path}
                     {...page}
                     collapsed={collapsed}
-                    badge={page.path === "/notifications" ? unreadCount : null}
                     activeOverride={
                       page.path === "/users" &&
                       location.pathname.startsWith("/users/")

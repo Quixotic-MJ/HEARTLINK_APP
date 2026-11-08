@@ -65,7 +65,12 @@ export default function Exercises() {
   const [modal, setModal] = useState({ open: false, item: null });
   const [archiveItem, setArchiveItem] = useState(null);
   const query = useApiQuery("/api/exercises/", { select: toExercises });
-  const routines = query.data ?? EMPTY;
+  const retainContent = !query.isError || query.error?.status >= 500;
+  const routines = retainContent ? (query.data ?? EMPTY) : EMPTY;
+  const refreshBlocked = query.isFetching || query.isError;
+  const openRoutine = (item) => {
+    if (!refreshBlocked) setModal({ open: true, item });
+  };
   const statusCounts = libraryWorkflowCounts(routines);
   const filtered = routines.filter((routine) => {
     const match = `${routine.name} ${routine.description || ""}`
@@ -103,6 +108,7 @@ export default function Exercises() {
   const renderActions = (routine) => (
     <LibraryActionsMenu
       name={routine.name}
+      disabled={refreshBlocked}
       actions={[
         {
           label: canAuthor
@@ -111,7 +117,7 @@ export default function Exercises() {
               ? "Review routine"
               : "View routine",
           icon: Edit2,
-          onSelect: () => setModal({ open: true, item: routine }),
+          onSelect: () => openRoutine(routine),
         },
         ...(canAuthor &&
         ["draft", "published", "archived"].includes(routine.status)
@@ -221,7 +227,13 @@ export default function Exercises() {
               </p>
             </div>
           </div>
-          {query.isError ? (
+          {query.data !== undefined && query.isError && retainContent && (
+            <LoadError what="the routine library" onRetry={query.refetch} retained retrying={query.isFetching} />
+          )}
+          {query.data !== undefined && query.isFetching && !query.isError && (
+            <p role="status" className="border-b border-cal-hairline px-5 py-3 text-sm text-cal-muted">Refreshing routines…</p>
+          )}
+          {query.isError && (query.data === undefined || !retainContent) ? (
             <LoadError what="the routine library" onRetry={query.refetch} />
           ) : query.isPending ? (
             <p role="status" className="p-8 text-cal-muted">
@@ -236,7 +248,8 @@ export default function Exercises() {
                       type="button"
                       className="library-card-media"
                       aria-label={`Preview ${routine.name}`}
-                      onClick={() => setModal({ open: true, item: routine })}
+                      disabled={refreshBlocked}
+                      onClick={() => openRoutine(routine)}
                     >
                       <RoutineMedia
                         image={routine.mediaUrl}
@@ -248,9 +261,8 @@ export default function Exercises() {
                         <h3>
                           <button
                             type="button"
-                            onClick={() =>
-                              setModal({ open: true, item: routine })
-                            }
+                            disabled={refreshBlocked}
+                            onClick={() => openRoutine(routine)}
                           >
                             {routine.name || "Untitled routine"}
                           </button>
@@ -321,9 +333,8 @@ export default function Exercises() {
                               type="button"
                               className="routine-list-media"
                               aria-label={`Preview media for ${routine.name}`}
-                              onClick={() =>
-                                setModal({ open: true, item: routine })
-                              }
+                              disabled={refreshBlocked}
+                              onClick={() => openRoutine(routine)}
                             >
                               <RoutineMedia
                                 image={routine.mediaUrl}
@@ -334,9 +345,8 @@ export default function Exercises() {
                               <div className="flex flex-wrap items-center gap-2">
                                 <button
                                   type="button"
-                                  onClick={() =>
-                                    setModal({ open: true, item: routine })
-                                  }
+                                  disabled={refreshBlocked}
+                                  onClick={() => openRoutine(routine)}
                                   className="text-left font-semibold text-cal-ink underline-offset-4 hover:underline"
                                 >
                                   {routine.name || "Untitled routine"}
