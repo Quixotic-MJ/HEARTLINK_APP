@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import Sidebar from "./sidebar";
-import Header from "./header";
-import LogoutConfirmModal from "../modals/LogoutConfirmModal";
-import { useAuth } from "../../contexts/useAuth";
-import { canAccess, homeFor } from "../../app/access";
+import Sidebar from "./sidebar.jsx";
+import Header from "./header.jsx";
+import LogoutConfirmModal from "../../features/auth/components/logoutConfirmModal.jsx";
+import { useAuth } from "../../contexts/useAuth.js";
+import { canAccess, homeFor } from "../../app/access.js";
 
 const AdminLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);

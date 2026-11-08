@@ -1,7 +1,7 @@
-// HL-034: which portal pages each staff member can open. The routes (App.jsx), the layout
+// HL-034: which portal pages each staff member can open. The routes (app.jsx), the layout
 // and the side menu all read these rules, so they can't disagree. They mirror the backend's
 // HL-012 rules (backend/app/utils/security.py EXPERT_PERMISSIONS): Admins author recipes,
-// Dietitians review recipes; routine author/review parity is tracked separately.
+// Dietitians review recipes; Physical Therapists review routines.
 
 // HL-074: one Admin role; Super Admin was merged into it.
 export const ADMIN_ROLES = ["admin"];
@@ -18,7 +18,7 @@ export const PAGE_ACCESS = {
   "/exercises": { roles: ADMIN_ROLES, expertTypes: ["Physical Therapist"] },
   "/users": ADMINS,
   "/feedbacks": ADMINS,
-  // HL-084: Premium settings and members
+  // Optional Premium access and read-only demo configuration
   "/premium": ADMINS,
   "/broadcasts": ADMINS,
   // Experts use notifications for content, account, and security work assigned to them.

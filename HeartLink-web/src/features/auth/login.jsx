@@ -12,10 +12,10 @@ import {
   X,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../../contexts/useAuth";
-import { apiFetch } from "../../api";
-import { homeFor } from "../../app/access";
-import { useDialogFocus } from "../../hooks/useDialogFocus";
+import { useAuth } from "../../contexts/useAuth.js";
+import { apiFetch } from "../../lib/api.js";
+import { homeFor } from "../../app/access.js";
+import { useDialogFocus } from "../../hooks/useDialogFocus.js";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -29,7 +29,7 @@ import {
   primaryButton,
   secondaryButton,
   textLink,
-} from "./authStyles";
+} from "./authStyles.js";
 
 // ─── Validation Schemas ───────────────────────────────────────────────────────
 const loginSchema = z.object({

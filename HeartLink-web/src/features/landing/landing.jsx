@@ -12,8 +12,8 @@ import {
   Utensils,
   X,
 } from "lucide-react";
-import { HeartLogoIcon } from "../auth/login";
-import { safeDownloadUrl } from "../../app/publicLinks";
+import { HeartLogoIcon } from "../auth/login.jsx";
+import { safeDownloadUrl } from "../../app/publicLinks.js";
 
 const APK_URL = safeDownloadUrl(import.meta.env.VITE_APK_URL);
 const focus =

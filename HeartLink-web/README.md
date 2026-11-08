@@ -1,94 +1,93 @@
-# HeartLink - Web Admin & Expert Portal
+# HeartLink web portal
 
-The web portal for HeartLink staff: medical experts review patient cases, and admins manage users, content and the system. Built with React and Vite.
+General Wellness content and operations portal. Admins author/publish recipes and routines; Dietitians and Physical Therapists review their specialty's exact revisions. Clinical monitoring, case review and model-calibration screens are retired from the active website.
 
----
-
-## 🛠️ Tech Stack & Requirements
-
-* **Runtime:** Node.js 20+
-* **Framework:** React 19
-* **Build tool:** Vite
-* **Routing:** React Router 7
-* **Styling:** Tailwind CSS v4
-* **UI:** Lucide icons, Framer Motion, Sonner (toasts)
-* **Forms:** React Hook Form + Zod
-* **Charts:** Recharts
-
----
-
-## 📁 Directory Layout
+## Structure
 
 ```text
-HeartLink-web/
-├── public/                 # Icons and images served as-is.
-├── src/
-│   ├── app/App.jsx         # The page map: which screen shows for which address, and who may see it.
-│   ├── api.js              # Talks to the backend. Sends the login cookie and the CSRF token.
-│   ├── contexts/           # Shared state, mainly who is logged in (AuthContext).
-│   ├── components/         # Reusable pieces: layouts, tables, pop-ups (modals).
-│   ├── features/
-│   │   ├── auth/           # Login and "Set your password" screens.
-│   │   └── pages/          # The portal screens, grouped as overview, management,
-│   │                       # clinical portal (case review, calibration) and system & support.
-│   ├── styles/designSystem.js  # Shared colors, buttons, tables and page header.
-│   └── utils/              # Small helpers.
-├── Dockerfile              # dev stage (docker-compose) and prod stage (nginx).
-├── nginx.conf              # Used by the prod Docker stage; forwards /api to the backend.
-├── vercel.json             # Vercel settings: forwards /api to Railway, everything else to index.html.
-├── vite.config.js          # Dev server; forwards /api to the backend.
-└── .env.example
+src/
+  app/                    # Entry, providers, routes, access rules and structure tests
+  lib/api.js              # Shared cookie/CSRF/refresh-aware HTTP client
+  contexts/               # Auth provider and consumer hook
+  components/
+    layouts/              # Shared authenticated shell, header and sidebar
+    ui/                   # Shared input, loading and error views
+    modals/               # Shared confirmation dialog
+  features/
+    recipes/
+      recipesPage.jsx
+      components/         # Recipe dialog and image UI
+      recipeForm.js       # Validation, defaults and form/payload mapping
+      recipeForm.test.js
+    exercises/            # Routine page, editor UI, form and timeline helpers/tests
+    accounts/             # Account/staff page, lists and account dialogs
+    broadcasts/           # Publication history and compose/view dialogs
+    support/              # Feedback inbox, category badge and ticket dialog
+    auth/                 # Login, password setup and logout dialog
+    activity/             # Restricted operational history and CSV export
+    landing/              # Public website
+    notifications/        # Staff inbox and shared header dropdown
+    overview/             # Operational overview and deferred-analytics notice
+    premium/              # Read-only optional-access/demo overview
+    settings/             # Own staff identity and password settings
+  hooks/                  # Shared query, dialog-focus and notification lifecycle hooks
+  utils/                  # Shared CSV, account-reference and cache helpers
+  styles/                 # Shared CSS, tokens and design-system UI
+  assets/                 # Existing static assets
+  legacy/                 # Unmounted historical clinical/care UI; never import into app
 ```
 
-## ⚙️ Environment Variables
+Source code filenames and multiword folders use camelCase (`sampleCase`).
+Rendered UI uses `.jsx`; hooks, validation, payload mapping and helpers use `.js`.
+React component identifiers stay PascalCase. Keep feature-owned dialogs with their feature;
+only genuinely shared UI belongs in `components/`. Local display state, focus handling and
+small event callbacks can stay in UI files. Substantial reusable data logic belongs in the
+feature's form/helper module, not a one-to-one pass-through layer.
 
-```bash
-cp .env.example .env
-```
+Use exact-case relative imports with explicit extensions. Tests sit next to the behavior
+they cover. Existing route URLs (including `/foods`, `/feedbacks`, `/activity-log` and
+`/set-password`) are deliberately unchanged.
 
-| Key | What it does | Example |
-|-----|--------------|---------|
-| `VITE_API_URL` | Leave **empty**. The portal calls `/api/...` on its own address, which keeps the login cookie working. | *(empty)* |
-| `VITE_PROXY_TARGET` | Where the dev server forwards `/api` calls (local backend). | `http://127.0.0.1:8000` |
+## Local development and verification
 
-**Why the API is "same-origin":** logins use an HttpOnly cookie with `SameSite=Strict` (HL-033), which browsers only send to the portal's own address. So `/api` is forwarded to the backend: by Vite during development, by `vercel.json` on Vercel, and by `nginx.conf` in the production Docker image.
+React 19, Vite, React Router, Tailwind CSS, React Query, React Hook Form/Zod, Lucide,
+Framer Motion and Sonner are already configured. Use the project's locked dependencies.
 
-The portal never talks to Supabase directly, so it needs no Supabase keys.
-
-## 🚀 Local Setup
-
-**With Docker:** see [../DOCKER.md](../DOCKER.md). The portal runs at http://localhost:5173.
-
-**Without Docker:**
-```bash
-npm install
+```powershell
 npm run dev
-```
-Open http://localhost:5173. The backend must be running on the address in `VITE_PROXY_TARGET`.
-
-Other commands:
-```bash
-npm run lint      # check code style
-npm run build     # production build into dist/
-npm run preview   # serve the production build locally
+npm test
+npm run lint
+npm run build
 ```
 
-## 👥 Who Sees What
+`VITE_API_URL` normally stays empty for same-origin cookie/CSRF behavior.
+`VITE_PROXY_TARGET` controls the local `/api` and `/static` proxy. Connect it only to
+an explicitly verified isolated backend, never production Supabase. The frontend needs
+no Supabase keys. Do not copy credentials into source files or screenshots.
 
-| Role | Screens |
-|------|---------|
-| **Admin / Super Admin** | Dashboard, Analytics, Foods, Exercises, Users, Feedback, Broadcasts, Settings, Activity log, Notifications, Case review (follow the queue, draw the weekly sample), Calibration |
-| **Medical Expert** | Case review (their own section), Calibration, Notifications |
-| **Super Admin only** | Creating staff accounts (with a one-time temporary password) |
+For frontend-only synthetic browser checks, set `VITE_API_URL` to the local frontend
+origin and `VITE_PROXY_TARGET` to `http://127.0.0.1:9`, block service workers and
+intercept every API/external request before navigation. Unit tests, lint and the build
+do not start a backend or execute migrations/seeds. `npm test` also checks exact
+on-disk import casing and that no legacy UI is reachable from the browser entry.
 
-**Case review:** the Cardiologist gives the risk level and checkup flag, the Dietitian checks the recommended recipes, and the PT checks the recommended exercises. The app's own level stays hidden until the Cardiologist submits. The expert type is set when the staff account is created.
+## Roles and limits
 
-**First login:** staff with a temporary password must choose their own before they can use any page.
+- Admin: operational overview/accounts, recipe/routine authoring/publication, support,
+  broadcasts, activity export and the secondary read-only Premium demo overview.
+- Dietitian: recipe review, own notifications and Settings.
+- Physical Therapist: routine review, own notifications and Settings.
+- Cardiologist: own notifications and Settings; no clinical records or invented sign-off powers.
+- Staff with a temporary password must replace it before entering the portal.
 
-## 📦 Deployment (Vercel)
+The source/serving/nullable-nutrition contract, revision-linked advisory comments/Admin
+replies and direct database/RLS compatibility remain deferred. The existing checkout and
+entitlement APIs are preserved; this cleanup adds no payment work. See the canonical
+project notes under `Vault/HeartLink/` for acceptance evidence and remaining owner/reviewer gates.
 
-Vercel builds the `main` branch (`npm run build`, output `dist/`). `vercel.json` already:
-* forwards `/api/*` and `/static/*` to the Railway backend, and
-* sends every other address to `index.html`, so page reloads work.
+## Release boundary
 
-No environment variables are needed on Vercel.
+Work stays on `web_content`. Local verified checkpoints are not releases. Existing
+Docker/nginx/Vercel configuration is retained, but no push, merge, deployment, migration,
+seed or rollback is authorized by these development commands. Follow `AGENTS.md` and
+the vault's branch/recovery guide before any separately approved release operation.

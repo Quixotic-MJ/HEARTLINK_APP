@@ -1,5 +1,5 @@
 // Shared Cal.com Design System styles for the staff sign-in and set-password pages (HL-044).
-// Uses scoped --color-cal-* and --font-cal-* tokens from App.css.
+// Uses scoped --color-cal-* and --font-cal-* tokens from app.css.
 
 export const focusRing =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cal-primary";

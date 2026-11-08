@@ -23,10 +23,10 @@ import {
   Utensils,
   X,
 } from "lucide-react";
-import { useAuth } from "../../contexts/useAuth";
-import { canAccess, searchPathFor } from "../../app/access";
-import { useApiQuery } from "../../hooks/useApiQuery";
-import { useDialogFocus } from "../../hooks/useDialogFocus";
+import { useAuth } from "../../contexts/useAuth.js";
+import { canAccess, searchPathFor } from "../../app/access.js";
+import { useApiQuery } from "../../hooks/useApiQuery.js";
+import { useDialogFocus } from "../../hooks/useDialogFocus.js";
 
 // HL-083: the sidebar is a slide-in menu below the lg breakpoint (1024px) and always visible above it
 const DESKTOP = "(min-width: 1024px)";

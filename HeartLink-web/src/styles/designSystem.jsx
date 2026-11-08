@@ -1,5 +1,5 @@
 /** HeartLink design system components; the tokens they use are in ./tokens.js. */
-import { FONTS, UI, getBadgeConfig } from "./tokens";
+import { FONTS, UI, getBadgeConfig } from "./tokens.js";
 
 // ─── 5. Reusable Component Helpers ────────────────────────────────────────────
 

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { BASE_URL, refreshSession } from "../api";
+import { BASE_URL, refreshSession } from "../lib/api.js";
 
 const STREAM_PATH = "/api/admin/notifications/stream";
 const FIRST_DELAY_MS = 5000;

@@ -13,9 +13,9 @@ import {
   Zap,
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "../../contexts/useAuth";
-import { canAccess, searchPathFor } from "../../app/access";
-import AdminNotificationDropdown from "./AdminNotificationDropdown";
+import { useAuth } from "../../contexts/useAuth.js";
+import { canAccess, searchPathFor } from "../../app/access.js";
+import AdminNotificationDropdown from "../../features/notifications/components/adminNotificationDropdown.jsx";
 
 const DESKTOP = "(min-width: 1024px)";
 

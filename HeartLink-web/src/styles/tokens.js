@@ -8,7 +8,7 @@
 
 // ─── 1. Color Palette Tokens ──────────────────────────────────────────────────
 // The HeartLink design system (documentation/design-system/HEARTLINK.md). The same values are
-// the ds-* Tailwind colours in App.css; use these only where a class can't (charts, inline SVG).
+// the ds-* Tailwind colours in app.css; use these only where a class can't (charts, inline SVG).
 export const COLORS = {
   ink: "#1a1a1a",        // Headings & main text
   inkSoft: "#5d5b54",    // Secondary text (ds-slate)
