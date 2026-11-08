@@ -34,6 +34,7 @@ import {
 import { DiscardDraft } from "../../../components/ui/discardDraft.jsx";
 import { useDraftExit } from "../../../hooks/useDraftExit.js";
 import { useDialogFocus } from "../../../hooks/useDialogFocus.js";
+import { RoutinePreview } from "./routinePreview.jsx";
 import {
   countedPromptSeconds,
   formatSeconds,
@@ -472,9 +473,10 @@ const ExerciseFormModal = ({
         role="dialog"
         aria-modal="true"
         aria-busy={busy}
+        data-expanded={expanded}
         aria-labelledby={draftExit.discarding ? "discard-changes-title" : "exercise-panel-title"}
         tabIndex={-1}
-        className={`relative z-10 flex w-full flex-col overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas text-cal-ink shadow-[0_12px_36px_rgba(0,0,0,0.12)] ${
+        className={`workspace workspace--exercise content-editor relative z-10 flex w-full flex-col overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas text-cal-ink shadow-[0_12px_36px_rgba(0,0,0,0.12)] ${
           expanded
             ? "h-full max-w-[1280px]"
             : "h-[min(880px,100%)] max-w-[920px]"
@@ -621,8 +623,10 @@ const ExerciseFormModal = ({
         )}
 
         {/* Body */}
+        <div className="content-editor-layout">
+        <RoutinePreview values={v} image={resolvedMedia} imageFailed={mediaPreviewError} onImageError={() => setFailedMediaUrl(resolvedMedia)} editing={mode === "edit"} durationLabel={isBreathing ? `${v.duration} min` : totalSeconds > 0 ? formatSeconds(totalSeconds) : "No steps yet"} />
         {mode === "review" || !canAuthor ? (
-          <div className="flex-1 space-y-6 overflow-y-auto px-6 py-5">
+          <div className="content-review space-y-6">
             {sentBack && (
               <div className="flex items-start gap-2.5 rounded-[10px] border border-cal-warning/35 bg-cal-warning/15 px-4 py-3 text-[13.5px] text-cal-ink">
                 <AlertCircle
@@ -1590,6 +1594,7 @@ const ExerciseFormModal = ({
         )}
 
         {/* Footer */}
+        </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2.5 border-t border-cal-hairline bg-cal-canvas px-6 py-4">
           {mode === "review" ? (
             <>

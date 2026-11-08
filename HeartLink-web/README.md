@@ -104,6 +104,16 @@ npm run dev -- --host 127.0.0.1 --port 5180 --strictPort
 Stop that dedicated frontend process when finished. Browser fixtures prove UI
 behavior, not actual API/database integration, device delivery or release readiness.
 
+## Ingredient artwork credits
+
+Ingredient illustrations are unmodified [OpenMoji](https://openmoji.org/) graphics,
+release 16.0.0, by HfG Schwabisch Gmund and the OpenMoji contributors, licensed
+under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+See `src/assets/ingredients/attribution.txt` for the pinned source. This license
+applies to the illustrations, not the application source. Name-based decorative
+matching never changes ingredient names, quantities or nutrition; unrecognized
+ingredients keep a neutral fallback.
+
 ## Roles and limits
 
 - Admin: operational overview/accounts, recipe/routine authoring/publication, support,

@@ -25,6 +25,7 @@ import { apiUpload } from "../../../lib/api.js";
 import { DiscardDraft } from "../../../components/ui/discardDraft.jsx";
 import { useDraftExit } from "../../../hooks/useDraftExit.js";
 import { useDialogFocus } from "../../../hooks/useDialogFocus.js";
+import { RecipePreview } from "./recipePreview.jsx";
 
 // The edit view's tabs, and which fields live on each, so a save that fails opens the right tab.
 const TABS = [
@@ -285,9 +286,10 @@ const FoodFormModal = ({
         role="dialog"
         aria-modal="true"
         aria-busy={busy}
+        data-expanded={expanded}
         aria-labelledby={draftExit.discarding ? "discard-changes-title" : "recipe-panel-title"}
         tabIndex={-1}
-        className={`relative z-10 flex w-full flex-col overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas text-cal-ink shadow-[0_12px_36px_rgba(0,0,0,0.12)] ${
+        className={`workspace content-editor relative z-10 flex w-full flex-col overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas text-cal-ink shadow-[0_12px_36px_rgba(0,0,0,0.12)] ${
           expanded ? "h-full max-w-[1280px]" : "h-[min(880px,100%)] max-w-[920px]"
         }`}
       >
@@ -420,8 +422,10 @@ const FoodFormModal = ({
           )}
         </div>
 
+        <div className="content-editor-layout">
+        <RecipePreview values={v} editing={mode === "edit"} />
         {mode === "review" ? (
-          <div className="flex-1 space-y-6 overflow-y-auto px-6 py-5">
+          <div className="content-review space-y-6">
             {sentBack && (
               <div className="flex items-start gap-2.5 rounded-[10px] border border-cal-warning/35 bg-cal-warning/10 px-4 py-3">
                 <AlertCircle
@@ -436,7 +440,7 @@ const FoodFormModal = ({
               </div>
             )}
 
-            <div className="flex flex-col gap-5 sm:flex-row">
+            <div className="recipe-overview-photo flex flex-col gap-5 sm:flex-row">
               <div className="flex h-36 w-full shrink-0 items-center justify-center overflow-hidden rounded-[10px] border border-cal-hairline bg-cal-surface-soft sm:w-56">
                 {v.mediaUrl && !imagePreviewError ? (
                   <img
@@ -1078,7 +1082,8 @@ const FoodFormModal = ({
           </form>
         )}
 
-        {/* Footer: one monochrome #111111 primary CTA per view */}
+        </div>
+        {/* Persistent actions stay outside both scrollable columns. */}
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2.5 border-t border-cal-hairline bg-cal-canvas px-6 py-4">
           {saveError && (
             <p

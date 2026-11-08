@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Archive, Dumbbell, Plus, Search } from "lucide-react";
+import { Archive, Dumbbell, Plus, Search, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import AdminLayout from "../../components/layouts/adminLayout.jsx";
 import ExerciseFormModal from "./components/exerciseFormModal.jsx";
@@ -9,6 +9,20 @@ import LoadError from "../../components/ui/loadError.jsx";
 import { apiFetch } from "../../lib/api.js";
 import { useApiQuery } from "../../hooks/useApiQuery.js";
 import { useAuth } from "../../contexts/useAuth.js";
+
+import { LibraryBanner } from "../../components/ui/libraryBanner.jsx";
+import { LibraryViewSwitch } from "../../components/ui/libraryViewSwitch.jsx";
+
+function RoutineCover({ src }) {
+  const [failed, setFailed] = useState(null);
+  return src && failed !== src ? (
+    <img src={src} alt="" onError={() => setFailed(src)} />
+  ) : (
+    <div className="library-card-fallback">
+      <Dumbbell size={48} strokeWidth={1.3} aria-hidden="true" />
+    </div>
+  );
+}
 
 const EMPTY = [];
 const toExercises = (response) =>
@@ -47,6 +61,7 @@ export default function Exercises() {
   const [params, setParams] = useSearchParams();
   const search = params.get("search") || "";
   const [status, setStatus] = useState("all");
+  const [view, setView] = useState("grid");
   const [review, setReview] = useState("all");
   const [modal, setModal] = useState({ open: false, item: null });
   const [archiveItem, setArchiveItem] = useState(null);
@@ -94,64 +109,45 @@ export default function Exercises() {
 
   return (
     <AdminLayout>
-      <div className="mx-auto max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="mb-2 flex items-center gap-2 text-[13px] font-medium text-cal-muted">
-              <Dumbbell size={16} aria-hidden="true" /> Content library
-            </p>
-            <h2 className="font-cal-display text-[30px] font-semibold tracking-[-0.6px]">
-              {canReview ? "Routine review" : "Exercise library"}
-            </h2>
-            <p className="mt-2 max-w-[65ch] text-[14px] leading-relaxed text-cal-muted">
-              {canReview
-                ? "Review the complete movement timeline, equipment and instructions. Your decision applies to the revision you open."
-                : "Author beginner routines, respond to PT feedback, and publish the approved revision."}
-            </p>
-          </div>
-          {canAuthor && (
-            <button
-              type="button"
-              onClick={() => setModal({ open: true, item: null })}
-              className={`${button} border-transparent bg-cal-primary text-cal-on-primary hover:bg-cal-primary-active`}
-            >
-              <Plus size={16} aria-hidden="true" /> Create routine
-            </button>
-          )}
-        </div>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {[
-            ["Total routines", routines.length],
+      <div className="workspace workspace--exercise mx-auto max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
+        <LibraryBanner
+          icon={Dumbbell}
+          title={canReview ? "Routine review" : "Exercise library"}
+          description={
+            canReview
+              ? "Review the movement, timing and instructions of the saved revision."
+              : "Movement with a clear purpose. Build beginner routines, refine with PT feedback, and publish the approved revision."
+          }
+          unavailable={query.isPending || query.isError}
+          stats={[
+            ["All routines", routines.length],
+            [
+              "PT approved",
+              routines.filter((item) => item.expertValidated).length,
+            ],
             [
               "Published",
-              routines.filter(
-                (r) => r.status === "published" && r.expertValidated,
-              ).length,
+              routines.filter((item) => item.status === "published").length,
             ],
-            ["PT approved", routines.filter((r) => r.expertValidated).length],
-            [
-              "Awaiting review",
-              routines.filter(
-                (r) => !r.expertValidated && r.status !== "archived",
-              ).length,
-            ],
-          ].map(([label, count]) => (
-            <div
-              key={label}
-              className="rounded-[16px] border border-cal-hairline bg-cal-canvas p-5"
-            >
-              <p className="text-[13px] text-cal-muted">{label}</p>
-              <p className="mt-2 text-[28px] font-semibold tabular-nums">
-                {query.isPending ? "—" : count}
-              </p>
-            </div>
-          ))}
-        </div>
+          ]}
+          action={
+            canAuthor && (
+              <button
+                type="button"
+                onClick={() => setModal({ open: true, item: null })}
+              >
+                <Plus size={17} aria-hidden="true" />
+                Create routine
+              </button>
+            )
+          }
+        />
         <section
           aria-label="Routine library"
           className="overflow-hidden rounded-[16px] border border-cal-hairline bg-cal-canvas"
         >
           <div className="flex flex-wrap items-center gap-3 border-b border-cal-hairline p-4">
+            <LibraryViewSwitch value={view} onChange={setView} />
             <label className="flex min-w-0 flex-1 items-center gap-2">
               <Search size={16} aria-hidden="true" />
               <span className="sr-only">Search routines</span>
@@ -208,82 +204,73 @@ export default function Exercises() {
               Loading routines…
             </p>
           ) : filtered.length ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-[14px]">
-                <thead className="border-b border-cal-hairline bg-cal-surface-soft text-[12px] text-cal-muted">
-                  <tr>
-                    {[
-                      "Routine",
-                      "Timeline",
-                      "Review & publication",
-                      "Actions",
-                    ].map((label) => (
-                      <th
-                        key={label}
-                        scope="col"
-                        className="px-5 py-3 font-medium"
-                      >
-                        {label}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-cal-hairline">
-                  {filtered.map((routine) => (
-                    <tr key={routine.id}>
-                      <td className="max-w-[340px] px-5 py-4">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setModal({ open: true, item: routine })
-                          }
-                          className="text-left font-semibold text-cal-ink underline-offset-4 hover:underline"
-                        >
-                          {routine.name || "Untitled routine"}
-                        </button>
-                        <p className="mt-1 text-[13px] text-cal-muted">
-                          {routine.type || "Type not set"} ·{" "}
-                          {routine.setting || "Setting not set"}
-                        </p>
-                      </td>
-                      <td className="whitespace-nowrap px-5 py-4">
-                        <span className="tabular-nums">
-                          {routine.duration
-                            ? `${routine.duration} min`
-                            : "Duration not set"}
-                        </span>
-                        <p className="mt-1 text-[13px] text-cal-muted">
-                          {routine.position || "Position not set"}
-                        </p>
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className="rounded-full bg-cal-surface-soft px-2.5 py-1 text-[12px] font-medium">
-                          {routine.status}
-                        </span>
-                        <p className="mt-2 text-[13px] text-cal-muted">
-                          {routine.expertValidated
-                            ? "PT approved"
-                            : routine.reviewNote
-                              ? "Changes requested"
-                              : "Awaiting PT review"}
-                        </p>
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="flex flex-wrap gap-2">
+            view === "grid" ? (
+              <div className="library-grid" aria-label="Routine gallery">
+                {filtered.map((routine) => (
+                  <article key={routine.id} className="library-card">
+                    <button
+                      type="button"
+                      className="library-card-media"
+                      aria-label={`Preview ${routine.name}`}
+                      onClick={() => setModal({ open: true, item: routine })}
+                    >
+                      <RoutineCover src={routine.mediaUrl} />
+                    </button>
+                    <div className="library-card-body">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3>
                           <button
                             type="button"
                             onClick={() =>
                               setModal({ open: true, item: routine })
                             }
+                          >
+                            {routine.name || "Untitled routine"}
+                          </button>
+                        </h3>
+                        <span
+                          className="workspace-pill"
+                          data-status={routine.status}
+                        >
+                          {routine.status}
+                        </span>
+                      </div>
+                      <p className="library-card-description">
+                        {routine.type || "Type not set"} ·{" "}
+                        {routine.setting || "Setting not set"}
+                      </p>
+                      <div className="library-card-facts">
+                        <span>
+                          {routine.duration
+                            ? `${routine.duration} min`
+                            : "Duration not set"}
+                        </span>
+                        <span>{routine.position || "Position not set"}</span>
+                      </div>
+                      <div className="library-card-footer">
+                        <span className="library-card-review">
+                          <ShieldCheck size={14} aria-hidden="true" />
+                          {routine.expertValidated
+                            ? "PT approved"
+                            : routine.reviewNote
+                              ? "Changes requested"
+                              : "Awaiting review"}
+                        </span>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
                             className={button}
+                            onClick={() =>
+                              setModal({ open: true, item: routine })
+                            }
                           >
                             {canReview ? "Review" : "Open"}
                           </button>
                           {canAuthor && (
                             <button
                               type="button"
-                              onClick={() => setArchiveItem(routine)}
                               className={button}
+                              onClick={() => setArchiveItem(routine)}
                             >
                               {routine.status === "archived"
                                 ? "Restore"
@@ -291,12 +278,102 @@ export default function Exercises() {
                             </button>
                           )}
                         </div>
-                      </td>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-[14px]">
+                  <thead className="border-b border-cal-hairline bg-cal-surface-soft text-[12px] text-cal-muted">
+                    <tr>
+                      {[
+                        "Routine",
+                        "Timeline",
+                        "Review & publication",
+                        "Actions",
+                      ].map((label) => (
+                        <th
+                          key={label}
+                          scope="col"
+                          className="px-5 py-3 font-medium"
+                        >
+                          {label}
+                        </th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-cal-hairline">
+                    {filtered.map((routine) => (
+                      <tr key={routine.id}>
+                        <td className="max-w-[340px] px-5 py-4">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setModal({ open: true, item: routine })
+                            }
+                            className="text-left font-semibold text-cal-ink underline-offset-4 hover:underline"
+                          >
+                            {routine.name || "Untitled routine"}
+                          </button>
+                          <p className="mt-1 text-[13px] text-cal-muted">
+                            {routine.type || "Type not set"} ·{" "}
+                            {routine.setting || "Setting not set"}
+                          </p>
+                        </td>
+                        <td className="whitespace-nowrap px-5 py-4">
+                          <span className="tabular-nums">
+                            {routine.duration
+                              ? `${routine.duration} min`
+                              : "Duration not set"}
+                          </span>
+                          <p className="mt-1 text-[13px] text-cal-muted">
+                            {routine.position || "Position not set"}
+                          </p>
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className="rounded-full bg-cal-surface-soft px-2.5 py-1 text-[12px] font-medium">
+                            {routine.status}
+                          </span>
+                          <p className="mt-2 text-[13px] text-cal-muted">
+                            {routine.expertValidated
+                              ? "PT approved"
+                              : routine.reviewNote
+                                ? "Changes requested"
+                                : "Awaiting PT review"}
+                          </p>
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setModal({ open: true, item: routine })
+                              }
+                              className={button}
+                            >
+                              {canReview ? "Review" : "Open"}
+                            </button>
+                            {canAuthor && (
+                              <button
+                                type="button"
+                                onClick={() => setArchiveItem(routine)}
+                                className={button}
+                              >
+                                {routine.status === "archived"
+                                  ? "Restore"
+                                  : "Archive"}
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )
           ) : (
             <div className="p-10 text-center">
               <p className="font-semibold">

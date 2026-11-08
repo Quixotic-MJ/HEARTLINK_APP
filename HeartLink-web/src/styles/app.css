@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./workspaces.css";
 
 /* HeartLink UI tokens */
 :root {

@@ -37,7 +37,7 @@ export default async function contentValidation(page) {
     });
     await local.goto(origin + "/foods");
     await local
-      .getByRole("button", { name: "Create new entry", exact: true })
+      .getByRole("button", { name: "Add recipe", exact: true })
       .click();
     const dialog = local.getByRole("dialog");
     const checkTabs = async (second, last) => {
