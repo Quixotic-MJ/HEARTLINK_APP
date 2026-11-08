@@ -7,6 +7,7 @@ General Wellness content and operations portal. Admins author/publish recipes an
 ```text
 src/
   app/                    # Entry, providers, routes, access rules and structure tests
+    portalNavigation.js   # Shared permitted page labels/groups and search destinations
   lib/api.js              # Shared cookie/CSRF/refresh-aware HTTP client
   contexts/               # Auth provider and consumer hook
   components/
@@ -30,6 +31,7 @@ src/
     overview/             # Operational overview and deferred-analytics notice
     premium/              # Read-only optional-access/demo overview
     settings/             # Own staff identity and password settings
+    search/               # Global page navigation and permitted record-search shortcuts
   hooks/                  # Shared query, dialog-focus and notification lifecycle hooks
   utils/                  # Shared CSV, account-reference and cache helpers
   styles/                 # Shared CSS, tokens and design-system UI
@@ -102,6 +104,7 @@ npm run dev -- --host 127.0.0.1 --port 5180 --strictPort
 | `recordedMetadata.js` | Labelled Philippine review dates and truthful unknown-category counts/filters |
 | `visualWorkspaces.js` | Gallery/list views, exclusive workflow filters, three-dot menu keyboard/focus, compact labels, aligned footers, two-column previews and responsive archive/draft controls |
 | `operationalVisuals.js` | Operational layouts/dialogs, readable Activity typography, row hover and keyboard-accessible references |
+| `navigationAndMedia.js` | Four-role global/local search handoff, shared navigation, responsive shell, photo/video/fallback routine media, keyboard/player controls and no autoplay |
 
 Stop that dedicated frontend process when finished. Browser fixtures prove UI
 behavior, not actual API/database integration, device delivery or release readiness.
@@ -113,6 +116,32 @@ statuses visible. There is no second review-status selector. Recipe category/sou
 facets live under Filters. Card/list lifecycle actions are behind the same three-dot
 menu; role and exact-revision requirements are unchanged. Activity references are
 expandable without removing their export fields or stored history.
+
+## Navigation and search
+
+The header owns the only global **Search portal** entry (`Ctrl+K` / `Cmd+K`). It
+finds permitted pages and offers explicit Recipes, Routines or Accounts search
+shortcuts where that role is allowed. A shortcut hands the query to the existing
+page filter; it is not a new cross-account/global-record API. Page-local search
+stays with its library/table. The global shortcut does not interrupt an active
+editor or another dialog.
+
+Sidebar links are grouped into Workspace, Content, Operations and Account using
+the same role-filtered page catalogue as the header and search dialog. Empty
+groups are omitted. Creation belongs to each page's Add/Create control; duplicate
+shell Actions/Quick Create links, the sidebar Search entry and the live clock are
+removed. The notification bell opens recent notices; Notifications in the sidebar
+opens the full inbox. Recipe/exercise active accents complement their workspaces
+without changing permissions or HeartLink branding.
+
+Exercise list and gallery media share the existing thumbnail/video fields. Native
+uploaded videos have controlled playback in the read-only preview; nothing
+autoplays. Read-only linked-video previews open on request without an automatic
+third-party embed; the existing authoring Media tab is otherwise unchanged.
+Missing/failed media gets a neutral fallback. The editor keeps
+its original keyboard tab order and reviewed dose. Browser verification uses the
+small synthetic codec pattern credited in [tests/fixtures/README.md](tests/fixtures/README.md),
+never real user media or a production API.
 
 ## Ingredient artwork credits
 

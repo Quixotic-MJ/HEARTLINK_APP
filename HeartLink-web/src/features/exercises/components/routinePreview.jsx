@@ -1,4 +1,4 @@
-import { Dumbbell } from "lucide-react";
+import { RoutineMedia } from "./routineMedia.jsx";
 
 export function RoutinePreview({
   values,
@@ -11,11 +11,13 @@ export function RoutinePreview({
   return (
     <aside className="content-live-preview" aria-label="Routine preview">
       <div className="content-preview-photo">
-        {image && !imageFailed ? (
-          <img src={image} alt="Routine demonstration" onError={onImageError} />
-        ) : (
-          <Dumbbell size={54} strokeWidth={1.3} aria-hidden="true" />
-        )}
+        <RoutineMedia
+          image={image}
+          video={values.videoUrl}
+          controls={!editing}
+          imageFailed={imageFailed}
+          onImageError={onImageError}
+        />
       </div>
       <p className="mt-5 text-xs font-medium text-cal-muted">
         {editing ? "Unsaved preview" : "Routine snapshot"}

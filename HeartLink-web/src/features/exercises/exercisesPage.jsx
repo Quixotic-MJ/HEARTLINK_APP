@@ -18,6 +18,7 @@ import { apiFetch } from "../../lib/api.js";
 import { useApiQuery } from "../../hooks/useApiQuery.js";
 import { useAuth } from "../../contexts/useAuth.js";
 
+import { RoutineMedia } from "./components/routineMedia.jsx";
 import { LibraryActionsMenu } from "../../components/ui/libraryActionsMenu.jsx";
 import { LibraryBanner } from "../../components/ui/libraryBanner.jsx";
 import { LibraryWorkflowTabs } from "../../components/ui/libraryWorkflowTabs.jsx";
@@ -26,23 +27,6 @@ import {
   matchesLibraryWorkflow,
 } from "../../utils/libraryWorkflow.js";
 import { LibraryViewSwitch } from "../../components/ui/libraryViewSwitch.jsx";
-
-function RoutineCover({ src }) {
-  const [failed, setFailed] = useState(null);
-  return src && failed !== src ? (
-    <img
-      src={src}
-      alt=""
-      loading="lazy"
-      decoding="async"
-      onError={() => setFailed(src)}
-    />
-  ) : (
-    <div className="library-card-fallback">
-      <Dumbbell size={48} strokeWidth={1.3} aria-hidden="true" />
-    </div>
-  );
-}
 
 const EMPTY = [];
 const toExercises = (response) =>
@@ -257,7 +241,10 @@ export default function Exercises() {
                       aria-label={`Preview ${routine.name}`}
                       onClick={() => setModal({ open: true, item: routine })}
                     >
-                      <RoutineCover src={routine.mediaUrl} />
+                      <RoutineMedia
+                        image={routine.mediaUrl}
+                        video={routine.videoUrl}
+                      />
                     </button>
                     <div className="library-card-body">
                       <div className="flex items-start justify-between gap-2">
@@ -306,43 +293,70 @@ export default function Exercises() {
                 ))}
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="workspace-table w-full text-left text-[14px]">
+              <div
+                className="overflow-x-auto"
+                role="region"
+                aria-label="Routine list"
+                tabIndex={0}
+              >
+                <table className="workspace-table w-full min-w-[760px] text-left text-[14px]">
                   <thead className="border-b border-cal-hairline bg-cal-surface-soft text-[12px] text-cal-muted">
                     <tr>
-                      {[
-                        "Routine",
-                        "Timeline",
-                        "Review & publication",
-                        "Actions",
-                      ].map((label) => (
-                        <th
-                          key={label}
-                          scope="col"
-                          className="px-5 py-3 font-medium"
-                        >
-                          {label}
-                        </th>
-                      ))}
+                      {["Routine", "Timeline", "PT review", "Actions"].map(
+                        (label) => (
+                          <th
+                            key={label}
+                            scope="col"
+                            className="px-5 py-3 font-medium"
+                          >
+                            {label}
+                          </th>
+                        ),
+                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cal-hairline">
                     {filtered.map((routine) => (
                       <tr key={routine.id}>
-                        <td className="max-w-[340px] px-5 py-4">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setModal({ open: true, item: routine })
-                            }
-                            className="text-left font-semibold text-cal-ink underline-offset-4 hover:underline"
-                          >
-                            {routine.name || "Untitled routine"}
-                          </button>
-                          <p className="mt-1 text-[13px] text-cal-muted">
-                            {routine.type || "Type not set"} ·{" "}
-                            {routine.setting || "Setting not set"}
-                          </p>
+                        <td className="max-w-[440px] px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              className="routine-list-media"
+                              aria-label={`Preview media for ${routine.name}`}
+                              onClick={() =>
+                                setModal({ open: true, item: routine })
+                              }
+                            >
+                              <RoutineMedia
+                                image={routine.mediaUrl}
+                                video={routine.videoUrl}
+                              />
+                            </button>
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setModal({ open: true, item: routine })
+                                  }
+                                  className="text-left font-semibold text-cal-ink underline-offset-4 hover:underline"
+                                >
+                                  {routine.name || "Untitled routine"}
+                                </button>
+                                <span
+                                  className="workspace-pill"
+                                  data-status={routine.status}
+                                >
+                                  {routine.status}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-[13px] text-cal-muted">
+                                {routine.type || "Type not set"} ·{" "}
+                                {routine.setting || "Setting not set"}
+                              </p>
+                            </div>
+                          </div>
                         </td>
                         <td className="whitespace-nowrap px-5 py-4">
                           <span className="tabular-nums">
@@ -355,10 +369,8 @@ export default function Exercises() {
                           </p>
                         </td>
                         <td className="px-5 py-4">
-                          <span className="rounded-full bg-cal-surface-soft px-2.5 py-1 text-[12px] font-medium">
-                            {routine.status}
-                          </span>
-                          <p className="library-card-review mt-2">
+                          <p className="library-card-review">
+                            <ShieldCheck size={13} aria-hidden="true" />
                             {routine.expertValidated
                               ? "PT approved"
                               : routine.reviewNote
@@ -415,7 +427,12 @@ export default function Exercises() {
               ? {
                   name: archiveItem.name,
                   email: archiveItem.type,
-                  avatar: <RoutineCover src={archiveItem.mediaUrl} />,
+                  avatar: (
+                    <RoutineMedia
+                      image={archiveItem.mediaUrl}
+                      video={archiveItem.videoUrl}
+                    />
+                  ),
                 }
               : null
           }

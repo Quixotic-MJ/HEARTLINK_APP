@@ -35,25 +35,12 @@ import { DiscardDraft } from "../../../components/ui/discardDraft.jsx";
 import { useDraftExit } from "../../../hooks/useDraftExit.js";
 import { useDialogFocus } from "../../../hooks/useDialogFocus.js";
 import { RoutinePreview } from "./routinePreview.jsx";
+import { isRoutineVideo, resolveRoutineMediaUrl } from "../exerciseMedia.js";
 import {
   countedPromptSeconds,
   formatSeconds,
   partSeconds,
 } from "../exerciseParts.js";
-
-const resolveMediaUrl = (url) => {
-  if (!url) return "";
-  if (
-    url.startsWith("http://") ||
-    url.startsWith("https://") ||
-    url.startsWith("data:")
-  ) {
-    return url;
-  }
-  const cleanBase = BASE_URL.endsWith("/") ? BASE_URL.slice(0, -1) : BASE_URL;
-  const cleanPath = url.startsWith("/") ? url : `/${url}`;
-  return `${cleanBase}${cleanPath}`;
-};
 
 // The edit view's tabs, and which fields live on each, so a save that fails opens the right tab.
 const TABS = [
@@ -457,7 +444,7 @@ const ExerciseFormModal = ({
         : "border-cal-hairline focus:border-cal-ink"
     }`;
 
-  const resolvedMedia = resolveMediaUrl(mediaUrl);
+  const resolvedMedia = resolveRoutineMediaUrl(mediaUrl, BASE_URL);
   const mediaPreviewError = !!resolvedMedia && failedMediaUrl === resolvedMedia;
 
   return createPortal(
@@ -1340,8 +1327,7 @@ const ExerciseFormModal = ({
                       !mediaUrl.includes("youtube.com") &&
                       !mediaUrl.includes("youtu.be") && (
                         <div className="mt-3 flex h-28 w-48 items-center justify-center overflow-hidden rounded-[10px] border border-cal-hairline bg-cal-surface-soft">
-                          {mediaUrl.startsWith("data:video") ||
-                          mediaUrl.endsWith(".mp4") ? (
+                          {isRoutineVideo(mediaUrl) ? (
                             <video
                               src={resolvedMedia}
                               className="h-full w-full object-cover"
@@ -1416,7 +1402,7 @@ const ExerciseFormModal = ({
                             <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[8px] border border-cal-hairline bg-cal-canvas">
                               {guideUrl ? (
                                 <img
-                                  src={resolveMediaUrl(guideUrl)}
+                                  src={resolveRoutineMediaUrl(guideUrl, BASE_URL)}
                                   alt="Guide preview"
                                   className="h-full w-full object-cover"
                                 />
