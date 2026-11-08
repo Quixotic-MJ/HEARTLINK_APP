@@ -4,12 +4,10 @@ import { motion, useReducedMotion } from "framer-motion";
 import {
   Activity,
   AlertCircle,
-  Archive,
   ArrowDown,
   ArrowUp,
   ChevronDown,
   Clock,
-  Ellipsis,
   Image as ImageIcon,
   Maximize2,
   Minimize2,
@@ -118,7 +116,6 @@ const ExerciseFormModal = ({
   isPT = false,
   onSave,
   onReview,
-  onDelete,
 }) => {
   const dialogRef = useRef(null);
   const reduceMotion = useReducedMotion();
@@ -203,7 +200,6 @@ const ExerciseFormModal = ({
   // An existing exercise opens in the review view; a new one goes straight to editing.
   const [mode, setMode] = useState("review");
   const [tab, setTab] = useState("basics");
-  const [menuOpen, setMenuOpen] = useState(false);
   // HL-038: a PT's note when sending an exercise back for changes.
   const [reviewNote, setReviewNote] = useState("");
   // Normal or expanded size; remembered on this browser only.
@@ -231,7 +227,6 @@ const ExerciseFormModal = ({
     setShownFor(openKey);
     setMode(exercise ? "review" : "edit");
     setTab(exercise ? "steps" : "basics");
-    setMenuOpen(false);
     setReviewNote("");
     setUploadErrors({});
     setPicturesNote("");
@@ -538,57 +533,6 @@ const ExerciseFormModal = ({
             </div>
 
             <div className="flex items-center gap-2">
-              {canAuthor && exercise && (onDelete || status !== "archived") && (
-                <div className="relative">
-                  <button
-                    type="button"
-                    aria-label="More actions"
-                    aria-haspopup="menu"
-                    aria-expanded={menuOpen}
-                    onClick={() => setMenuOpen((open) => !open)}
-                    className={iconBtn}
-                  >
-                    <Ellipsis size={17} />
-                  </button>
-                  {menuOpen && (
-                    <div
-                      role="menu"
-                      className="absolute right-0 top-11 z-20 w-48 rounded-[10px] border border-cal-hairline bg-cal-canvas p-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
-                    >
-                      {status !== "archived" && (
-                        <button
-                          type="button"
-                          role="menuitem"
-                          onClick={() => {
-                            setMenuOpen(false);
-                            handleSaveWithStatus("archived");
-                          }}
-                          className="flex w-full items-center gap-2 rounded-[6px] px-3 py-2 text-left text-[13px] font-medium text-cal-ink hover:bg-cal-surface-soft cursor-pointer"
-                        >
-                          <Archive size={14.5} className="text-cal-muted" />
-                          <span>Archive</span>
-                        </button>
-                      )}
-                      {onDelete && (
-                        <button
-                          type="button"
-                          role="menuitem"
-                          onClick={() => {
-                            setMenuOpen(false);
-                            onClose();
-                            onDelete(exercise);
-                          }}
-                          className="flex w-full items-center gap-2 rounded-[6px] px-3 py-2 text-left text-[13px] font-medium text-cal-error hover:bg-cal-error/10 cursor-pointer"
-                        >
-                          <Trash2 size={14.5} />
-                          <span>Delete exercise</span>
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
               <button
                 type="button"
                 onClick={toggleExpanded}
