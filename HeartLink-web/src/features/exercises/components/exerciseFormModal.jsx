@@ -20,6 +20,7 @@ import {
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { EMPTY_FORM, exercisePayload, exerciseSchema, exerciseValues, fromValues } from "../exerciseForm.js";
+import { navigateTabs } from "../../../utils/navigateTabs.js";
 import { InputField } from "../../../components/ui/inputField.jsx";
 import { FormErrorSummary } from "../../../components/ui/formErrorSummary.jsx";
 import { BASE_URL, apiUpload } from "../../../lib/api.js";
@@ -125,6 +126,7 @@ const ExerciseFormModal = ({
   const [partUploads, setPartUploads] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const busy = saving || isUploading || partUploads > 0;
   const [saveError, setSaveError] = useState("");
 
   useEffect(() => {
@@ -233,7 +235,7 @@ const ExerciseFormModal = ({
     setSaveError("");
   }
 
-  const draftExit = useDraftExit(isOpen, isDirty || reviewNote.length > 0, finishClose, dialogRef, saving || isUploading || partUploads > 0);
+  const draftExit = useDraftExit(isOpen, isDirty || reviewNote.length > 0, finishClose, dialogRef, busy);
   const onClose = () => {
     if (!inFlight.current && !isUploading && pendingUploads.current === 0) draftExit.requestClose();
   };
@@ -474,6 +476,7 @@ const ExerciseFormModal = ({
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
+        aria-busy={busy}
         aria-labelledby={draftExit.discarding ? "discard-changes-title" : "exercise-panel-title"}
         tabIndex={-1}
         className={`relative z-10 flex w-full flex-col overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas text-cal-ink shadow-[0_12px_36px_rgba(0,0,0,0.12)] ${
@@ -548,7 +551,7 @@ const ExerciseFormModal = ({
               <button
                 type="button"
                 onClick={onClose}
-                disabled={saving}
+                disabled={busy}
                 aria-label="Close"
                 className={iconBtn}
               >
@@ -560,6 +563,7 @@ const ExerciseFormModal = ({
           {canAuthor && mode === "edit" && (
             <div
               role="tablist"
+              onKeyDown={navigateTabs}
               aria-label="Exercise sections"
               className="relative mt-4 inline-flex flex-wrap items-center gap-1 rounded-[16px] sm:rounded-full border border-cal-hairline/80 bg-cal-surface-soft p-1 select-none"
             >
@@ -570,8 +574,11 @@ const ExerciseFormModal = ({
                     key={id}
                     type="button"
                     role="tab"
+                    id={`exercise-tab-${id}`}
+                    aria-controls="exercise-editor-panel"
+                    tabIndex={active ? 0 : -1}
                     aria-selected={active}
-                    disabled={saving}
+                    disabled={busy}
                     onClick={() => setTab(id)}
                     className={`group relative flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors cursor-pointer select-none ${
                       active
@@ -879,7 +886,7 @@ const ExerciseFormModal = ({
                   id="exercise-review-note"
                   rows="2"
                   value={reviewNote}
-                  disabled={saving}
+                  disabled={busy}
                   maxLength={500}
                   onChange={(e) => setReviewNote(e.target.value)}
                   placeholder="Describe the instruction, timing or equipment that needs clarification."
@@ -888,7 +895,7 @@ const ExerciseFormModal = ({
                 <div className="flex justify-end">
                   <button
                     type="button"
-                    disabled={saving || !reviewNote.trim()}
+                    disabled={busy || !reviewNote.trim()}
                     onClick={() => saveApproval(false)}
                     className={secondaryBtn}
                   >
@@ -908,11 +915,12 @@ const ExerciseFormModal = ({
               errors={errors}
               submitCount={submitCount}
               describeField={describeExerciseField}
-              disabled={saving || isUploading || partUploads > 0}
+              disabled={busy}
               onSelect={(name) => setTab(TABS.find(([id]) => TAB_FIELDS[id].includes(name.split(".")[0]))?.[0] || "basics")}
             />
+            <div role="tabpanel" id="exercise-editor-panel" aria-labelledby={`exercise-tab-${tab}`} tabIndex={0}>
             <fieldset
-              disabled={saving || isUploading || partUploads > 0}
+              disabled={busy}
               className="min-w-0"
             >
               {tab === "basics" && (
@@ -1582,6 +1590,7 @@ const ExerciseFormModal = ({
                 </div>
               )}
             </fieldset>
+            </div>
           </form>
         )}
 
@@ -1601,7 +1610,7 @@ const ExerciseFormModal = ({
               {isPT && !approved && status !== "archived" && (
                 <button
                   type="button"
-                  disabled={saving}
+                  disabled={busy}
                   onClick={() => saveApproval(true)}
                   className={primaryBtn}
                 >
@@ -1612,7 +1621,7 @@ const ExerciseFormModal = ({
               {canAuthor && (
                 <button
                   type="button"
-                  disabled={saving}
+                  disabled={busy}
                   onClick={() => setMode("edit")}
                   className={primaryBtn}
                 >
@@ -1622,7 +1631,7 @@ const ExerciseFormModal = ({
               {canAuthor && approved && status === "draft" && (
                 <button
                   type="button"
-                  disabled={saving}
+                  disabled={busy}
                   onClick={publish}
                   className={primaryBtn}
                 >
@@ -1639,7 +1648,7 @@ const ExerciseFormModal = ({
               </p>
               <button
                 type="button"
-                disabled={saving}
+                disabled={busy}
                 onClick={onClose}
                 className={secondaryBtn}
               >
@@ -1647,7 +1656,7 @@ const ExerciseFormModal = ({
               </button>
               <button
                 type="button"
-                disabled={saving || isUploading || partUploads > 0}
+                disabled={busy}
                 onClick={() => handleSaveWithStatus("draft")}
                 className={primaryBtn}
               >

@@ -17,6 +17,7 @@ import {
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DEFAULT_VALUES, UNIT_GROUPS, UNIT_VALUES, foodSchema, recipePayload, recipeValues } from "../recipeForm.js";
+import { navigateTabs } from "../../../utils/navigateTabs.js";
 import { InputField } from "../../../components/ui/inputField.jsx";
 import { FormErrorSummary } from "../../../components/ui/formErrorSummary.jsx";
 import { apiUpload } from "../../../lib/api.js";
@@ -373,6 +374,7 @@ const FoodFormModal = ({
           {mode === "edit" && (
             <div
               role="tablist"
+              onKeyDown={navigateTabs}
               aria-label="Recipe sections"
               className="relative mt-4 inline-flex flex-wrap items-center gap-1 rounded-[16px] sm:rounded-full border border-cal-hairline/80 bg-cal-surface-soft p-1 select-none"
             >
@@ -383,6 +385,9 @@ const FoodFormModal = ({
                     key={id}
                     type="button"
                     role="tab"
+                    id={`recipe-tab-${id}`}
+                    aria-controls="recipe-editor-panel"
+                    tabIndex={active ? 0 : -1}
                     aria-selected={active}
                     disabled={busy}
                     onClick={() => setTab(id)}
@@ -611,6 +616,7 @@ const FoodFormModal = ({
               disabled={busy}
               onSelect={(name) => setTab(TABS.find(([id]) => TAB_FIELDS[id].includes(name.split(".")[0]))?.[0] || "basics")}
             />
+            <div role="tabpanel" id="recipe-editor-panel" aria-labelledby={`recipe-tab-${tab}`} tabIndex={0}>
             <fieldset disabled={busy} className="contents">
             {tab === "basics" && (
               <div className="space-y-4">
@@ -1073,6 +1079,7 @@ const FoodFormModal = ({
               </div>
             )}
             </fieldset>
+            </div>
           </form>
         )}
 

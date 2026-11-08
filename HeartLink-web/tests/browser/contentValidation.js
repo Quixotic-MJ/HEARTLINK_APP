@@ -40,6 +40,42 @@ export default async function contentValidation(page) {
       .getByRole("button", { name: "Create new entry", exact: true })
       .click();
     const dialog = local.getByRole("dialog");
+    const checkTabs = async (second, last) => {
+      const basics = dialog.getByRole("tab", { name: "Basics", exact: true });
+      await basics.focus();
+      for (const [key, label] of [
+        ["ArrowRight", second],
+        ["End", last],
+        ["ArrowRight", "Basics"],
+        ["ArrowLeft", last],
+        ["Home", "Basics"],
+      ]) {
+        await local.keyboard.press(key);
+        const tab = dialog.getByRole("tab", { name: label, exact: true });
+        if (
+          (await tab.getAttribute("aria-selected")) !== "true" ||
+          !(await tab.evaluate((el) => el === document.activeElement))
+        )
+          throw Error(`Editor ${key} did not select and focus ${label}`);
+        const panelId = await tab.getAttribute("aria-controls");
+        const panel = dialog.getByRole("tabpanel", {
+          name: label,
+          exact: true,
+        });
+        if (!panelId || (await panel.getAttribute("id")) !== panelId)
+          throw Error("Tab does not label/control its active panel");
+        if ((await dialog.locator('[role="tab"][tabindex="0"]').count()) !== 1)
+          throw Error("Editor tabs lack a single keyboard entry point");
+      }
+      await local.keyboard.press("Tab");
+      if (
+        !(await dialog
+          .getByRole("tabpanel", { name: "Basics", exact: true })
+          .evaluate((el) => el === document.activeElement))
+      )
+        throw Error("Tab did not enter the active form panel");
+    };
+    await checkTabs("Nutrition", "Picture");
     await dialog
       .getByRole("button", { name: "Save draft", exact: true })
       .click();
@@ -119,6 +155,7 @@ export default async function contentValidation(page) {
     await local
       .getByRole("button", { name: "Create routine", exact: true })
       .click();
+    await checkTabs("Steps", "Media");
     await dialog
       .getByRole("button", { name: "Save draft", exact: true })
       .click();

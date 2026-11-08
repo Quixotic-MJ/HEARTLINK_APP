@@ -9,6 +9,7 @@ export default async function routineSafety(page) {
         reducedMotion: "reduce",
         viewport: { width: 375, height: 812 },
       });
+  let releaseUpload;
   try {
     const local = await context.newPage(),
       writes = [];
@@ -31,7 +32,7 @@ export default async function routineSafety(page) {
         },
       ],
     };
-    await context.route("**/*", (route) => {
+    await context.route("**/*", async (route) => {
       const request = route.request(),
         url = new URL(request.url());
       if (url.origin !== origin) return route.abort();
@@ -51,6 +52,12 @@ export default async function routineSafety(page) {
         return route.fulfill({
           json: { items: [], total: 0, unread_count: 0 },
         });
+      if (url.pathname === "/api/upload/") {
+        await new Promise((resolve) => {
+          releaseUpload = resolve;
+        });
+        return route.fulfill({ json: { url: "/static/synthetic-step.png" } });
+      }
       if (url.pathname === "/api/exercises/" && request.method() === "GET")
         return route.fulfill({ json: [routine] });
       if (
@@ -100,7 +107,40 @@ export default async function routineSafety(page) {
       );
     if (await dialog.getByText("Delete exercise", { exact: true }).count())
       throw Error("Routine editor retains a permanent-delete path");
+    await dialog
+      .getByRole("button", { name: "Edit details", exact: true })
+      .click();
+    await dialog.getByRole("tab", { name: "Steps", exact: true }).click();
+    await dialog
+      .getByRole("button", {
+        name: "Edit step 1: Synthetic movement",
+        exact: true,
+      })
+      .click();
+    await dialog
+      .locator('input[type="file"]')
+      .setInputFiles({
+        name: "synthetic.png",
+        mimeType: "image/png",
+        buffer: globalThis.Buffer.from(
+          "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jcXkAAAAASUVORK5CYII=",
+          "base64",
+        ),
+      });
+    await dialog
+      .getByRole("button", { name: "Uploading…", exact: true })
+      .waitFor({ timeout: 5000 });
+    for (const tab of await dialog.getByRole("tab").all())
+      if (!(await tab.isDisabled()))
+        throw Error("Routine tabs can unmount a pending step upload");
+    releaseUpload();
+    await dialog
+      .getByRole("button", { name: "Save draft", exact: true })
+      .waitFor({ timeout: 5000 });
     await dialog.getByRole("button", { name: "Close", exact: true }).click();
+    await dialog
+      .getByRole("button", { name: "Discard draft", exact: true })
+      .click();
     await local.getByRole("button", { name: "Archive", exact: true }).click();
     await dialog
       .getByRole("button", { name: "Archive routine", exact: true })
@@ -113,9 +153,7 @@ export default async function routineSafety(page) {
       .getByRole("button", { name: "Archive routine", exact: true })
       .click();
     await dialog.waitFor({ state: "hidden" });
-    await local
-      .getByRole("button", { name: "Restore", exact: true })
-      .click();
+    await local.getByRole("button", { name: "Restore", exact: true }).click();
     await dialog
       .getByRole("button", { name: "Restore to draft", exact: true })
       .click();
@@ -132,6 +170,7 @@ export default async function routineSafety(page) {
       );
     return "Routine lifecycle uses confirmed revision-only archive/restore, retains failed confirmation and has no duplicate editor/delete action";
   } finally {
+    releaseUpload?.();
     await context.close();
   }
 }
