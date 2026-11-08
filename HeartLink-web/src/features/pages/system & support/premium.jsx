@@ -1,15 +1,10 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { useForm, useWatch } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { toast } from "sonner";
 import {
   ArrowUpRight,
   Crown,
   Gift,
-  Info,
   RotateCcw,
   Search,
   ShieldCheck,
@@ -21,31 +16,17 @@ import {
 import AdminLayout from "../../../components/layouts/adminLayout";
 import LoadError from "../../../components/ui/LoadError";
 import { Skeleton } from "../../../components/ui/Skeleton";
-import { apiFetch } from "../../../api";
 import { useApiQuery } from "../../../hooks/useApiQuery";
 
-// HL-084: HeartLink Premium for admins: the plan settings, who is on Premium, and every change.
-// Checkout is a demo (test mode): no real money moves, so "revenue" is what test payments would have been.
+// Demo history is bounded; recorded amounts are not revenue or payment receipts.
 
-const whole = (label, max) =>
-  z.coerce
-    .number({ message: `${label} must be a number.` })
-    .int(`${label} must be a whole number.`)
-    .min(0, `${label} can't be negative.`)
-    .max(max, `${label} is at most ${max.toLocaleString()}.`);
-
-const settingsSchema = z.object({
-  monthly_price_php: whole("Monthly price", 100000),
-  yearly_price_php: whole("Yearly price", 1000000),
-  trial_days: whole("Trial length", 90),
-  checkout_enabled: z.boolean(),
-});
-
-const peso = (n) => `₱${Number(n || 0).toLocaleString("en-PH")}`;
+const peso = (n) =>
+  n == null ? "Not recorded" : `₱${Number(n).toLocaleString("en-PH")}`;
 
 const dateLabel = (iso) =>
   iso
     ? new Date(iso).toLocaleDateString("en-US", {
+        timeZone: "Asia/Manila",
         month: "short",
         day: "numeric",
         year: "numeric",
@@ -56,7 +37,7 @@ const PERIOD_WORDS = { monthly: "1 month", yearly: "1 year" };
 
 const EVENT_FILTERS = [
   ["all", "All activity"],
-  ["checkout", "Payments"],
+  ["checkout", "Demo checkouts"],
   ["trial_started", "Trials"],
   ["admin", "Admin changes"],
 ];
@@ -69,9 +50,9 @@ function describeEvent(e) {
     case "trial_started":
       return "Started the free trial";
     case "checkout":
-      return `Paid ${peso(e.amount_php)} for ${
+      return `Recorded demo amount ${peso(e.amount_php)} for ${
         PERIOD_WORDS[e.period] || e.period
-      } with ${e.method === "gcash" ? "GCash" : "card"} (test)`;
+      } (${e.method === "gcash" ? "GCash simulation" : e.method === "card" ? "card simulation" : "method not recorded"}; no charge)`;
     case "admin_granted":
       return `Given Premium${e.actor_name ? ` by ${e.actor_name}` : ""}`;
     case "admin_removed":
@@ -116,170 +97,48 @@ function getEventBadge(kind) {
   }
 }
 
-function PlanSettingsForm({ config }) {
-  const {
-    register,
-    handleSubmit,
-    control,
-    formState: { errors, isSubmitting, isDirty },
-  } = useForm({
-    resolver: zodResolver(settingsSchema),
-    defaultValues: config,
-    mode: "onTouched",
-  });
-
-  const watched = useWatch({ control });
-  const monthly = Number(watched?.monthly_price_php ?? config.monthly_price_php) || 0;
-  const yearly = Number(watched?.yearly_price_php ?? config.yearly_price_php) || 0;
-  const checkoutEnabled = Boolean(
-    watched?.checkout_enabled ?? config.checkout_enabled
-  );
-  const saving = monthly * 12 - yearly;
-
-  const save = async (values) => {
-    try {
-      await apiFetch("/api/admin/premium/config", {
-        method: "PUT",
-        body: JSON.stringify(values),
-      });
-      toast.success("Premium settings saved", {
-        description: "The mobile app shows the updated prices straight away.",
-      });
-    } catch (e) {
-      toast.error(e?.data?.detail || "Couldn't save the Premium settings.");
-    }
-  };
-
-  const renderField = (name, label, suffix, hint) => {
-    const hasErr = Boolean(errors[name]);
-    return (
-      <div>
-        <label
-          htmlFor={name}
-          className="mb-1.5 block text-[13px] font-medium text-cal-ink"
-        >
-          {label}
-        </label>
-        <div className="relative">
-          <input
-            id={name}
-            type="number"
-            inputMode="numeric"
-            min="0"
-            {...register(name)}
-            aria-invalid={hasErr}
-            className={`h-10 w-full rounded-[8px] border bg-cal-canvas pl-3.5 pr-16 font-cal-mono text-[14px] tabular-nums text-cal-ink outline-none transition-colors ${
-              hasErr
-                ? "border-cal-error focus:border-cal-error"
-                : "border-cal-hairline focus:border-cal-ink"
-            }`}
-          />
-          <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 font-cal-mono text-[12px] font-medium uppercase text-cal-muted">
-            {suffix}
-          </span>
-        </div>
-        {hasErr ? (
-          <p className="mt-1 text-[12px] font-medium text-cal-error">
-            {errors[name].message}
-          </p>
-        ) : hint ? (
-          <p className="mt-1 text-[12px] text-cal-muted">{hint}</p>
-        ) : null}
-      </div>
-    );
-  };
-
+function PlanConfiguration({ config, basis }) {
   return (
-    <form
-      onSubmit={handleSubmit(save)}
-      noValidate
-      className="overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
-    >
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cal-hairline px-5 py-4">
+    <section className="rounded-xl border border-cal-hairline bg-cal-canvas p-5">
+      <h3 className="text-base font-semibold text-cal-ink">
+        Demo plan configuration
+      </h3>
+      <p className="mt-1 text-sm text-cal-muted">
+        Read-only reference. No real money is charged and this page cannot
+        change prices or sign-up settings.
+      </p>
+      <p className="mt-2 text-xs text-cal-muted">
+        {basis === "stored"
+          ? "Configuration basis: stored values."
+          : basis === "default"
+            ? "Configuration basis: fallback defaults; no stored configuration row was found."
+            : "Configuration basis: not verified."}
+      </p>
+      <dl className="mt-4 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 xl:grid-cols-4">
         <div>
-          <h3 className="text-[15px] font-semibold text-cal-ink">
-            Plan settings
-          </h3>
-          <p className="mt-0.5 text-[12.5px] text-cal-muted">
-            What patients see on the Premium screen in the mobile app.
-          </p>
+          <dt className="text-cal-muted">Monthly demo amount</dt>
+          <dd className="mt-1 font-semibold">
+            {peso(config.monthly_price_php)}
+          </dd>
         </div>
-
-        <span
-          className={`${PILL} ${
-            checkoutEnabled
-              ? "border-cal-success/25 bg-cal-success/10 text-cal-ink"
-              : "border-cal-warning/35 bg-cal-warning/15 text-cal-ink"
-          }`}
-        >
-          <span
-            className={`h-1.5 w-1.5 rounded-full ${
-              checkoutEnabled ? "bg-cal-success" : "bg-cal-warning"
-            }`}
-          />
-          <span>
-            {checkoutEnabled ? "Open for sign-ups" : "Sign-ups paused"}
-          </span>
-        </span>
-      </div>
-
-      <div className="space-y-5 p-5">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {renderField(
-            "monthly_price_php",
-            "Monthly price",
-            "PHP",
-            "Standard monthly billing rate."
-          )}
-          {renderField(
-            "yearly_price_php",
-            "Yearly price",
-            "PHP",
-            saving > 0
-              ? `Patients save ${peso(saving)} against 12 months.`
-              : "Yearly isn't cheaper than 12 months."
-          )}
-          {renderField(
-            "trial_days",
-            "Free trial",
-            "days",
-            "0 turns the free trial off."
-          )}
+        <div>
+          <dt className="text-cal-muted">Yearly demo amount</dt>
+          <dd className="mt-1 font-semibold">
+            {peso(config.yearly_price_php)}
+          </dd>
         </div>
-
-        <label className="flex items-start gap-3 rounded-[10px] border border-cal-hairline bg-cal-surface-soft p-4 cursor-pointer transition-colors hover:bg-cal-surface-card/60">
-          <input
-            type="checkbox"
-            {...register("checkout_enabled")}
-            className="mt-0.5 h-4 w-4 rounded border-cal-hairline accent-cal-primary cursor-pointer"
-          />
-          <span>
-            <span className="block text-[13.5px] font-semibold text-cal-ink">
-              Open for new sign-ups
-            </span>
-            <span className="mt-0.5 block text-[12.5px] leading-relaxed text-cal-muted">
-              When off, patients can&apos;t start a trial or pay. Anyone already
-              on Premium keeps their access.
-            </span>
-          </span>
-        </label>
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-cal-hairline bg-cal-surface-soft/50 px-5 py-3.5">
-        <span className="inline-flex items-center gap-1.5 text-[12.5px] text-cal-muted">
-          <Info size={14} className="shrink-0 text-cal-muted" aria-hidden="true" />
-          <span>Test mode: no real money is charged.</span>
-        </span>
-
-        <button
-          type="submit"
-          disabled={!isDirty || isSubmitting}
-          className="inline-flex h-10 items-center justify-center rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-5 text-[13.5px] font-semibold text-cal-on-primary transition-colors cursor-pointer disabled:bg-cal-primary-disabled disabled:text-cal-muted disabled:cursor-not-allowed"
-        >
-          {isSubmitting ? "Saving…" : "Save settings"}
-        </button>
-      </div>
-    </form>
+        <div>
+          <dt className="text-cal-muted">Configured trial</dt>
+          <dd className="mt-1 font-semibold">{config.trial_days} days</dd>
+        </div>
+        <div>
+          <dt className="text-cal-muted">Demo sign-ups</dt>
+          <dd className="mt-1 font-semibold">
+            {config.checkout_enabled ? "Enabled" : "Paused"}
+          </dd>
+        </div>
+      </dl>
+    </section>
   );
 }
 
@@ -293,10 +152,10 @@ function ChangesTable({ events = [] }) {
       checkout: events.filter((e) => e.kind === "checkout").length,
       trial_started: events.filter((e) => e.kind === "trial_started").length,
       admin: events.filter(
-        (e) => e.kind === "admin_granted" || e.kind === "admin_removed"
+        (e) => e.kind === "admin_granted" || e.kind === "admin_removed",
       ).length,
     }),
-    [events]
+    [events],
   );
 
   const filteredEvents = useMemo(() => {
@@ -324,7 +183,9 @@ function ChangesTable({ events = [] }) {
             Recent changes
           </h3>
           <p className="mt-0.5 text-[12.5px] text-cal-muted">
-            Trials, test payments, and Premium granted or removed by admins.
+            Latest returned trial, demo-checkout and Admin-access records only;
+            filters apply to this window, not all account history. Dates use
+            Asia/Manila.
           </p>
         </div>
 
@@ -383,7 +244,7 @@ function ChangesTable({ events = [] }) {
               <input
                 type="text"
                 aria-label="Search Premium activity"
-                placeholder="Search patient or event…"
+                placeholder="Search account or event…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="h-9 w-full rounded-[8px] border border-cal-hairline bg-cal-canvas pl-9 pr-8 text-[13.5px] text-cal-ink placeholder:text-cal-muted-soft focus:border-cal-ink focus:outline-none transition-colors"
@@ -412,8 +273,7 @@ function ChangesTable({ events = [] }) {
             No Premium activity yet
           </p>
           <p className="max-w-sm text-[13px] text-cal-muted">
-            Trials, test payments, and admin grants will appear here as patients
-            enroll.
+            Recorded trials, demo checkouts, and admin grants will appear here.
           </p>
         </div>
       ) : filteredEvents.length === 0 ? (
@@ -434,7 +294,12 @@ function ChangesTable({ events = [] }) {
           </button>
         </div>
       ) : (
-        <div className="w-full overflow-x-auto">
+        <div
+          role="region"
+          aria-label="Premium activity table"
+          tabIndex={0}
+          className="w-full overflow-x-auto"
+        >
           <table className="w-full min-w-[720px] border-collapse text-left">
             <thead>
               <tr className="border-b border-cal-hairline bg-cal-surface-soft/70">
@@ -448,7 +313,7 @@ function ChangesTable({ events = [] }) {
                   scope="col"
                   className="px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted"
                 >
-                  Patient
+                  App account
                 </th>
                 <th
                   scope="col"
@@ -519,14 +384,15 @@ const Premium = () => {
           <div>
             <div className="mb-2.5 inline-flex items-center gap-2 rounded-full border border-cal-hairline bg-cal-canvas px-3 py-1 text-[12px] font-medium text-cal-muted">
               <Crown size={13.5} className="text-cal-ink" />
-              <span>Users &amp; feedback · Subscription plans</span>
+              <span>Operations · Optional Premium access</span>
             </div>
             <h2 className="font-cal-display text-[28px] sm:text-[32px] font-semibold tracking-[-0.8px] leading-[1.15] text-cal-ink">
               HeartLink Premium
             </h2>
             <p className="mt-1.5 max-w-[64ch] text-[14px] leading-[1.5] text-cal-muted">
-              Plan settings and who is on Premium. Give or remove Premium for an
-              individual patient from Users &rsaquo; Manage.
+              Read-only demo configuration and recorded optional entitlements.
+              Account access is managed separately in Accounts &amp; Staff. This
+              is not a payments or revenue dashboard.
             </p>
           </div>
 
@@ -535,7 +401,7 @@ const Premium = () => {
             className="inline-flex h-10 items-center gap-2 rounded-[8px] border border-cal-hairline bg-cal-canvas px-4 text-[13.5px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors"
           >
             <Users size={15} className="text-cal-muted" />
-            <span>Manage patient accounts</span>
+            <span>Accounts &amp; Staff</span>
             <ArrowUpRight size={14} className="text-cal-muted" />
           </Link>
         </div>
@@ -579,7 +445,7 @@ const Premium = () => {
                   <span className="font-cal-mono font-medium tabular-nums text-cal-ink">
                     {data.patients}
                   </span>{" "}
-                  registered patients
+                  active app accounts
                 </div>
               </div>
 
@@ -620,7 +486,7 @@ const Premium = () => {
               <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[12.5px] font-medium text-cal-muted">
-                    Test payments (total)
+                    Recorded demo amounts
                   </span>
                   <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-soft text-cal-ink">
                     <Wallet size={14.5} aria-hidden="true" />
@@ -630,21 +496,23 @@ const Premium = () => {
                   {peso(data.demo_revenue_php)}
                 </div>
                 <div className="mt-2 text-[12px] text-cal-muted">
-                  Simulated checkout volume
+                  Latest {data.events_considered} events considered; not revenue
                 </div>
               </div>
             </div>
 
-            {/* Plan Settings Form */}
-            <PlanSettingsForm
-              key={JSON.stringify(data.config)}
-              config={data.config}
-            />
+            <PlanConfiguration config={data.config} basis={data.config_basis} />
+            <p className="text-sm text-cal-muted">
+              Demo history is limited to the latest 5,000 records; this is not
+              an all-time total.{" "}
+              {data.history_may_be_truncated
+                ? "More history may exist."
+                : "Only recorded data is included."}
+              The table shows at most {data.event_limit} recent entries.
+            </p>
 
-            {/* Activity Audit Table */}
             <ChangesTable events={data.events} />
 
-            {/* Clinical Safety Guarantee Banner */}
             <div className="flex items-center gap-2.5 rounded-[10px] border border-cal-hairline bg-cal-surface-soft px-4 py-3 text-[13px] text-cal-muted">
               <ShieldCheck
                 size={15.5}
@@ -652,8 +520,9 @@ const Premium = () => {
                 aria-hidden="true"
               />
               <span>
-                Safety features stay free for every patient: check-ins,
-                emergency warnings, clinics, reminders, and the heart score.
+                Premium is optional. It does not certify health safety, medical
+                advice or clinical outcomes. Existing personal warning/help
+                safeguards are not redesigned by this website work.
               </span>
             </div>
           </div>

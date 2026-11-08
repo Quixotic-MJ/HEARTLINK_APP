@@ -160,13 +160,20 @@ def update_config(payload: Dict[str, Any], admin_id: str) -> Dict[str, Any]:
 def summary(event_limit: int = 30) -> Dict[str, Any]:
     """The portal's Premium page: who is Premium now, and the latest changes with names."""
     now = utc_now()
-    patients = get_profile_repo().list_all(role_filter="patient")
+    accounts = get_profile_repo().list_portal_premium_accounts()
+    patients = [row for row in accounts if row.get("role") == "patient" and row.get("account_status") == "active"]
     active = [p for p in patients if is_premium(p, now)]
-    names = {p.get("id"): _name(p) for p in get_profile_repo().list_all(exclude_archived=False)}
+    names = {row.get("id"): _name(row) for row in accounts}
     all_events = get_premium_repo().list_events(5000)
     events = all_events[:event_limit]
+    config = get_premium_repo().get_config() or {}
     return {
-        "config": _config(),
+        "config": {key: config.get(key, DEFAULT_CONFIG[key]) for key in CONFIG_FIELDS},
+        "config_basis": config.get("_basis", "unverified"),
+        "test_mode": True,
+        "events_considered": len(all_events),
+        "history_may_be_truncated": len(all_events) >= 5000,
+        "event_limit": event_limit,
         "patients": len(patients),
         "premium_members": len(active),
         "on_trial": sum(1 for p in active if p.get("premium_source") == "trial"),

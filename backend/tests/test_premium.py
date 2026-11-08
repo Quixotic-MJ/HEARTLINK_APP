@@ -26,6 +26,10 @@ class Profiles:
     def list_all(self, role_filter=None, exclude_archived=True):
         return [dict(r) for r in self.rows.values() if not role_filter or r.get("role") == role_filter]
 
+    def list_portal_premium_accounts(self):
+        fields = ("id", "role", "account_status", "first_name", "last_name", "email", "plan", "premium_until", "premium_source")
+        return [{field: row.get(field) for field in fields} for row in self.rows.values()]
+
 
 class PremiumStore:
     def __init__(self):
@@ -247,3 +251,27 @@ def test_the_overview_counts_members_and_lists_changes_with_names(client):
     assert (body["patients"], body["premium_members"], body["on_trial"], body["by_admin"]) == (2, 2, 1, 1)
     assert body["events"][0]["user_name"] == "Ben" and body["events"][0]["actor_name"] == "Ada"
     assert body["events"][1]["user_name"] == "Ana Cruz" and body["events"][1]["actor_name"] is None
+
+
+def test_overview_uses_only_operational_projection_and_active_app_accounts(repos, monkeypatch):
+    profiles, store = repos
+    def denied(*args, **kwargs):
+        raise AssertionError("Full personal profiles are not a portal summary input")
+    monkeypatch.setattr(profiles, "list_all", denied)
+    profiles.rows["pat2"].update(account_status="disabled", plan="premium", premium_until=(utc_now() + timedelta(days=30)).isoformat())
+    profiles.rows["pat"]["synthetic_private_field"] = "NEVER_IN_PORTAL"
+    result = premium.summary()
+    assert result["patients"] == 1 and result["premium_members"] == 0
+    assert result["test_mode"] is True
+    assert result["events_considered"] == 0
+    assert "NEVER_IN_PORTAL" not in str(result)
+
+
+def test_overview_labels_bounded_demo_history_instead_of_all_time_revenue(repos):
+    _, store = repos
+    store.events = [{"id": str(i), "kind": "checkout", "amount_php": 1, "user_id": "pat"} for i in range(5001)]
+    result = premium.summary()
+    assert result["events_considered"] == 5000
+    assert result["history_may_be_truncated"] is True
+    assert result["demo_revenue_php"] == 5000
+    assert len(result["events"]) == 30

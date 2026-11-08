@@ -57,6 +57,9 @@ class ProfileRepository:
     def list_portal_staff(self) -> List[Dict[str, Any]]:
         raise NotImplementedError
 
+    def list_portal_premium_accounts(self) -> List[Dict[str, Any]]:
+        raise NotImplementedError
+
 
 class SupabaseProfileRepository(ProfileRepository):
     def __init__(self, client):
@@ -76,6 +79,10 @@ class SupabaseProfileRepository(ProfileRepository):
             self.client, "profiles",
             "id,role,first_name,last_name,email,phone,expert_type,is_verified_clinician,clinician_verified_at,account_status,created_at",
         )
+
+    def list_portal_premium_accounts(self) -> List[Dict[str, Any]]:
+        return list_projected_rows(self.client, "profiles",
+            "id,role,account_status,first_name,last_name,email,plan,premium_until,premium_source")
 
     def get_by_id(self, user_id: str) -> Optional[Dict[str, Any]]:
         try:
