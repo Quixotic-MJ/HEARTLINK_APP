@@ -89,38 +89,21 @@ const Broadcasts = () => {
   };
 
   const counts = useMemo(() => {
-    const normalizeType = (t) =>
-      ["Maintenance", "App Update", "Safety Reminder"].includes(t)
-        ? t
-        : "General";
     return {
       all: broadcasts.length,
-      Maintenance: broadcasts.filter(
-        (b) => normalizeType(b.type) === "Maintenance",
-      ).length,
-      "App Update": broadcasts.filter(
-        (b) => normalizeType(b.type) === "App Update",
-      ).length,
-      "Safety Reminder": broadcasts.filter(
-        (b) => normalizeType(b.type) === "Safety Reminder",
-      ).length,
-      General: broadcasts.filter((b) => normalizeType(b.type) === "General")
+      Maintenance: broadcasts.filter((b) => b.type === "Maintenance").length,
+      "App Update": broadcasts.filter((b) => b.type === "App Update").length,
+      "Safety Reminder": broadcasts.filter((b) => b.type === "Safety Reminder")
         .length,
+      General: broadcasts.filter((b) => b.type === "General").length,
     };
   }, [broadcasts]);
 
   const filteredBroadcasts = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return broadcasts.filter((b) => {
-      const normalized = [
-        "Maintenance",
-        "App Update",
-        "Safety Reminder",
-      ].includes(b.type)
-        ? b.type
-        : "General";
       const matchesCategory =
-        filterCategory === "all" || normalized === filterCategory;
+        filterCategory === "all" || b.type === filterCategory;
       const matchesSearch =
         !q ||
         (b.title || "").toLowerCase().includes(q) ||
@@ -311,7 +294,12 @@ const Broadcasts = () => {
           </div>
 
           {/* Table */}
-          <div role="region" aria-label="Announcement history table" tabIndex={0} className="w-full overflow-x-auto">
+          <div
+            role="region"
+            aria-label="Announcement history table"
+            tabIndex={0}
+            className="w-full overflow-x-auto"
+          >
             <table className="w-full min-w-[780px] border-collapse text-left">
               <thead>
                 <tr className="border-b border-cal-hairline bg-cal-surface-soft/70">

@@ -20,6 +20,7 @@ import {
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { EMPTY_FORM, exercisePayload, exerciseSchema, exerciseValues, fromValues } from "../exerciseForm.js";
+import { formatReviewDate } from "../../../utils/formatReviewDate.js";
 import { navigateTabs } from "../../../utils/navigateTabs.js";
 import { InputField } from "../../../components/ui/inputField.jsx";
 import { FormErrorSummary } from "../../../components/ui/formErrorSummary.jsx";
@@ -369,13 +370,7 @@ const ExerciseFormModal = ({
 
   const approved = !!exercise?.expertValidated;
   const sentBack = !approved && !!exercise?.reviewNote;
-  const approvedOn = exercise?.reviewedAt
-    ? new Date(exercise.reviewedAt).toLocaleDateString([], {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      })
-    : "";
+  const approvedOn = formatReviewDate(exercise?.reviewedAt);
 
   const keepParts = (parts) =>
     (parts || []).filter((p) => (p.instruction || "").trim());

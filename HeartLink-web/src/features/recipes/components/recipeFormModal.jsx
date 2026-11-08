@@ -17,6 +17,7 @@ import {
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DEFAULT_VALUES, UNIT_GROUPS, UNIT_VALUES, foodSchema, recipePayload, recipeValues } from "../recipeForm.js";
+import { formatReviewDate } from "../../../utils/formatReviewDate.js";
 import { navigateTabs } from "../../../utils/navigateTabs.js";
 import { InputField } from "../../../components/ui/inputField.jsx";
 import { FormErrorSummary } from "../../../components/ui/formErrorSummary.jsx";
@@ -237,13 +238,7 @@ const FoodFormModal = ({
 
   const approved = !!recipe?.expertValidated;
   const sentBack = !approved && !!recipe?.reviewNote;
-  const approvedOn = recipe?.reviewedAt
-    ? new Date(recipe.reviewedAt).toLocaleDateString([], {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      })
-    : "";
+  const approvedOn = formatReviewDate(recipe?.reviewedAt);
   const ingredientRows = (v.ingredients || []).filter((i) =>
     (i?.name || "").trim()
   );

@@ -43,7 +43,7 @@ export const CategoryBadge = ({ category }) => {
           <span>Safety reminder</span>
         </span>
       );
-    default:
+    case "General":
       return (
         <span
           className={`${PILL} border-cal-success/25 bg-cal-success/10 text-cal-ink`}
@@ -54,6 +54,14 @@ export const CategoryBadge = ({ category }) => {
             aria-hidden="true"
           />
           <span>General</span>
+        </span>
+      );
+    default:
+      return (
+        <span
+          className={`${PILL} border-cal-hairline bg-cal-surface-soft text-cal-muted`}
+        >
+          Category unavailable
         </span>
       );
   }
