@@ -6,6 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { InputField } from "../../../components/ui/inputField.jsx";
 import { useDialogFocus } from "../../../hooks/useDialogFocus.js";
+import { useDraftExit } from "../../../hooks/useDraftExit.js";
+import { DiscardDraft } from "../../../components/ui/discardDraft.jsx";
 
 const staffSchema = z
   .object({
@@ -39,7 +41,7 @@ const StaffFormModal = ({ isOpen, onClose, onSave }) => {
     setValue,
     setError,
     clearErrors,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = useForm({
     resolver: zodResolver(staffSchema),
     defaultValues: {
@@ -52,8 +54,15 @@ const StaffFormModal = ({ isOpen, onClose, onSave }) => {
     mode: "onTouched",
   });
 
+  const draftExit = useDraftExit(
+    isOpen,
+    isDirty,
+    onClose,
+    dialogRef,
+    isSubmitting,
+  );
   const close = () => {
-    if (!pending.current) onClose();
+    if (!pending.current) draftExit.requestClose();
   };
   useDialogFocus(isOpen, dialogRef, close);
 
@@ -77,8 +86,6 @@ const StaffFormModal = ({ isOpen, onClose, onSave }) => {
   }, [isOpen, reset]);
 
   const onSubmit = async (data) => {
-    if (pending.current) return;
-    pending.current = true;
     clearErrors("root");
     try {
       await onSave(data);
@@ -89,6 +96,15 @@ const StaffFormModal = ({ isOpen, onClose, onSave }) => {
           error.message ||
           "Could not provision the account. Try again.",
       });
+    }
+  };
+
+  const submit = async (event) => {
+    event.preventDefault();
+    if (pending.current || draftExit.discarding) return;
+    pending.current = true;
+    try {
+      await handleSubmit(onSubmit)(event);
     } finally {
       pending.current = false;
     }
@@ -113,189 +129,207 @@ const StaffFormModal = ({ isOpen, onClose, onSave }) => {
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="staff-provision-title"
+        aria-busy={isSubmitting}
+        aria-labelledby={
+          draftExit.discarding
+            ? "discard-changes-title"
+            : "staff-provision-title"
+        }
         tabIndex={-1}
         className="relative z-10 flex max-h-full w-full max-w-lg flex-col overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas text-cal-ink shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
       >
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4 border-b border-cal-hairline bg-cal-canvas px-6 py-4.5">
-          <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-soft text-cal-ink">
-              <UserPlus size={16} />
-            </span>
-            <div>
-              <h3
-                id="staff-provision-title"
-                className="font-cal-display text-[20px] font-semibold tracking-[-0.4px] leading-[1.2] text-cal-ink"
-              >
-                Provision staff account
-              </h3>
-              <p className="mt-0.5 text-[12.5px] text-cal-muted">
-                Define administrative access controls and role boundaries.
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={close}
-            disabled={isSubmitting}
-            aria-label="Close modal"
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-hairline bg-cal-canvas text-cal-muted hover:text-cal-ink transition-colors cursor-pointer disabled:opacity-40"
-          >
-            <X size={15} />
-          </button>
-        </div>
-
-        {/* Scrollable Form */}
-        <form
-          id="staff-provision-form"
-          onSubmit={(event) => handleSubmit(onSubmit)(event)}
-          className="flex-1 overflow-y-auto p-6 space-y-4"
-        >
-          {errors.root && (
-            <p
-              ref={errorRef}
-              role="alert"
-              tabIndex={-1}
-              className="rounded-lg border border-cal-error p-3 text-sm"
-            >
-              {errors.root.message}
-            </p>
-          )}
-          <InputField
-            id="name"
-            label="Full name"
-            placeholder="e.g. Dr. Jane Doe"
-            error={errors.name}
-            {...register("name")}
+        {draftExit.discarding && (
+          <DiscardDraft
+            onKeep={draftExit.keepEditing}
+            onDiscard={draftExit.confirmDiscard}
           />
-
-          <InputField
-            id="email"
-            type="email"
-            label="Email address"
-            placeholder="e.g. jane.doe@heartlink.ph"
-            error={errors.email}
-            {...register("email")}
-          />
-
-          <InputField
-            id="phone"
-            type="tel"
-            label="Contact number (optional)"
-            placeholder="e.g. 09XXXXXXXXX"
-            error={errors.phone}
-            {...register("phone")}
-          />
-
-          <div className="space-y-1.5">
-            <label
-              htmlFor="staff-role-select"
-              className="block text-[13px] font-semibold text-cal-ink"
-            >
-              Role assignment
-            </label>
-            <div className="relative">
-              <select
-                id="staff-role-select"
-                {...register("role")}
-                className={`h-10 w-full appearance-none rounded-[8px] border bg-cal-canvas pl-3.5 pr-9 text-[14px] font-medium text-cal-ink outline-none transition-colors cursor-pointer ${
-                  errors.role
-                    ? "border-cal-error focus:border-cal-error"
-                    : "border-cal-hairline focus:border-cal-ink"
-                }`}
-              >
-                <option value="Authorized Medical Expert">
-                  Expert Reviewer
-                </option>
-                <option value="System Admin">System Admin</option>
-              </select>
-              <ChevronDown
-                size={15}
-                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cal-muted"
-              />
-            </div>
-            {errors.role && (
-              <p className="text-[12px] font-medium text-cal-error">
-                {errors.role.message}
-              </p>
-            )}
-          </div>
-
-          {isExpertRole && (
-            <div className="space-y-1.5">
-              <label
-                htmlFor="staff-expert-type"
-                className="block text-[13px] font-semibold text-cal-ink"
-              >
-                Expert specialization <span className="text-cal-error">*</span>
-              </label>
-              <div className="relative">
-                <select
-                  id="staff-expert-type"
-                  {...register("expert_type")}
-                  className={`h-10 w-full appearance-none rounded-[8px] border bg-cal-canvas pl-3.5 pr-9 text-[14px] font-medium text-cal-ink outline-none transition-colors cursor-pointer ${
-                    errors.expert_type
-                      ? "border-cal-error focus:border-cal-error"
-                      : "border-cal-hairline focus:border-cal-ink"
-                  }`}
+        )}
+        <div className={draftExit.discarding ? "hidden" : "contents"}>
+          {/* Header */}
+          <div className="flex items-start justify-between gap-4 border-b border-cal-hairline bg-cal-canvas px-6 py-4.5">
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-soft text-cal-ink">
+                <UserPlus size={16} />
+              </span>
+              <div>
+                <h3
+                  id="staff-provision-title"
+                  className="font-cal-display text-[20px] font-semibold tracking-[-0.4px] leading-[1.2] text-cal-ink"
                 >
-                  <option value="">Select specialization…</option>
-                  <option value="Physical Therapist">Physical Therapist</option>
-                  <option value="Dietitian">Dietitian</option>
-                  <option value="Cardiologist">Cardiologist</option>
-                </select>
-                <ChevronDown
-                  size={15}
-                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cal-muted"
-                />
-              </div>
-              {errors.expert_type && (
-                <p className="text-[12px] font-medium text-cal-error">
-                  {errors.expert_type.message}
+                  Provision staff account
+                </h3>
+                <p className="mt-0.5 text-[12.5px] text-cal-muted">
+                  Define administrative access controls and role boundaries.
                 </p>
-              )}
+              </div>
             </div>
-          )}
-
-          <div className="flex items-start gap-2.5 rounded-[10px] border border-cal-hairline bg-cal-surface-soft p-3.5 text-[12.5px] leading-[1.45] text-cal-body">
-            <Info size={14.5} className="mt-0.5 shrink-0 text-cal-ink" />
-            <p className="m-0">
-              A one-time temporary password will be generated and shown to you
-              once. The new staff member must choose their own password the
-              first time they sign in.
-            </p>
+            <button
+              type="button"
+              onClick={close}
+              disabled={isSubmitting}
+              aria-label="Close modal"
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-hairline bg-cal-canvas text-cal-muted hover:text-cal-ink transition-colors cursor-pointer disabled:opacity-40"
+            >
+              <X size={15} />
+            </button>
           </div>
-        </form>
 
-        {/* Footer */}
-        <div className="flex shrink-0 items-center justify-end gap-2.5 border-t border-cal-hairline bg-cal-canvas px-6 py-4">
-          <button
-            type="button"
-            onClick={close}
-            disabled={isSubmitting}
-            className="h-10 rounded-[8px] border border-cal-hairline bg-cal-canvas px-4 text-[13.5px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer disabled:opacity-40"
+          {/* Scrollable Form */}
+          <form
+            id="staff-provision-form"
+            onSubmit={submit}
+            className="flex-1 overflow-y-auto p-6 space-y-4"
           >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            form="staff-provision-form"
-            disabled={isSubmitting}
-            className="inline-flex h-10 items-center gap-2 rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-5 text-[13.5px] font-semibold text-cal-on-primary transition-colors cursor-pointer disabled:bg-cal-primary-disabled disabled:text-cal-muted"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 size={15} className="animate-spin" />
-                <span>Provisioning…</span>
-              </>
-            ) : (
-              <>
-                <UserPlus size={15} />
-                <span>Provision account</span>
-              </>
+            {errors.root && (
+              <p
+                ref={errorRef}
+                role="alert"
+                tabIndex={-1}
+                className="rounded-lg border border-cal-error p-3 text-sm"
+              >
+                {errors.root.message}
+              </p>
             )}
-          </button>
+            <fieldset disabled={isSubmitting} className="min-w-0 space-y-4">
+              <InputField
+                id="name"
+                label="Full name"
+                placeholder="e.g. Dr. Jane Doe"
+                error={errors.name}
+                {...register("name")}
+              />
+
+              <InputField
+                id="email"
+                type="email"
+                label="Email address"
+                placeholder="e.g. jane.doe@heartlink.ph"
+                error={errors.email}
+                {...register("email")}
+              />
+
+              <InputField
+                id="phone"
+                type="tel"
+                label="Contact number (optional)"
+                placeholder="e.g. 09XXXXXXXXX"
+                error={errors.phone}
+                {...register("phone")}
+              />
+
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="staff-role-select"
+                  className="block text-[13px] font-semibold text-cal-ink"
+                >
+                  Role assignment
+                </label>
+                <div className="relative">
+                  <select
+                    id="staff-role-select"
+                    {...register("role")}
+                    className={`h-10 w-full appearance-none rounded-[8px] border bg-cal-canvas pl-3.5 pr-9 text-[14px] font-medium text-cal-ink outline-none transition-colors cursor-pointer ${
+                      errors.role
+                        ? "border-cal-error focus:border-cal-error"
+                        : "border-cal-hairline focus:border-cal-ink"
+                    }`}
+                  >
+                    <option value="Authorized Medical Expert">
+                      Expert Reviewer
+                    </option>
+                    <option value="System Admin">System Admin</option>
+                  </select>
+                  <ChevronDown
+                    size={15}
+                    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cal-muted"
+                  />
+                </div>
+                {errors.role && (
+                  <p className="text-[12px] font-medium text-cal-error">
+                    {errors.role.message}
+                  </p>
+                )}
+              </div>
+
+              {isExpertRole && (
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="staff-expert-type"
+                    className="block text-[13px] font-semibold text-cal-ink"
+                  >
+                    Expert specialization{" "}
+                    <span className="text-cal-error">*</span>
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="staff-expert-type"
+                      {...register("expert_type")}
+                      className={`h-10 w-full appearance-none rounded-[8px] border bg-cal-canvas pl-3.5 pr-9 text-[14px] font-medium text-cal-ink outline-none transition-colors cursor-pointer ${
+                        errors.expert_type
+                          ? "border-cal-error focus:border-cal-error"
+                          : "border-cal-hairline focus:border-cal-ink"
+                      }`}
+                    >
+                      <option value="">Select specialization…</option>
+                      <option value="Physical Therapist">
+                        Physical Therapist
+                      </option>
+                      <option value="Dietitian">Dietitian</option>
+                      <option value="Cardiologist">Cardiologist</option>
+                    </select>
+                    <ChevronDown
+                      size={15}
+                      className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cal-muted"
+                    />
+                  </div>
+                  {errors.expert_type && (
+                    <p className="text-[12px] font-medium text-cal-error">
+                      {errors.expert_type.message}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div className="flex items-start gap-2.5 rounded-[10px] border border-cal-hairline bg-cal-surface-soft p-3.5 text-[12.5px] leading-[1.45] text-cal-body">
+                <Info size={14.5} className="mt-0.5 shrink-0 text-cal-ink" />
+                <p className="m-0">
+                  A one-time temporary password will be generated and shown to
+                  you once. The new staff member must choose their own password
+                  the first time they sign in.
+                </p>
+              </div>
+            </fieldset>
+          </form>
+
+          {/* Footer */}
+          <div className="flex shrink-0 items-center justify-end gap-2.5 border-t border-cal-hairline bg-cal-canvas px-6 py-4">
+            <button
+              type="button"
+              onClick={close}
+              disabled={isSubmitting}
+              className="h-10 rounded-[8px] border border-cal-hairline bg-cal-canvas px-4 text-[13.5px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer disabled:opacity-40"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="staff-provision-form"
+              disabled={isSubmitting}
+              className="inline-flex h-10 items-center gap-2 rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-5 text-[13.5px] font-semibold text-cal-on-primary transition-colors cursor-pointer disabled:bg-cal-primary-disabled disabled:text-cal-muted"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" />
+                  <span>Provisioning…</span>
+                </>
+              ) : (
+                <>
+                  <UserPlus size={15} />
+                  <span>Provision account</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>,

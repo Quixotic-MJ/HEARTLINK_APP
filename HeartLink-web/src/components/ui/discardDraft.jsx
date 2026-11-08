@@ -14,8 +14,8 @@ export function DiscardDraft({ onKeep, onDiscard }) {
         Discard unsaved changes?
       </h3>
       <p className="text-sm leading-relaxed text-cal-muted">
-        This draft has not been saved. Discarding loses your content changes or
-        review note. Saved content and review history will not be changed.
+        Discarding loses the changes held in this form. It does not undo
+        completed saves or change saved records and history.
       </p>
       <div className="flex flex-wrap justify-end gap-2">
         <button

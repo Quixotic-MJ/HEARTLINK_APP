@@ -74,9 +74,35 @@ intercept every API/external request before navigation. Unit tests, lint and the
 do not start a backend or execute migrations/seeds. `npm test` also checks exact
 on-disk import casing and that no legacy UI is reachable from the browser entry.
 
-`tests/browser/dialogOverlay.js` is a synthetic Playwright function-runner check against
-frontend-only port 5180. It verifies toast/modal/menu stacking and keyboard focus; it is
-separate from `npm test` and intercepts every API/external request before navigation.
+The Playwright checks under `tests/browser/` run separately from `npm test`. Each
+exports an async function accepting a Playwright `page` and creates fresh contexts
+with synthetic fixtures and API/external interception before navigation. Use an
+already authorized Playwright function runner; do not point these tests at a live
+backend or reuse signed-in staff data.
+
+Start only the frontend in a dedicated terminal with this deliberately unreachable
+proxy target, then run the exported test functions against port 5180:
+
+```powershell
+$env:VITE_API_URL='http://127.0.0.1:5180'
+$env:VITE_PROXY_TARGET='http://127.0.0.1:9'
+npm run dev -- --host 127.0.0.1 --port 5180 --strictPort
+```
+
+| Browser check | Covered behavior |
+|---|---|
+| `dialogOverlay.js` | Toast/modal/mobile-menu stacking and keyboard focus |
+| `recipeSafety.js`, `routineSafety.js` | Confirmed archive/restore, revisions, failure recovery; routine upload lock |
+| `recipeMedia.js` | Pending upload/save locks and unconfirmed media responses |
+| `contentValidation.js` | Linked/nested validation, phone fields, editor tab keyboard controls |
+| `contentDraftExit.js` | Admin and specialty-review draft close/Back/refresh protection |
+| `operationalDraftExit.js` | Support-note and announcement navigation/pending protection |
+| `staffDraftExit.js` | Provisioning drafts, validation/duplicate lock, failure recovery and synthetic credential handoff |
+| `apiErrorSafety.js` | Structured error replies cannot blank forms or echo input payloads |
+| `recordedMetadata.js` | Labelled Philippine review dates and truthful unknown-category counts/filters |
+
+Stop that dedicated frontend process when finished. Browser fixtures prove UI
+behavior, not actual API/database integration, device delivery or release readiness.
 
 ## Roles and limits
 
