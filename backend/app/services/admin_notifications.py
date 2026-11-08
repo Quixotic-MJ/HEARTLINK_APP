@@ -38,7 +38,7 @@ def portal_notification(item: Dict[str, Any], role: str, expert_type: Optional[s
     if role == "admin":
         allowed = VALID_ROUTES
     elif role == "medical_expert":
-        allowed = {"Dietitian": {"/foods"}, "Physical Therapist": {"/exercises"}}.get(expert_type, set())
+        allowed = {"/settings"} | {"Dietitian": {"/foods"}, "Physical Therapist": {"/exercises"}}.get(expert_type, set())
     if item.get("type") not in {"notes", "case", "clinical"} and item.get("route") in allowed:
         return dict(item)
     return {**item, "type": "system", "title": "Unavailable notification",

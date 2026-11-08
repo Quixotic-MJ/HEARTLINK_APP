@@ -23,7 +23,8 @@ export const PAGE_ACCESS = {
   "/broadcasts": ADMINS,
   // Experts use notifications for content, account, and security work assigned to them.
   "/notifications": ALL_STAFF,
-  "/settings": ADMINS,
+  // Own account/password only; this does not grant system or staff management.
+  "/settings": ALL_STAFF,
   "/activity-log": ADMINS,
 };
 

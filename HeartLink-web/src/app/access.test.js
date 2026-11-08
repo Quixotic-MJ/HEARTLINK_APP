@@ -51,8 +51,23 @@ test("staff search stays inside the content or account area they own", () => {
   assert.equal(searchPathFor(cardiologist), null);
 });
 
+test("staff can open their own settings without gaining Admin operations", () => {
+  for (const staff of [admin, dietitian, physicalTherapist, cardiologist]) {
+    assert.equal(canAccess(staff, "/settings"), true);
+  }
+  for (const expert of [dietitian, physicalTherapist, cardiologist]) {
+    for (const path of ["/users", "/broadcasts", "/premium", "/activity-log"]) {
+      assert.equal(canAccess(expert, path), false);
+    }
+  }
+  for (const denied of [null, {}, { role: "patient" }, { role: "unknown" }]) {
+    assert.equal(canAccess(denied, "/settings"), false);
+  }
+});
+
 test("notifications only open an allowlisted route for the current staff member", () => {
   assert.equal(safeNotificationRoute(dietitian, "/foods?search=soup"), "/foods?search=soup");
+  assert.equal(safeNotificationRoute(cardiologist, "/settings"), "/settings");
   assert.equal(safeNotificationRoute(dietitian, "/exercises"), null);
   assert.equal(safeNotificationRoute(admin, "/patients/p1"), null);
   assert.equal(safeNotificationRoute(admin, "/foods/../patients/p1"), null);
