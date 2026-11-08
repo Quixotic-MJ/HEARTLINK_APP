@@ -1,24 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
-  CheckCircle2,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clock,
-  Crown,
   Download,
-  Dumbbell,
   FileSpreadsheet,
-  Headset,
   Loader2,
-  Megaphone,
   RefreshCw,
   RotateCcw,
   Search,
   Shield,
-  Users,
-  Utensils,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -30,9 +23,6 @@ import { useApiQuery } from "../../hooks/useApiQuery.js";
 import { downloadCsv, toCsv } from "../../utils/csv.js";
 
 import { WorkspaceHeader } from "../../components/ui/workspaceHeader.jsx";
-
-const PILL =
-  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11.5px] font-semibold leading-none whitespace-nowrap";
 
 const CATEGORY_OPTIONS = [
   { value: "all", label: "All categories" },
@@ -50,105 +40,6 @@ const CATEGORY_OPTIONS = [
 const CATEGORY_LABELS = Object.fromEntries(
   CATEGORY_OPTIONS.map((opt) => [opt.value, opt.label]),
 );
-
-function EventTypeBadge({ type }) {
-  const key = type ? type.toLowerCase() : "";
-
-  switch (key) {
-    case "staff":
-      return (
-        <span
-          className={`${PILL} border-cal-badge-violet/30 bg-cal-badge-violet/15 text-cal-ink`}
-        >
-          <Shield
-            size={11}
-            className="text-cal-badge-violet"
-            aria-hidden="true"
-          />
-          <span>Staff</span>
-        </span>
-      );
-    case "user":
-      return (
-        <span
-          className={`${PILL} border-cal-brand-accent/25 bg-cal-brand-accent/10 text-cal-ink`}
-        >
-          <Users
-            size={11}
-            className="text-cal-brand-accent"
-            aria-hidden="true"
-          />
-          <span>User</span>
-        </span>
-      );
-    case "recipe":
-      return (
-        <span
-          className={`${PILL} border-cal-badge-emerald/35 bg-cal-badge-emerald/15 text-cal-ink`}
-        >
-          <Utensils size={11} className="text-cal-success" aria-hidden="true" />
-          <span>Recipe</span>
-        </span>
-      );
-    case "exercise":
-      return (
-        <span
-          className={`${PILL} border-cal-badge-orange/35 bg-cal-badge-orange/15 text-cal-ink`}
-        >
-          <Dumbbell
-            size={11}
-            className="text-cal-badge-orange"
-            aria-hidden="true"
-          />
-          <span>Exercise</span>
-        </span>
-      );
-    case "feedback":
-      return (
-        <span
-          className={`${PILL} border-cal-badge-pink/30 bg-cal-badge-pink/15 text-cal-ink`}
-        >
-          <Headset
-            size={11}
-            className="text-cal-badge-pink"
-            aria-hidden="true"
-          />
-          <span>Feedback</span>
-        </span>
-      );
-    case "broadcast":
-      return (
-        <span
-          className={`${PILL} border-cal-warning/35 bg-cal-warning/15 text-cal-ink`}
-        >
-          <Megaphone
-            size={11}
-            className="text-cal-warning"
-            aria-hidden="true"
-          />
-          <span>Announcement</span>
-        </span>
-      );
-    case "premium":
-      return (
-        <span
-          className={`${PILL} border-cal-warning/35 bg-cal-warning/15 text-cal-ink`}
-        >
-          <Crown size={11} className="text-cal-warning" aria-hidden="true" />
-          <span>Premium</span>
-        </span>
-      );
-    default:
-      return (
-        <span
-          className={`${PILL} border-cal-hairline bg-cal-surface-soft text-cal-ink`}
-        >
-          <Activity size={11} className="text-cal-muted" aria-hidden="true" />
-          <span>{CATEGORY_LABELS[key] || "System"}</span>
-        </span>
-      );
-  }
-}
 
 function formatTimestamp(isoString) {
   if (!isoString) return "—";
@@ -349,10 +240,10 @@ const ActivityLog = () => {
 
   return (
     <AdminLayout>
-      <div className="workspace workspace--operations mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
+      <div className="workspace workspace--operations activity-workspace mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
         <WorkspaceHeader
           icon={Activity}
-          title="System activity audit log"
+          title="Activity log"
           description="Content, account and security events in Asia/Manila. This operational view excludes clinical and unknown history without deleting it; it is not a complete or immutable audit archive."
         >
           <div className="flex flex-wrap items-center gap-2.5">
@@ -490,12 +381,9 @@ const ActivityLog = () => {
         {/* ─── 3. MAIN AUDIT LOG CARD ───────────────────────────────────────── */}
         <section className="overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
           {/* Search & Category Filter Toolbar */}
-          <div className="flex flex-col gap-3 border-b border-cal-hairline bg-cal-canvas px-4 py-3.5 sm:px-5 md:flex-row md:items-center md:justify-between">
-            <div className="relative flex-1 md:max-w-md">
-              <Search
-                size={15}
-                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-cal-muted-soft"
-              />
+          <div className="workspace-search-row border-b border-cal-hairline bg-cal-canvas px-4 py-4 sm:px-5">
+            <div className="workspace-search">
+              <Search size={15} aria-hidden="true" />
               <input
                 type="text"
                 aria-label="Search audit log"
@@ -503,7 +391,7 @@ const ActivityLog = () => {
                 placeholder="Search by actor name or target…"
                 value={searchQuery}
                 onChange={handleSearchChange}
-                className="h-9 w-full rounded-[8px] border border-cal-hairline bg-cal-canvas pl-9 pr-8 text-[13.5px] text-cal-ink placeholder:text-cal-muted-soft focus:border-cal-ink focus:outline-none transition-colors"
+                className="pr-7"
               />
               {searchQuery && (
                 <button
@@ -559,23 +447,32 @@ const ActivityLog = () => {
             tabIndex={0}
             className="w-full overflow-x-auto"
           >
-            <table className="w-full min-w-[860px] border-collapse text-left">
+            <table className="workspace-table w-full min-w-[820px] border-collapse text-left">
               <thead>
                 <tr className="border-b border-cal-hairline bg-cal-surface-soft/70">
-                  <th className="px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted">
+                  <th
+                    scope="col"
+                    className="px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted"
+                  >
                     Timestamp
                   </th>
-                  <th className="px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted">
+                  <th
+                    scope="col"
+                    className="px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted"
+                  >
                     Category
                   </th>
-                  <th className="w-[42%] px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted">
+                  <th
+                    scope="col"
+                    className="w-[42%] px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted"
+                  >
                     Activity details
                   </th>
-                  <th className="px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted">
+                  <th
+                    scope="col"
+                    className="px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted"
+                  >
                     Actor
-                  </th>
-                  <th className="px-4 py-3 sm:px-5 text-right text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted">
-                    Status
                   </th>
                 </tr>
               </thead>
@@ -597,9 +494,6 @@ const ActivityLog = () => {
                       <td className="px-4 py-3.5 sm:px-5 align-middle">
                         <Skeleton className="h-6 w-28 rounded-full bg-cal-surface-card" />
                       </td>
-                      <td className="px-4 py-3.5 sm:px-5 text-right align-middle">
-                        <Skeleton className="ml-auto h-5 w-20 rounded-full bg-cal-surface-card" />
-                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -615,19 +509,20 @@ const ActivityLog = () => {
                       log.target_id !== log.target_name;
 
                     return (
-                      <tr
-                        key={log.id}
-                        className="transition-colors hover:bg-cal-surface-soft/70"
-                      >
+                      <tr key={log.id} className="activity-row">
                         <td className="px-4 py-3.5 sm:px-5 align-middle whitespace-nowrap">
-                          <span className="inline-flex items-center gap-1.5 font-cal-mono text-[12.5px] tabular-nums text-cal-muted">
-                            <Clock size={12.5} aria-hidden="true" />
-                            <span>{formatTimestamp(log.created_at)}</span>
-                          </span>
+                          <time
+                            dateTime={log.created_at || undefined}
+                            className="text-[13px] leading-relaxed tabular-nums text-cal-muted"
+                          >
+                            {formatTimestamp(log.created_at)}
+                          </time>
                         </td>
 
                         <td className="px-4 py-3.5 sm:px-5 align-middle">
-                          <EventTypeBadge type={log.target_type} />
+                          <span className="text-[13px] text-cal-muted">
+                            {CATEGORY_LABELS[log.target_type] || "System"}
+                          </span>
                         </td>
 
                         <td className="px-4 py-3.5 sm:px-5 align-middle">
@@ -636,36 +531,17 @@ const ActivityLog = () => {
                               {formatDetails(log)}
                             </p>
                             {showTargetId && (
-                              <p className="mt-0.5 truncate font-cal-mono text-[11.5px] tabular-nums text-cal-muted">
-                                Ref: {log.target_id}
-                              </p>
+                              <details className="activity-reference">
+                                <summary>View reference</summary>
+                                <p>{log.target_id}</p>
+                              </details>
                             )}
                           </div>
                         </td>
 
                         <td className="px-4 py-3.5 sm:px-5 align-middle">
-                          <span className="inline-flex items-center gap-1.5 rounded-full border border-cal-hairline bg-cal-surface-soft px-2.5 py-1 text-[12px] font-semibold text-cal-ink">
-                            <Shield
-                              size={11.5}
-                              className="text-cal-muted"
-                              aria-hidden="true"
-                            />
-                            <span className="max-w-[180px] truncate">
-                              {log.admin_name || log.admin_user_id || "System"}
-                            </span>
-                          </span>
-                        </td>
-
-                        <td className="px-4 py-3.5 sm:px-5 text-right align-middle">
-                          <span
-                            className={`${PILL} border-cal-success/25 bg-cal-success/10 text-cal-ink`}
-                          >
-                            <CheckCircle2
-                              size={11}
-                              className="text-cal-success"
-                              aria-hidden="true"
-                            />
-                            <span>Logged</span>
+                          <span className="block max-w-[220px] break-words text-[13px] leading-relaxed text-cal-ink">
+                            {log.admin_name || log.admin_user_id || "System"}
                           </span>
                         </td>
                       </tr>
@@ -744,11 +620,11 @@ const ActivityLog = () => {
               ) : (
                 <>
                   Showing{" "}
-                  <span className="font-cal-mono font-semibold tabular-nums text-cal-ink">
+                  <span className="font-semibold tabular-nums text-cal-ink">
                     {rangeStart}–{rangeEnd}
                   </span>{" "}
                   of{" "}
-                  <span className="font-cal-mono font-semibold tabular-nums text-cal-ink">
+                  <span className="font-semibold tabular-nums text-cal-ink">
                     {total.toLocaleString()}
                   </span>{" "}
                   events
@@ -758,7 +634,7 @@ const ActivityLog = () => {
 
             <div className="flex items-center gap-2">
               {totalPages > 0 && (
-                <span className="mr-1 font-cal-mono text-[12px] tabular-nums text-cal-muted">
+                <span className="mr-1 text-[12px] tabular-nums text-cal-muted">
                   Page {page} / {totalPages}
                 </span>
               )}

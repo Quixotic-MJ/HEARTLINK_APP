@@ -93,6 +93,15 @@ export default async function routineSafety(page) {
       );
     });
     await local.goto(origin + "/exercises");
+    const action = async (name) => {
+      await local
+        .getByRole("button", {
+          name: "Actions for Synthetic routine",
+          exact: true,
+        })
+        .click();
+      await local.getByRole("menuitem", { name, exact: true }).click();
+    };
     await local
       .getByRole("button", { name: "Synthetic routine", exact: true })
       .click();
@@ -117,16 +126,14 @@ export default async function routineSafety(page) {
         exact: true,
       })
       .click();
-    await dialog
-      .locator('input[type="file"]')
-      .setInputFiles({
-        name: "synthetic.png",
-        mimeType: "image/png",
-        buffer: globalThis.Buffer.from(
-          "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jcXkAAAAASUVORK5CYII=",
-          "base64",
-        ),
-      });
+    await dialog.locator('input[type="file"]').setInputFiles({
+      name: "synthetic.png",
+      mimeType: "image/png",
+      buffer: globalThis.Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jcXkAAAAASUVORK5CYII=",
+        "base64",
+      ),
+    });
     await dialog
       .getByRole("button", { name: "Uploading…", exact: true })
       .waitFor({ timeout: 5000 });
@@ -141,7 +148,7 @@ export default async function routineSafety(page) {
     await dialog
       .getByRole("button", { name: "Discard draft", exact: true })
       .click();
-    await local.getByRole("button", { name: "Archive", exact: true }).click();
+    await action("Archive");
     await dialog
       .getByRole("button", { name: "Archive routine", exact: true })
       .click();
@@ -153,12 +160,21 @@ export default async function routineSafety(page) {
       .getByRole("button", { name: "Archive routine", exact: true })
       .click();
     await dialog.waitFor({ state: "hidden" });
-    await local.getByRole("button", { name: "Restore", exact: true }).click();
+    await action("Restore to draft");
     await dialog
       .getByRole("button", { name: "Restore to draft", exact: true })
       .click();
     await dialog.waitFor({ state: "hidden" });
-    await local.getByRole("button", { name: "Archive", exact: true }).waitFor();
+    await local
+      .getByRole("button", {
+        name: "Actions for Synthetic routine",
+        exact: true,
+      })
+      .click();
+    await local
+      .getByRole("menuitem", { name: "Archive", exact: true })
+      .waitFor();
+    await local.keyboard.press("Escape");
     if (
       writes.length !== 3 ||
       writes[0].status !== "archived" ||

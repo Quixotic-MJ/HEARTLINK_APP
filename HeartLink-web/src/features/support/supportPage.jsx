@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   Activity,
   AlertCircle,
@@ -102,6 +102,7 @@ function StatusBadge({ status }) {
 }
 
 const Feedback = () => {
+  const reduceMotion = useReducedMotion();
   // Checks for new tickets every 30 seconds while the tab is open
   const ticketsQuery = useApiQuery("/api/feedback/", {
     select: (d) => (Array.isArray(d) ? d : NO_TICKETS),
@@ -345,123 +346,117 @@ const Feedback = () => {
 
         {/* ─── 3. FEEDBACK INBOX CARD ────────────────────────────────────────── */}
         <section className="overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-          {/* Status Tabs Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cal-hairline bg-cal-canvas px-4 py-3 sm:px-5">
-            <div
-              role="group"
-              aria-label="Filter tickets by status"
-              className="relative inline-flex flex-wrap items-center gap-1 rounded-[16px] sm:rounded-full border border-cal-hairline/80 bg-cal-surface-soft p-1"
-            >
-              {STATUS_TABS.map((tab) => {
-                const active = filterStatus === tab.key;
-                return (
+          <div className="library-toolbar">
+            <div className="workspace-search-row">
+              <div className="workspace-search">
+                <Search size={15} aria-hidden="true" />
+                <input
+                  type="text"
+                  aria-label="Search feedback tickets"
+                  placeholder="Search ticket ID, account, message…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pr-7"
+                />
+                {searchQuery && (
                   <button
-                    key={tab.key}
                     type="button"
-                    aria-pressed={active}
-                    onClick={() => setFilterStatus(tab.key)}
-                    className={`relative flex items-center gap-1.5 rounded-full px-3.5 py-1 text-[13px] font-medium transition-colors cursor-pointer select-none ${
-                      active
-                        ? "text-white font-semibold"
-                        : "text-cal-muted hover:text-cal-ink"
-                    }`}
+                    aria-label="Clear search"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-cal-muted hover:text-cal-ink cursor-pointer"
                   >
-                    {active && (
-                      <motion.div
-                        layoutId="feedback-status-filter-tab"
-                        className="absolute inset-0 rounded-full bg-cal-primary shadow-xs"
-                        transition={{
-                          type: "spring",
-                          stiffness: 420,
-                          damping: 34,
-                        }}
-                      />
-                    )}
-                    <span className="relative z-10">{tab.label}</span>
+                    <X size={13.5} />
                   </button>
-                );
-              })}
-            </div>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <div className="relative">
+                  <select
+                    aria-label="Filter by category"
+                    value={filterCategory}
+                    onChange={(e) => setFilterCategory(e.target.value)}
+                    className="h-8 appearance-none rounded-[6px] border border-cal-hairline bg-cal-canvas pl-3 pr-8 text-[12.5px] font-medium text-cal-ink focus:border-cal-ink focus:outline-none transition-colors cursor-pointer"
+                  >
+                    <option value="all">All categories</option>
+                    <option value="Bug Report">Bug Report</option>
+                    <option value="UI/UX Suggestion">UI/UX Suggestion</option>
+                    <option value="Account Issue">Account Issue</option>
+                    <option value="Question">Question</option>
+                  </select>
+                  <ChevronDown
+                    size={13}
+                    className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-cal-muted"
+                  />
+                </div>
 
-            <div className="relative w-full sm:w-72">
-              <Search
-                size={15}
-                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-cal-muted-soft"
-              />
-              <input
-                type="text"
-                aria-label="Search feedback tickets"
-                placeholder="Search ticket ID, account, message…"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-9 w-full rounded-[8px] border border-cal-hairline bg-cal-canvas pl-9 pr-8 text-[13.5px] text-cal-ink placeholder:text-cal-muted-soft focus:border-cal-ink focus:outline-none transition-colors"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  aria-label="Clear search"
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-cal-muted hover:text-cal-ink cursor-pointer"
-                >
-                  <X size={13.5} />
-                </button>
-              )}
-            </div>
-          </div>
+                <div className="relative">
+                  <select
+                    aria-label="Sort order"
+                    value={sortOrder}
+                    onChange={(e) => setSortOrder(e.target.value)}
+                    className="h-8 appearance-none rounded-[6px] border border-cal-hairline bg-cal-canvas pl-3 pr-8 text-[12.5px] font-medium text-cal-ink focus:border-cal-ink focus:outline-none transition-colors cursor-pointer"
+                  >
+                    <option value="newest">Newest first</option>
+                    <option value="oldest">Oldest first</option>
+                  </select>
+                  <ChevronDown
+                    size={13}
+                    className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-cal-muted"
+                  />
+                </div>
 
-          {/* Secondary Filter Toolbar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cal-hairline bg-cal-surface-soft/40 px-4 py-2.5 sm:px-5">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <div className="relative">
-                <select
-                  aria-label="Filter by category"
-                  value={filterCategory}
-                  onChange={(e) => setFilterCategory(e.target.value)}
-                  className="h-8 appearance-none rounded-[6px] border border-cal-hairline bg-cal-canvas pl-3 pr-8 text-[12.5px] font-medium text-cal-ink focus:border-cal-ink focus:outline-none transition-colors cursor-pointer"
-                >
-                  <option value="all">All categories</option>
-                  <option value="Bug Report">Bug Report</option>
-                  <option value="UI/UX Suggestion">UI/UX Suggestion</option>
-                  <option value="Account Issue">Account Issue</option>
-                  <option value="Question">Question</option>
-                </select>
-                <ChevronDown
-                  size={13}
-                  className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-cal-muted"
-                />
+                {hasActiveFilters && (
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="inline-flex h-8 items-center gap-1.5 rounded-[6px] border border-cal-hairline bg-cal-canvas px-2.5 text-[12px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer"
+                  >
+                    <RotateCcw size={12} className="text-cal-muted" />
+                    <span>Reset filters</span>
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="library-workflow-row">
+              <div
+                role="group"
+                aria-label="Filter tickets by status"
+                className="library-workflow-tabs"
+              >
+                {STATUS_TABS.map((tab) => {
+                  const active = filterStatus === tab.key;
+                  return (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setFilterStatus(tab.key)}
+                    >
+                      {active && (
+                        <motion.div
+                          layoutId="feedback-status-filter-tab"
+                          className="library-workflow-active"
+                          transition={
+                            reduceMotion
+                              ? { duration: 0 }
+                              : {
+                                  type: "spring",
+                                  stiffness: 420,
+                                  damping: 34,
+                                }
+                          }
+                        />
+                      )}
+                      <span className="relative z-10">{tab.label}</span>
+                    </button>
+                  );
+                })}
               </div>
 
-              <div className="relative">
-                <select
-                  aria-label="Sort order"
-                  value={sortOrder}
-                  onChange={(e) => setSortOrder(e.target.value)}
-                  className="h-8 appearance-none rounded-[6px] border border-cal-hairline bg-cal-canvas pl-3 pr-8 text-[12.5px] font-medium text-cal-ink focus:border-cal-ink focus:outline-none transition-colors cursor-pointer"
-                >
-                  <option value="newest">Newest first</option>
-                  <option value="oldest">Oldest first</option>
-                </select>
-                <ChevronDown
-                  size={13}
-                  className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-cal-muted"
-                />
+              <div className="text-[12px] tabular-nums text-cal-muted">
+                {filteredTickets.length}{" "}
+                {filteredTickets.length === 1 ? "ticket" : "tickets"}
               </div>
-
-              {hasActiveFilters && (
-                <button
-                  type="button"
-                  onClick={clearFilters}
-                  className="inline-flex h-8 items-center gap-1.5 rounded-[6px] border border-cal-hairline bg-cal-canvas px-2.5 text-[12px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer"
-                >
-                  <RotateCcw size={12} className="text-cal-muted" />
-                  <span>Reset filters</span>
-                </button>
-              )}
-            </div>
-
-            <div className="font-cal-mono text-[12px] tabular-nums text-cal-muted">
-              {filteredTickets.length}{" "}
-              {filteredTickets.length === 1 ? "ticket" : "tickets"}
             </div>
           </div>
 
@@ -483,7 +478,7 @@ const Feedback = () => {
             aria-label="Support tickets table"
             tabIndex={0}
           >
-            <table className="w-full min-w-[880px] border-collapse text-left">
+            <table className="workspace-table w-full min-w-[880px] border-collapse text-left">
               <thead>
                 <tr className="border-b border-cal-hairline bg-cal-surface-soft/70">
                   <th className="px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted">

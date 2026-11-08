@@ -100,11 +100,19 @@ npm run dev -- --host 127.0.0.1 --port 5180 --strictPort
 | `staffDraftExit.js` | Provisioning drafts, validation/duplicate lock, failure recovery and synthetic credential handoff |
 | `apiErrorSafety.js` | Structured error replies cannot blank forms or echo input payloads |
 | `recordedMetadata.js` | Labelled Philippine review dates and truthful unknown-category counts/filters |
-| `visualWorkspaces.js` | Recipe/routine gallery/list views, live two-column previews, ingredient art and responsive draft retention |
-| `operationalVisuals.js` | Announcements, Activity Logs, Settings and Feedback layouts, including wide operational dialogs |
+| `visualWorkspaces.js` | Gallery/list views, exclusive workflow filters, three-dot menu keyboard/focus, compact labels, aligned footers, two-column previews and responsive archive/draft controls |
+| `operationalVisuals.js` | Operational layouts/dialogs, readable Activity typography, row hover and keyboard-accessible references |
 
 Stop that dedicated frontend process when finished. Browser fixtures prove UI
 behavior, not actual API/database integration, device delivery or release readiness.
+
+Both libraries use the same workflow filter: Drafts are unapproved drafts, Approved
+contains approved drafts ready to publish, Published contains published records,
+and Archived contains retained archive records. All also keeps unrecognized legacy
+statuses visible. There is no second review-status selector. Recipe category/source
+facets live under Filters. Card/list lifecycle actions are behind the same three-dot
+menu; role and exact-revision requirements are unchanged. Activity references are
+expandable without removing their export fields or stored history.
 
 ## Ingredient artwork credits
 

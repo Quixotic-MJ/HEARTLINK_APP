@@ -142,6 +142,43 @@ export default async function operationalVisuals(page) {
           })
           .getByText("Synthetic saved recipe", { exact: false })
           .waitFor();
+      if (path === "/activity-log") {
+        const region = local.getByRole("region", {
+          name: "Operational activity table",
+          exact: true,
+        });
+        if (
+          await region
+            .getByRole("columnheader", { name: "Status", exact: true })
+            .count()
+        )
+          throw Error("Activity table repeats a meaningless Logged status");
+        const row = region.getByRole("row").nth(1);
+        const actor = row.getByRole("cell").last();
+        if (await actor.locator("svg, .rounded-full").count())
+          throw Error("Actor is still presented as an icon pill");
+        const font = await row
+          .locator("time")
+          .evaluate((el) => getComputedStyle(el).fontFamily);
+        if (/mono/i.test(font))
+          throw Error("Activity timestamps use decorative monospace");
+        const background = await row.evaluate(
+          (el) => getComputedStyle(el).backgroundColor,
+        );
+        await row.hover();
+        if (
+          (await row.evaluate((el) => getComputedStyle(el).backgroundColor)) ===
+          background
+        )
+          throw Error("Activity row lacks the shared hover state");
+        const reference = row.locator("details");
+        await reference.locator("summary").focus();
+        await local.keyboard.press("Enter");
+        await reference
+          .getByText("synthetic-recipe", { exact: true })
+          .waitFor();
+        await reference.locator("summary").click();
+      }
       await local.screenshot({ path: `.tmp/${name}-workspace-desktop.png` });
       for (const viewport of [
         { width: 375, height: 812 },

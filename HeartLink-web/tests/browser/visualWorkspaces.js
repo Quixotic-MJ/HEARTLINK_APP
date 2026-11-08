@@ -62,7 +62,10 @@ export default async function visualWorkspaces(page) {
       position: "Standing",
       duration_minutes: 1,
       media_url: `/synthetic-dish-${index}.svg`,
-      status: "draft",
+      status: index === 2 ? "published" : "draft",
+      expert_validated: index > 0,
+      reviewed_by: index > 0 ? "synthetic-reviewer" : null,
+      reviewed_at: index > 0 ? "2026-11-08T01:00:00Z" : null,
       updated_at: "revision-1",
       steps: [
         {
@@ -133,20 +136,166 @@ export default async function visualWorkspaces(page) {
       .getByRole("button", { name: "Add recipe", exact: true })
       .waitFor();
     await local.screenshot({ path: ".tmp/recipe-gallery-desktop.png" });
-    await local.getByRole("button", { name: /^Approved\s*2$/ }).click();
-    if ((await local.locator(".library-card").count()) !== 2)
-      throw Error("Approval filter changed publication semantics");
-    await local.getByRole("button", { name: /^All\s*6$/ }).click();
+    const checkWorkflow = async (label, expected) => {
+      const group = local.getByRole("group", { name: label, exact: true });
+      if (await local.getByLabel(/review status|Publication status/i).count())
+        throw Error("Duplicate status/review dropdown remains");
+      const search = await local
+        .locator(".library-toolbar .workspace-search")
+        .boundingBox();
+      const viewSwitch = await local
+        .getByRole("group", { name: "Library view", exact: true })
+        .boundingBox();
+      if (
+        !search ||
+        !viewSwitch ||
+        viewSwitch.x >= search.x ||
+        search.width < 500
+      )
+        throw Error(
+          "View switch/search do not use the available desktop width",
+        );
+      for (const [name, count] of expected) {
+        const tab = group.getByRole("button", {
+          name: new RegExp(`^${name}\\s*${count}$`),
+        });
+        await tab.focus();
+        await local.keyboard.press("Enter");
+        await local.waitForFunction(
+          (n) => document.querySelectorAll(".library-card").length === n,
+          count,
+        );
+        if ((await tab.getAttribute("aria-pressed")) !== "true")
+          throw Error("Workflow keyboard selection was not exposed");
+      }
+      const inactive = group.getByRole("button", { name: /^Drafts/ });
+      const before = await inactive.evaluate(
+        (el) => getComputedStyle(el).backgroundColor,
+      );
+      await inactive.hover();
+      if (
+        (await inactive.evaluate(
+          (el) => getComputedStyle(el).backgroundColor,
+        )) === before
+      )
+        throw Error("Workflow lacks the shared hover treatment");
+      await group.getByRole("button", { name: /^All/ }).click();
+      const trigger = local
+        .getByRole("button", { name: /^Actions for / })
+        .first();
+      await trigger.focus();
+      await local.keyboard.press("ArrowDown");
+      const menu = local.getByRole("menu");
+      await menu.getByRole("menuitem", { name: /^Edit / }).waitFor();
+      await local.screenshot({
+        path: label.includes("recipes")
+          ? ".tmp/recipe-actions-menu.png"
+          : ".tmp/exercise-actions-menu.png",
+      });
+      await local.keyboard.press("End");
+      if (
+        !(await menu
+          .getByRole("menuitem", { name: "Archive", exact: true })
+          .evaluate((el) => el === document.activeElement))
+      )
+        throw Error("Overflow actions do not support keyboard navigation");
+      await local.keyboard.press("Escape");
+      if (
+        !(await trigger.evaluate((el) => el === document.activeElement)) ||
+        (await menu.count())
+      )
+        throw Error("Overflow actions do not close and return focus");
+      const reviewSize = await local
+        .locator(".library-card-review")
+        .first()
+        .evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+      if (reviewSize > 12) throw Error("Approval labels are not compact");
+      if (
+        await local
+          .locator(".library-card-footer")
+          .getByRole("button", { name: /^(Edit|Archive)$/ })
+          .count()
+      )
+        throw Error("Card actions remain inline instead of behind three dots");
+      const footers = await local
+        .locator(".library-card-footer")
+        .evaluateAll((els) =>
+          els.slice(0, 3).map((el) => el.getBoundingClientRect().bottom),
+        );
+      if (Math.max(...footers) - Math.min(...footers) > 2)
+        throw Error("Card actions are not aligned in a dedicated footer");
+      for (const viewport of [
+        { width: 375, height: 812 },
+        { width: 812, height: 375 },
+      ]) {
+        await local.setViewportSize(viewport);
+        await trigger.click();
+        const bounds = await menu.boundingBox();
+        if (
+          !bounds ||
+          bounds.x < 0 ||
+          bounds.y < 0 ||
+          bounds.x + bounds.width > viewport.width ||
+          bounds.y + bounds.height > viewport.height
+        )
+          throw Error("Overflow actions are clipped on a small viewport");
+        await local.keyboard.press("Escape");
+      }
+      await local.setViewportSize({ width: 1440, height: 1000 });
+    };
+    await checkWorkflow("Filter recipes by status", [
+      ["Drafts", 3],
+      ["Approved", 1],
+      ["Published", 1],
+      ["Archived", 1],
+      ["All", 6],
+    ]);
     await local
+      .getByRole("article")
+      .filter({
+        has: local.getByRole("button", {
+          name: "Garden rice bowl",
+          exact: true,
+        }),
+      })
       .getByRole("button", {
         name: "Actions for Garden rice bowl",
         exact: true,
       })
       .click();
-    await local.getByRole("button", { name: "Archive", exact: true }).click();
+    await local.getByRole("menuitem", { name: "Archive", exact: true }).click();
     await local
       .getByRole("dialog", { name: "Archive recipe?", exact: true })
       .waitFor();
+    await local.screenshot({ path: ".tmp/recipe-archive-dialog.png" });
+    for (const viewport of [
+      { width: 375, height: 812 },
+      { width: 812, height: 375 },
+    ]) {
+      await local.setViewportSize(viewport);
+      const confirm = local
+        .getByRole("dialog")
+        .getByRole("button", { name: "Archive recipe", exact: true });
+      await confirm.focus();
+      const bounds = await confirm.boundingBox();
+      if (
+        !bounds ||
+        bounds.y < 0 ||
+        bounds.y + bounds.height > viewport.height ||
+        (await local.evaluate(
+          () => document.documentElement.scrollWidth > innerWidth,
+        ))
+      ) {
+        await local.screenshot({ path: ".tmp/archive-layout-failure.png" });
+        throw Error(
+          "Archive confirmation obscured: " +
+            JSON.stringify({ viewport, bounds }),
+        );
+      }
+      if (viewport.width === 375)
+        await local.screenshot({ path: ".tmp/recipe-archive-phone.png" });
+    }
+    await local.setViewportSize({ width: 1440, height: 1000 });
     await local
       .getByRole("dialog")
       .getByRole("button", { name: "Cancel", exact: true })
@@ -229,6 +378,13 @@ export default async function visualWorkspaces(page) {
         .getAttribute("aria-pressed")) !== "true"
     )
       throw Error("Routine gallery lost saved records or default view");
+    await checkWorkflow("Filter routines by status", [
+      ["Drafts", 1],
+      ["Approved", 1],
+      ["Published", 1],
+      ["Archived", 0],
+      ["All", 3],
+    ]);
     await local.screenshot({ path: ".tmp/exercise-gallery-desktop.png" });
     await local.getByRole("button", { name: "List view", exact: true }).click();
     await local.getByRole("table").waitFor();

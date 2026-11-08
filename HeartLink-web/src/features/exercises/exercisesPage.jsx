@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Archive, Dumbbell, Plus, Search, ShieldCheck } from "lucide-react";
+import {
+  Archive,
+  Dumbbell,
+  Edit2,
+  Plus,
+  RotateCcw,
+  Search,
+  ShieldCheck,
+} from "lucide-react";
 import { toast } from "sonner";
 import AdminLayout from "../../components/layouts/adminLayout.jsx";
 import ExerciseFormModal from "./components/exerciseFormModal.jsx";
@@ -10,13 +18,25 @@ import { apiFetch } from "../../lib/api.js";
 import { useApiQuery } from "../../hooks/useApiQuery.js";
 import { useAuth } from "../../contexts/useAuth.js";
 
+import { LibraryActionsMenu } from "../../components/ui/libraryActionsMenu.jsx";
 import { LibraryBanner } from "../../components/ui/libraryBanner.jsx";
+import { LibraryWorkflowTabs } from "../../components/ui/libraryWorkflowTabs.jsx";
+import {
+  libraryWorkflowCounts,
+  matchesLibraryWorkflow,
+} from "../../utils/libraryWorkflow.js";
 import { LibraryViewSwitch } from "../../components/ui/libraryViewSwitch.jsx";
 
 function RoutineCover({ src }) {
   const [failed, setFailed] = useState(null);
   return src && failed !== src ? (
-    <img src={src} alt="" loading="lazy" decoding="async" onError={() => setFailed(src)} />
+    <img
+      src={src}
+      alt=""
+      loading="lazy"
+      decoding="async"
+      onError={() => setFailed(src)}
+    />
   ) : (
     <div className="library-card-fallback">
       <Dumbbell size={48} strokeWidth={1.3} aria-hidden="true" />
@@ -47,10 +67,6 @@ const toExercises = (response) =>
     reviewedAt: row.reviewed_at,
     updatedAt: row.updated_at,
   }));
-const button =
-  "inline-flex min-h-10 items-center justify-center gap-2 rounded-[10px] border border-cal-hairline bg-cal-canvas px-3 text-[13px] font-semibold text-cal-ink hover:bg-cal-surface-soft disabled:opacity-50 disabled:cursor-not-allowed";
-const control =
-  "min-h-10 rounded-[10px] border border-cal-hairline bg-cal-canvas px-3 text-[14px] text-cal-ink";
 
 export default function Exercises() {
   const { user } = useAuth();
@@ -62,23 +78,16 @@ export default function Exercises() {
   const search = params.get("search") || "";
   const [status, setStatus] = useState("all");
   const [view, setView] = useState("grid");
-  const [review, setReview] = useState("all");
   const [modal, setModal] = useState({ open: false, item: null });
   const [archiveItem, setArchiveItem] = useState(null);
   const query = useApiQuery("/api/exercises/", { select: toExercises });
   const routines = query.data ?? EMPTY;
+  const statusCounts = libraryWorkflowCounts(routines);
   const filtered = routines.filter((routine) => {
     const match = `${routine.name} ${routine.description || ""}`
       .toLowerCase()
       .includes(search.toLowerCase().trim());
-    return (
-      match &&
-      (status === "all" || routine.status === status) &&
-      (review === "all" ||
-        (review === "approved"
-          ? routine.expertValidated
-          : !routine.expertValidated && routine.status !== "archived"))
-    );
+    return match && matchesLibraryWorkflow(routine, status);
   });
   const close = () => setModal({ open: false, item: null });
   const save = async (data) => {
@@ -107,6 +116,36 @@ export default function Exercises() {
     );
   };
 
+  const renderActions = (routine) => (
+    <LibraryActionsMenu
+      name={routine.name}
+      actions={[
+        {
+          label: canAuthor
+            ? "Edit routine"
+            : canReview && routine.status !== "archived"
+              ? "Review routine"
+              : "View routine",
+          icon: Edit2,
+          onSelect: () => setModal({ open: true, item: routine }),
+        },
+        ...(canAuthor &&
+        ["draft", "published", "archived"].includes(routine.status)
+          ? [
+              {
+                label:
+                  routine.status === "archived"
+                    ? "Restore to draft"
+                    : "Archive",
+                icon: Archive,
+                onSelect: () => setArchiveItem(routine),
+              },
+            ]
+          : []),
+      ]}
+    />
+  );
+
   return (
     <AdminLayout>
       <div className="workspace workspace--exercise mx-auto max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
@@ -121,10 +160,7 @@ export default function Exercises() {
           unavailable={query.isPending || query.isError}
           stats={[
             ["All routines", routines.length],
-            [
-              "PT approved",
-              routines.filter((item) => item.expertValidated).length,
-            ],
+            ["Ready to publish", statusCounts.approved],
             [
               "Published",
               routines.filter((item) => item.status === "published").length,
@@ -142,60 +178,67 @@ export default function Exercises() {
             )
           }
         />
-        <section
-          aria-label="Routine library"
-          className="overflow-hidden rounded-[16px] border border-cal-hairline bg-cal-canvas"
-        >
-          <div className="flex flex-wrap items-center gap-3 border-b border-cal-hairline p-4">
-            <LibraryViewSwitch value={view} onChange={setView} />
-            <label className="flex min-w-0 flex-1 items-center gap-2">
-              <Search size={16} aria-hidden="true" />
-              <span className="sr-only">Search routines</span>
-              <input
-                value={search}
-                onChange={(e) =>
-                  setParams(
-                    (prev) => {
-                      const next = new URLSearchParams(prev);
-                      if (e.target.value) next.set("search", e.target.value);
-                      else next.delete("search");
-                      return next;
-                    },
-                    { replace: true },
-                  )
-                }
-                placeholder="Search routines"
-                className={`${control} w-full min-w-[140px]`}
-              />
-            </label>
-            <label>
-              <span className="sr-only">Publication status</span>
-              <select
+        <section aria-label="Routine library" className="library-panel">
+          <div className="library-toolbar">
+            <div className="workspace-search-row">
+              <LibraryViewSwitch value={view} onChange={setView} />
+              <label className="workspace-search">
+                <Search size={16} aria-hidden="true" />
+                <span className="sr-only">Search routines</span>
+                <input
+                  type="search"
+                  value={search}
+                  placeholder="Search routines"
+                  onChange={(e) =>
+                    setParams(
+                      (prev) => {
+                        const next = new URLSearchParams(prev);
+                        if (e.target.value) next.set("search", e.target.value);
+                        else next.delete("search");
+                        return next;
+                      },
+                      { replace: true },
+                    )
+                  }
+                />
+              </label>
+              {(search || status !== "all") && (
+                <button
+                  type="button"
+                  className="workspace-toolbar-button"
+                  onClick={() => {
+                    setParams(
+                      (prev) => {
+                        const next = new URLSearchParams(prev);
+                        next.delete("search");
+                        return next;
+                      },
+                      { replace: true },
+                    );
+                    setStatus("all");
+                  }}
+                >
+                  <RotateCcw size={14} aria-hidden="true" /> Reset filters
+                </button>
+              )}
+            </div>
+            <div className="library-workflow-row">
+              <LibraryWorkflowTabs
                 value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className={control}
-              >
-                {["all", "draft", "published", "archived"].map((value) => (
-                  <option key={value} value={value}>
-                    {value === "all"
-                      ? "All statuses"
-                      : value[0].toUpperCase() + value.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span className="sr-only">Review status</span>
-              <select
-                value={review}
-                onChange={(e) => setReview(e.target.value)}
-                className={control}
-              >
-                <option value="all">All reviews</option>
-                <option value="pending">Awaiting review</option>
-                <option value="approved">PT approved</option>
-              </select>
-            </label>
+                onChange={setStatus}
+                counts={statusCounts}
+                unavailable={query.isPending || query.isError}
+                label="Filter routines by status"
+              />
+              <p className="library-results" role="status">
+                {query.isPending || query.isError
+                  ? "Counts unavailable"
+                  : `${filtered.length} of ${routines.length} routines`}
+              </p>
+            </div>
+            <p className="library-workflow-hint">
+              Approved drafts are ready to publish.
+            </p>
           </div>
           {query.isError ? (
             <LoadError what="the routine library" onRetry={query.refetch} />
@@ -256,28 +299,7 @@ export default function Exercises() {
                               ? "Changes requested"
                               : "Awaiting review"}
                         </span>
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            className={button}
-                            onClick={() =>
-                              setModal({ open: true, item: routine })
-                            }
-                          >
-                            {canReview ? "Review" : "Open"}
-                          </button>
-                          {canAuthor && (
-                            <button
-                              type="button"
-                              className={button}
-                              onClick={() => setArchiveItem(routine)}
-                            >
-                              {routine.status === "archived"
-                                ? "Restore"
-                                : "Archive"}
-                            </button>
-                          )}
-                        </div>
+                        {renderActions(routine)}
                       </div>
                     </div>
                   </article>
@@ -285,7 +307,7 @@ export default function Exercises() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-[14px]">
+                <table className="workspace-table w-full text-left text-[14px]">
                   <thead className="border-b border-cal-hairline bg-cal-surface-soft text-[12px] text-cal-muted">
                     <tr>
                       {[
@@ -336,7 +358,7 @@ export default function Exercises() {
                           <span className="rounded-full bg-cal-surface-soft px-2.5 py-1 text-[12px] font-medium">
                             {routine.status}
                           </span>
-                          <p className="mt-2 text-[13px] text-cal-muted">
+                          <p className="library-card-review mt-2">
                             {routine.expertValidated
                               ? "PT approved"
                               : routine.reviewNote
@@ -344,30 +366,7 @@ export default function Exercises() {
                                 : "Awaiting PT review"}
                           </p>
                         </td>
-                        <td className="px-5 py-4">
-                          <div className="flex flex-wrap gap-2">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setModal({ open: true, item: routine })
-                              }
-                              className={button}
-                            >
-                              {canReview ? "Review" : "Open"}
-                            </button>
-                            {canAuthor && (
-                              <button
-                                type="button"
-                                onClick={() => setArchiveItem(routine)}
-                                className={button}
-                              >
-                                {routine.status === "archived"
-                                  ? "Restore"
-                                  : "Archive"}
-                              </button>
-                            )}
-                          </div>
-                        </td>
+                        <td className="px-5 py-4">{renderActions(routine)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -409,6 +408,25 @@ export default function Exercises() {
           }
         />
         <ConfirmActionModal
+          className="workspace workspace--exercise"
+          variant="warning"
+          entityInfo={
+            archiveItem
+              ? {
+                  name: archiveItem.name,
+                  email: archiveItem.type,
+                  avatar: <RoutineCover src={archiveItem.mediaUrl} />,
+                }
+              : null
+          }
+          impactDetails={
+            archiveItem?.status === "archived"
+              ? ["Publishing again requires approval of the current revision."]
+              : [
+                  "Restore it to Draft from the Archived tab when needed.",
+                  "Publishing again requires approval of the current revision.",
+                ]
+          }
           isOpen={!!archiveItem}
           onClose={() => setArchiveItem(null)}
           title={
@@ -416,7 +434,11 @@ export default function Exercises() {
               ? "Restore routine to draft?"
               : "Archive routine?"
           }
-          description="Existing activity history stays intact. Publication still requires approval of the current revision."
+          description={
+            archiveItem?.status === "archived"
+              ? "Return this routine to Draft for review. It will not be published automatically."
+              : "Remove this routine from app discovery. Existing activity history stays intact; this does not delete the routine."
+          }
           confirmText={
             archiveItem?.status === "archived"
               ? "Restore to draft"

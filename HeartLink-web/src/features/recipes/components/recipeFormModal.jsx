@@ -70,7 +70,7 @@ function describeRecipeField(name) {
 }
 
 const PILL =
-  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11.5px] font-medium whitespace-nowrap";
+  "inline-flex items-center gap-1.5 rounded-[8px] border px-2 py-1 text-[11.5px] font-medium leading-snug whitespace-nowrap";
 
 const FoodFormModal = ({
   isOpen,

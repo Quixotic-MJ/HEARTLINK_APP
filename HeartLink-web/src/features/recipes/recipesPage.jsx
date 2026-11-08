@@ -1,6 +1,11 @@
-import React, { useState } from "react";
-import { motion } from "framer-motion";
+import { useRef, useState } from "react";
+import { LibraryWorkflowTabs } from "../../components/ui/libraryWorkflowTabs.jsx";
+import {
+  libraryWorkflowCounts,
+  matchesLibraryWorkflow,
+} from "../../utils/libraryWorkflow.js";
 import { LibraryViewSwitch } from "../../components/ui/libraryViewSwitch.jsx";
+import { LibraryActionsMenu } from "../../components/ui/libraryActionsMenu.jsx";
 import { LibraryBanner } from "../../components/ui/libraryBanner.jsx";
 import { useSearchParams } from "react-router-dom";
 import {
@@ -8,14 +13,12 @@ import {
   CheckCircle2,
   ChevronDown,
   Edit2,
-  MoreVertical,
   Plus,
   RotateCcw,
   Search,
-  ShieldAlert,
   ShieldCheck,
+  ShieldAlert,
   Utensils,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import AdminLayout from "../../components/layouts/adminLayout.jsx";
@@ -29,16 +32,8 @@ import RecipeImage from "./components/recipeImage.jsx";
 import { useAuth } from "../../contexts/useAuth.js";
 import { canAuthorRecipes, canReviewRecipes } from "../../app/access.js";
 
-const STATUS_TABS = [
-  ["all", "All"],
-  ["draft", "Draft"],
-  ["approved", "Approved"],
-  ["published", "Published"],
-  ["archived", "Archived"],
-];
-
 const PILL =
-  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11.5px] font-medium whitespace-nowrap";
+  "inline-flex items-center gap-1.5 rounded-[8px] border px-2 py-1 text-[11.5px] font-medium leading-snug whitespace-nowrap";
 
 // HL-030: an "Others" recipe shows the name typed for it
 const categoryLabel = (recipe) =>
@@ -97,7 +92,9 @@ const Foods = () => {
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterFoodSource, setFilterFoodSource] = useState("all");
-  const [filterReview, setFilterReview] = useState("all");
+  const [showFilters, setShowFilters] = useState(false);
+  const statusInFlight = useRef(false);
+  const [statusBusy, setStatusBusy] = useState(false);
 
   // Support ?search= links cleanly during render
   const [searchParams, setSearchParams] = useSearchParams();
@@ -114,8 +111,6 @@ const Foods = () => {
   const recipesQuery = useApiQuery("/api/recipes", { select: toRecipes });
   const recipes = recipesQuery.data ?? NO_RECIPES;
   const loading = recipesQuery.isPending;
-
-  const [activeMenuRecipeId, setActiveMenuRecipeId] = useState(null);
 
   // Confirmation Modal State
   const [confirmConfig, setConfirmConfig] = useState({
@@ -136,33 +131,10 @@ const Foods = () => {
     setConfirmConfig((prev) => ({ ...prev, isOpen: false }));
   };
 
-  // The row menu is pinned to the screen next to its button, so the table's scroll box can't cut it off.
-  const [menuPos, setMenuPos] = useState(null);
-  const toggleMenu = (e, id) => {
-    e.stopPropagation();
-    const rect = e.currentTarget.getBoundingClientRect();
-    const openUp = rect.bottom + 200 > window.innerHeight;
-    setMenuPos({
-      right: window.innerWidth - rect.right,
-      ...(openUp
-        ? { bottom: window.innerHeight - rect.top + 4 }
-        : { top: rect.bottom + 4 }),
-    });
-    setActiveMenuRecipeId(activeMenuRecipeId === id ? null : id);
-  };
-
-  // Close actions dropdown when clicking anywhere outside
-  React.useEffect(() => {
-    const handleDocumentClick = () => setActiveMenuRecipeId(null);
-    document.addEventListener("click", handleDocumentClick);
-    window.addEventListener("scroll", handleDocumentClick, true);
-    return () => {
-      document.removeEventListener("click", handleDocumentClick);
-      window.removeEventListener("scroll", handleDocumentClick, true);
-    };
-  }, []);
-
   const handleUpdateStatus = async (recipe, newStatus) => {
+    if (statusInFlight.current) return;
+    statusInFlight.current = true;
+    setStatusBusy(true);
     try {
       await apiFetch(`/api/recipes/${recipe.id}`, {
         method: "PUT",
@@ -185,6 +157,9 @@ const Foods = () => {
       toast.error("Failed to update status", {
         description: err?.data?.detail || "Could not change status.",
       });
+    } finally {
+      statusInFlight.current = false;
+      setStatusBusy(false);
     }
   };
 
@@ -193,21 +168,28 @@ const Foods = () => {
     setConfirmConfig({
       isOpen: true,
       title: "Archive recipe?",
-      subtitle: "Remove from discovery",
-      description: `Archive "${recipe.name}"? It will be hidden from discovery and new recommendations while existing records remain intact.`,
+      subtitle: "",
+      description:
+        "Remove this recipe from app discovery. Existing records stay intact; this does not delete the recipe.",
       confirmText: "Archive recipe",
       cancelText: "Cancel",
       variant: "warning",
       icon: Archive,
       entityInfo: {
         name: recipe.name,
-        badge: `${recipe.status === "published" ? "Published" : "Draft"} → Archived`,
+        avatar: (
+          <RecipeImage
+            src={recipe.mediaUrl}
+            alt=""
+            containerClassName="library-card-fallback"
+            fallbackIconSize={24}
+          />
+        ),
         email: categoryLabel(recipe),
-        id: recipe.id,
       },
       impactDetails: [
-        "Hidden from discovery and new recommendations.",
-        "Can be restored back to Draft status at any time.",
+        "Restore it to Draft from the Archived tab when needed.",
+        "Publishing again requires approval of the current revision.",
       ],
       onConfirm: async () => {
         try {
@@ -263,20 +245,10 @@ const Foods = () => {
     setFilterStatus("all");
     setFilterCategory("all");
     setFilterFoodSource("all");
-    setFilterReview("all");
   };
 
   // KPI & Tab Counts
-  const statusCounts = {
-    all: recipes.length,
-    published: recipes.filter((r) => r.status === "published").length,
-    draft: recipes.filter((r) => r.status === "draft").length,
-    archived: recipes.filter((r) => r.status === "archived").length,
-    approved: recipes.filter(
-      (r) => r.expertValidated && r.status !== "archived",
-    ).length,
-  };
-  const approvedCount = recipes.filter((r) => r.expertValidated).length;
+  const statusCounts = libraryWorkflowCounts(recipes);
 
   // Filter Logic
   const filteredRecipes = recipes.filter((r) => {
@@ -287,138 +259,65 @@ const Foods = () => {
       categoryLabel(r).toLowerCase().includes(q) ||
       (r.tags && r.tags.some((t) => t.toLowerCase().includes(q)));
 
-    const matchesStatus =
-      filterStatus === "all" ||
-      (filterStatus === "approved"
-        ? r.expertValidated && r.status !== "archived"
-        : r.status === filterStatus);
+    const matchesStatus = matchesLibraryWorkflow(r, filterStatus);
     const matchesCategory =
       filterCategory === "all" || r.category === filterCategory;
     const matchesFoodSource =
       filterFoodSource === "all" || r.foodSourceType === filterFoodSource;
 
-    let matchesReview = true;
-    if (filterReview === "reviewed") {
-      matchesReview = r.expertValidated === true;
-    } else if (filterReview === "pending") {
-      matchesReview = r.expertValidated === false;
-    }
-
     return (
-      matchesSearch &&
-      matchesStatus &&
-      matchesCategory &&
-      matchesFoodSource &&
-      matchesReview
+      matchesSearch && matchesStatus && matchesCategory && matchesFoodSource
     );
   });
   const hasActiveFilters =
     Boolean(searchQuery) ||
     filterStatus !== "all" ||
     filterCategory !== "all" ||
-    filterFoodSource !== "all" ||
-    filterReview !== "all";
+    filterFoodSource !== "all";
 
   const renderActions = (recipe) => (
-    <div onClick={(event) => event.stopPropagation()}>
-      <div className="flex items-center justify-end">
-        <button
-          type="button"
-          onClick={(e) => toggleMenu(e, recipe.id)}
-          title="Actions"
-          aria-label={`Actions for ${recipe.name}`}
-          className="flex h-8 w-8 items-center justify-center rounded-[8px] border border-transparent text-cal-muted hover:border-cal-hairline hover:bg-cal-canvas hover:text-cal-ink transition-colors cursor-pointer"
-        >
-          <MoreVertical size={15} />
-        </button>
-      </div>
-
-      {activeMenuRecipeId === recipe.id && (
-        <div
-          className="fixed z-50 w-44 rounded-[10px] border border-cal-hairline bg-cal-canvas p-1.5 text-left shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
-          style={menuPos || undefined}
-        >
-          {canReview && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setActiveMenuRecipeId(null);
-                openModal(recipe);
-              }}
-              className="flex w-full items-center gap-2 rounded-[6px] px-2.5 py-2 text-[12.5px] font-medium text-cal-ink hover:bg-cal-surface-soft cursor-pointer"
-            >
-              <ShieldCheck size={13.5} className="text-cal-muted" />
-              <span>
-                {recipe.status === "archived" ? "View recipe" : "Review recipe"}
-              </span>
-            </button>
-          )}
-
-          {canAuthor && (
-            <>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActiveMenuRecipeId(null);
-                  openModal(recipe);
-                }}
-                className="flex w-full items-center gap-2 rounded-[6px] px-2.5 py-2 text-[12.5px] font-medium text-cal-ink hover:bg-cal-surface-soft cursor-pointer"
-              >
-                <Edit2 size={13.5} className="text-cal-muted" />
-                <span>Edit recipe</span>
-              </button>
-
-              {recipe.status === "draft" && recipe.expertValidated && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActiveMenuRecipeId(null);
-                    handleUpdateStatus(recipe, "published");
-                  }}
-                  className="flex w-full items-center gap-2 rounded-[6px] px-2.5 py-2 text-[12.5px] font-medium text-cal-ink hover:bg-cal-surface-soft cursor-pointer"
-                >
-                  <CheckCircle2 size={13.5} className="text-cal-success" />
-                  <span>Publish</span>
-                </button>
-              )}
-
-              {["draft", "published"].includes(recipe.status) && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActiveMenuRecipeId(null);
-                    requestArchiveRecipe(recipe);
-                  }}
-                  className="flex w-full items-center gap-2 rounded-[6px] px-2.5 py-2 text-[12.5px] font-medium text-cal-ink hover:bg-cal-surface-soft cursor-pointer"
-                >
-                  <Archive size={13.5} className="text-cal-muted" />
-                  <span>Archive</span>
-                </button>
-              )}
-
-              {recipe.status === "archived" && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActiveMenuRecipeId(null);
-                    handleUpdateStatus(recipe, "draft");
-                  }}
-                  className="flex w-full items-center gap-2 rounded-[6px] px-2.5 py-2 text-[12.5px] font-medium text-cal-ink hover:bg-cal-surface-soft cursor-pointer"
-                >
-                  <CheckCircle2 size={13.5} className="text-cal-muted" />
-                  <span>Restore to draft</span>
-                </button>
-              )}
-            </>
-          )}
-        </div>
-      )}
-    </div>
+    <LibraryActionsMenu
+      name={recipe.name}
+      disabled={statusBusy}
+      actions={[
+        {
+          label: canAuthor
+            ? "Edit recipe"
+            : canReview && recipe.status !== "archived"
+              ? "Review recipe"
+              : "View recipe",
+          icon: Edit2,
+          onSelect: () => openModal(recipe),
+        },
+        ...(canAuthor && recipe.status === "draft" && recipe.expertValidated
+          ? [
+              {
+                label: "Publish",
+                icon: CheckCircle2,
+                onSelect: () => handleUpdateStatus(recipe, "published"),
+              },
+            ]
+          : []),
+        ...(canAuthor && recipe.status === "archived"
+          ? [
+              {
+                label: "Restore to draft",
+                icon: RotateCcw,
+                onSelect: () => handleUpdateStatus(recipe, "draft"),
+              },
+            ]
+          : []),
+        ...(canAuthor && ["draft", "published"].includes(recipe.status)
+          ? [
+              {
+                label: "Archive",
+                icon: Archive,
+                onSelect: () => requestArchiveRecipe(recipe),
+              },
+            ]
+          : []),
+      ]}
+    />
   );
 
   const selectClass =
@@ -438,7 +337,7 @@ const Foods = () => {
           unavailable={loading || recipesQuery.isError}
           stats={[
             ["All recipes", statusCounts.all],
-            ["Approved revisions", approvedCount],
+            ["Ready to publish", statusCounts.approved],
             ["Published", statusCounts.published],
           ]}
           action={
@@ -450,89 +349,67 @@ const Foods = () => {
           }
         />
 
-        {/* ─── 3. MAIN DIRECTORY CARD: FILTERS & TABLE ──────────────────────── */}
-        <section className="overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-          {/* Primary Toolbar: Status Nav-Pill-Group + Search */}
-          <div className="space-y-3 border-b border-cal-hairline bg-cal-canvas px-4 py-3.5 sm:px-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div
-                role="group"
-                aria-label="Filter recipes by status"
-                className="relative inline-flex flex-wrap items-center gap-1 rounded-[16px] sm:rounded-full border border-cal-hairline/80 bg-cal-surface-soft p-1"
-              >
-                {STATUS_TABS.map(([key, label]) => {
-                  const active = filterStatus === key;
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      aria-pressed={active}
-                      onClick={() => setFilterStatus(key)}
-                      className={`relative flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors cursor-pointer select-none ${
-                        active
-                          ? "text-white font-semibold"
-                          : "text-cal-muted hover:text-cal-ink"
-                      }`}
-                    >
-                      {active && (
-                        <motion.div
-                          layoutId="food-status-filter-tab"
-                          className="absolute inset-0 rounded-full bg-cal-primary shadow-xs"
-                          transition={{
-                            type: "spring",
-                            stiffness: 420,
-                            damping: 34,
-                          }}
-                        />
-                      )}
-                      <span className="relative z-10">{label}</span>
-                      <span
-                        className={`relative z-10 font-cal-mono text-[11.5px] tabular-nums ${
-                          active
-                            ? "text-white/90 font-medium"
-                            : "text-cal-muted-soft"
-                        }`}
-                      >
-                        {loading ? "—" : statusCounts[key]}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
+        <section aria-label="Recipe library" className="library-panel">
+          <div className="library-toolbar">
+            <div className="workspace-search-row">
               <LibraryViewSwitch value={view} onChange={setView} />
-              <div className="relative w-full sm:w-80">
-                <label htmlFor="recipe-search" className="sr-only">
+              <label className="workspace-search">
+                <Search size={16} aria-hidden="true" />
+                <span className="sr-only">
                   Search recipes, categories, or tags
-                </label>
-                <Search
-                  size={14.5}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-cal-muted"
-                />
+                </span>
                 <input
-                  id="recipe-search"
-                  type="text"
+                  type="search"
                   placeholder="Search recipes, categories, or tags…"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-9 w-full rounded-[8px] border border-cal-hairline bg-cal-canvas pl-9 pr-8 text-[13px] text-cal-ink placeholder:text-cal-muted focus:border-cal-ink focus:outline-none transition-colors"
+                  onChange={(event) => setSearchQuery(event.target.value)}
                 />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={clearSearch}
-                    aria-label="Clear search"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-full text-cal-muted hover:bg-cal-surface-card hover:text-cal-ink cursor-pointer"
-                  >
-                    <X size={13} />
-                  </button>
-                )}
-              </div>
+              </label>
+              <button
+                type="button"
+                className="workspace-toolbar-button"
+                aria-expanded={showFilters}
+                aria-controls="recipe-facets"
+                onClick={() => setShowFilters(!showFilters)}
+              >
+                Filters
+                {filterCategory !== "all" || filterFoodSource !== "all"
+                  ? " •"
+                  : ""}
+                <ChevronDown size={14} aria-hidden="true" />
+              </button>
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  className="workspace-toolbar-button"
+                  onClick={clearFilters}
+                >
+                  <RotateCcw size={14} aria-hidden="true" /> Reset filters
+                </button>
+              )}
             </div>
-
-            {/* Secondary Facet Row */}
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
-              <div className="grid w-full grid-cols-2 gap-2 sm:grid-cols-4 md:flex md:w-auto md:flex-wrap">
+            <div className="library-workflow-row">
+              <LibraryWorkflowTabs
+                value={filterStatus}
+                onChange={setFilterStatus}
+                counts={statusCounts}
+                unavailable={loading || recipesQuery.isError}
+                label="Filter recipes by status"
+              />
+              <p className="library-results" role="status">
+                {loading || recipesQuery.isError
+                  ? "Counts unavailable"
+                  : `${filteredRecipes.length} of ${recipes.length} recipes`}
+              </p>
+            </div>
+            <p className="library-workflow-hint">
+              Approved drafts are ready to publish.
+            </p>
+            {showFilters && (
+              <div
+                id="recipe-facets"
+                className="flex flex-wrap gap-3 border-t border-cal-hairline pt-3"
+              >
                 {/* Category */}
                 <div className="relative">
                   <label htmlFor="filter-category" className="sr-only">
@@ -579,47 +456,8 @@ const Foods = () => {
                     className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-cal-muted"
                   />
                 </div>
-
-                {/* Review Status */}
-                <div className="relative">
-                  <label htmlFor="filter-review" className="sr-only">
-                    Filter by review status
-                  </label>
-                  <select
-                    id="filter-review"
-                    value={filterReview}
-                    onChange={(e) => setFilterReview(e.target.value)}
-                    className={selectClass}
-                  >
-                    <option value="all">All review status</option>
-                    <option value="reviewed">Dietitian approved</option>
-                    <option value="pending">Waiting for dietitian</option>
-                  </select>
-                  <ChevronDown
-                    size={13.5}
-                    className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-cal-muted"
-                  />
-                </div>
               </div>
-
-              <div className="flex items-center gap-2.5">
-                {hasActiveFilters && (
-                  <button
-                    type="button"
-                    onClick={clearFilters}
-                    className="inline-flex h-8 items-center gap-1.5 rounded-[8px] border border-cal-hairline bg-cal-surface-soft px-3 text-[12px] font-semibold text-cal-ink hover:bg-cal-surface-card transition-colors cursor-pointer"
-                  >
-                    <RotateCcw size={12} />
-                    <span>Reset filters</span>
-                  </button>
-                )}
-                {!loading && !recipesQuery.isError && (
-                  <span className="font-cal-mono text-[12px] text-cal-muted">
-                    {filteredRecipes.length} of {recipes.length}
-                  </span>
-                )}
-              </div>
-            </div>
+            )}
           </div>
 
           {view === "grid" ? (
@@ -1012,6 +850,7 @@ const Foods = () => {
 
         {/* Reusable Action Confirmation Modal */}
         <ConfirmActionModal
+          className="workspace"
           isOpen={confirmConfig.isOpen}
           onClose={closeConfirmModal}
           onConfirm={confirmConfig.onConfirm}

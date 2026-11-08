@@ -14,6 +14,12 @@ export default async function recipeSafety(page) {
       errors = [];
     let failArchive = true,
       writes = 0;
+    let holdPublish = false,
+      releasePublish;
+    let markPublishStarted;
+    const publishStarted = new Promise((resolve) => {
+      markPublishStarted = resolve;
+    });
     let recipe = {
       id: "synthetic-recipe",
       name: "Synthetic recipe",
@@ -68,8 +74,13 @@ export default async function recipeSafety(page) {
         const body = req.postDataJSON();
         if (body.expectedUpdatedAt !== recipe.updated_at)
           throw Error("Recipe status change lost its revision boundary");
-        if (!["archived", "draft"].includes(body.status))
+        if (!["archived", "draft", "published"].includes(body.status))
           throw Error("Unexpected recipe status action");
+        if (holdPublish && body.status === "published")
+          await new Promise((resolve) => {
+            releasePublish = resolve;
+            markPublishStarted();
+          });
         recipe = {
           ...recipe,
           status: body.status,
@@ -82,19 +93,22 @@ export default async function recipeSafety(page) {
       );
     });
     await local.goto(origin + "/foods");
-    await local
-      .getByRole("button", {
-        name: "Actions for Synthetic recipe",
-        exact: true,
-      })
-      .click();
+    const action = async (name) => {
+      await local
+        .getByRole("button", {
+          name: "Actions for Synthetic recipe",
+          exact: true,
+        })
+        .click();
+      await local.getByRole("menuitem", { name, exact: true }).click();
+    };
     if (
       await local.getByRole("button", { name: "Delete", exact: true }).count()
     )
       throw Error(
         "Recipe library still exposes permanent deletion instead of retained history",
       );
-    await local.getByRole("button", { name: "Archive", exact: true }).click();
+    await action("Archive");
     const dialog = local.getByRole("dialog");
     await dialog
       .getByRole("button", { name: "Archive recipe", exact: true })
@@ -112,30 +126,47 @@ export default async function recipeSafety(page) {
     await dialog.waitFor({ state: "hidden" });
     if (writes !== 2)
       throw Error("Recipe archive retry did not send one request");
-    await local
-      .getByRole("button", {
-        name: "Actions for Synthetic recipe",
-        exact: true,
-      })
-      .click();
-    await local
-      .getByRole("button", { name: "Restore to draft", exact: true })
-      .click();
-    await local
-      .getByRole("button", {
-        name: "Actions for Synthetic recipe",
-        exact: true,
-      })
-      .click();
-    await local
-      .getByRole("button", { name: "Archive", exact: true })
-      .click({ timeout: 3000 });
+    await action("Restore to draft");
+    await action("Archive");
     await dialog
       .getByRole("button", { name: "Archive recipe", exact: true })
       .click();
     await dialog.waitFor({ state: "hidden" });
     if (writes !== 4 || recipe.status !== "archived")
       throw Error("Draft cannot be archived without deletion");
+    await action("Restore to draft");
+    holdPublish = true;
+    await action("Publish");
+    const trigger = local.getByRole("button", {
+      name: "Actions for Synthetic recipe",
+      exact: true,
+    });
+    await publishStarted;
+    await local.waitForFunction(() =>
+      document.querySelector('.library-actions-trigger[aria-busy="true"]'),
+    );
+    if (
+      !(await trigger.isDisabled()) ||
+      (await local.getByRole("menu").count())
+    )
+      throw Error(
+        "Pending recipe actions can reopen a conflicting lifecycle menu",
+      );
+    await trigger.evaluate((el) => {
+      el.click();
+      el.click();
+    });
+    if (writes !== 6 || !releasePublish)
+      throw Error(
+        "Pending publish was duplicated or never reached the synthetic boundary",
+      );
+    releasePublish();
+    await local.waitForFunction(
+      () =>
+        !document.querySelector('.library-actions-trigger[aria-busy="true"]'),
+    );
+    if (writes !== 6 || recipe.status !== "published")
+      throw Error("Publish did not finish exactly once");
     if (errors.length) throw Error(errors.join("; "));
     return "Recipe archive failure retains its confirmation, revision and retry; synthetic requests only";
   } finally {
