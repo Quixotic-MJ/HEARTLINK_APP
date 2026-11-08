@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Info, Loader2, Trash2, X } from "lucide-react";
 import { useDialogFocus } from "../../hooks/useDialogFocus.js";
@@ -83,7 +84,7 @@ const ConfirmActionModal = ({
     }
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 font-cal-sans">
       {/* Backdrop */}
       <div
@@ -227,7 +228,8 @@ const ConfirmActionModal = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

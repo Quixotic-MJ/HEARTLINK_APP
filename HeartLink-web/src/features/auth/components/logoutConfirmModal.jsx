@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useRef, useState } from "react";
 import { Loader2, Lock, LogOut, X } from "lucide-react";
 import { useAuth } from "../../../contexts/useAuth.js";
@@ -54,7 +55,7 @@ const LogoutConfirmModal = ({ isOpen, onClose }) => {
     }, 450);
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 font-cal-sans">
       {/* Backdrop */}
       <div
@@ -156,7 +157,8 @@ const LogoutConfirmModal = ({ isOpen, onClose }) => {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

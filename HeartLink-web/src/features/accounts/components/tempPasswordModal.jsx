@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useRef, useState } from "react";
 import { Check, Copy, Info, KeyRound } from "lucide-react";
 import { useDialogFocus } from "../../../hooks/useDialogFocus.js";
@@ -27,7 +28,7 @@ const TempPasswordModal = ({ isOpen, onClose, staffName, staffEmail, password })
     onClose();
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 font-cal-sans">
       <div className="fixed inset-0 bg-cal-ink/40 transition-opacity" />
 
@@ -111,7 +112,8 @@ const TempPasswordModal = ({ isOpen, onClose, staffName, staffEmail, password })
           I&apos;ve copied it
         </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

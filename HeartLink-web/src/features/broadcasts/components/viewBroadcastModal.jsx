@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useRef } from "react";
 import { Info, Megaphone, ShieldAlert, Wrench, X } from "lucide-react";
 import { useDialogFocus } from "../../../hooks/useDialogFocus.js";
@@ -62,7 +63,7 @@ const ViewBroadcastModal = ({ isOpen, onClose, broadcast }) => {
   const dialogRef = useRef(null);
   useDialogFocus(isOpen, dialogRef, onClose);
   if (!isOpen || !broadcast) return null;
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 font-cal-sans">
       <div className="fixed inset-0 bg-cal-ink/40" onClick={onClose} />
       <div
@@ -134,7 +135,8 @@ const ViewBroadcastModal = ({ isOpen, onClose, broadcast }) => {
           </button>
         </footer>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 export default ViewBroadcastModal;

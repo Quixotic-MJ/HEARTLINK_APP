@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Megaphone, X } from "lucide-react";
 import { useDialogFocus } from "../../../hooks/useDialogFocus.js";
@@ -64,7 +65,7 @@ export default function NewBroadcastModal({ onClose, onPublish }) {
     }
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 font-cal-sans">
       <div className="fixed inset-0 bg-cal-ink/40" onClick={close} />
       <form
@@ -272,6 +273,7 @@ export default function NewBroadcastModal({ onClose, onPublish }) {
           )}
         </footer>
       </form>
-    </div>
+    </div>,
+    document.body,
   );
 }

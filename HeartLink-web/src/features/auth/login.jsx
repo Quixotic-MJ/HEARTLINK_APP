@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useState, useEffect, useRef, useId } from "react";
 import {
   Eye,
@@ -240,7 +241,7 @@ function ForgotPasswordModal({ isOpen, onClose }) {
     }
   };
 
-  return (
+  return createPortal(
     <div
       ref={dialogRef}
       tabIndex={-1}
@@ -348,7 +349,8 @@ function ForgotPasswordModal({ isOpen, onClose }) {
           </div>
         )}
       </motion.div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useEffect, useRef } from "react";
 import { ChevronDown, Info, Loader2, UserPlus, X } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
@@ -88,15 +89,18 @@ const StaffFormModal = ({ isOpen, onClose, onSave }) => {
           error.message ||
           "Could not provision the account. Try again.",
       });
-      requestAnimationFrame(() => errorRef.current?.focus());
     } finally {
       pending.current = false;
     }
   };
 
+  useEffect(() => {
+    if (errors.root) errorRef.current?.focus();
+  }, [errors.root]);
+
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 font-cal-sans">
       {/* Backdrop */}
       <div
@@ -294,7 +298,8 @@ const StaffFormModal = ({ isOpen, onClose, onSave }) => {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

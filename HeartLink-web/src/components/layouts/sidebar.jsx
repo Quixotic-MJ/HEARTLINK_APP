@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -267,7 +268,7 @@ function QuickSearchModal({ isOpen, onClose, items, searchPath, onSelectPath, on
     }
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[90] flex items-start justify-center p-4 pt-[12vh] font-cal-sans">
       <div
         className="fixed inset-0 bg-cal-ink/40 transition-opacity"
@@ -359,7 +360,8 @@ function QuickSearchModal({ isOpen, onClose, items, searchPath, onSelectPath, on
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -508,11 +510,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
 
   const isNotificationsActive = location.pathname === "/notifications";
 
-  return (
+  const menu = (
     <>
       {/* Mobile overlay with smooth fade + blur */}
       <div
-        className={`fixed inset-0 z-40 bg-cal-ink/40 backdrop-blur-[2px] transition-opacity duration-300 ease-out lg:hidden ${
+        className={`fixed inset-0 z-50 bg-cal-ink/40 backdrop-blur-[2px] transition-opacity duration-300 ease-out lg:hidden ${
           sidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
         onClick={() => setSidebarOpen(false)}
@@ -943,6 +945,12 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
           )}
         </div>
       </aside>
+    </>
+  );
+
+  return (
+    <>
+      {isMobileMenu ? createPortal(menu, document.body) : menu}
 
       {/* Quick Search Modal (Ctrl+K / Sidebar Search button) */}
       <QuickSearchModal

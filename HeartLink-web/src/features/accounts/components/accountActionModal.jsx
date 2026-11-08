@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { formatUserRef } from "../../../utils/formatUserRef.js";
 import { useDialogFocus } from "../../../hooks/useDialogFocus.js";
@@ -29,6 +30,9 @@ export default function AccountActionModal({
   const pending = useRef(false);
   const dialogRef = useRef(null);
   const errorRef = useRef(null);
+  useEffect(() => {
+    if (error) errorRef.current?.focus();
+  }, [error]);
   const close = () => {
     if (!pending.current) onClose();
   };
@@ -51,14 +55,13 @@ export default function AccountActionModal({
           failure.message ||
           "The account could not be updated. Try again.",
       );
-      requestAnimationFrame(() => errorRef.current?.focus());
     } finally {
       pending.current = false;
       setBusy(false);
     }
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 font-cal-sans">
       <div className="absolute inset-0 bg-cal-ink/40" onClick={close} />
       <div
@@ -297,6 +300,7 @@ export default function AccountActionModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

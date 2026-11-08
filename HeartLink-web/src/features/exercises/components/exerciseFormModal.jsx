@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import {
@@ -445,7 +446,7 @@ const ExerciseFormModal = ({
   const resolvedMedia = resolveMediaUrl(mediaUrl);
   const mediaPreviewError = !!resolvedMedia && failedMediaUrl === resolvedMedia;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 font-cal-sans">
       {/* Backdrop */}
       <div
@@ -1670,7 +1671,8 @@ const ExerciseFormModal = ({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

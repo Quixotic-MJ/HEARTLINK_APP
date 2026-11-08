@@ -44,6 +44,9 @@ only genuinely shared UI belongs in `components/`. Local display state, focus ha
 small event callbacks can stay in UI files. Substantial reusable data logic belongs in the
 feature's form/helper module, not a one-to-one pass-through layer.
 
+Modal overlays and the mobile menu mount at `document.body` with React portals so the
+fixed application shell cannot trap them underneath global notifications.
+
 Use exact-case relative imports with explicit extensions. Tests sit next to the behavior
 they cover. Existing route URLs (including `/foods`, `/feedbacks`, `/activity-log` and
 `/set-password`) are deliberately unchanged.
@@ -70,6 +73,10 @@ origin and `VITE_PROXY_TARGET` to `http://127.0.0.1:9`, block service workers an
 intercept every API/external request before navigation. Unit tests, lint and the build
 do not start a backend or execute migrations/seeds. `npm test` also checks exact
 on-disk import casing and that no legacy UI is reachable from the browser entry.
+
+`tests/browser/dialogOverlay.js` is a synthetic Playwright function-runner check against
+frontend-only port 5180. It verifies toast/modal/menu stacking and keyboard focus; it is
+separate from `npm test` and intercepts every API/external request before navigation.
 
 ## Roles and limits
 

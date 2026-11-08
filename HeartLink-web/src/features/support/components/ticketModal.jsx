@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import FeedbackCategoryBadge from "./feedbackCategoryBadge.jsx";
@@ -69,7 +70,7 @@ export default function TicketModal({
       ? ticket.deviceMeta[key]
       : "Not recorded";
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 font-cal-sans text-cal-ink">
       <div className="absolute inset-0 bg-cal-ink/40" onClick={close} />
       <div
@@ -311,6 +312,7 @@ export default function TicketModal({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
