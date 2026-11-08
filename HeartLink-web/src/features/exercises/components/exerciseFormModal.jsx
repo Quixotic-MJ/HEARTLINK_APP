@@ -31,6 +31,8 @@ import {
   SetupEditor,
   TextListEditor,
 } from "./exercisePartsEditor.jsx";
+import { DiscardDraft } from "../../../components/ui/discardDraft.jsx";
+import { useDraftExit } from "../../../hooks/useDraftExit.js";
 import { useDialogFocus } from "../../../hooks/useDialogFocus.js";
 import {
   countedPromptSeconds,
@@ -127,11 +129,7 @@ const ExerciseFormModal = ({
   const [isUploading, setIsUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
-  const onClose = () => {
-    if (!inFlight.current && !isUploading && pendingUploads.current === 0)
-      finishClose();
-  };
-  useDialogFocus(isOpen, dialogRef, onClose);
+
   useEffect(() => {
     if (saveError) errorRef.current?.focus();
   }, [saveError]);
@@ -142,7 +140,7 @@ const ExerciseFormModal = ({
     control,
     reset,
     setValue,
-    formState: { errors, submitCount },
+    formState: { errors, submitCount, isDirty },
   } = useForm({
     resolver: zodResolver(exerciseSchema),
     defaultValues: EMPTY_FORM,
@@ -239,6 +237,12 @@ const ExerciseFormModal = ({
     setPicturesNote("");
     setSaveError("");
   }
+
+  const draftExit = useDraftExit(isOpen, isDirty || reviewNote.length > 0, finishClose, dialogRef, saving || isUploading || partUploads > 0);
+  const onClose = () => {
+    if (!inFlight.current && !isUploading && pendingUploads.current === 0) draftExit.requestClose();
+  };
+  useDialogFocus(isOpen, dialogRef, onClose);
 
   // Gives the extra pictures to the steps in order: set-up, warm-up, main, cool-down. Only when
   // the counts match, so a picture never lands on the wrong move.
@@ -475,7 +479,7 @@ const ExerciseFormModal = ({
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="exercise-panel-title"
+        aria-labelledby={draftExit.discarding ? "discard-changes-title" : "exercise-panel-title"}
         tabIndex={-1}
         className={`relative z-10 flex w-full flex-col overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas text-cal-ink shadow-[0_12px_36px_rgba(0,0,0,0.12)] ${
           expanded
@@ -483,6 +487,10 @@ const ExerciseFormModal = ({
             : "h-[min(880px,100%)] max-w-[920px]"
         }`}
       >
+        {draftExit.discarding && (
+          <DiscardDraft onKeep={draftExit.keepEditing} onDiscard={draftExit.confirmDiscard} />
+        )}
+        <div className={draftExit.discarding ? "hidden" : "contents"}>
         {/* Header: name, status chips, more actions, size, and the tabs while editing */}
         <div className="shrink-0 border-b border-cal-hairline bg-cal-canvas px-6 pt-5 pb-4">
           <div className="flex items-start gap-3">
@@ -1707,6 +1715,7 @@ const ExerciseFormModal = ({
               </button>
             </>
           )}
+        </div>
         </div>
       </div>
     </div>,

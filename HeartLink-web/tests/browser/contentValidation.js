@@ -111,6 +111,10 @@ export default async function contentValidation(page) {
       throw Error("Recipe empty-list error did not focus its section");
     if (writes) throw Error("Invalid form reached a write endpoint");
     await dialog.getByRole("button", { name: "Close", exact: true }).click();
+    await dialog
+      .getByRole("button", { name: "Discard draft", exact: true })
+      .click();
+    await dialog.waitFor({ state: "hidden" });
     await local.goto(origin + "/exercises");
     await local
       .getByRole("button", { name: "Create routine", exact: true })

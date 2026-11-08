@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { createBrowserRouter, createRoutesFromElements, RouterProvider, Route } from "react-router-dom";
 import Settings from "../features/settings/settingsPage.jsx";
 import Broadcasts from "../features/broadcasts/broadcastsPage.jsx";
 import Feedbacks from "../features/support/supportPage.jsx";
@@ -48,6 +48,39 @@ const RoleRoute = ({ children }) => {
   return children;
 };
 
+const router = createBrowserRouter(createRoutesFromElements(
+  <>
+          {/* The public home page; staff sign in at /login */}
+          <Route path="/" element={<Landing />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/two-factor" element={<Navigate to="/login" replace />} />
+          <Route path="/set-password" element={<SetPassword />} />
+
+          {/* Administrative & Shared Routes */}
+          <Route path="/dashboard" element={<RoleRoute><Dashboard /></RoleRoute>} />
+          <Route path="/analytics" element={<RoleRoute><Analytics /></RoleRoute>} />
+          <Route path="/foods" element={<RoleRoute><Foods /></RoleRoute>} />
+          <Route path="/exercises" element={<RoleRoute><Exercises /></RoleRoute>} />
+          <Route path="/users" element={<RoleRoute><Users /></RoleRoute>} />
+          <Route path="/users/:id" element={<RoleRoute><Navigate to="/users" replace /></RoleRoute>} />
+          <Route path="/feedbacks" element={<RoleRoute><Feedbacks /></RoleRoute>} />
+          <Route path="/premium" element={<RoleRoute><Premium /></RoleRoute>} />
+          <Route path="/broadcasts" element={<RoleRoute><Broadcasts /></RoleRoute>} />
+          <Route path="/notifications" element={<RoleRoute><Notifications /></RoleRoute>} />
+          <Route path="/settings" element={<RoleRoute><Settings /></RoleRoute>} />
+          <Route path="/activity-log" element={<RoleRoute><ActivityLog /></RoleRoute>} />
+
+          {/* Retired bookmarks pass through auth/access and return to the staff role home. */}
+          <Route path="/cases/*" element={<RoleRoute><Navigate to="/" replace /></RoleRoute>} />
+          <Route path="/calibration/*" element={<RoleRoute><Navigate to="/" replace /></RoleRoute>} />
+          <Route path="/patients/*" element={<RoleRoute><Navigate to="/" replace /></RoleRoute>} />
+
+          {/* Unknown paths go to the home page */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+
+  </>
+));
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -82,37 +115,7 @@ export default function App() {
           },
         }}
       />
-      <BrowserRouter>
-        <Routes>
-          {/* The public home page; staff sign in at /login */}
-          <Route path="/" element={<Landing />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/two-factor" element={<Navigate to="/login" replace />} />
-          <Route path="/set-password" element={<SetPassword />} />
-          
-          {/* Administrative & Shared Routes */}
-          <Route path="/dashboard" element={<RoleRoute><Dashboard /></RoleRoute>} />
-          <Route path="/analytics" element={<RoleRoute><Analytics /></RoleRoute>} />
-          <Route path="/foods" element={<RoleRoute><Foods /></RoleRoute>} />
-          <Route path="/exercises" element={<RoleRoute><Exercises /></RoleRoute>} />
-          <Route path="/users" element={<RoleRoute><Users /></RoleRoute>} />
-          <Route path="/users/:id" element={<RoleRoute><Navigate to="/users" replace /></RoleRoute>} />
-          <Route path="/feedbacks" element={<RoleRoute><Feedbacks /></RoleRoute>} />
-          <Route path="/premium" element={<RoleRoute><Premium /></RoleRoute>} />
-          <Route path="/broadcasts" element={<RoleRoute><Broadcasts /></RoleRoute>} />
-          <Route path="/notifications" element={<RoleRoute><Notifications /></RoleRoute>} />
-          <Route path="/settings" element={<RoleRoute><Settings /></RoleRoute>} />
-          <Route path="/activity-log" element={<RoleRoute><ActivityLog /></RoleRoute>} />
-          
-          {/* Retired bookmarks pass through auth/access and return to the staff role home. */}
-          <Route path="/cases/*" element={<RoleRoute><Navigate to="/" replace /></RoleRoute>} />
-          <Route path="/calibration/*" element={<RoleRoute><Navigate to="/" replace /></RoleRoute>} />
-          <Route path="/patients/*" element={<RoleRoute><Navigate to="/" replace /></RoleRoute>} />
-          
-          {/* Unknown paths go to the home page */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
+      <RouterProvider router={router} />
       </MotionConfig>
     </AuthProvider>
     </QueryClientProvider>

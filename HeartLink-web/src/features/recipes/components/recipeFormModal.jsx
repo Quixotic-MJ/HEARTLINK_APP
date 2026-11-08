@@ -20,6 +20,8 @@ import { DEFAULT_VALUES, UNIT_GROUPS, UNIT_VALUES, foodSchema, recipePayload, re
 import { InputField } from "../../../components/ui/inputField.jsx";
 import { FormErrorSummary } from "../../../components/ui/formErrorSummary.jsx";
 import { apiUpload } from "../../../lib/api.js";
+import { DiscardDraft } from "../../../components/ui/discardDraft.jsx";
+import { useDraftExit } from "../../../hooks/useDraftExit.js";
 import { useDialogFocus } from "../../../hooks/useDialogFocus.js";
 
 // The edit view's tabs, and which fields live on each, so a save that fails opens the right tab.
@@ -84,10 +86,7 @@ const FoodFormModal = ({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const busy = saving || isUploading;
-  const onClose = () => {
-    if (!inFlight.current && !uploadInFlight.current) finishClose();
-  };
-  useDialogFocus(isOpen, dialogRef, onClose);
+
 
   // HL-037: a Dietitian's note when sending a recipe back for changes.
   const [reviewNote, setReviewNote] = useState("");
@@ -137,7 +136,7 @@ const FoodFormModal = ({
     control,
     reset,
     setValue,
-    formState: { errors, submitCount },
+    formState: { errors, submitCount, isDirty },
   } = useForm({
     resolver: zodResolver(foodSchema),
     defaultValues: DEFAULT_VALUES,
@@ -175,6 +174,12 @@ const FoodFormModal = ({
   useEffect(() => {
     reset(recipeValues(recipe));
   }, [recipe, isOpen, reset]);
+
+  const draftExit = useDraftExit(isOpen, isDirty || reviewNote.length > 0, finishClose, dialogRef, busy);
+  const onClose = () => {
+    if (!inFlight.current && !uploadInFlight.current) draftExit.requestClose();
+  };
+  useDialogFocus(isOpen, dialogRef, onClose);
 
   const onSubmit = async (data) => {
     if (!canEdit || inFlight.current || uploadInFlight.current || !onSave) return;
@@ -284,12 +289,16 @@ const FoodFormModal = ({
         role="dialog"
         aria-modal="true"
         aria-busy={busy}
-        aria-labelledby="recipe-panel-title"
+        aria-labelledby={draftExit.discarding ? "discard-changes-title" : "recipe-panel-title"}
         tabIndex={-1}
         className={`relative z-10 flex w-full flex-col overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas text-cal-ink shadow-[0_12px_36px_rgba(0,0,0,0.12)] ${
           expanded ? "h-full max-w-[1280px]" : "h-[min(880px,100%)] max-w-[920px]"
         }`}
       >
+        {draftExit.discarding && (
+          <DiscardDraft onKeep={draftExit.keepEditing} onDiscard={draftExit.confirmDiscard} />
+        )}
+        <div className={draftExit.discarding ? "hidden" : "contents"}>
         {/* Header: name, status chips, more actions, size, and the tabs while editing */}
         <div className="shrink-0 border-b border-cal-hairline bg-cal-canvas px-6 pt-5 pb-4">
           <div className="flex items-start gap-3">
@@ -1147,6 +1156,7 @@ const FoodFormModal = ({
               </button>
             </>
           )}
+        </div>
         </div>
       </div>
     </div>,

@@ -95,7 +95,8 @@ export default async function recipeMedia(page) {
       }
       throw Error("Unexpected recipe media request " + url.pathname);
     });
-    await local.goto(origin + "/foods");
+    await local.goto(origin + "/settings");
+    await local.locator('a[href="/foods"]').first().click();
     await local
       .getByRole("button", { name: "Synthetic recipe", exact: true })
       .click();
@@ -129,6 +130,19 @@ export default async function recipeMedia(page) {
         .isDisabled())
     )
       throw Error("Recipe can save before its image upload is confirmed");
+    await local
+      .goBack({ waitUntil: "domcontentloaded", timeout: 3000 })
+      .catch(() => {});
+    await local.waitForURL(origin + "/foods", { timeout: 3000 });
+    if (
+      !(await dialog.isVisible()) ||
+      (await dialog
+        .getByRole("heading", { name: "Discard unsaved changes?", exact: true })
+        .count())
+    )
+      throw Error(
+        "Browser Back escaped a pending upload or offered unsafe discard",
+      );
     await local.keyboard.press("Escape");
     if (!(await dialog.isVisible()) || writes.length)
       throw Error("Recipe closed or saved during upload");
@@ -167,6 +181,19 @@ export default async function recipeMedia(page) {
     );
     if (writes.length !== 1)
       throw Error("Rapid recipe save duplicated a mutation");
+    await local
+      .goBack({ waitUntil: "domcontentloaded", timeout: 3000 })
+      .catch(() => {});
+    await local.waitForURL(origin + "/foods", { timeout: 3000 });
+    if (
+      !(await dialog.isVisible()) ||
+      (await dialog
+        .getByRole("heading", { name: "Discard unsaved changes?", exact: true })
+        .count())
+    )
+      throw Error(
+        "Browser Back escaped a pending save or offered unsafe discard",
+      );
     await local.keyboard.press("Escape");
     if (!(await dialog.isVisible())) throw Error("Recipe closed during save");
     releaseSave();
