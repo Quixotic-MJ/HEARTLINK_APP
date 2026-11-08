@@ -21,7 +21,7 @@ export function useDraftExit(isOpen, dirty, onClose, dialogRef, busy) {
     if (!discarding && returnFocus.current) {
       const field = document.getElementById(returnFocus.current.id);
       (
-        field || dialogRef.current?.querySelector('[aria-label="Close"]')
+        field || dialogRef.current?.querySelector('[aria-label^="Close"]')
       )?.focus();
       returnFocus.current = null;
     }

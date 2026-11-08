@@ -2,6 +2,7 @@ import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Megaphone, X } from "lucide-react";
 import { useDialogFocus } from "../../../hooks/useDialogFocus.js";
+import { useDraftExit } from "../../../hooks/useDraftExit.js";
 
 export default function NewBroadcastModal({ onClose, onPublish }) {
   const dialogRef = useRef(null);
@@ -16,25 +17,27 @@ export default function NewBroadcastModal({ onClose, onPublish }) {
   const [stage, setStage] = useState("edit");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const dirty = Boolean(draft.title || draft.message);
+  const dirty = Boolean(
+    draft.title || draft.message || draft.type !== "Maintenance",
+  );
+  const draftExit = useDraftExit(true, dirty, onClose, dialogRef, busy);
+  const view = draftExit.discarding ? "discard" : stage;
   const close = () => {
     if (pending.current) return;
-    if (stage !== "edit") {
-      setStage("edit");
-      return;
-    }
-    if (dirty) setStage("discard");
-    else onClose();
+    if (draftExit.discarding) draftExit.keepEditing();
+    else if (stage !== "edit") setStage("edit");
+    else draftExit.requestClose();
   };
   useDialogFocus(true, dialogRef, close);
   useEffect(() => {
-    if (error) messageRef.current?.focus();
-    else if (stage !== "edit") backRef.current?.focus();
-  }, [error, stage]);
+    if (view === "discard") backRef.current?.focus();
+    else if (error) messageRef.current?.focus();
+    else if (view !== "edit") backRef.current?.focus();
+  }, [error, view]);
 
   const submit = async (event) => {
     event.preventDefault();
-    if (pending.current) return;
+    if (pending.current || draftExit.discarding) return;
     if (!draft.title.trim() || !draft.message.trim()) return;
     if (stage === "edit") {
       setStage("confirm");
@@ -89,9 +92,9 @@ export default function NewBroadcastModal({ onClose, onPublish }) {
               id="create-broadcast-title"
               className="font-cal-display text-xl font-semibold"
             >
-              {stage === "discard"
+              {view === "discard"
                 ? "Discard announcement draft?"
-                : stage === "confirm"
+                : view === "confirm"
                   ? "Review announcement"
                   : "Create announcement"}
             </h2>
@@ -120,7 +123,7 @@ export default function NewBroadcastModal({ onClose, onPublish }) {
               {error}
             </p>
           )}
-          {stage === "discard" ? (
+          {view === "discard" ? (
             <p className="text-sm">
               This unsaved draft will be lost. No announcement has been
               published.
@@ -137,7 +140,7 @@ export default function NewBroadcastModal({ onClose, onPublish }) {
                   not guaranteed.
                 </p>
               </div>
-              {stage === "edit" ? (
+              {view === "edit" ? (
                 <fieldset disabled={busy} className="min-w-0 space-y-4">
                   <legend className="sr-only">Announcement content</legend>
                   <label
@@ -222,19 +225,19 @@ export default function NewBroadcastModal({ onClose, onPublish }) {
           )}
         </div>
         <footer className="flex shrink-0 flex-wrap justify-end gap-2 border-t border-cal-hairline p-4">
-          {stage === "discard" ? (
+          {view === "discard" ? (
             <>
               <button
                 ref={backRef}
                 type="button"
-                onClick={() => setStage("edit")}
+                onClick={draftExit.keepEditing}
                 className="rounded-lg border border-cal-hairline px-4 py-2 text-sm font-semibold"
               >
                 Keep editing
               </button>
               <button
                 type="button"
-                onClick={onClose}
+                onClick={draftExit.confirmDiscard}
                 className="rounded-lg bg-cal-error px-4 py-2 text-sm font-semibold text-cal-on-primary"
               >
                 Discard draft
@@ -249,7 +252,7 @@ export default function NewBroadcastModal({ onClose, onPublish }) {
                 onClick={close}
                 className="rounded-lg border border-cal-hairline px-4 py-2 text-sm font-semibold disabled:opacity-50"
               >
-                {stage === "confirm" ? "Back to edit" : "Cancel"}
+                {view === "confirm" ? "Back to edit" : "Cancel"}
               </button>
               <button
                 type="submit"
@@ -265,7 +268,7 @@ export default function NewBroadcastModal({ onClose, onPublish }) {
                 )}
                 {busy
                   ? "Publishing…"
-                  : stage === "confirm"
+                  : view === "confirm"
                     ? "Publish announcement"
                     : "Review announcement"}
               </button>

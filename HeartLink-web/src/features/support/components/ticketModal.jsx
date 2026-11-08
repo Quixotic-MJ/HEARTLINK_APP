@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import FeedbackCategoryBadge from "./feedbackCategoryBadge.jsx";
 import { useDialogFocus } from "../../../hooks/useDialogFocus.js";
+import { useDraftExit } from "../../../hooks/useDraftExit.js";
 import { UI } from "../../../styles/tokens.js";
 
 export default function TicketModal({
@@ -24,17 +25,19 @@ export default function TicketModal({
   const cancelRef = useRef(null);
   const dirty =
     notes !== (ticket?.adminNotes || "") || status !== ticket?.status;
+  const draftExit = useDraftExit(isOpen, dirty, onClose, dialogRef, busy);
+  const view = draftExit.discarding ? "discard" : mode;
   const close = () => {
     if (pending.current) return;
-    if (mode !== "edit") setMode("edit");
-    else if (dirty) setMode("discard");
-    else onClose();
+    if (draftExit.discarding) draftExit.keepEditing();
+    else if (mode !== "edit") setMode("edit");
+    else draftExit.requestClose();
   };
   useDialogFocus(isOpen, dialogRef, close);
   useEffect(() => {
-    if (mode !== "edit") cancelRef.current?.focus();
+    if (view !== "edit") cancelRef.current?.focus();
     else notesRef.current?.focus();
-  }, [mode]);
+  }, [view]);
   if (!isOpen || !ticket) return null;
   const archived = ticket.status === "Archived";
   const knownStatus = ["Open", "In Progress", "Resolved", "Archived"].includes(
@@ -47,7 +50,8 @@ export default function TicketModal({
     pending.current = true;
     setBusy(true);
     setError("");
-    const changedNotes = notes !== (ticket.adminNotes || "") ? notes : undefined;
+    const changedNotes =
+      notes !== (ticket.adminNotes || "") ? notes : undefined;
     try {
       if (nextStatus === "Archived")
         await onArchive(ticket.id, changedNotes, revision);
@@ -113,7 +117,7 @@ export default function TicketModal({
               {error} Your unsaved notes are retained.
             </p>
           )}
-          {mode === "discard" ? (
+          {view === "discard" ? (
             <section className="space-y-4" aria-labelledby="discard-heading">
               <h3 id="discard-heading" className="font-semibold">
                 Discard unsaved changes?
@@ -125,21 +129,21 @@ export default function TicketModal({
                 <button
                   ref={cancelRef}
                   type="button"
-                  onClick={() => setMode("edit")}
+                  onClick={draftExit.keepEditing}
                   className={UI.button.secondary}
                 >
                   Keep editing
                 </button>
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={draftExit.confirmDiscard}
                   className={UI.button.secondary}
                 >
                   Discard draft
                 </button>
               </div>
             </section>
-          ) : mode === "archive" ? (
+          ) : view === "archive" ? (
             <section className="space-y-4" aria-labelledby="archive-heading">
               <h3 id="archive-heading" className="font-semibold">
                 Archive support ticket?
@@ -279,7 +283,7 @@ export default function TicketModal({
             </>
           )}
         </div>
-        {mode === "edit" && (
+        {view === "edit" && (
           <div className="flex flex-wrap justify-between gap-2 border-t border-cal-hairline p-4">
             <button
               type="button"
