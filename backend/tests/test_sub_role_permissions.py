@@ -36,9 +36,7 @@ def fakes(monkeypatch):
     revoked_token_hashes.clear()
     monkeypatch.setattr("app.utils.security.get_profile_repo", lambda: FakeProfileRepo())
     monkeypatch.setattr("app.utils.security.get_supabase_client", lambda: FakeSupabase())
-    # Care-team checks are covered elsewhere; here every expert is on the patient's care team.
-    for module in ("meals.meals", "exercises.exercises", "health_logs.health_logs", "sleep_logs.sleep_logs", "analytics_api.analytics_api"):
-        monkeypatch.setattr(f"app.api.{module}.verify_user_access", lambda *a, **k: None)
+    # Keep real ownership checks; only data/service boundaries below are synthetic.
     monkeypatch.setattr("app.api.meals.meals.get_paginated_meal_logs", lambda *a, **k: {"data": []})
     monkeypatch.setattr("app.api.exercises.exercises.get_exercise_logs", lambda *a, **k: [])
     monkeypatch.setattr("app.api.health_logs.health_logs.get_paginated_health_logs", lambda *a, **k: {"data": []})
@@ -109,11 +107,11 @@ FORBIDDEN = 403
     ("diet-1", DELETE_RECIPE, FORBIDDEN),
     ("diet-1", REVIEW_RECIPE, ALLOWED),
     ("diet-1", ADD_EXERCISE, FORBIDDEN),
-    ("diet-1", READ_MEALS, ALLOWED),
+    ("diet-1", READ_MEALS, FORBIDDEN),
     ("diet-1", READ_EXERCISE_LOGS, FORBIDDEN),
-    ("diet-1", READ_HEALTH, ALLOWED),
-    ("diet-1", READ_SLEEP, ALLOWED),
-    ("diet-1", READ_ANALYTICS, ALLOWED),
+    ("diet-1", READ_HEALTH, FORBIDDEN),
+    ("diet-1", READ_SLEEP, FORBIDDEN),
+    ("diet-1", READ_ANALYTICS, FORBIDDEN),
     ("diet-1", ADD_HEALTH, FORBIDDEN),
     ("diet-1", ADD_SLEEP, FORBIDDEN),
     # Physical Therapists review routines; only Admin authors them.
@@ -125,17 +123,17 @@ FORBIDDEN = 403
     ("admin-1", REVIEW_EXERCISE, FORBIDDEN),
     ("pt-1", ADD_RECIPE, FORBIDDEN),
     ("pt-1", REVIEW_RECIPE, FORBIDDEN),
-    ("pt-1", READ_EXERCISE_LOGS, ALLOWED),
+    ("pt-1", READ_EXERCISE_LOGS, FORBIDDEN),
     ("pt-1", READ_MEALS, FORBIDDEN),
-    ("pt-1", READ_HEALTH, ALLOWED),
-    ("pt-1", READ_SLEEP, ALLOWED),
+    ("pt-1", READ_HEALTH, FORBIDDEN),
+    ("pt-1", READ_SLEEP, FORBIDDEN),
     ("pt-1", ADD_HEALTH, FORBIDDEN),
-    # Cardiologist: reads every patient log, edits no recipes or exercises
-    ("cardio-1", READ_MEALS, ALLOWED),
-    ("cardio-1", READ_EXERCISE_LOGS, ALLOWED),
-    ("cardio-1", READ_HEALTH, ALLOWED),
-    ("cardio-1", READ_SLEEP, ALLOWED),
-    ("cardio-1", READ_ANALYTICS, ALLOWED),
+    # Cardiologist: no consumer health access or specialty approval is assigned.
+    ("cardio-1", READ_MEALS, FORBIDDEN),
+    ("cardio-1", READ_EXERCISE_LOGS, FORBIDDEN),
+    ("cardio-1", READ_HEALTH, FORBIDDEN),
+    ("cardio-1", READ_SLEEP, FORBIDDEN),
+    ("cardio-1", READ_ANALYTICS, FORBIDDEN),
     ("cardio-1", ADD_RECIPE, FORBIDDEN),
     ("cardio-1", REVIEW_RECIPE, FORBIDDEN),
     ("cardio-1", ADD_EXERCISE, FORBIDDEN),

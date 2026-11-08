@@ -63,10 +63,9 @@ async def update_user_profile(
     current_user: dict = Depends(get_current_user),
 ):
     caller_id = current_user.get("user_id")
-    caller_role = current_user.get("role")
     
-    # Ownership rule: users can only update their own profile unless an admin
-    if caller_id != user_id and caller_role != "admin":
+    # Personal profile changes stay with the account owner.
+    if not caller_id or caller_id != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You may only update your own profile.",
@@ -170,10 +169,9 @@ async def delete_user_account(
     current_user: dict = Depends(get_current_user),
 ):
     caller_id = current_user.get("user_id")
-    caller_role = current_user.get("role")
     
-    # Ownership rule: users can only delete their own account (or an admin)
-    if caller_id != user_id and caller_role != "admin":
+    # Account closure with a password is an owner-only action.
+    if not caller_id or caller_id != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You may only delete your own account.",
@@ -230,8 +228,7 @@ async def update_user_reminders_route(
     current_user: dict = Depends(get_current_user),
 ):
     caller_id = current_user.get("user_id")
-    caller_role = current_user.get("role")
-    if caller_id != user_id and caller_role != "admin":
+    if not caller_id or caller_id != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You may only update your own reminders.",
@@ -311,8 +308,7 @@ async def add_care_team_member(
     current_user: dict = Depends(get_current_user),
 ):
     caller_id = current_user.get("user_id")
-    caller_role = current_user.get("role")
-    if caller_id != user_id and caller_role != "admin":
+    if not caller_id or caller_id != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You may only modify your own care team.",
@@ -328,8 +324,7 @@ async def update_care_team_member(
     current_user: dict = Depends(get_current_user),
 ):
     caller_id = current_user.get("user_id")
-    caller_role = current_user.get("role")
-    if caller_id != user_id and caller_role != "admin":
+    if not caller_id or caller_id != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You may only modify your own care team.",
@@ -346,8 +341,7 @@ async def delete_care_team_member(
     current_user: dict = Depends(get_current_user),
 ):
     caller_id = current_user.get("user_id")
-    caller_role = current_user.get("role")
-    if caller_id != user_id and caller_role != "admin":
+    if not caller_id or caller_id != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You may only modify your own care team.",

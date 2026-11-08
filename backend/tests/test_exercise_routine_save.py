@@ -100,10 +100,12 @@ def test_saved_exercises_only_list_ones_patients_can_still_get(monkeypatch):
 
 def test_only_the_patient_changes_their_own_saved_exercises():
     from fastapi import HTTPException
-    from app.api.exercises.exercises import _own_account_only
-    _own_account_only({"user_id": "p1", "role": "patient"}, "p1")
+    from app.utils.security import verify_user_access
+    verify_user_access({"user_id": "p1", "role": "patient"}, "p1")
     with pytest.raises(HTTPException):
-        _own_account_only({"user_id": "p2", "role": "patient"}, "p1")
+        verify_user_access({"user_id": "p2", "role": "patient"}, "p1")
+    with pytest.raises(HTTPException):
+        verify_user_access({"user_id": "staff", "role": "admin"}, "p1")
 
 
 def test_calories_burned_scale_with_the_minutes_done():

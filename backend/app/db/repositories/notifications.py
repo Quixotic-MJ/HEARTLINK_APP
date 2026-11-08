@@ -73,14 +73,12 @@ class SupabaseNotificationRepository(NotificationRepository):
 
     def mark_read(self, notification_id: str, user_id: Optional[str] = None) -> bool:
         valid_notif_id = resolve_uuid(notification_id)
-        if not valid_notif_id:
+        owner_uuid = self._resolve_user_uuid(user_id) if user_id else None
+        if not valid_notif_id or not owner_uuid:
             return False
         try:
-            query = self.client.table("patient_notifications").update({"read": True}).eq("id", valid_notif_id)
-            if user_id:
-                uuid_val = self._resolve_user_uuid(user_id)
-                if uuid_val:
-                    query = query.eq("user_id", uuid_val)
+            query = (self.client.table("patient_notifications").update({"read": True})
+                     .eq("id", valid_notif_id).eq("user_id", owner_uuid))
             res = query.execute()
             return bool(res.data)
         except Exception as e:

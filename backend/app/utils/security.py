@@ -307,17 +307,13 @@ def get_current_admin_user(request: Request, credentials: Optional[HTTPAuthoriza
     _enforce_password_change(request, user_id, user)
     return payload
 
-# HL-012: what each expert type may do. Admins may do everything (HL-074: one Admin role, no Super Admin).
-# Admins author recipes; Dietitians formally review them. PTs author exercises.
-# The Cardiologist reads every patient log and may record vitals, but edits neither library.
-# Patient notes (HL-039/013/040): every expert reads them; the Cardiologist writes guidance,
-# Dietitians and PTs write to their shared message thread.
+# Admin authorship and specialty content review do not grant personal-log permissions.
+# Notes permissions are historical compatibility only: patient-care routes remain unmounted.
 ADMIN_ROLES = {"admin"}
 EXPERT_PERMISSIONS = {
-    "Dietitian": {"recipes:review", "meal_logs:read", "meal_logs:write", "vitals:read", "notes:read", "notes:message"},
-    "Physical Therapist": {"exercises:review", "exercise_logs:read", "vitals:read", "notes:read", "notes:message"},
-    "Cardiologist": {"meal_logs:read", "meal_logs:write", "exercise_logs:read", "vitals:read", "vitals:write",
-                     "notes:read", "notes:guidance"},
+    "Dietitian": {"recipes:review", "notes:read", "notes:message"},
+    "Physical Therapist": {"exercises:review", "notes:read", "notes:message"},
+    "Cardiologist": {"notes:read", "notes:guidance"},
 }
 
 
@@ -389,49 +385,14 @@ def get_current_admin_only(current_user: dict = Depends(get_current_admin_user))
     return current_user
 
 def verify_user_access(current_user: dict, target_user_id: str) -> None:
+    """Personal records are owner-only; staff governance does not grant health access."""
     caller_id = current_user.get("user_id")
-    caller_role = current_user.get("role")
-    
-    # 1. Admins have system audit access
-    if caller_role in ADMIN_ROLES:
-        return
-
-    # 2. Patient access: Strictly self only
-    if caller_role == "patient":
-        if caller_id != target_user_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access Denied: You may only access your own health data.",
-            )
-        return
-
-    # 3. Medical expert: Allowed if self, assigned care team member, or active clinical reviewer
-    if caller_role == "medical_expert":
-        if caller_id == target_user_id:
-            return
-        try:
-            from app.db.repositories import get_baseline_repo
-            assigned_contacts = get_baseline_repo().list_care_team(target_user_id)
-            is_assigned = any(
-                c.get("contact_user_id") == caller_id or c.get("user_id") == caller_id
-                for c in assigned_contacts
-            )
-            if not is_assigned:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Access Denied: You are not assigned to this patient's care team.",
-                )
-        except HTTPException:
-            raise
-        except Exception:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access Denied: Care team assignment verification failed.",
-            )
-        return
-
-    raise HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
-        detail="Access Denied: Unrecognized clinical role.",
-    )
-
+    if (
+        not caller_id
+        or current_user.get("role") not in {"patient", "admin", "medical_expert"}
+        or caller_id != target_user_id
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access Denied: You may only access your own personal records.",
+        )

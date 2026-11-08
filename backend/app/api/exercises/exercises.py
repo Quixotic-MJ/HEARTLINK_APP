@@ -37,10 +37,6 @@ def read_routines(request: Request, credentials: Optional[HTTPAuthorizationCrede
         return routines
     return [r for r in routines if is_visible_to_patients(r)]
 
-def _own_account_only(current_user: dict, user_id: str) -> None:
-    if current_user.get("user_id") != user_id and current_user.get("role") != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You may only change saved exercises for your own account.")
-
 @router.get("/saved/{user_id}", response_model=List[Dict[str, Any]])
 def read_saved_exercises(user_id: str, current_user: dict = Depends(get_current_user)):
     verify_user_access(current_user, user_id)
@@ -48,13 +44,13 @@ def read_saved_exercises(user_id: str, current_user: dict = Depends(get_current_
 
 @router.post("/{routine_id}/save/{user_id}")
 def save_exercise(routine_id: str, user_id: str, current_user: dict = Depends(get_current_user)):
-    _own_account_only(current_user, user_id)
+    verify_user_access(current_user, user_id)
     save_exercise_for_user(user_id, routine_id)
     return {"success": True, "message": "Exercise saved"}
 
 @router.delete("/{routine_id}/save/{user_id}")
 def unsave_exercise(routine_id: str, user_id: str, current_user: dict = Depends(get_current_user)):
-    _own_account_only(current_user, user_id)
+    verify_user_access(current_user, user_id)
     unsave_exercise_for_user(user_id, routine_id)
     return {"success": True, "message": "Exercise removed from saved"}
 

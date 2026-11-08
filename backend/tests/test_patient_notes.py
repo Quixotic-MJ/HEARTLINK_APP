@@ -250,10 +250,10 @@ def test_a_note_cannot_be_removed_through_another_patient():
     assert _call("DELETE", f"/api/admin/patients/{OTHER_PATIENT_ID}/notes/{note_id}", "cardio-1").status_code == 404
 
 
-# --- Cardiologist dashboard ----------------------------------------------------------------------
+# --- Preserved legacy read behavior; no General Wellness route is mounted -------------------------
 
 def test_patient_list_shows_latest_bp_score_and_open_alerts():
-    res = _call("GET", "/api/admin/patients", "cardio-1")
+    res = _call("GET", "/api/admin/patients", "admin-1")
     assert res.status_code == 200
     items = {p["id"]: p for p in res.json()}
     assert set(items) == {PATIENT_ID, OTHER_PATIENT_ID}
@@ -269,9 +269,9 @@ def test_patient_list_shows_latest_bp_score_and_open_alerts():
     assert res.json()[0]["id"] == OTHER_PATIENT_ID
 
 
-@pytest.mark.parametrize("user_id", ["cardio-1", "diet-1", "pt-1", "admin-1"])
-def test_staff_who_read_vitals_can_open_the_patient_list(user_id):
-    assert _call("GET", "/api/admin/patients", user_id).status_code == 200
+@pytest.mark.parametrize("user_id", ["cardio-1", "diet-1", "pt-1"])
+def test_content_specialties_no_longer_pass_legacy_vitals_permission(user_id):
+    assert _call("GET", "/api/admin/patients", user_id).status_code == 403
 
 
 def test_patient_list_is_closed_to_patients():
@@ -279,13 +279,16 @@ def test_patient_list_is_closed_to_patients():
 
 
 @pytest.mark.parametrize("user_id, sections", [
-    ("cardio-1", {"health", "sleep", "scores", "alerts", "meals", "exercise"}),
+    ("cardio-1", set()),
     ("admin-1", {"health", "sleep", "scores", "alerts", "meals", "exercise"}),
-    ("diet-1", {"health", "sleep", "scores", "alerts", "meals"}),
-    ("pt-1", {"health", "sleep", "scores", "alerts", "exercise"}),
+    ("diet-1", set()),
+    ("pt-1", set()),
 ])
 def test_patient_logs_follow_the_expert_type(user_id, sections):
     res = _call("GET", f"/api/admin/patients/{PATIENT_ID}/logs", user_id)
+    if not sections:
+        assert res.status_code == 403
+        return
     assert res.status_code == 200
     body = res.json()
     assert set(body["sections"]) == sections
@@ -293,8 +296,9 @@ def test_patient_logs_follow_the_expert_type(user_id, sections):
         assert section not in body
 
 
-def test_cardiologist_logs_skip_deleted_sleep_and_check_in_resets():
-    body = _call("GET", f"/api/admin/patients/{PATIENT_ID}/logs", "cardio-1").json()
+def test_preserved_legacy_log_filter_skips_deleted_sleep_and_check_in_resets():
+    # Historical behavior only, in this isolated legacy app; its router is not mounted in General Wellness.
+    body = _call("GET", f"/api/admin/patients/{PATIENT_ID}/logs", "admin-1").json()
     assert [s["duration_hours"] for s in body["sleep"]] == [7]
     assert [h["id"] for h in body["health"]] == ["h1"]
     assert body["meals"] == [{"meal_name": "Tinola"}] and body["exercise"] == [{"routine_name": "Walk"}]
@@ -302,4 +306,4 @@ def test_cardiologist_logs_skip_deleted_sleep_and_check_in_resets():
 
 
 def test_patient_logs_for_unknown_patient_are_404():
-    assert _call("GET", "/api/admin/patients/diet-1/logs", "cardio-1").status_code == 404
+    assert _call("GET", "/api/admin/patients/diet-1/logs", "admin-1").status_code == 404

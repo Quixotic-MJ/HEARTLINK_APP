@@ -212,8 +212,7 @@ def review_recipe_version(
 @router.post("/{recipe_id}/save/{user_id}")
 def save_recipe(recipe_id: str, user_id: str, current_user: dict = Depends(get_current_user)):
     caller_id = current_user.get("user_id")
-    caller_role = current_user.get("role")
-    if caller_id != user_id and caller_role != "admin":
+    if not caller_id or caller_id != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You may only save recipes for your own account.",
@@ -224,8 +223,7 @@ def save_recipe(recipe_id: str, user_id: str, current_user: dict = Depends(get_c
 @router.delete("/{recipe_id}/save/{user_id}")
 def unsave_recipe(recipe_id: str, user_id: str, current_user: dict = Depends(get_current_user)):
     caller_id = current_user.get("user_id")
-    caller_role = current_user.get("role")
-    if caller_id != user_id and caller_role != "admin":
+    if not caller_id or caller_id != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You may only remove saved recipes for your own account.",

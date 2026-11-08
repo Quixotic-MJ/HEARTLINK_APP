@@ -3,7 +3,7 @@ from typing import List, Dict, Any, Literal
 from pydantic import BaseModel, Field
 from app.services.notifications import get_notifications, mark_notification_read, mark_all_read
 from app.db.repositories import get_notification_repo
-from app.utils.security import get_current_user
+from app.utils.security import get_current_user, verify_user_access
 
 router = APIRouter(prefix="/api/notifications", tags=["Notifications"])
 
@@ -44,7 +44,6 @@ def read_notifications(
     include_archived: bool = False,
     current_user: dict = Depends(get_current_user),
 ):
-    from app.utils.security import verify_user_access
     verify_user_access(current_user, user_id)
     # HL-019: notifications over 72 hours old are archived; ?include_archived=true lists them too.
     return get_notifications(user_id, include_archived)
@@ -55,9 +54,9 @@ def mark_read(
     current_user: dict = Depends(get_current_user),
 ):
     caller_id = current_user.get("user_id")
-    caller_role = current_user.get("role")
-    user_filter = caller_id if caller_role != "admin" else None
-    success = mark_notification_read(notification_id, user_id=user_filter)
+    verify_user_access(current_user, caller_id)
+    if not mark_notification_read(notification_id, user_id=caller_id):
+        raise HTTPException(status_code=404, detail="Notification not found for your account")
     return {"success": True, "message": "Notification marked as read"}
 
 @router.put("/{user_id}/mark-all-read")
@@ -66,8 +65,7 @@ def mark_all(
     current_user: dict = Depends(get_current_user),
 ):
     caller_id = current_user.get("user_id")
-    caller_role = current_user.get("role")
-    if caller_id != user_id and caller_role != "admin":
+    if not caller_id or caller_id != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You may only modify your own notifications.",

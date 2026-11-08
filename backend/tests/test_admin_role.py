@@ -106,8 +106,10 @@ def test_an_old_super_admin_session_is_refused():
     assert _get("/staff", "admin-1", role="super_admin").status_code == 403
 
 
-def test_admin_can_open_any_patient_record():
-    verify_user_access({"user_id": "admin-1", "role": "admin"}, "patient-1")
+def test_admin_governance_does_not_grant_personal_record_access():
+    with pytest.raises(HTTPException) as error:
+        verify_user_access({"user_id": "admin-1", "role": "admin"}, "patient-1")
+    assert error.value.status_code == 403
 
 
 @pytest.mark.parametrize("legacy_role", ["doctor", "clinician", "superadmin", "Super Admin", "super_admin"])
