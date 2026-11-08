@@ -13,6 +13,12 @@ export default async function staffDraftExit(page) {
   try {
     const local = await context.newPage();
     let writes = 0;
+    const unconfirmed = [
+      { status: "success", id: "synthetic-created" },
+      { status: "success", id: "synthetic-created", temp_password: "  " },
+      { status: "success", temp_password: "SyntheticOnceOnly123!" },
+      { id: "synthetic-created", temp_password: "SyntheticOnceOnly123!" },
+    ];
     const errors = [];
     local.on("pageerror", (error) => errors.push(error.message));
     await context.route("**/*", async (route) => {
@@ -47,9 +53,15 @@ export default async function staffDraftExit(page) {
           data.expert_type !== "Dietitian"
         )
           throw Error("Provisioning payload changed");
-        if (writes === 2)
+        if (writes > 1 && writes <= unconfirmed.length + 1)
+          return route.fulfill({ json: unconfirmed[writes - 2] });
+        if (writes === unconfirmed.length + 2)
           return route.fulfill({
-            json: { temp_password: "SyntheticOnceOnly123!" },
+            json: {
+              status: "success",
+              id: "synthetic-created",
+              temp_password: "SyntheticOnceOnly123!",
+            },
           });
         await new Promise((resolve) => {
           release = resolve;
@@ -243,6 +255,26 @@ export default async function staffDraftExit(page) {
       )
         throw Error("Staff dialog exceeds the viewport");
     }
+    for (let index = 0; index < unconfirmed.length; index++) {
+      await save.click();
+      await dialog
+        .getByRole("alert")
+        .filter({ hasText: "Provisioning was not confirmed" })
+        .waitFor({ timeout: 5000 });
+      if (
+        writes !== index + 2 ||
+        (await name.inputValue()) !== "Synthetic New Reviewer" ||
+        (await local
+          .getByRole("dialog", { name: "Account created", exact: true })
+          .count()) ||
+        (await local
+          .getByText("Staff account provisioned", { exact: true })
+          .count())
+      )
+        throw Error(
+          "Incomplete provisioning response announced success or lost the draft",
+        );
+    }
     await save.click();
     const credentials = local.getByRole("dialog", {
       name: "Account created",
@@ -254,7 +286,7 @@ export default async function staffDraftExit(page) {
       (await credentials
         .getByLabel("Temporary password", { exact: true })
         .inputValue()) !== "SyntheticOnceOnly123!" ||
-      writes !== 2
+      writes !== unconfirmed.length + 2
     )
       throw Error(
         "Confirmed provisioning did not reach the existing one-time password handoff",

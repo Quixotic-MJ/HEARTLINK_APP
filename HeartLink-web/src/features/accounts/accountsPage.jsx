@@ -324,6 +324,17 @@ const Users = () => {
         method: "POST",
         body: JSON.stringify(staffData),
       });
+      if (
+        created?.status !== "success" ||
+        typeof created.id !== "string" ||
+        !created.id.trim() ||
+        typeof created.temp_password !== "string" ||
+        !created.temp_password.trim()
+      ) {
+        throw new Error(
+          "Provisioning was not confirmed. The complete account and one-time-password response was not received. Check the staff directory before retrying; an account may already exist.",
+        );
+      }
       const isExpert = staffData.role?.toLowerCase().includes("expert");
       toast.success("Staff account provisioned", {
         description: `${staffData.name} has been enrolled as a ${
