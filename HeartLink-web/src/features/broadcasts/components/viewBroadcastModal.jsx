@@ -80,7 +80,7 @@ const ViewBroadcastModal = ({ isOpen, onClose, broadcast }) => {
         aria-modal="true"
         aria-labelledby="view-broadcast-title"
         tabIndex={-1}
-        className="relative flex max-h-full w-full max-w-lg flex-col overflow-hidden rounded-xl border border-cal-hairline bg-cal-canvas text-cal-ink shadow-xl"
+        className="workspace workspace--operations operation-modal relative flex max-h-full w-full flex-col overflow-hidden border border-cal-hairline bg-cal-canvas text-cal-ink"
       >
         <header className="flex shrink-0 items-start justify-between gap-3 border-b border-cal-hairline p-5">
           <div className="min-w-0">
@@ -101,37 +101,44 @@ const ViewBroadcastModal = ({ isOpen, onClose, broadcast }) => {
             <X size={16} />
           </button>
         </header>
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5 text-sm">
-          <dl className="space-y-2 rounded-lg border border-cal-hairline p-3">
-            <div>
-              <dt className="text-cal-muted">Published (Asia/Manila)</dt>
-              <dd>{broadcast.date || "Not recorded"}</dd>
-            </div>
-            <div>
-              <dt className="text-cal-muted">Published by</dt>
-              <dd className="break-words">
-                {broadcast.display_publisher || "Not recorded"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-cal-muted">Recorded audience label</dt>
-              <dd className="break-words">
-                {broadcast.target_audience || "Not recorded"}
-              </dd>
-            </div>
-          </dl>
-          <p className="whitespace-pre-wrap break-words leading-relaxed">
-            {broadcast.message}
-          </p>
-          <p className="rounded-lg bg-cal-surface-soft p-3 text-cal-muted">
-            This is a publication record, not proof of delivery, display or
-            reading. New notices target active app accounts at publication.
-            Historical audience labels do not establish who received a notice.
-          </p>
-          <p className="text-cal-muted">
-            Deletion is unavailable pending retention review. A correction needs
-            a new notice; messages already shown on devices cannot be recalled.
-          </p>
+        <div className="operation-modal-body">
+          <aside className="operation-modal-aside">
+            <Megaphone size={30} strokeWidth={1.4} aria-hidden="true" />
+            <h3>Publication details</h3>{" "}
+            <dl className="space-y-2 rounded-lg border border-cal-hairline p-3">
+              <div>
+                <dt className="text-cal-muted">Published (Asia/Manila)</dt>
+                <dd>{broadcast.date || "Not recorded"}</dd>
+              </div>
+              <div>
+                <dt className="text-cal-muted">Published by</dt>
+                <dd className="break-words">
+                  {broadcast.display_publisher || "Not recorded"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-cal-muted">Recorded audience label</dt>
+                <dd className="break-words">
+                  {broadcast.target_audience || "Not recorded"}
+                </dd>
+              </div>
+            </dl>
+          </aside>
+          <div className="operation-modal-content space-y-4 text-sm">
+            <p className="whitespace-pre-wrap break-words leading-relaxed">
+              {broadcast.message}
+            </p>
+            <p className="rounded-lg bg-cal-surface-soft p-3 text-cal-muted">
+              This is a publication record, not proof of delivery, display or
+              reading. New notices target active app accounts at publication.
+              Historical audience labels do not establish who received a notice.
+            </p>
+            <p className="text-cal-muted">
+              Deletion is unavailable pending retention review. A correction
+              needs a new notice; messages already shown on devices cannot be
+              recalled.
+            </p>
+          </div>
         </div>
         <footer className="flex shrink-0 justify-end border-t border-cal-hairline p-4">
           <button

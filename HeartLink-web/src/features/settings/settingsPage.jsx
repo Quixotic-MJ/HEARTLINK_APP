@@ -23,6 +23,8 @@ import { useAuth } from "../../contexts/useAuth.js";
 import { apiFetch } from "../../lib/api.js";
 import { useApiQuery } from "../../hooks/useApiQuery.js";
 
+import { WorkspaceHeader } from "../../components/ui/workspaceHeader.jsx";
+
 const PILL =
   "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11.5px] font-semibold leading-none whitespace-nowrap";
 
@@ -274,7 +276,7 @@ function AccountTab({ user, userId, unavailable }) {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="settings-grid">
       {/* ── 1. Profile Information ────────────────────────────────────────── */}
       <SettingsCard
         title="Staff account"
@@ -727,16 +729,12 @@ const Settings = () => {
 
   return (
     <AdminLayout>
-      <div className="mx-auto w-full max-w-[960px] space-y-6 font-cal-sans text-cal-ink">
-        <div>
-          <h2 className="font-cal-display text-[28px] sm:text-[32px] font-semibold tracking-[-0.8px] leading-[1.15] text-cal-ink">
-            Account settings
-          </h2>
-          <p className="mt-2 max-w-[64ch] text-[14px] leading-relaxed text-cal-muted">
-            View your staff account details and change your password. Content
-            review and account-management permissions remain separate.
-          </p>
-        </div>
+      <div className="workspace workspace--operations mx-auto w-full max-w-[1280px] space-y-6 font-cal-sans text-cal-ink">
+        <WorkspaceHeader
+          icon={User}
+          title="Account settings"
+          description="Your identity and sign-in security in one place. Account details are read-only; password changes apply only to your own staff account."
+        />
 
         {profileQuery.isPending && (
           <p role="status" className="text-sm text-cal-muted">

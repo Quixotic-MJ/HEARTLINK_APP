@@ -24,6 +24,8 @@ import { Skeleton } from "../../components/ui/skeleton.jsx";
 import { apiFetch } from "../../lib/api.js";
 import { useApiQuery } from "../../hooks/useApiQuery.js";
 
+import { WorkspaceHeader } from "../../components/ui/workspaceHeader.jsx";
+
 const NO_TICKETS = [];
 
 const PILL =
@@ -263,27 +265,15 @@ const Feedback = () => {
 
   return (
     <AdminLayout>
-      <div className="mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
-        {/* ─── 1. EDITORIAL PAGE HEADER ─────────────────────────────────────── */}
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <div className="mb-2.5 inline-flex items-center gap-2 rounded-full border border-cal-hairline bg-cal-canvas px-3 py-1 text-[12px] font-medium text-cal-muted">
-              <MessageSquare size={13.5} className="text-cal-ink" />
-              <span>User support · Feedback &amp; bug reports</span>
-            </div>
-            <h2 className="font-cal-display text-[28px] sm:text-[32px] font-semibold tracking-[-0.8px] leading-[1.15] text-cal-ink">
-              Feedback &amp; reports
-            </h2>
-            <p className="mt-1.5 max-w-[64ch] text-[14px] leading-[1.5] text-cal-muted">
-              Review mobile user bug tickets, UI/UX improvement ideas, and
-              account and content inquiries submitted through the app. Staff
-              notes are internal, not delivered replies or medical advice.
-            </p>
-          </div>
-        </div>
+      <div className="workspace workspace--operations mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
+        <WorkspaceHeader
+          icon={MessageSquare}
+          title="Feedback & reports"
+          description="A focused inbox for app issues, account questions and content feedback. Admin notes stay internal; saving a ticket does not send a reply or provide medical advice."
+        />
 
         {/* ─── 2. KPI SUMMARY STRIP ─────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        <div className="workspace-metrics">
           <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
             <div className="flex items-center justify-between gap-2">
               <span className="text-[12.5px] font-medium text-cal-muted">

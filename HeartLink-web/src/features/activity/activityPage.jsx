@@ -29,6 +29,8 @@ import { apiFetch } from "../../lib/api.js";
 import { useApiQuery } from "../../hooks/useApiQuery.js";
 import { downloadCsv, toCsv } from "../../utils/csv.js";
 
+import { WorkspaceHeader } from "../../components/ui/workspaceHeader.jsx";
+
 const PILL =
   "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11.5px] font-semibold leading-none whitespace-nowrap";
 
@@ -278,7 +280,12 @@ const ActivityLog = () => {
       const file = await apiFetch(
         `/api/admin/activity/export${query ? `?${query}` : ""}`,
       );
-      if (!Array.isArray(file.items) || file.count !== file.items.length || !file.generated_at || Number.isNaN(new Date(file.generated_at).getTime())) {
+      if (
+        !Array.isArray(file.items) ||
+        file.count !== file.items.length ||
+        !file.generated_at ||
+        Number.isNaN(new Date(file.generated_at).getTime())
+      ) {
         throw new Error("Export response was not confirmed.");
       }
       const csv = toCsv(file.items || [], [
@@ -300,7 +307,9 @@ const ActivityLog = () => {
         `Exported ${file.count} log ${file.count === 1 ? "entry" : "entries"}.`,
       );
     } catch (e) {
-      toast.error(e?.data?.detail || e?.message || "Couldn't export the activity log.");
+      toast.error(
+        e?.data?.detail || e?.message || "Couldn't export the activity log.",
+      );
     } finally {
       exportPending.current = false;
       setExporting(false);
@@ -340,25 +349,12 @@ const ActivityLog = () => {
 
   return (
     <AdminLayout>
-      <div className="mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
-        {/* ─── 1. EDITORIAL PAGE HEADER ─────────────────────────────────────── */}
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <div className="mb-2.5 inline-flex items-center gap-2 rounded-full border border-cal-hairline bg-cal-canvas px-3 py-1 text-[12px] font-medium text-cal-muted">
-              <Activity size={13.5} className="text-cal-ink" />
-              <span>System · Operational activity</span>
-            </div>
-            <h2 className="font-cal-display text-[28px] sm:text-[32px] font-semibold tracking-[-0.8px] leading-[1.15] text-cal-ink">
-              System activity audit log
-            </h2>
-            <p className="mt-1.5 max-w-[64ch] text-[14px] leading-[1.5] text-cal-muted">
-              Recorded content, account and security events, shown in
-              Asia/Manila. Clinical and unknown historical events are excluded
-              from this view and export, not deleted. This is not a complete or
-              immutable audit archive.
-            </p>
-          </div>
-
+      <div className="workspace workspace--operations mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
+        <WorkspaceHeader
+          icon={Activity}
+          title="System activity audit log"
+          description="Content, account and security events in Asia/Manila. This operational view excludes clinical and unknown history without deleting it; it is not a complete or immutable audit archive."
+        >
           <div className="flex flex-wrap items-center gap-2.5">
             <button
               type="button"
@@ -400,10 +396,10 @@ const ActivityLog = () => {
               <span>{exporting ? "Exporting…" : "Export audit CSV"}</span>
             </button>
           </div>
-        </div>
+        </WorkspaceHeader>
 
         {/* ─── 2. KPI SUMMARY STRIP ─────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        <div className="workspace-metrics">
           <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
             <div className="flex items-center justify-between gap-2">
               <span className="text-[12.5px] font-medium text-cal-muted">

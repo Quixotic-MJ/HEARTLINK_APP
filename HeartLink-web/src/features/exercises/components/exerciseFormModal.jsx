@@ -474,6 +474,7 @@ const ExerciseFormModal = ({
         aria-modal="true"
         aria-busy={busy}
         data-expanded={expanded}
+        data-discarding={draftExit.discarding}
         aria-labelledby={draftExit.discarding ? "discard-changes-title" : "exercise-panel-title"}
         tabIndex={-1}
         className={`workspace workspace--exercise content-editor relative z-10 flex w-full flex-col overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas text-cal-ink shadow-[0_12px_36px_rgba(0,0,0,0.12)] ${

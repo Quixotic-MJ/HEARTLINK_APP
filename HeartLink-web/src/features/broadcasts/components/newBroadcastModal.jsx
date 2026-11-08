@@ -77,9 +77,10 @@ export default function NewBroadcastModal({ onClose, onPublish }) {
         aria-modal="true"
         aria-labelledby="create-broadcast-title"
         aria-busy={busy}
+        data-view={view}
         tabIndex={-1}
         onSubmit={submit}
-        className="relative flex max-h-full w-full max-w-lg flex-col overflow-hidden rounded-xl border border-cal-hairline bg-cal-canvas text-cal-ink shadow-xl"
+        className="workspace workspace--operations operation-modal relative flex max-h-full w-full flex-col overflow-hidden border border-cal-hairline bg-cal-canvas text-cal-ink"
       >
         <header className="flex shrink-0 items-start gap-3 border-b border-cal-hairline px-5 py-4">
           <Megaphone
@@ -112,24 +113,11 @@ export default function NewBroadcastModal({ onClose, onPublish }) {
             <X size={16} />
           </button>
         </header>
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
-          {error && (
-            <p
-              ref={messageRef}
-              role="alert"
-              tabIndex={-1}
-              className="rounded-lg border border-cal-error/30 bg-cal-error/10 p-3 text-sm"
-            >
-              {error}
-            </p>
-          )}
-          {view === "discard" ? (
-            <p className="text-sm">
-              This unsaved draft will be lost. No announcement has been
-              published.
-            </p>
-          ) : (
-            <>
+        <div className="operation-modal-body" data-stage={view}>
+          {view !== "discard" && (
+            <aside className="operation-modal-aside">
+              <Megaphone size={30} strokeWidth={1.4} aria-hidden="true" />
+              <h3>Before you publish</h3>
               <div className="rounded-lg border border-cal-hairline bg-cal-surface-soft p-3 text-sm">
                 <p className="font-semibold">
                   Destination: app notification inbox
@@ -140,89 +128,114 @@ export default function NewBroadcastModal({ onClose, onPublish }) {
                   not guaranteed.
                 </p>
               </div>
-              {view === "edit" ? (
-                <fieldset disabled={busy} className="min-w-0 space-y-4">
-                  <legend className="sr-only">Announcement content</legend>
-                  <label
-                    className="block text-sm font-medium"
-                    htmlFor="broadcast-title"
-                  >
-                    Announcement title
-                    <input
-                      id="broadcast-title"
-                      required
-                      maxLength={80}
-                      value={draft.title}
-                      onChange={(e) =>
-                        setDraft({ ...draft, title: e.target.value })
-                      }
-                      className="mt-1 block h-11 w-full rounded-lg border border-cal-hairline bg-cal-canvas px-3"
-                    />
-                    <span className="mt-1 block text-xs text-cal-muted">
-                      {draft.title.length} / 80
-                    </span>
-                  </label>
-                  <label
-                    className="block text-sm font-medium"
-                    htmlFor="broadcast-category"
-                  >
-                    Category
-                    <select
-                      id="broadcast-category"
-                      value={draft.type}
-                      onChange={(e) =>
-                        setDraft({ ...draft, type: e.target.value })
-                      }
-                      className="mt-1 block h-11 w-full rounded-lg border border-cal-hairline bg-cal-canvas px-3"
-                    >
-                      {[
-                        "Maintenance",
-                        "App Update",
-                        "Safety Reminder",
-                        "General",
-                      ].map((type) => (
-                        <option key={type}>{type}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label
-                    className="block text-sm font-medium"
-                    htmlFor="broadcast-message"
-                  >
-                    Announcement message
-                    <textarea
-                      id="broadcast-message"
-                      required
-                      maxLength={255}
-                      rows={4}
-                      value={draft.message}
-                      onChange={(e) =>
-                        setDraft({ ...draft, message: e.target.value })
-                      }
-                      className="mt-1 block w-full rounded-lg border border-cal-hairline bg-cal-canvas p-3"
-                    />
-                    <span className="mt-1 block text-xs text-cal-muted">
-                      {draft.message.length} / 255
-                    </span>
-                  </label>
-                </fieldset>
-              ) : (
-                <div className="space-y-3 break-words rounded-lg border border-cal-hairline p-4">
-                  <p className="text-xs text-cal-muted">{draft.type}</p>
-                  <h3 className="font-semibold">{draft.title.trim()}</h3>
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                    {draft.message.trim()}
-                  </p>
-                </div>
-              )}
-              <p className="text-xs leading-relaxed text-cal-muted">
-                Keep notices factual. Health education needs appropriate review;
-                publishing here is not clinical approval. Published notices are
-                retained pending retention review and cannot be recalled from
-                devices.
+              <p className="mt-6 text-xs leading-relaxed text-cal-muted">
+                A short, clear service update. Confirm the audience and wording
+                before publication.
               </p>
-            </>
+            </aside>
           )}
+          <div className="operation-modal-content space-y-4">
+            {error && (
+              <p
+                ref={messageRef}
+                role="alert"
+                tabIndex={-1}
+                className="rounded-lg border border-cal-error/30 bg-cal-error/10 p-3 text-sm"
+              >
+                {error}
+              </p>
+            )}
+            {view === "discard" ? (
+              <p className="text-sm">
+                This unsaved draft will be lost. No announcement has been
+                published.
+              </p>
+            ) : (
+              <>
+                {view === "edit" ? (
+                  <fieldset disabled={busy} className="min-w-0 space-y-4">
+                    <legend className="sr-only">Announcement content</legend>
+                    <label
+                      className="block text-sm font-medium"
+                      htmlFor="broadcast-title"
+                    >
+                      Announcement title
+                      <input
+                        id="broadcast-title"
+                        required
+                        maxLength={80}
+                        value={draft.title}
+                        onChange={(e) =>
+                          setDraft({ ...draft, title: e.target.value })
+                        }
+                        className="mt-1 block h-11 w-full rounded-lg border border-cal-hairline bg-cal-canvas px-3"
+                      />
+                      <span className="mt-1 block text-xs text-cal-muted">
+                        {draft.title.length} / 80
+                      </span>
+                    </label>
+                    <label
+                      className="block text-sm font-medium"
+                      htmlFor="broadcast-category"
+                    >
+                      Category
+                      <select
+                        id="broadcast-category"
+                        value={draft.type}
+                        onChange={(e) =>
+                          setDraft({ ...draft, type: e.target.value })
+                        }
+                        className="mt-1 block h-11 w-full rounded-lg border border-cal-hairline bg-cal-canvas px-3"
+                      >
+                        {[
+                          "Maintenance",
+                          "App Update",
+                          "Safety Reminder",
+                          "General",
+                        ].map((type) => (
+                          <option key={type}>{type}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label
+                      className="block text-sm font-medium"
+                      htmlFor="broadcast-message"
+                    >
+                      Announcement message
+                      <textarea
+                        id="broadcast-message"
+                        required
+                        maxLength={255}
+                        rows={4}
+                        value={draft.message}
+                        onChange={(e) =>
+                          setDraft({ ...draft, message: e.target.value })
+                        }
+                        className="mt-1 block w-full rounded-lg border border-cal-hairline bg-cal-canvas p-3"
+                      />
+                      <span className="mt-1 block text-xs text-cal-muted">
+                        {draft.message.length} / 255
+                      </span>
+                    </label>
+                  </fieldset>
+                ) : (
+                  <div className="space-y-3 break-words rounded-lg border border-cal-hairline p-4">
+                    <p className="text-xs text-cal-muted">{draft.type}</p>
+                    <h3 className="font-semibold">{draft.title.trim()}</h3>
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                      {draft.message.trim()}
+                    </p>
+                  </div>
+                )}
+                <p className="text-xs leading-relaxed text-cal-muted">
+                  Keep notices factual. Health education needs appropriate
+                  review; publishing here is not clinical approval. Published
+                  notices are retained pending retention review and cannot be
+                  recalled from devices.
+                </p>
+              </>
+            )}
+          </div>
         </div>
         <footer className="flex shrink-0 flex-wrap justify-end gap-2 border-t border-cal-hairline p-4">
           {view === "discard" ? (

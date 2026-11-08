@@ -92,14 +92,14 @@ const ConfirmActionModal = ({
         onClick={close}
       />
 
-      {/* Modal Dialog (Cal.com 12px Card + Hairline + Whisper Shadow) */}
+      {/* A compact confirmation keeps the decision and its effects together. */}
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-action-dialog-title"
         tabIndex={-1}
-        className="relative z-10 max-h-full w-full max-w-md overflow-y-auto rounded-[12px] border border-cal-hairline bg-cal-canvas p-6 sm:p-7 text-left text-cal-ink shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
+        className="relative z-10 max-h-full w-full max-w-lg overflow-y-auto rounded-[20px] border border-cal-hairline bg-cal-canvas p-6 sm:p-7 text-left text-cal-ink shadow-[0_16px_60px_rgba(0,0,0,0.14)]"
       >
         {/* Close button */}
         <button
@@ -114,7 +114,7 @@ const ConfirmActionModal = ({
 
         {/* Action Icon */}
         <div
-          className={`mb-4 flex h-10 w-10 items-center justify-center rounded-full border ${currentVariant.iconSurface}`}
+          className={`mb-5 flex h-12 w-12 items-center justify-center rounded-[15px] border ${currentVariant.iconSurface}`}
         >
           <IconComponent size={18} />
         </div>
@@ -122,7 +122,7 @@ const ConfirmActionModal = ({
         {/* Title & Subtitle */}
         <div>
           {subtitle && (
-            <p className="mb-1 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted">
+            <p className="mb-1.5 text-[13px] font-medium text-cal-muted">
               {subtitle}
             </p>
           )}

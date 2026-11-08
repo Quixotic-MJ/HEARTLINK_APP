@@ -3,13 +3,10 @@ import { motion } from "framer-motion";
 import {
   ChevronRight,
   Clock,
-  Info,
   Megaphone,
   Plus,
   RotateCcw,
   Search,
-  ShieldAlert,
-  Wrench,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -22,6 +19,8 @@ import NewBroadcastModal from "./components/newBroadcastModal.jsx";
 import ViewBroadcastModal, {
   CategoryBadge,
 } from "./components/viewBroadcastModal.jsx";
+
+import { LibraryBanner } from "../../components/ui/libraryBanner.jsx";
 
 const NO_BROADCASTS = [];
 
@@ -120,104 +119,28 @@ const Broadcasts = () => {
 
   return (
     <AdminLayout>
-      <div className="mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
-        {/* ─── 1. EDITORIAL PAGE HEADER ─────────────────────────────────────── */}
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <div className="mb-2.5 inline-flex items-center gap-2 rounded-full border border-cal-hairline bg-cal-canvas px-3 py-1 text-[12px] font-medium text-cal-muted">
-              <Megaphone size={13.5} className="text-cal-ink" />
-              <span>Users &amp; feedback · Platform announcements</span>
-            </div>
-            <h2 className="font-cal-display text-[28px] sm:text-[32px] font-semibold tracking-[-0.8px] leading-[1.15] text-cal-ink">
-              System announcements
-            </h2>
-            <p className="mt-1.5 max-w-[64ch] text-[14px] leading-[1.5] text-cal-muted">
-              Publish factual service notices for active app accounts. This is
-              not a clinical alert system or a delivery/read receipt.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={openModal}
-            className="inline-flex h-10 items-center gap-2 rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-5 text-[14px] font-semibold text-cal-on-primary transition-colors cursor-pointer"
-          >
-            <Plus size={15.5} />
-            <span>Create announcement</span>
-          </button>
-        </div>
-
-        {/* ─── 2. KPI SUMMARY STRIP ─────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[12.5px] font-medium text-cal-muted">
-                Total published
-              </span>
-              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-soft text-cal-ink">
-                <Megaphone size={14.5} aria-hidden="true" />
-              </span>
-            </div>
-            <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
-              {unavailable ? "—" : counts.all}
-            </div>
-            <div className="mt-2 text-[12px] text-cal-muted">
-              Active broadcast feed items
-            </div>
-          </div>
-
-          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[12.5px] font-medium text-cal-muted">
-                Safety reminders
-              </span>
-              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-error/25 bg-cal-error/10 text-cal-error">
-                <ShieldAlert size={14.5} aria-hidden="true" />
-              </span>
-            </div>
-            <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
-              {unavailable ? "—" : counts["Safety Reminder"]}
-            </div>
-            <div className="mt-2 text-[12px] text-cal-muted">
-              General safety notices, not individual alerts
-            </div>
-          </div>
-
-          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[12.5px] font-medium text-cal-muted">
-                Maintenance
-              </span>
-              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-warning/35 bg-cal-warning/15 text-cal-ink">
-                <Wrench size={14.5} aria-hidden="true" />
-              </span>
-            </div>
-            <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
-              {unavailable ? "—" : counts.Maintenance}
-            </div>
-            <div className="mt-2 text-[12px] text-cal-muted">
-              Scheduled service advisories
-            </div>
-          </div>
-
-          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[12.5px] font-medium text-cal-muted">
-                Updates &amp; general
-              </span>
-              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-badge-violet/30 bg-cal-badge-violet/15 text-cal-ink">
-                <Info size={14.5} aria-hidden="true" />
-              </span>
-            </div>
-            <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
-              {unavailable ? "—" : counts["App Update"] + counts.General}
-            </div>
-            <div className="mt-2 text-[12px] text-cal-muted">
-              Release notes &amp; general news
-            </div>
-          </div>
-        </div>
-
+      <div className="workspace workspace--operations mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
+        <LibraryBanner
+          icon={Megaphone}
+          title="System announcements"
+          description="Clear notices for the app community. Publish factual service updates, with a preview before anything is sent."
+          unavailable={unavailable}
+          stats={[
+            ["Published notices", counts.all],
+            ["Maintenance", counts.Maintenance],
+            ["Safety reminders", counts["Safety Reminder"]],
+          ]}
+          action={
+            <button type="button" onClick={openModal}>
+              <Plus size={17} aria-hidden="true" />
+              Create announcement
+            </button>
+          }
+        />
+        <p className="text-sm text-cal-muted">
+          Publication history is not a delivery or read receipt. This is not a
+          clinical alert system.
+        </p>
         {/* ─── 3. MAIN DIRECTORY CARD: FILTERS & TABLE ──────────────────────── */}
         <section className="overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
           {/* Toolbar */}

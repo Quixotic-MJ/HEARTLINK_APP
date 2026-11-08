@@ -100,6 +100,8 @@ npm run dev -- --host 127.0.0.1 --port 5180 --strictPort
 | `staffDraftExit.js` | Provisioning drafts, validation/duplicate lock, failure recovery and synthetic credential handoff |
 | `apiErrorSafety.js` | Structured error replies cannot blank forms or echo input payloads |
 | `recordedMetadata.js` | Labelled Philippine review dates and truthful unknown-category counts/filters |
+| `visualWorkspaces.js` | Recipe/routine gallery/list views, live two-column previews, ingredient art and responsive draft retention |
+| `operationalVisuals.js` | Announcements, Activity Logs, Settings and Feedback layouts, including wide operational dialogs |
 
 Stop that dedicated frontend process when finished. Browser fixtures prove UI
 behavior, not actual API/database integration, device delivery or release readiness.

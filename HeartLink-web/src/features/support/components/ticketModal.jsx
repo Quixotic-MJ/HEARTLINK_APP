@@ -84,7 +84,8 @@ export default function TicketModal({
         aria-labelledby="ticket-modal-title"
         tabIndex={-1}
         aria-busy={busy}
-        className="relative flex max-h-full w-full max-w-lg flex-col overflow-hidden rounded-xl border border-cal-hairline bg-cal-canvas shadow-xl"
+        data-view={view}
+        className="workspace workspace--operations operation-modal relative flex max-h-full w-full flex-col overflow-hidden border border-cal-hairline bg-cal-canvas"
       >
         <div className="flex items-start justify-between gap-3 border-b border-cal-hairline p-5">
           <div>
@@ -174,112 +175,127 @@ export default function TicketModal({
             </section>
           ) : (
             <>
-              <FeedbackCategoryBadge category={ticket.category} />
-              <dl className="space-y-2 text-sm">
-                <div>
-                  <dt className="text-cal-muted">Account reference</dt>
-                  <dd className="break-all font-cal-mono text-xs">
-                    {ticket.userId || "Not recorded"}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-cal-muted">Submitted</dt>
-                  <dd>
-                    {ticket.created_at
-                      ? new Date(ticket.created_at).toLocaleString("en-PH", {
-                          timeZone: "Asia/Manila",
-                        }) + " (Asia/Manila)"
-                      : ticket.date || "Not recorded"}
-                  </dd>
-                </div>
-              </dl>
-              <section aria-labelledby="ticket-message-heading">
-                <h3
-                  id="ticket-message-heading"
-                  className="mb-2 text-sm font-semibold"
+              <div className="ticket-review-layout">
+                <section
+                  className="ticket-message-pane"
+                  aria-label="Submitted feedback"
                 >
-                  User message
-                </h3>
-                <p className="break-words whitespace-pre-wrap rounded-lg border border-cal-hairline bg-cal-surface-soft p-4 text-sm leading-relaxed">
-                  {ticket.fullMessage || "No message recorded."}
-                </p>
-              </section>
-              <details className="rounded-lg border border-cal-hairline p-3 text-sm">
-                <summary className="cursor-pointer font-medium">
-                  Technical metadata
-                </summary>
-                <dl className="mt-3 space-y-2 break-words">
-                  {[
-                    ["os", "Operating system"],
-                    ["appVersion", "App version"],
-                    ["model", "Device model"],
-                  ].map(([key, label]) => (
-                    <div key={key}>
-                      <dt className="text-cal-muted">{label}</dt>
-                      <dd>{metadata(key)}</dd>
+                  <FeedbackCategoryBadge category={ticket.category} />
+                  <dl className="space-y-2 text-sm">
+                    <div>
+                      <dt className="text-cal-muted">Account reference</dt>
+                      <dd className="break-all font-cal-mono text-xs">
+                        {ticket.userId || "Not recorded"}
+                      </dd>
                     </div>
-                  ))}
-                </dl>
-              </details>
-              {!canUpdate && (
-                <p className="text-sm text-cal-muted">
-                  This ticket has no usable revision or status. Updates are
-                  unavailable until the record can be refreshed.
-                </p>
-              )}
-              <fieldset
-                disabled={busy || archived || !canUpdate}
-                className="space-y-3"
-              >
-                <div>
-                  <label
-                    htmlFor="support-internal-notes"
-                    className={UI.input.label}
+                    <div>
+                      <dt className="text-cal-muted">Submitted</dt>
+                      <dd>
+                        {ticket.created_at
+                          ? new Date(ticket.created_at).toLocaleString(
+                              "en-PH",
+                              {
+                                timeZone: "Asia/Manila",
+                              },
+                            ) + " (Asia/Manila)"
+                          : ticket.date || "Not recorded"}
+                      </dd>
+                    </div>
+                  </dl>
+                  <section aria-labelledby="ticket-message-heading">
+                    <h3
+                      id="ticket-message-heading"
+                      className="mb-2 text-sm font-semibold"
+                    >
+                      User message
+                    </h3>
+                    <p className="break-words whitespace-pre-wrap rounded-lg border border-cal-hairline bg-cal-surface-soft p-4 text-sm leading-relaxed">
+                      {ticket.fullMessage || "No message recorded."}
+                    </p>
+                  </section>
+                  <details className="rounded-lg border border-cal-hairline p-3 text-sm">
+                    <summary className="cursor-pointer font-medium">
+                      Technical metadata
+                    </summary>
+                    <dl className="mt-3 space-y-2 break-words">
+                      {[
+                        ["os", "Operating system"],
+                        ["appVersion", "App version"],
+                        ["model", "Device model"],
+                      ].map(([key, label]) => (
+                        <div key={key}>
+                          <dt className="text-cal-muted">{label}</dt>
+                          <dd>{metadata(key)}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </details>
+                  {!canUpdate && (
+                    <p className="text-sm text-cal-muted">
+                      This ticket has no usable revision or status. Updates are
+                      unavailable until the record can be refreshed.
+                    </p>
+                  )}
+                </section>
+                <section
+                  className="ticket-notes-pane"
+                  aria-label="Internal follow-up"
+                >
+                  <fieldset
+                    disabled={busy || archived || !canUpdate}
+                    className="space-y-3"
                   >
-                    Internal Admin notes
-                  </label>
-                  <textarea
-                    ref={notesRef}
-                    id="support-internal-notes"
-                    rows={4}
-                    maxLength={4000}
-                    value={notes}
-                    onChange={(event) => setNotes(event.target.value)}
-                    aria-describedby="support-notes-boundary"
-                    className={UI.input.textarea}
-                    placeholder="Technical follow-up only; do not copy health readings or credentials."
-                  />
-                  <p
-                    id="support-notes-boundary"
-                    className="mt-2 text-xs leading-relaxed text-cal-muted"
-                  >
-                    Stored for staff only. Saving these notes does not deliver a
-                    reply to the app user.
-                  </p>
-                </div>
-                <div>
-                  <label
-                    htmlFor="support-ticket-status"
-                    className={UI.input.label}
-                  >
-                    Ticket status
-                  </label>
-                  <select
-                    id="support-ticket-status"
-                    value={status}
-                    onChange={(event) => setStatus(event.target.value)}
-                    className={UI.input.select + " w-full"}
-                  >
-                    {!knownStatus && (
-                      <option value={status}>Unrecognised status</option>
-                    )}
-                    {["Open", "In Progress", "Resolved"].map((value) => (
-                      <option key={value}>{value}</option>
-                    ))}
-                    {archived && <option>Archived</option>}
-                  </select>
-                </div>
-              </fieldset>
+                    <div>
+                      <label
+                        htmlFor="support-internal-notes"
+                        className={UI.input.label}
+                      >
+                        Internal Admin notes
+                      </label>
+                      <textarea
+                        ref={notesRef}
+                        id="support-internal-notes"
+                        rows={4}
+                        maxLength={4000}
+                        value={notes}
+                        onChange={(event) => setNotes(event.target.value)}
+                        aria-describedby="support-notes-boundary"
+                        className={UI.input.textarea}
+                        placeholder="Technical follow-up only; do not copy health readings or credentials."
+                      />
+                      <p
+                        id="support-notes-boundary"
+                        className="mt-2 text-xs leading-relaxed text-cal-muted"
+                      >
+                        Stored for staff only. Saving these notes does not
+                        deliver a reply to the app user.
+                      </p>
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="support-ticket-status"
+                        className={UI.input.label}
+                      >
+                        Ticket status
+                      </label>
+                      <select
+                        id="support-ticket-status"
+                        value={status}
+                        onChange={(event) => setStatus(event.target.value)}
+                        className={UI.input.select + " w-full"}
+                      >
+                        {!knownStatus && (
+                          <option value={status}>Unrecognised status</option>
+                        )}
+                        {["Open", "In Progress", "Resolved"].map((value) => (
+                          <option key={value}>{value}</option>
+                        ))}
+                        {archived && <option>Archived</option>}
+                      </select>
+                    </div>
+                  </fieldset>
+                </section>
+              </div>
             </>
           )}
         </div>
