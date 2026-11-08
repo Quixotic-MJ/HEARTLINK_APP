@@ -1,4 +1,4 @@
-"""HL-073: the reason an admin gives when disabling an account is saved, logged, and cleared on enable."""
+"""Account disable reasons stay on the account, not copied into general audit text."""
 import pytest
 from fastapi.testclient import TestClient
 
@@ -36,12 +36,13 @@ def toggle(body=None):
     return client.put("/api/admin/users/p1/status", json=body)
 
 
-def test_disabling_saves_and_logs_the_reason(profiles):
+def test_disabling_saves_the_reason_without_copying_it_into_audit_text(profiles):
     fake, logged = profiles
     assert toggle({"reason": "  Policy violation  "}).status_code == 200
     assert fake.rows["p1"]["account_status"] == "disabled"
     assert fake.rows["p1"]["deactivation_reason"] == "Policy violation"
-    assert logged[-1]["action"] == "disabled user account (reason: Policy violation)"
+    assert logged[-1]["action"] == "disabled user account"
+    assert "Policy violation" not in str(logged)
 
 
 def test_enabling_clears_the_reason(profiles):

@@ -4,7 +4,7 @@
  * formula (a name like "=HYPERLINK(...)" typed into the app can't do anything when the file is opened).
  */
 
-const FORMULA_START = /^[=+\-@\t\r]/;
+const FORMULA_START = /^(?:[\s\uFEFF]*[=+\-@]|[\t\r\n])/;
 
 export function csvCell(value) {
   if (value === null || value === undefined) return "";

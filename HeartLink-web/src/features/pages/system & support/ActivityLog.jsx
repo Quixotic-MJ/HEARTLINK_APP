@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   CheckCircle2,
@@ -34,34 +34,25 @@ const PILL =
 
 const CATEGORY_OPTIONS = [
   { value: "all", label: "All categories" },
-  { value: "case", label: "Case reviews" },
-  { value: "user", label: "Users" },
+  { value: "user", label: "App accounts" },
+  { value: "account", label: "Account security" },
+  { value: "system", label: "System" },
   { value: "staff", label: "Staff" },
   { value: "recipe", label: "Recipes" },
   { value: "exercise", label: "Exercises" },
   { value: "broadcast", label: "Announcements" },
   { value: "feedback", label: "Feedback" },
   { value: "premium", label: "Premium settings" },
-  { value: "dataset", label: "Datasets" },
 ];
 
 const CATEGORY_LABELS = Object.fromEntries(
-  CATEGORY_OPTIONS.map((opt) => [opt.value, opt.label])
+  CATEGORY_OPTIONS.map((opt) => [opt.value, opt.label]),
 );
 
 function EventTypeBadge({ type }) {
   const key = type ? type.toLowerCase() : "";
 
   switch (key) {
-    case "case":
-      return (
-        <span
-          className={`${PILL} border-cal-error/25 bg-cal-error/10 text-cal-ink`}
-        >
-          <Activity size={11} className="text-cal-error" aria-hidden="true" />
-          <span>Case review</span>
-        </span>
-      );
     case "staff":
       return (
         <span
@@ -145,26 +136,13 @@ function EventTypeBadge({ type }) {
           <span>Premium</span>
         </span>
       );
-    case "dataset":
-      return (
-        <span
-          className={`${PILL} border-cal-hairline bg-cal-surface-soft text-cal-ink`}
-        >
-          <FileSpreadsheet
-            size={11}
-            className="text-cal-muted"
-            aria-hidden="true"
-          />
-          <span>Dataset</span>
-        </span>
-      );
     default:
       return (
         <span
           className={`${PILL} border-cal-hairline bg-cal-surface-soft text-cal-ink`}
         >
           <Activity size={11} className="text-cal-muted" aria-hidden="true" />
-          <span>General</span>
+          <span>{CATEGORY_LABELS[key] || "System"}</span>
         </span>
       );
   }
@@ -174,8 +152,9 @@ function formatTimestamp(isoString) {
   if (!isoString) return "—";
   try {
     const d = new Date(isoString);
-    if (Number.isNaN(d.getTime())) return isoString;
+    if (Number.isNaN(d.getTime())) return "Not recorded";
     return d.toLocaleString("en-US", {
+      timeZone: "Asia/Manila",
       month: "short",
       day: "numeric",
       year: "numeric",
@@ -184,7 +163,7 @@ function formatTimestamp(isoString) {
       hour12: true,
     });
   } catch {
-    return isoString;
+    return "Not recorded";
   }
 }
 
@@ -194,6 +173,7 @@ function formatShortDate(isoString) {
     const d = new Date(isoString);
     if (Number.isNaN(d.getTime())) return "—";
     return d.toLocaleDateString("en-US", {
+      timeZone: "Asia/Manila",
       month: "short",
       day: "numeric",
     });
@@ -219,6 +199,7 @@ const ActivityLog = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [eventTypeFilter, setEventTypeFilter] = useState("all");
   const [exporting, setExporting] = useState(false);
+  const exportPending = useRef(false);
 
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
@@ -270,7 +251,7 @@ const ActivityLog = () => {
     isError,
     error,
     refetch,
-  } = useApiQuery(activityUrl, { keepPrevious: true });
+  } = useApiQuery(activityUrl);
 
   const logs = useMemo(() => data?.items ?? [], [data]);
   const total = data?.total || 0;
@@ -280,6 +261,14 @@ const ActivityLog = () => {
 
   // HL-080: every entry matching the current search and type, as a spreadsheet file
   const exportCsv = async () => {
+    if (
+      exportPending.current ||
+      loading ||
+      isError ||
+      searchQuery.trim() !== debouncedSearch.trim()
+    )
+      return;
+    exportPending.current = true;
     setExporting(true);
     try {
       const params = new URLSearchParams();
@@ -287,26 +276,33 @@ const ActivityLog = () => {
       if (eventTypeFilter !== "all") params.set("target_type", eventTypeFilter);
       const query = params.toString();
       const file = await apiFetch(
-        `/api/admin/activity/export${query ? `?${query}` : ""}`
+        `/api/admin/activity/export${query ? `?${query}` : ""}`,
       );
+      if (!Array.isArray(file.items) || file.count !== file.items.length || !file.generated_at || Number.isNaN(new Date(file.generated_at).getTime())) {
+        throw new Error("Export response was not confirmed.");
+      }
       const csv = toCsv(file.items || [], [
-        { label: "When", value: (r) => formatTimestamp(r.created_at) },
-        { label: "Admin", value: (r) => r.admin_name },
+        {
+          label: "When (Asia/Manila)",
+          value: (r) => formatTimestamp(r.created_at),
+        },
+        { label: "Actor", value: (r) => r.admin_name },
         { label: "Action", value: (r) => r.action },
         { label: "Type", value: (r) => r.target_type },
         { label: "Target", value: (r) => r.target_name },
         { label: "Target ID", value: (r) => r.target_id },
       ]);
       downloadCsv(
-        `heartlink-activity-log-${file.generated_at.slice(0, 10)}.csv`,
-        csv
+        `heartlink-operational-activity-${eventTypeFilter}-${file.generated_at.slice(0, 10)}.csv`,
+        csv,
       );
       toast.success(
-        `Exported ${file.count} log ${file.count === 1 ? "entry" : "entries"}.`
+        `Exported ${file.count} log ${file.count === 1 ? "entry" : "entries"}.`,
       );
     } catch (e) {
-      toast.error(e?.data?.detail || "Couldn't export the activity log.");
+      toast.error(e?.data?.detail || e?.message || "Couldn't export the activity log.");
     } finally {
+      exportPending.current = false;
       setExporting(false);
     }
   };
@@ -332,7 +328,8 @@ const ActivityLog = () => {
     );
   }
 
-  const showSkeleton = (isPending || loading) && logs.length === 0 && !fetchError;
+  const showSkeleton =
+    (isPending || loading) && logs.length === 0 && !fetchError;
   const isEmpty = !loading && !fetchError && logs.length === 0;
   const isSearchOrFilterApplied =
     debouncedSearch.trim() !== "" || eventTypeFilter !== "all";
@@ -349,14 +346,16 @@ const ActivityLog = () => {
           <div>
             <div className="mb-2.5 inline-flex items-center gap-2 rounded-full border border-cal-hairline bg-cal-canvas px-3 py-1 text-[12px] font-medium text-cal-muted">
               <Activity size={13.5} className="text-cal-ink" />
-              <span>System &amp; compliance · Immutable audit trail</span>
+              <span>System · Operational activity</span>
             </div>
             <h2 className="font-cal-display text-[28px] sm:text-[32px] font-semibold tracking-[-0.8px] leading-[1.15] text-cal-ink">
               System activity audit log
             </h2>
             <p className="mt-1.5 max-w-[64ch] text-[14px] leading-[1.5] text-cal-muted">
-              Immutable clinical and administrative audit trail of platform
-              actions, content approvals, and account changes.
+              Recorded content, account and security events, shown in
+              Asia/Manila. Clinical and unknown historical events are excluded
+              from this view and export, not deleted. This is not a complete or
+              immutable audit archive.
             </p>
           </div>
 
@@ -369,7 +368,9 @@ const ActivityLog = () => {
             >
               <RefreshCw
                 size={14.5}
-                className={loading ? "animate-spin text-cal-muted" : "text-cal-muted"}
+                className={
+                  loading ? "animate-spin text-cal-muted" : "text-cal-muted"
+                }
                 aria-hidden="true"
               />
               <span>Refresh</span>
@@ -378,11 +379,21 @@ const ActivityLog = () => {
             <button
               type="button"
               onClick={exportCsv}
-              disabled={exporting || total === 0}
+              disabled={
+                exporting ||
+                loading ||
+                isError ||
+                total === 0 ||
+                searchQuery.trim() !== debouncedSearch.trim()
+              }
               className="inline-flex h-10 items-center gap-2 rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-5 text-[13.5px] font-semibold text-cal-on-primary transition-colors cursor-pointer disabled:bg-cal-primary-disabled disabled:text-cal-muted disabled:cursor-not-allowed"
             >
               {exporting ? (
-                <Loader2 size={15} className="animate-spin" aria-hidden="true" />
+                <Loader2
+                  size={15}
+                  className="animate-spin"
+                  aria-hidden="true"
+                />
               ) : (
                 <Download size={15} aria-hidden="true" />
               )}
@@ -396,19 +407,21 @@ const ActivityLog = () => {
           <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
             <div className="flex items-center justify-between gap-2">
               <span className="text-[12.5px] font-medium text-cal-muted">
-                {isSearchOrFilterApplied ? "Matching events" : "Total audit events"}
+                {isSearchOrFilterApplied
+                  ? "Matching operational events"
+                  : "Visible operational events"}
               </span>
               <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-soft text-cal-ink">
                 <Activity size={14.5} aria-hidden="true" />
               </span>
             </div>
             <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
-              {showSkeleton ? "—" : total.toLocaleString()}
+              {showSkeleton || isError ? "—" : total.toLocaleString()}
             </div>
             <div className="mt-2 text-[12px] text-cal-muted">
               {isSearchOrFilterApplied
-                ? "Filtered clinical & admin entries"
-                : "Recorded across all modules"}
+                ? "Matching the current operational filters"
+                : "Known operational metadata only"}
             </div>
           </div>
 
@@ -425,8 +438,8 @@ const ActivityLog = () => {
               {showSkeleton
                 ? "—"
                 : total === 0
-                ? "0"
-                : `${rangeStart}–${rangeEnd}`}
+                  ? "0"
+                  : `${rangeStart}–${rangeEnd}`}
             </div>
             <div className="mt-2 text-[12px] text-cal-muted">
               {totalPages > 0
@@ -467,13 +480,13 @@ const ActivityLog = () => {
               {showSkeleton
                 ? "—"
                 : latestEntry
-                ? formatShortDate(latestEntry.created_at)
-                : "—"}
+                  ? formatShortDate(latestEntry.created_at)
+                  : "—"}
             </div>
             <div className="mt-2 truncate text-[12px] text-cal-muted">
               {latestEntry
                 ? `By ${latestEntry.admin_name || latestEntry.admin_user_id || "System"}`
-                : "Immutable append-only log"}
+                : "No operational entry available"}
             </div>
           </div>
         </div>
@@ -490,7 +503,8 @@ const ActivityLog = () => {
               <input
                 type="text"
                 aria-label="Search audit log"
-                placeholder="Search by admin name or target…"
+                disabled={exporting}
+                placeholder="Search by actor name or target…"
                 value={searchQuery}
                 onChange={handleSearchChange}
                 className="h-9 w-full rounded-[8px] border border-cal-hairline bg-cal-canvas pl-9 pr-8 text-[13.5px] text-cal-ink placeholder:text-cal-muted-soft focus:border-cal-ink focus:outline-none transition-colors"
@@ -499,6 +513,7 @@ const ActivityLog = () => {
                 <button
                   type="button"
                   aria-label="Clear search"
+                  disabled={exporting}
                   onClick={handleClearSearch}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-cal-muted hover:text-cal-ink cursor-pointer"
                 >
@@ -511,6 +526,7 @@ const ActivityLog = () => {
               <div className="relative">
                 <select
                   aria-label="Filter by event category"
+                  disabled={exporting}
                   value={eventTypeFilter}
                   onChange={handleFilterChange}
                   className="h-9 appearance-none rounded-[8px] border border-cal-hairline bg-cal-canvas pl-3.5 pr-9 text-[13px] font-medium text-cal-ink hover:bg-cal-surface-soft focus:border-cal-ink focus:outline-none transition-colors cursor-pointer"
@@ -541,7 +557,12 @@ const ActivityLog = () => {
           </div>
 
           {/* Table */}
-          <div className="w-full overflow-x-auto">
+          <div
+            role="region"
+            aria-label="Operational activity table"
+            tabIndex={0}
+            className="w-full overflow-x-auto"
+          >
             <table className="w-full min-w-[860px] border-collapse text-left">
               <thead>
                 <tr className="border-b border-cal-hairline bg-cal-surface-soft/70">
@@ -708,8 +729,8 @@ const ActivityLog = () => {
                       No administrative activity recorded yet
                     </p>
                     <p className="max-w-sm text-[13px] text-cal-muted">
-                      Clinical reviews, library updates, and account changes
-                      will appear here automatically.
+                      Recorded content, staff and account events will appear
+                      here. Excluded historical events remain stored separately.
                     </p>
                   </>
                 )}
@@ -720,7 +741,9 @@ const ActivityLog = () => {
           {/* Pagination Footer */}
           <div className="flex flex-col justify-between gap-3 border-t border-cal-hairline bg-cal-canvas px-4 py-3.5 sm:flex-row sm:items-center sm:px-5">
             <p className="text-[12.5px] text-cal-muted">
-              {total === 0 ? (
+              {isError ? (
+                "Activity counts unavailable"
+              ) : total === 0 ? (
                 "Showing 0 of 0 events"
               ) : (
                 <>

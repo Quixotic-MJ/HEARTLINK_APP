@@ -53,20 +53,22 @@ class SupabaseAdminRepository(AdminRepository):
     def list_activity(self, limit: Optional[int] = None, action: Optional[str] = None, target_type: Optional[str] = None, admin_user_id: Optional[str] = None, search: Optional[str] = None) -> List[Dict[str, Any]]:
         try:
             def page(start: int, end: int):
-                query = self.client.table("admin_activity_logs").select("*")
+                query = self.client.table("admin_activity_logs").select("id,admin_user_id,admin_name,action,target_type,target_id,target_name,created_at")
                 if action:
                     query = query.eq("action", action)
                 if target_type:
                     query = query.eq("target_type", target_type)
                 if admin_user_id:
                     query = query.eq("admin_user_id", admin_user_id)
-                return query.order("created_at", desc=True).range(start, end).execute()
+                return query.order("created_at", desc=True).order("id").range(start, end).execute()
 
             # HL-080: page through the table; one request stops at Supabase's 1,000-row limit
             rows, start, step = [], 0, 1000
             while True:
                 res = page(start, start + step - 1)
-                batch = res.data or []
+                if getattr(res, "error", None) or not isinstance(res.data, list):
+                    raise RuntimeError("Activity data unavailable")
+                batch = res.data
                 rows.extend(batch)
                 if len(batch) < step or (limit and len(rows) >= limit):
                     break

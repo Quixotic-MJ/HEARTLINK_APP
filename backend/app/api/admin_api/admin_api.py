@@ -7,7 +7,7 @@ import secrets
 import string
 from app.utils.security import get_current_admin_only
 from app.utils.time import utc_now
-from app.utils.activity_helper import record_admin_activity
+from app.utils.activity_helper import record_admin_activity, portal_activity, PORTAL_ACTIVITY_TYPES
 from app.db.client import get_supabase_client
 from app.db.repositories import (
     get_profile_repo,
@@ -409,8 +409,6 @@ def toggle_user_status(
     else:
         role_desc = "medical expert" if user_role == "medical_expert" else "admin"
         action_desc = f"{'Disabled' if new_status == 'disabled' else 'Enabled'} {role_desc} account"
-    if reason:
-        action_desc += f" (reason: {reason})"
         
     record_admin_activity(
         admin_user_id=admin_id,
@@ -563,6 +561,13 @@ def delete_broadcast(broadcast_id: str, current_user: dict = Depends(get_current
 EXPORT_FIELDS = ("created_at", "admin_name", "action", "target_type", "target_name", "target_id")
 
 
+def _portal_logs(**filters):
+    if filters.get("target_type") and filters["target_type"] not in PORTAL_ACTIVITY_TYPES:
+        raise HTTPException(status_code=400, detail="Unsupported operational activity category")
+    rows = get_admin_repo().list_activity(**filters)
+    return [item for row in rows if (item := portal_activity(row))]
+
+
 @router.get("/activity/export")
 def export_activity_log(
     target_type: Optional[str] = None,
@@ -570,16 +575,15 @@ def export_activity_log(
     current_user: dict = Depends(get_current_admin_only),
 ):
     """HL-080: every log entry matching the page's filters, for the portal's "Export audit CSV"."""
-    logs = get_admin_repo().list_activity(target_type=target_type, search=search)
+    logs = _portal_logs(target_type=target_type, search=search)
     items = [{field: entry.get(field) for field in EXPORT_FIELDS} for entry in logs]
-    filters = ", ".join(f for f in [f"type {target_type}" if target_type else "", f'search "{search}"' if search else ""] if f)
     record_admin_activity(
         admin_user_id=current_user.get("user_id"),
-        action=f"exported the activity log ({len(items)} entries{', ' + filters if filters else ''})",
+        action=f"exported the activity log ({len(items)} entries)",
         target_type="system",
         target_name="Activity log",
     )
-    return {"generated_at": utc_now().isoformat(), "count": len(items), "items": items}
+    return {"generated_at": utc_now().isoformat(), "count": len(items), "items": items, "scope": "Known operational metadata only; historical clinical/unknown events are excluded", "timezone": "Asia/Manila"}
 
 
 @router.get("/activity")
@@ -597,7 +601,7 @@ def get_activity_log(
     if page_size < 1 or page_size > 100:
         raise HTTPException(status_code=400, detail="Page size must be between 1 and 100.")
 
-    logs = get_admin_repo().list_activity(
+    logs = _portal_logs(
         action=action,
         target_type=target_type,
         admin_user_id=admin_user_id,
@@ -629,5 +633,8 @@ def get_activity_log(
         "total": total,
         "page": page,
         "page_size": page_size,
-        "total_pages": total_pages
+        "total_pages": total_pages,
+        "scope": "Known operational metadata only; historical clinical/unknown events are excluded",
+        "generated_at": utc_now().isoformat(),
+        "timezone": "Asia/Manila",
     }
