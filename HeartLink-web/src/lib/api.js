@@ -63,6 +63,13 @@ const fetchWithRefresh = async (endpoint, send) => {
   return send();
 };
 
+// UI messages need text; structured validation errors can contain echoed input.
+const errorData = (data, fallback) => ({
+  ...(data && typeof data === "object" && !Array.isArray(data) ? data : {}),
+  detail:
+    typeof data?.detail === "string" && data.detail.trim() ? data.detail : fallback,
+});
+
 export const apiFetch = async (endpoint, options = {}) => {
   const url = `${BASE_URL}${endpoint}`;
   const method = (options.method || "GET").toUpperCase();
@@ -95,7 +102,10 @@ export const apiFetch = async (endpoint, options = {}) => {
       if (response.status === 403 && data?.detail === "PASSWORD_CHANGE_REQUIRED") {
         window.dispatchEvent(new Event('auth:password-change-required'));
       }
-      throw { status: response.status, data };
+      throw {
+        status: response.status,
+        data: errorData(data, "The request could not be completed. Try again."),
+      };
     }
 
     // A save (POST, PUT, DELETE, PATCH) may change anything on screen, so every loaded address refreshes
@@ -131,7 +141,10 @@ export const apiUpload = async (file, bucket = "exercises") => {
       if (response.status === 401) {
         window.dispatchEvent(new Event('auth:unauthorized'));
       }
-      throw { status: response.status, data };
+      throw {
+        status: response.status,
+        data: errorData(data, "The image upload was not confirmed. Try again."),
+      };
     }
 
     if (typeof data?.url !== "string" || !data.url.trim()) {
