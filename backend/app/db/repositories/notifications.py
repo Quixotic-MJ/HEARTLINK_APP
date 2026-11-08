@@ -6,7 +6,7 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime
 import uuid
 import logging
-from app.db.repositories.base import handle_db_error, resolve_uuid, serialize_for_db
+from app.db.repositories.base import handle_db_error, resolve_uuid, serialize_for_db, list_projected_rows
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 from app.services.notification_archive import keep_active
 
@@ -118,14 +118,23 @@ class SupabaseNotificationRepository(NotificationRepository):
 
     def list_broadcasts(self) -> List[Dict[str, Any]]:
         try:
-            res = self.client.table("system_broadcasts").select("*").order("created_at", desc=True).execute()
-            return res.data or []
+            fields = "id,title,message,type,target_audience,display_publisher,created_at"
+            rows = list_projected_rows(self.client, "system_broadcasts", fields)
+            return sorted([{key: row.get(key) for key in fields.split(",")} for row in rows],
+                          key=lambda row: parse_utc(row.get("created_at")) or UTC_MIN, reverse=True)
         except Exception as e:
             handle_db_error(e)
             return []
 
     def create_broadcast(self, broadcast_data: Dict[str, Any], target_user_ids: Optional[List[str]] = None) -> Dict[str, Any]:
         try:
+            if target_user_ids is None:
+                profiles = list_projected_rows(self.client, "profiles", "id,role,account_status")
+                target_user_ids = [row["id"] for row in profiles
+                                   if row.get("role") == "patient" and row.get("account_status") == "active"
+                                   and resolve_uuid(row.get("id"))]
+            recipients = list(dict.fromkeys(uid for raw in target_user_ids
+                                            if (uid := self._resolve_user_uuid(raw))))
             now_iso = utc_now().isoformat()
             payload = {
                 "created_at": now_iso,
@@ -133,23 +142,19 @@ class SupabaseNotificationRepository(NotificationRepository):
             }
             payload = serialize_for_db(payload)
             res = self.client.table("system_broadcasts").insert(payload).execute()
-            created_b = res.data[0] if res.data else payload
+            if getattr(res, "error", None) or not res.data or not res.data[0].get("id"):
+                raise RuntimeError("Announcement was not saved")
+            created_b = res.data[0]
             b_id = created_b.get("id")
+        except Exception as e:
+            handle_db_error(e)
 
-            # Resolve target recipients if not provided
-            if target_user_ids is None:
-                from app.db.repositories import get_profile_repo
-                patients = get_profile_repo().list_all(role_filter="patient")
-                target_user_ids = [p["id"] for p in patients if p.get("account_status") == "active"]
-
-            # Fanout
-            if target_user_ids and b_id:
-                fanout_rows = []
-                for uid in target_user_ids:
-                    r_uid = self._resolve_user_uuid(uid)
-                    if r_uid:
-                        fanout_rows.append({
-                            "user_id": r_uid,
+        recorded = 0
+        try:
+            # shortcut: fanout is not transactional; report partial delivery without encouraging duplicate publication until an outbox is approved.
+            for start in range(0, len(recipients), 500):
+                fanout_rows = [{
+                            "user_id": uid,
                             "scope": "broadcast",
                             "type": "announcement",
                             "broadcast_type": created_b.get("type"),
@@ -159,15 +164,16 @@ class SupabaseNotificationRepository(NotificationRepository):
                             "message": created_b.get("message"),
                             "read": False,
                             "created_at": now_iso
-                        })
-                if fanout_rows:
-                    self.client.table("patient_notifications").insert(fanout_rows).execute()
-                    _push([r["user_id"] for r in fanout_rows], created_b.get("title"), created_b.get("message"))
-
-            return created_b
+                        } for uid in recipients[start:start + 500]]
+                result = self.client.table("patient_notifications").insert(fanout_rows).execute()
+                if getattr(result, "error", None) or not isinstance(result.data, list) or len(result.data) != len(fanout_rows):
+                    raise RuntimeError("Announcement notifications unconfirmed")
+                recorded += len(result.data)
+                _push([row["user_id"] for row in fanout_rows], created_b.get("title"), created_b.get("message"))
+            return {**created_b, "notification_status": "recorded", "notifications_recorded": recorded, "push_delivery": "unverified"}
         except Exception as e:
-            handle_db_error(e)
-            return {}
+            logger.warning("Announcement notification delivery incomplete (%s)", type(e).__name__)
+            return {**created_b, "notification_status": "unconfirmed", "notifications_recorded": recorded, "push_delivery": "unverified"}
 
     def delete_broadcast(self, broadcast_id: str) -> bool:
         try:

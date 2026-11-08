@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Body, Depends, HTTPException
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Literal
+from pydantic import BaseModel, ConfigDict, Field
 import os
 import hashlib
 import secrets
@@ -514,35 +515,16 @@ def delete_user_or_staff(user_id: str, current_user: dict = Depends(get_current_
 def get_broadcasts(current_user: dict = Depends(get_current_admin_only)):
     return get_notification_repo().list_broadcasts()
 
-VALID_BROADCAST_TYPES = {"Maintenance", "App Update", "Safety Reminder", "General"}
-VALID_BROADCAST_AUDIENCES = {"All Registered Accounts"}
+class BroadcastCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    title: str = Field(strict=True, min_length=1, max_length=80)
+    message: str = Field(strict=True, min_length=1, max_length=255)
+    type: Literal["Maintenance", "App Update", "Safety Reminder", "General"]
+    targetAudience: Literal["All Registered Accounts"] = "All Registered Accounts"
+
 
 @router.post("/broadcasts")
-def create_broadcast(payload: dict, current_user: dict = Depends(get_current_admin_only)):
-    title = (payload.get("title") or "").strip()
-    if not title:
-        raise HTTPException(status_code=422, detail="Announcement title is required.")
-    if len(title) > 80:
-        raise HTTPException(status_code=422, detail="Announcement title must be 80 characters or fewer.")
-
-    broadcast_type = payload.get("type", "")
-    if broadcast_type not in VALID_BROADCAST_TYPES:
-        raise HTTPException(
-            status_code=422,
-            detail=f"Invalid category. Must be one of: {', '.join(sorted(VALID_BROADCAST_TYPES))}"
-        )
-
-    target_audience = payload.get("targetAudience", "All Registered Accounts")
-    if target_audience not in VALID_BROADCAST_AUDIENCES:
-        raise HTTPException(
-            status_code=422,
-            detail=f"Invalid audience. Must be one of: {', '.join(sorted(VALID_BROADCAST_AUDIENCES))}"
-        )
-
-    message = (payload.get("message") or "").strip()
-    if not message:
-        raise HTTPException(status_code=422, detail="Announcement message is required.")
-
+def create_broadcast(payload: BroadcastCreate, current_user: dict = Depends(get_current_admin_only)):
     admin_id = current_user.get('user_id', 'SYS')
     admin_prof = get_profile_repo().get_by_id(admin_id)
     publisher_name = "Admin"
@@ -550,17 +532,19 @@ def create_broadcast(payload: dict, current_user: dict = Depends(get_current_adm
         publisher_name = f"{admin_prof.get('first_name', '')} {admin_prof.get('last_name', '')}".strip() or "Admin"
 
     broadcast_data = {
-        "title": title,
-        "message": message,
-        "type": broadcast_type,
-        "target_audience": target_audience,
+        "title": payload.title,
+        "message": payload.message,
+        "type": payload.type,
+        "target_audience": payload.targetAudience,
         "publisher": f"{admin_id} ({publisher_name})",
         "display_publisher": publisher_name,
         "publisher_id": admin_id
     }
 
     new_broadcast = get_notification_repo().create_broadcast(broadcast_data)
-    broadcast_id = new_broadcast.get("id")
+    broadcast_id = new_broadcast.get("id") if isinstance(new_broadcast, dict) else None
+    if not broadcast_id:
+        raise HTTPException(status_code=500, detail="Announcement publication was not confirmed.")
 
     # Record admin activity
     record_admin_activity(
@@ -568,25 +552,13 @@ def create_broadcast(payload: dict, current_user: dict = Depends(get_current_adm
         action="published",
         target_type="broadcast",
         target_id=str(broadcast_id),
-        target_name=title
+        target_name=payload.title
     )
     return {"status": "success", "data": new_broadcast}
 
 @router.delete("/broadcasts/{broadcast_id}")
 def delete_broadcast(broadcast_id: str, current_user: dict = Depends(get_current_admin_only)):
-    success = get_notification_repo().delete_broadcast(broadcast_id)
-    if not success:
-        raise HTTPException(status_code=404, detail="Broadcast not found")
-
-    admin_id = current_user.get("user_id") if current_user else "admin"
-    record_admin_activity(
-        admin_user_id=admin_id,
-        action="deleted",
-        target_type="broadcast",
-        target_id=str(broadcast_id),
-        target_name="Broadcast"
-    )
-    return {"status": "success", "message": "Broadcast deleted"}
+    raise HTTPException(status_code=410, detail="Announcement deletion is unavailable pending retention review. Notifications already shown on devices cannot be recalled.")
 
 EXPORT_FIELDS = ("created_at", "admin_name", "action", "target_type", "target_name", "target_id")
 

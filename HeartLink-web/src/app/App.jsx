@@ -54,6 +54,7 @@ export default function App() {
     <AuthProvider>
       <MotionConfig reducedMotion="user">
       <Toaster
+        style={{ zIndex: 45 }}
         position="top-right"
         expand={false}
         closeButton

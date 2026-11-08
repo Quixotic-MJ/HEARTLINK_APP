@@ -1,16 +1,13 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
-  AlertTriangle,
   ChevronRight,
   Clock,
   Info,
-  Loader2,
   Megaphone,
   Plus,
   RotateCcw,
   Search,
-  Send,
   ShieldAlert,
   Wrench,
   X,
@@ -18,7 +15,6 @@ import {
 import { toast } from "sonner";
 import { apiFetch } from "../../../api";
 import { useApiQuery } from "../../../hooks/useApiQuery";
-import { useDialogFocus } from "../../../hooks/useDialogFocus";
 import LoadError from "../../../components/ui/LoadError";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import AdminLayout from "../../../components/layouts/adminLayout";
@@ -37,202 +33,57 @@ const CATEGORY_TABS = [
   ["General", "General"],
 ];
 
-function PublishConfirmModal({
-  isOpen,
-  pendingBroadcast,
-  isSubmitting,
-  onClose,
-  onConfirm,
-}) {
-  const dialogRef = useRef(null);
-  useDialogFocus(isOpen, dialogRef, () => {
-    if (!isSubmitting) onClose();
-  });
-
-  if (!isOpen || !pendingBroadcast) return null;
-
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6 font-cal-sans">
-      <div
-        className="fixed inset-0 bg-cal-ink/40 transition-opacity cursor-pointer"
-        onClick={() => {
-          if (!isSubmitting) onClose();
-        }}
-      />
-
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="confirm-broadcast-title"
-        tabIndex={-1}
-        className="relative z-10 flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas text-cal-ink shadow-[0_12px_36px_rgba(0,0,0,0.14)]"
-      >
-        {/* Header */}
-        <div className="flex items-start gap-3 border-b border-cal-hairline px-6 pt-5 pb-4">
-          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-cal-warning/35 bg-cal-warning/15 text-cal-ink">
-            <AlertTriangle size={16} aria-hidden="true" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <h3
-              id="confirm-broadcast-title"
-              className="font-cal-display text-[20px] font-semibold tracking-[-0.5px] leading-[1.2] text-cal-ink"
-            >
-              Confirm announcement
-            </h3>
-            <p className="mt-0.5 text-[12.5px] text-cal-muted">
-              Review details before publishing to all registered users.
-            </p>
-          </div>
-        </div>
-
-        {/* Body */}
-        <div className="flex-1 space-y-3.5 overflow-y-auto px-6 py-5">
-          {/* Title & Category */}
-          <div className="rounded-[10px] border border-cal-hairline bg-cal-surface-soft p-3.5">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[11.5px] font-medium text-cal-muted">
-                Title
-              </span>
-              <CategoryBadge category={pendingBroadcast.type} />
-            </div>
-            <p className="mt-1.5 text-[14px] font-semibold text-cal-ink">
-              {pendingBroadcast.title || "Untitled announcement"}
-            </p>
-          </div>
-
-          {/* Audience */}
-          <div className="flex items-center justify-between gap-3 rounded-[10px] border border-cal-hairline bg-cal-surface-soft px-3.5 py-2.5 text-[13px]">
-            <span className="font-medium text-cal-muted">Target audience</span>
-            <span className="font-semibold text-cal-ink">
-              {pendingBroadcast.targetAudience || "All Registered Accounts"}
-            </span>
-          </div>
-
-          {/* Message Preview */}
-          <div>
-            <span className="mb-1.5 block text-[12px] font-medium text-cal-muted">
-              Message preview
-            </span>
-            <div className="max-h-36 overflow-y-auto rounded-[10px] border border-cal-hairline bg-cal-surface-soft p-3.5">
-              <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed text-cal-ink">
-                {pendingBroadcast.message}
-              </p>
-            </div>
-          </div>
-
-          <p className="text-[12.5px] leading-relaxed text-cal-muted">
-            This announcement will be delivered to{" "}
-            <strong className="font-semibold text-cal-ink">
-              {pendingBroadcast.targetAudience || "all users"}
-            </strong>{" "}
-            immediately.
-          </p>
-        </div>
-
-        {/* Footer */}
-        <div className="flex shrink-0 items-center justify-end gap-2.5 border-t border-cal-hairline bg-cal-canvas px-6 py-4">
-          <button
-            type="button"
-            disabled={isSubmitting}
-            onClick={onClose}
-            className="inline-flex h-10 items-center justify-center rounded-[8px] border border-cal-hairline bg-cal-canvas px-4 text-[13.5px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer disabled:opacity-50"
-          >
-            Back to edit
-          </button>
-          <button
-            type="button"
-            disabled={isSubmitting}
-            onClick={onConfirm}
-            className="inline-flex h-10 items-center justify-center gap-1.5 rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-5 text-[13.5px] font-semibold text-cal-on-primary transition-colors cursor-pointer disabled:bg-cal-primary-disabled disabled:text-cal-muted"
-          >
-            {isSubmitting ? (
-              <Loader2 size={14} className="animate-spin" />
-            ) : (
-              <Send size={14} />
-            )}
-            <span>{isSubmitting ? "Publishing…" : "Yes, publish"}</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 const Broadcasts = () => {
   // Publishing or deleting through apiFetch refreshes this list by itself
   const broadcastsQuery = useApiQuery("/api/admin/broadcasts", {
-    select: (d) => d || [],
+    select: (data) =>
+      (data || []).map((row) => {
+        const date = new Date(row.created_at || "invalid");
+        return {
+          ...row,
+          date: Number.isNaN(date.getTime())
+            ? "Not recorded"
+            : date.toLocaleString("en-PH", {
+                timeZone: "Asia/Manila",
+                dateStyle: "medium",
+                timeStyle: "short",
+              }),
+        };
+      }),
   });
   const broadcasts = broadcastsQuery.data ?? NO_BROADCASTS;
   const isLoading = broadcastsQuery.isPending;
+  const unavailable = isLoading || broadcastsQuery.isError;
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-
-  // View Details Modal State
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [activeBroadcast, setActiveBroadcast] = useState(null);
-
-  // Pending Broadcast State for Confirmation
-  const [pendingBroadcast, setPendingBroadcast] = useState(null);
-
   const openModal = () => setIsModalOpen(true);
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setPendingBroadcast(null);
-  };
 
-  const handlePublishClick = (type, msg, targetAudience, title) => {
-    setPendingBroadcast({ type, message: msg, targetAudience, title });
-    setIsConfirmModalOpen(true);
-  };
-
-  const handleConfirmPublish = async () => {
-    if (!pendingBroadcast) return;
-    setIsSubmitting(true);
-    try {
-      await apiFetch("/api/admin/broadcasts", {
-        method: "POST",
-        body: JSON.stringify({
-          title: pendingBroadcast.title,
-          type: pendingBroadcast.type,
-          message: pendingBroadcast.message,
-          targetAudience: pendingBroadcast.targetAudience,
-        }),
-      });
-      toast.success("Announcement published", {
-        description: `"${pendingBroadcast.title}" was delivered to all registered accounts.`,
-      });
-      setIsConfirmModalOpen(false);
-      closeModal();
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to publish announcement", {
-        description:
-          err?.data?.detail || "Could not publish announcement right now.",
-      });
-    } finally {
-      setIsSubmitting(false);
+  const handlePublish = async (draft) => {
+    const response = await apiFetch("/api/admin/broadcasts", {
+      method: "POST",
+      body: JSON.stringify(draft),
+    });
+    if (response?.status !== "success" || !response.data?.id) {
+      throw {
+        data: {
+          detail:
+            "Publication was not confirmed. Check the list before retrying.",
+        },
+      };
     }
-  };
-
-  const handleDeleteBroadcast = async (broadcastId) => {
-    try {
-      await apiFetch(`/api/admin/broadcasts/${broadcastId}`, {
-        method: "DELETE",
+    if (response.data.notification_status === "unconfirmed") {
+      toast.warning("Announcement saved; notification delivery unconfirmed", {
+        description:
+          "Do not republish this notice to retry delivery. Check with an Admin.",
       });
-      toast.success("Announcement deleted", {
-        description: "Removed from user announcement feeds.",
-      });
-      setViewModalOpen(false);
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to delete announcement", {
-        description: err?.data?.detail || "Could not delete announcement.",
+    } else {
+      toast.success("Announcement published", {
+        description:
+          "Saved for active app accounts. Push, display and read delivery are not verified.",
       });
     }
   };
@@ -245,13 +96,13 @@ const Broadcasts = () => {
     return {
       all: broadcasts.length,
       Maintenance: broadcasts.filter(
-        (b) => normalizeType(b.type) === "Maintenance"
+        (b) => normalizeType(b.type) === "Maintenance",
       ).length,
       "App Update": broadcasts.filter(
-        (b) => normalizeType(b.type) === "App Update"
+        (b) => normalizeType(b.type) === "App Update",
       ).length,
       "Safety Reminder": broadcasts.filter(
-        (b) => normalizeType(b.type) === "Safety Reminder"
+        (b) => normalizeType(b.type) === "Safety Reminder",
       ).length,
       General: broadcasts.filter((b) => normalizeType(b.type) === "General")
         .length,
@@ -298,8 +149,8 @@ const Broadcasts = () => {
               System announcements
             </h2>
             <p className="mt-1.5 max-w-[64ch] text-[14px] leading-[1.5] text-cal-muted">
-              Publish platform announcements, clinical safety reminders, and
-              maintenance advisories to all registered accounts.
+              Publish factual service notices for active app accounts. This is
+              not a clinical alert system or a delivery/read receipt.
             </p>
           </div>
 
@@ -325,7 +176,7 @@ const Broadcasts = () => {
               </span>
             </div>
             <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
-              {isLoading ? "—" : counts.all}
+              {unavailable ? "—" : counts.all}
             </div>
             <div className="mt-2 text-[12px] text-cal-muted">
               Active broadcast feed items
@@ -342,10 +193,10 @@ const Broadcasts = () => {
               </span>
             </div>
             <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
-              {isLoading ? "—" : counts["Safety Reminder"]}
+              {unavailable ? "—" : counts["Safety Reminder"]}
             </div>
             <div className="mt-2 text-[12px] text-cal-muted">
-              Patient wellness &amp; warning notices
+              General safety notices, not individual alerts
             </div>
           </div>
 
@@ -359,7 +210,7 @@ const Broadcasts = () => {
               </span>
             </div>
             <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
-              {isLoading ? "—" : counts.Maintenance}
+              {unavailable ? "—" : counts.Maintenance}
             </div>
             <div className="mt-2 text-[12px] text-cal-muted">
               Scheduled service advisories
@@ -376,7 +227,7 @@ const Broadcasts = () => {
               </span>
             </div>
             <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
-              {isLoading ? "—" : counts["App Update"] + counts.General}
+              {unavailable ? "—" : counts["App Update"] + counts.General}
             </div>
             <div className="mt-2 text-[12px] text-cal-muted">
               Release notes &amp; general news
@@ -411,16 +262,22 @@ const Broadcasts = () => {
                       <motion.div
                         layoutId="broadcast-category-filter-tab"
                         className="absolute inset-0 rounded-full bg-cal-primary shadow-xs"
-                        transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 420,
+                          damping: 34,
+                        }}
                       />
                     )}
                     <span className="relative z-10">{label}</span>
                     <span
                       className={`relative z-10 font-cal-mono text-[11.5px] tabular-nums ${
-                        active ? "text-white/90 font-medium" : "text-cal-muted-soft"
+                        active
+                          ? "text-white/90 font-medium"
+                          : "text-cal-muted-soft"
                       }`}
                     >
-                      {isLoading ? "—" : counts[key]}
+                      {unavailable ? "—" : counts[key]}
                     </span>
                   </button>
                 );
@@ -454,7 +311,7 @@ const Broadcasts = () => {
           </div>
 
           {/* Table */}
-          <div className="w-full overflow-x-auto">
+          <div role="region" aria-label="Announcement history table" tabIndex={0} className="w-full overflow-x-auto">
             <table className="w-full min-w-[780px] border-collapse text-left">
               <thead>
                 <tr className="border-b border-cal-hairline bg-cal-surface-soft/70">
@@ -636,29 +493,16 @@ const Broadcasts = () => {
         </section>
       </div>
 
-      {/* Composer Modal */}
-      <NewBroadcastModal
-        isOpen={isModalOpen}
-        isCovered={isConfirmModalOpen}
-        onClose={closeModal}
-        onPublish={handlePublishClick}
-      />
-
-      {/* Read-Only View Modal */}
+      {isModalOpen && (
+        <NewBroadcastModal
+          onClose={() => setIsModalOpen(false)}
+          onPublish={handlePublish}
+        />
+      )}
       <ViewBroadcastModal
         isOpen={viewModalOpen}
         onClose={() => setViewModalOpen(false)}
         broadcast={activeBroadcast}
-        onDelete={handleDeleteBroadcast}
-      />
-
-      {/* Publish Confirmation Modal */}
-      <PublishConfirmModal
-        isOpen={isConfirmModalOpen}
-        pendingBroadcast={pendingBroadcast}
-        isSubmitting={isSubmitting}
-        onClose={() => setIsConfirmModalOpen(false)}
-        onConfirm={handleConfirmPublish}
       />
     </AdminLayout>
   );

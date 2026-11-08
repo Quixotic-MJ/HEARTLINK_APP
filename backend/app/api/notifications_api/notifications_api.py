@@ -35,8 +35,9 @@ def remove_push_token(payload: PushTokenRemoval, current_user: dict = Depends(ge
     return {"success": True}
 
 @router.get("/broadcasts", response_model=List[Dict[str, Any]])
-def get_latest_broadcasts():
-    return get_notification_repo().list_broadcasts()
+def get_latest_broadcasts(current_user: dict = Depends(get_current_user)):
+    fields = ("id", "title", "message", "type", "created_at", "target_audience")
+    return [{key: row.get(key) for key in fields} for row in get_notification_repo().list_broadcasts()]
 
 @router.get("/{user_id}", response_model=List[Dict[str, Any]])
 def read_notifications(
