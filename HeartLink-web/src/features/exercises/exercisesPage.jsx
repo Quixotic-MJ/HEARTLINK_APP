@@ -16,7 +16,7 @@ import { LibraryViewSwitch } from "../../components/ui/libraryViewSwitch.jsx";
 function RoutineCover({ src }) {
   const [failed, setFailed] = useState(null);
   return src && failed !== src ? (
-    <img src={src} alt="" onError={() => setFailed(src)} />
+    <img src={src} alt="" loading="lazy" decoding="async" onError={() => setFailed(src)} />
   ) : (
     <div className="library-card-fallback">
       <Dumbbell size={48} strokeWidth={1.3} aria-hidden="true" />
