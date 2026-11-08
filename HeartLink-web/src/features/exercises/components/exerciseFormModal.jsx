@@ -42,6 +42,11 @@ import {
   partSeconds,
 } from "../exerciseParts.js";
 
+const EXERCISE_CATEGORIES = [
+  "Walking and marching", "Sit-to-stand", "Squat variations", "Wall or chair push-ups",
+  "Side steps", "Leg movements", "Balance", "Mobility", "Stretching", "Breathing",
+];
+
 // The edit view's tabs, and which fields live on each, so a save that fails opens the right tab.
 const TABS = [
   ["basics", "Basics"],
@@ -70,6 +75,10 @@ const TAB_FIELDS = {
   safety: [
     "position",
     "setting",
+    "difficultyLevel",
+    "category",
+    "targetAreas",
+    "tempo",
     "effortHint",
     "frequency",
     "easierVersion",
@@ -90,8 +99,8 @@ function describeExerciseField(name) {
   if (group === "guideImages" && index !== undefined) {
     return { id: name, label: `Extra picture ${Number(index) + 1} URL` };
   }
-  const labels = { name: "Routine name", description: "Description", duration: "Duration", type: "Exercise type", intensity: "Intensity", goal: "Routine goal", calories: "Estimated calories", rounds: "Rounds", restSeconds: "Rest between rounds", position: "Position", setting: "Setting", effortHint: "How it should feel", frequency: "How often", easierVersion: "Easier version", mediaUrl: "Thumbnail image", videoUrl: "Instructional video link" };
-  const ids = { description: "exercise-description", type: "exercise-type", intensity: "exercise-intensity", position: "exercise-position", setting: "exercise-setting" };
+  const labels = { name: "Routine name", description: "Description", duration: "Duration", type: "Exercise type", intensity: "Intensity", goal: "Routine goal", calories: "Estimated calories", rounds: "Rounds", restSeconds: "Rest between rounds", position: "Position", setting: "Setting", difficultyLevel: "Level", category: "Category", targetAreas: "Body areas it works", tempo: "Tempo", effortHint: "How it should feel", frequency: "How often", easierVersion: "Easier version", mediaUrl: "Thumbnail image", videoUrl: "Instructional video link" };
+  const ids = { description: "exercise-description", type: "exercise-type", intensity: "exercise-intensity", position: "exercise-position", setting: "exercise-setting", difficultyLevel: "exercise-level", category: "exercise-category" };
   return { id: ids[name] || name, label: labels[name] || name };
 }
 
@@ -798,6 +807,14 @@ const ExerciseFormModal = ({
                   </dd>
                   <dt className="text-cal-muted">Should feel</dt>
                   <dd className="text-cal-ink">{v.effortHint || notSet()}</dd>
+                  <dt className="text-cal-muted">Level</dt>
+                  <dd className="text-cal-ink">{v.difficultyLevel || notSet()}</dd>
+                  <dt className="text-cal-muted">Category</dt>
+                  <dd className="text-cal-ink">{v.category || notSet()}</dd>
+                  <dt className="text-cal-muted">Body areas</dt>
+                  <dd className="text-cal-ink">{v.targetAreas || notSet()}</dd>
+                  <dt className="text-cal-muted">Tempo</dt>
+                  <dd className="text-cal-ink">{v.tempo || notSet()}</dd>
                   <dt className="text-cal-muted">How often</dt>
                   <dd className="text-cal-ink">{v.frequency || notSet()}</dd>
                   <dt className="text-cal-muted">Easier version</dt>
@@ -1145,6 +1162,37 @@ const ExerciseFormModal = ({
 
               {tab === "safety" && (
                 <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    {[
+                      ["difficultyLevel", "exercise-level", "Level", ["Beginner", "Intermediate", "Advanced"]],
+                      ["category", "exercise-category", "Category", EXERCISE_CATEGORIES],
+                    ].map(([name, id, label, choices]) => (
+                      <div key={name}>
+                        <label htmlFor={id} className="mb-1.5 block text-[13px] font-medium text-cal-ink">{label}</label>
+                        <div className="relative">
+                          <select id={id} {...register(name)} className={selectFieldClass()}>
+                            <option value="">Not set</option>
+                            {choices.map((choice) => <option key={choice} value={choice}>{choice}</option>)}
+                          </select>
+                          <ChevronDown size={15} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cal-muted" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <InputField
+                      id="targetAreas"
+                      label="Body areas it works"
+                      placeholder="e.g. Thighs, hips, balance (separate with commas)"
+                      {...register("targetAreas")}
+                    />
+                    <InputField
+                      id="tempo"
+                      label="Tempo"
+                      placeholder="e.g. Slow and steady, about 3 seconds each"
+                      {...register("tempo")}
+                    />
+                  </div>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
                       <label

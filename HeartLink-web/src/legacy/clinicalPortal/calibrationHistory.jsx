@@ -40,6 +40,7 @@ import {
 
 const SCORER_FILTERS = [
   ["all", "All scorers"],
+  ["heart_score", SCORERS.heart_score],
   ["baseline_model", SCORERS.baseline_model],
   ["bp_rules", SCORERS.bp_rules],
   ["lifestyle_points", SCORERS.lifestyle_points],
@@ -166,7 +167,7 @@ const ModelCheck = () => {
     }
   };
 
-  // HL-059: clinical reviews only, for retraining outside the app (scripts/train_starting_score.py)
+  // HL-059: clinical reviews only, for checking the model outside the app (scripts/train_starting_score.py)
   const exportDataset = async () => {
     setExporting(true);
     try {

@@ -1,7 +1,38 @@
+import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone, timedelta
 from app.db.repositories import get_hss_repo, get_baseline_repo, get_health_logs_repo
+from app.services import coach_note
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
+
+logger = logging.getLogger(__name__)
+
+WEEKLY_DAYS = 15  # this week and last, with a spare day so the oldest local day is complete
+
+
+def _weekly_insights(user_id: str, days: int, vitals: list, exercises: list, meals: list, thresholds: Optional[dict], targets: dict) -> list:
+    """The week's patterns for Trends. Uses the logs already loaded when they reach back far enough."""
+    try:
+        if days and days < WEEKLY_DAYS:
+            from app.db.repositories import get_exercises_repo, get_meals_repo
+            from app.services.health_logs import get_health_logs
+
+            cutoff = (utc_now() - timedelta(days=WEEKLY_DAYS)).strftime("%Y-%m-%dT%H:%M:%SZ")
+            vitals = get_health_logs(user_id, cutoff=cutoff)
+            exercises = get_exercises_repo().list_user_logs(user_id, cutoff=cutoff)
+            meals = get_meals_repo().list_user_meals(user_id, cutoff=cutoff)
+        facts = coach_note.day_facts(
+            meal_logs=meals,
+            exercise_logs=exercises,
+            vitals_logs=vitals,
+            sleep_hours=0,
+            sodium_limit=targets["sodium_mg"]["value"],
+            movement_goal=(thresholds or {}).get("active_minutes_goal") or 30,
+        )
+        return coach_note.weekly_insights(facts)
+    except Exception as e:  # Trends still works without them
+        logger.warning(f"Weekly insights failed: {e}")
+        return []
 
 def get_analytics(user_id: str, days: int = 30) -> Dict[str, Any]:
     cutoff = (utc_now() - timedelta(days=days)) if days else UTC_MIN
@@ -53,6 +84,8 @@ def get_analytics(user_id: str, days: int = 30) -> Dict[str, Any]:
 
     from app.services.nutrition_targets import targets_for_user
 
+    targets = targets_for_user(user_id, thresholds)
+
     return {
         "history": history,
         "vitals": vitals,
@@ -61,7 +94,8 @@ def get_analytics(user_id: str, days: int = 30) -> Dict[str, Any]:
         "meal_logs": meal_logs,
         "thresholds": thresholds,
         # HL-016 / HL-017: daily food limits with their source, for Health Targets & Limits.
-        "targets": targets_for_user(user_id, thresholds),
+        "targets": targets,
+        "weekly_insights": _weekly_insights(user_id, days, raw_vitals_all, exercise_logs, meal_logs, thresholds, targets),
     }
 
 def update_thresholds(user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:

@@ -17,8 +17,10 @@ export interface ExerciseOverviewProps {
   routine: Routine;
   kind: ExerciseKind;
   paused: boolean;
-  /** The pause comes from a recent severe symptom, which a doctor can clear. */
+  /** The pause comes from a recent severe symptom or the safety check, which a doctor can clear. */
   canClearPause: boolean;
+  /** HL-093: the pause comes from the safety check's answers. */
+  screeningPaused?: boolean;
   /** Still checking today's score and symptoms. */
   checking: boolean;
   onStart: () => void;
@@ -67,7 +69,7 @@ function PartList({ title, items }: { title: string; items: { text: string; deta
   );
 }
 
-export function ExerciseOverview({ routine, kind, paused, canClearPause, checking, onStart, onBack, onClearPause, onFindBreathing, saved = false, onToggleSave }: ExerciseOverviewProps) {
+export function ExerciseOverview({ routine, kind, paused, canClearPause, screeningPaused = false, checking, onStart, onBack, onClearPause, onFindBreathing, saved = false, onToggleSave }: ExerciseOverviewProps) {
   const { c } = useDs();
   const insets = useSafeAreaInsets();
   const kindLabel = { breathing: "Breathing", cardio: "Light cardio", steps: "Move by move", guide: "Guided" }[kind];
@@ -98,10 +100,12 @@ export function ExerciseOverview({ routine, kind, paused, canClearPause, checkin
                 <Feather name="alert-triangle" size={22} color={c.danger} style={{ marginTop: 1 }} />
                 <View style={{ flex: 1, gap: 6 }}>
                   <Text accessibilityRole="header" style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>
-                    Workouts are paused for now
+                    {screeningPaused ? "Please get a professional's OK first" : "Workouts are paused for now"}
                   </Text>
                   <Text style={{ fontSize: 14, lineHeight: 20, color: c.charcoal }}>
-                    Your latest readings or symptoms suggest resting today. Breathing exercises are still open. If something feels wrong, get checked in person.
+                    {screeningPaused
+                      ? "Based on your safety check, talk to a doctor or physical therapist before active workouts. Breathing exercises are still open."
+                      : "Your latest readings or symptoms suggest resting today. Breathing exercises are still open. If something feels wrong, get checked in person."}
                   </Text>
                 </View>
               </View>
@@ -113,6 +117,7 @@ export function ExerciseOverview({ routine, kind, paused, canClearPause, checkin
             {routine.title}
           </Text>
           <View className="flex-row flex-wrap" style={{ gap: 8 }}>
+            {routine.level ? <Tag label={routine.level} tone="sky" /> : null}
             <Tag label={`${minutes} min`} tone="sky" />
             <Tag label={`${routine.intensity} intensity`} tone="mint" />
             {routine.position ? <Tag label={routine.position} /> : <Tag label={kindLabel} />}
@@ -120,8 +125,11 @@ export function ExerciseOverview({ routine, kind, paused, canClearPause, checkin
           </View>
           {routine.description ? <Text style={{ fontSize: 15, lineHeight: 22, color: c.slate }}>{routine.description}</Text> : null}
 
-          {routine.effortHint || routine.frequency ? (
+          {routine.effortHint || routine.frequency || routine.targetAreas.length || routine.tempo || routine.category ? (
             <View style={{ borderWidth: 1, borderColor: c.hairline, borderRadius: 12, padding: 14, gap: 10 }}>
+              {routine.category ? <InfoRow icon="grid" label="Category" value={routine.category} /> : null}
+              {routine.targetAreas.length ? <InfoRow icon="target" label="Works" value={routine.targetAreas.join(", ")} /> : null}
+              {routine.tempo ? <InfoRow icon="clock" label="Tempo" value={routine.tempo} /> : null}
               {routine.effortHint ? <InfoRow icon="thermometer" label="How it should feel" value={routine.effortHint} /> : null}
               {routine.frequency ? <InfoRow icon="calendar" label="How often" value={routine.frequency} /> : null}
             </View>

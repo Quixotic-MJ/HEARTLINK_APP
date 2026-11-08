@@ -71,6 +71,35 @@ def test_lists_and_choices_are_cleaned():
     assert out["setup_steps"] == [{"instruction": "Sit with feet flat", "details": ""}]
 
 
+@pytest.mark.parametrize("level_key,areas_key", [("difficultyLevel", "targetAreas"), ("difficulty_level", "target_areas")])
+def test_optional_exercise_metadata_aliases_limits_and_clear_values(level_key, areas_key):
+    out = routine_payload({level_key: "Beginner", "category": " x" + "c" * 80,
+                           areas_key: [" Hips ", "Hips", ""] + [f"Area {i}" for i in range(12)],
+                           "tempo": " " + "t" * 140}, partial=True)
+    assert out["difficulty_level"] == "Beginner"
+    assert len(out["category"]) == 60
+    assert len(out["tempo"]) == 120
+    assert out["target_areas"] == ["Hips"] + [f"Area {i}" for i in range(9)]
+    assert routine_payload({level_key: "Unknown", "category": " ", areas_key: None, "tempo": None}, partial=True) == {
+        "difficulty_level": None, "category": None, "target_areas": [], "tempo": None,
+    }
+    assert routine_payload({}, partial=True) == {}
+
+
+def test_owner_exercise_log_and_delete_keep_the_incoming_score_triggers(monkeypatch):
+    from app.api.exercises import exercises as api
+
+    owner = "11111111-1111-1111-1111-111111111111"
+    caller = {"user_id": owner, "role": "patient"}
+    triggers = []
+    monkeypatch.setattr(api, "create_exercise_log", lambda uid, data: {"id": "synthetic-log", **data})
+    monkeypatch.setattr(api, "delete_exercise_log", lambda *args: (True, "Exercise log deleted", 200))
+    monkeypatch.setattr(api, "recalculate_score", lambda uid, reason: triggers.append((uid, reason)))
+    assert api.add_exercise_log(owner, {"duration_seconds": 30}, caller)["success"]
+    assert api.delete_log(owner, "synthetic-log", caller)["success"]
+    assert triggers == [(owner, "exercise_log"), (owner, "exercise_delete")]
+
+
 def test_patients_only_see_published_pt_approved_exercises():
     approved = {"name": "Movement", "description": "Synthetic movement", "duration_minutes": 1, "rounds": 1,
                 "rest_seconds": 0, "position": "Standing", "setting": "Indoors", "status": "published",

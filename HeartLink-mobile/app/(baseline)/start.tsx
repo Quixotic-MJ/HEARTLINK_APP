@@ -10,9 +10,12 @@ import { DsScreen } from "../../components/onboarding/QuestionLayout";
 import { useDs } from "../../components/onboarding/useDs";
 
 const POINTS: { yes: boolean; title: string; body: string }[] = [
+  { yes: true, title: "Made for everyday heart health", body: "For adults who want to look after their heart, or who may be at risk of high blood pressure." },
   { yes: true, title: "Helps you build daily habits", body: "Blood pressure, meals, sleep and movement in one place." },
-  { yes: true, title: "Shows your trend as a score", body: "One number that moves with what you log." },
+  { yes: true, title: "Already have high blood pressure?", body: "You can use it to keep track. Keep following your doctor's plan." },
+  { yes: true, title: "Shows your week as a score", body: "One number, based on your last 7 days of logs." },
   { yes: false, title: "It isn't a diagnosis", body: "It doesn't replace your doctor or your medicine." },
+  { yes: false, title: "Not a care plan for heart conditions", body: "If you've been diagnosed with heart disease or had a stroke, ask your doctor before following its exercise or food suggestions." },
 ];
 
 // "Before we start": what HeartLink is and isn't, and when to get help right away.
@@ -134,7 +137,7 @@ export default function StartScreen() {
               When to get help right away
             </Text>
             <Text style={{ fontSize: 13.5, lineHeight: 20, color: "#7F1D1D", marginTop: 4 }}>
-              A reading of 180/120 or higher, chest pain, trouble breathing or sudden weakness. Call 911 or go to the nearest hospital.
+              A reading of 180/120 or higher, chest pain, trouble breathing, fainting or sudden weakness. Call 911 or go to the nearest hospital.
             </Text>
           </View>
         </View>

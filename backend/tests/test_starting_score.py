@@ -1,6 +1,6 @@
-"""The starting score (baseline HSS): setup answers -> NHANES-meaning inputs -> score."""
+"""The starting score: setup answers -> the AHA's points -> the model's estimate -> HeartLink's rules."""
 from app.services.feature_transform import INPUTS, transform_to_model_features
-from app.services.hss_service import compute_initial_hss, load_hss_model
+from app.services.starting_score import FEATURES, compute_initial_hss, load_hss_model
 
 
 def profile(age=45, sex="female", height_cm=160, weight_kg=60):
@@ -29,7 +29,8 @@ def score(data=None, prof=None):
 def test_the_model_file_matches_the_app_inputs():
     model = load_hss_model()
     assert model["inputs"] == INPUTS
-    assert len(model["weights"]) == len(INPUTS)
+    assert model["features"] == FEATURES and len(model["weights"]) == len(FEATURES)
+    assert model["version"].startswith("starting-score-le8")
 
 
 def test_heavier_drinking_gives_larger_numbers():
@@ -51,22 +52,49 @@ def test_bmi_activity_and_smoking_are_read_the_way_nhanes_records_them():
     assert idle.active_min_week == 0
 
 
-def test_missing_height_is_left_for_the_model_median():
+def test_missing_height_uses_the_training_median():
     row = inputs(answers(), profile(height_cm=0))
     assert row.bmi != row.bmi  # NaN
-    assert 1 <= score(prof=profile(height_cm=0)) <= 100
+    assert 50 <= score(prof=profile(height_cm=0)) <= 79
 
 
-def test_scores_follow_known_risk_factors():
-    assert score(prof=profile(age=30)) >= 80
-    assert score(prof=profile(age=65)) >= 50
-    healthy = score(prof=profile(age=55))
-    assert score(answers(ever_smoked=True, smoke_now="Every day"), profile(age=55)) < healthy
-    assert score(answers(moderate_activity=False, walk_bike_transport=False, sedentary_hours="8+h"), profile(age=55, weight_kg=95)) < healthy
-    assert score(prof=profile(age=70)) < score(prof=profile(age=40))
+def raw(data=None, prof=None):
+    return compute_initial_hss(data or answers(), prof or profile())[2]
 
 
-def test_heavy_drinking_never_looks_much_healthier():
-    none = score(prof=profile(age=45))
-    heavy = score(answers(ever_drank=True, drink_frequency="4+/week", drinks_per_occasion="5+", binge_drinking_freq="4+/week"), profile(age=45))
-    assert heavy <= none + 1
+def test_scores_stay_in_range_and_follow_the_rules():
+    for age in (20, 45, 80):
+        result = compute_initial_hss(answers(), profile(age=age))
+        assert 50 <= result[0] <= 79  # no reading yet: limit of 79; answers alone can't pause workouts
+
+
+def test_the_estimate_is_capped_at_79_with_no_reading():
+    great = answers(vigorous_activity=True, vigorous_days=5, vigorous_minutes=30)
+    score_, tier, estimate_, rule = compute_initial_hss(great, profile(age=25, height_cm=170, weight_kg=60))
+    assert estimate_ > 79 and score_ == 79 and tier == "Moderate" and rule == "no_recent_reading"
+
+
+def test_poor_answers_stop_at_the_floor_but_keep_the_real_estimate():
+    poor = answers(moderate_activity=False, walk_bike_transport=False, ever_smoked=True, smoke_now="Every day", sleep_hours=3.0)
+    score_, tier, estimate_, rule = compute_initial_hss(poor, profile(age=80, sex="male", height_cm=160, weight_kg=120))
+    assert estimate_ < 50 and score_ == 50 and tier == "Elevated Risk" and rule == "floor"
+
+
+def test_worse_habits_never_give_a_better_estimate():
+    base = raw()
+    assert raw(answers(ever_smoked=True, smoke_now="Every day")) < base
+    assert raw(answers(moderate_activity=False, walk_bike_transport=False)) < base
+    assert raw(answers(sleep_hours=4.5)) < base
+    assert raw(prof=profile(weight_kg=95)) < base
+    assert raw(prof=profile(age=70)) < raw(prof=profile(age=30))
+
+
+def test_quitting_longer_ago_gives_a_better_estimate():
+    quit_ = lambda when: raw(answers(ever_smoked=True, smoke_now="Not at all", smoke_quit_when=when))
+    assert quit_("under_1_year") < quit_("1_to_5_years") < quit_("5_plus_years") < raw()
+    assert quit_(None) == quit_("under_1_year")  # no date yet: the cautious answer
+
+
+def test_alcohol_and_sitting_dont_change_the_estimate():
+    heavy = answers(ever_drank=True, drink_frequency="4+/week", drinks_per_occasion="5+", binge_drinking_freq="4+/week", sedentary_hours="8+h")
+    assert raw(heavy) == raw()

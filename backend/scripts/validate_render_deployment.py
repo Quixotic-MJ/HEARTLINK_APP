@@ -127,10 +127,10 @@ def validate_render_deployment() -> bool:
 
     # 8. ML Feature Transformation Check
     try:
-        from app.services.hss_service import load_hss_model
+        from app.services.starting_score import load_hss_model
         model = load_hss_model()
         if model:
-            print("[PASS] HSS Inference Engine: NHANES model pipeline loaded successfully")
+            print("[PASS] Starting score: NHANES model loaded successfully")
         else:
             print("[FAIL] HSS Inference Engine: Model failed to load")
             all_passed = False

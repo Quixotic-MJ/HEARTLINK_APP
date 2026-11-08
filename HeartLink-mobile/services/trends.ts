@@ -171,14 +171,14 @@ export function scoresOfDay(history: ScoreRow[], day: TrendDay): DayScore[] {
       let after: string | null = null;
       if (h.source === "baseline") {
         why = "Starting score from setup";
-      } else if (f.source === "lifestyle_composite") {
-        const what = trigger === "meal_log" ? "meal" : trigger === "exercise_log" ? "exercise" : trigger === "sleep_log" ? "sleep" : null;
-        why = what ? `${what.charAt(0).toUpperCase()}${what.slice(1)} logged` : "Habits updated";
-        after = what === "exercise" ? "exercise" : what ? `logging ${what === "meal" ? "a meal" : "sleep"}` : null;
       } else if (sys > 0 && dia > 0) {
         const emergency = sys >= 180 || dia >= 120 || sys < 90 || dia < 60;
         why = `Reading ${sys}/${dia}${emergency ? ", emergency level" : ""}`;
         after = `your ${sys}/${dia} reading`;
+      } else if (f.source === "lifestyle_composite" || f.source === "heart_score") {
+        const what = trigger === "meal_log" ? "meal" : trigger === "exercise_log" ? "exercise" : trigger === "sleep_log" ? "sleep" : null;
+        why = what ? `${what.charAt(0).toUpperCase()}${what.slice(1)} logged` : f.source === "heart_score" ? "Score updated" : "Habits updated";
+        after = what === "exercise" ? "exercise" : what ? `logging ${what === "meal" ? "a meal" : "sleep"}` : null;
       }
       return { at: new Date(h.computed_at || h.logged_at || 0), score: Math.round(num(h.score)), why, after };
     })

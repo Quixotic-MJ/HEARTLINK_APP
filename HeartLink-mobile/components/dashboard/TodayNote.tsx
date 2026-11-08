@@ -29,9 +29,6 @@ export type Insight = {
   title?: string;
   body: string;
   icon?: string;
-  pattern?: string;
-  /** Small print: habit points the check-in itself added, and yesterday's habit points resetting at midnight. */
-  side_note?: string | null;
   /** The one step offered under the note; older backends leave it out. */
   action?: NoteAction | null;
   /** True when the AI coach wrote the body. */
@@ -175,7 +172,7 @@ export function TodayNote({
   // When a structured title is provided (rules-based or alert)
   const hasExplicitTitle = Boolean(insight.title);
   const headline = insight.title || insight.body;
-  const detail = insight.title && (action || aiWritten || insight.pattern) ? insight.body : null;
+  const detail = insight.title ? insight.body : null;
 
   // When purely AI generated without title, format into scannable takeaway + coach advice
   const aiParsed = !hasExplicitTitle && aiWritten ? parseAiInsight(insight.body) : null;
@@ -370,14 +367,6 @@ export function TodayNote({
                 <Text style={{ fontSize: 14.5, lineHeight: 21, color: c.charcoal }}>
                   {detail}
                 </Text>
-              ) : null}
-              {insight.pattern ? (
-                <Text style={{ fontSize: 13.5, lineHeight: 19, color: c.slate }}>
-                  {insight.pattern}
-                </Text>
-              ) : null}
-              {insight.side_note && !emergency ? (
-                <Text style={{ fontSize: 12.5, lineHeight: 17, color: c.steel }}>{insight.side_note}</Text>
               ) : null}
             </View>
           ) : (

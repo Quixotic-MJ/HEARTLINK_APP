@@ -250,7 +250,10 @@ export default function QuestionScreen() {
           }
         }
         // A "No" clears the follow-up answers it hides.
-        if (!v && q.field === "ever_smoked") updates.smoke_now = undefined;
+        if (!v && q.field === "ever_smoked") {
+          updates.smoke_now = undefined;
+          updates.smoke_quit_when = undefined;
+        }
         if (!v && q.field === "ever_drank") {
           updates.drink_frequency = undefined;
           updates.drinks_per_occasion = undefined;

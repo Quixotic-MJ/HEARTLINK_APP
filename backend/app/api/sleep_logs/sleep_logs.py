@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, status
 from typing import List, Dict, Any
+from app.services.heart_score import try_recalculate
 from app.services.sleep_logs import get_sleep_logs, create_sleep_log, delete_sleep_log
 from app.utils.security import get_current_user, verify_user_access, check_expert_permission
 
@@ -52,6 +53,7 @@ def add_sleep_log(user_id: str, data: Dict[str, Any], current_user: dict = Depen
         data["quality"] = "Good"
 
     log = create_sleep_log(user_id, data)
+    try_recalculate(user_id, "sleep_log")
     return {"success": True, "message": "Sleep log saved", "data": log}
 
 @router.delete("/{user_id}/{log_id}", response_model=Dict[str, Any])
@@ -68,5 +70,6 @@ def remove_sleep_log(user_id: str, log_id: str, current_user: dict = Depends(get
     success = delete_sleep_log(user_id, log_id)
     if not success:
         raise HTTPException(status_code=404, detail="Sleep log not found")
+    try_recalculate(user_id, "sleep_delete")
     return {"success": True, "message": "Sleep log deleted"}
 

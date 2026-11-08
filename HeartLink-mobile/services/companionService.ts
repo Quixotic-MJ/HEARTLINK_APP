@@ -171,10 +171,10 @@ export function getSmartTemplateGreeting(
     };
   }
 
-  // 4. High Sodium Intake Alert (> 2,000mg DOST-FNRI limit)
+  // 4. High sodium today (over the WHO's 2,000 mg a day; see backend/FOOD_RULES.md)
   if (sodium > 2000) {
     return {
-      greeting: `You've reached your 2,000mg sodium limit (${sodium}mg). Aim for a light, potassium-rich dinner to help balance it out.`,
+      greeting: `You're at ${sodium} mg of sodium today, over the 2,000 mg a day the WHO advises. A lighter, lower-salt dinner can help balance your day.`,
       source: "template",
       tone: "warning",
     };

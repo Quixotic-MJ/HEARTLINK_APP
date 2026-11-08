@@ -19,6 +19,7 @@ import * as FileSystem from "expo-file-system/legacy";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getToken } from "../../../lib/secureTokenStore";
 import { useUser } from "../../../contexts/UserContext";
+import { markWeeklyReportOpened } from "../../../services/weeklyReport";
 import { useDs } from "../../../components/onboarding/useDs";
 import { InfoNote } from "../../../components/onboarding/QuestionLayout";
 import DsButton from "../../../components/onboarding/DsButton";
@@ -960,6 +961,8 @@ export default function WrapUpScreen() {
           setData(result);
           setIsOfflineData(false);
           setLoadFailed(false);
+          // It has been seen, so the Dashboard's "ready" banner can rest for a week
+          markWeeklyReportOpened(userId).catch(() => {});
           if (wrapupCacheKey) {
             await AsyncStorage.setItem(wrapupCacheKey, JSON.stringify(result));
           }

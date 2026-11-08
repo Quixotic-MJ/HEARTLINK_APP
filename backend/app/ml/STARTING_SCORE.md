@@ -1,94 +1,119 @@
-# Starting score (baseline HSS)
+# Starting score: the machine learning model (HL-121)
 
-The score a patient sees at the end of setup, before their first blood pressure reading. After that, the daily score
-comes from blood pressure rules and lifestyle points (`hss_service.compute_vitals_hss`, `compute_lifestyle_composite_hss`).
+> **Status: not yet reviewed by any expert.** It's a starting estimate for a wellness guide. It isn't the official Life's
+> Essential 8 score, hasn't been validated outside NHANES, and doesn't diagnose or predict any condition.
+
+The score a patient sees at the end of setup, before they log anything. From the first log onward, the score comes from
+`heart_score.py`: see `HEART_SCORE.md`.
+
+The model estimates a person's Life's Essential 8 (LE8) score from their setup answers. Its answer is already on the LE8
+scale, so no conversion of our own is needed.
 
 | | |
 | --- | --- |
-| Model file | `starting_score_model.json` (version `starting-score-2`) |
-| Built by | `scripts/train_starting_score.py --data-dir <NHANES 2017-2018 folder>` |
-| Data | NHANES 2017-2018 (US), adults 20 and over: 5,569 people |
-| Predicts | Ever told by a doctor of heart failure, coronary heart disease, angina, heart attack or stroke (12.4% of people). **Pending cardiologist review.** |
-| Method | Logistic regression on standardised inputs, no class weighting, so the probability is a real share of people |
-| Score | `(1 - probability) x 99 + 1`; bands: 80+ Stable, 60-79 Moderate, 50-59 Elevated risk, under 50 Critical |
+| Model file | `starting_score_model.json` (version `starting-score-le8-1`) |
+| App code | `app/services/starting_score.py` |
+| Built by | `scripts/train_starting_score.py --data-dir <NHANES 2017-2018 folder> --write`; labels in `scripts/le8_label.py`, diet in `scripts/hei2015.py` |
+| Data | NHANES 2017-2018 (US): 3,703 adults aged 20 and over with all 8 areas, not pregnant, and not told they have heart disease or had a stroke |
+| Label | Each person's LE8 score: the AHA's published points, from their NHANES measurements and answers |
+| Method | Linear regression on standardised features |
 
-## Inputs (all from setup)
+## How the first score is worked out
 
-| Input | From setup | Weight per SD |
+1. Setup answers for BMI, activity, sleep and smoking become the AHA's points, using the same tables as the app.
+2. The model combines those with age and sex to give an estimate from 0 to 100.
+3. HeartLink's own rules apply, using `heart_score.final_score`. There's no reading yet, so the score can't go above 79, and it
+   can't go below 50, because answers alone shouldn't pause workouts.
+
+The saved record keeps the model's raw estimate as `model_estimate`, and the rule that changed it as `rule`.
+
+## The model
+
+| Feature | From setup | Weight per SD |
 | --- | --- | --- |
-| Age | date of birth (80+ counted as 80) | +1.28 |
-| Male | sex | +0.21 |
-| BMI | height and weight | +0.24 |
-| Current smoker | smokes every day or some days | +0.29 |
-| Former smoker | smoked, now quit | +0.23 |
-| Active minutes a week | days x minutes; hard exercise counts twice | -0.16 |
-| Sitting hours a day | sitting question | +0.18 |
-| Sleep hours | sleep question | +0.02 |
-| Drinks a week | how often x how many | -0.03 |
-| Heavy-drinking days a year | heavy-drinking question | +0.02 |
+| Activity points | Weekly minutes; hard exercise counts twice | +6.77 |
+| BMI points | Height and weight, AHA's Asian and Pacific row | +6.51 |
+| Nicotine points | Smoking answers and when they quit | +4.94 |
+| Sleep points | Sleep question | +3.41 |
+| Age | Date of birth (80+ counted as 80) | -2.91 |
+| Male | Sex | -1.22 |
 
-Diet is not an input: setup's four diet questions don't match anything NHANES measures, so their effect would be a
-guess. Diet counts every day through meal logs instead.
+Alcohol and sitting time are left out because they added almost nothing. Setup still asks them, because case review and the
+clinical export use them. Setup's diet questions aren't inputs because they don't match anything in NHANES.
 
-## How well it does (5-fold cross-validation)
+## How the labels were made
 
-- AUC 0.81 for telling apart people with and without heart disease or stroke (age alone: 0.79).
-- Brier score 0.093.
-- Bands across these adults: Stable 77%, Moderate 18%, Elevated risk 3%, Critical 2%.
-- Share with heart disease or stroke in each band: Stable 7%, Moderate 26%, Elevated risk 41%, Critical 58%.
+| Area | NHANES data | Rule |
+| --- | --- | --- |
+| Blood pressure | Average of exam readings, `BPQ050A` for medicine | AHA table, minus 20 if treated |
+| Activity | `PAQ_J`: leisure and getting around; vigorous counts double | AHA table |
+| Sleep | `SLD012` and `SLD013`, weighted to a 7-day week | AHA table |
+| Nicotine | `SMQ_J`, `SMD460` | AHA table, minus 20 for a smoker at home. Current cigars count as smoking; current e-cigarettes as 25 points |
+| BMI | `BMXBMI` | AHA's Asian and Pacific row for everyone, to match the app and fit Filipino users. Under 18.5 gets 100, as in the AHA's standard row |
+| Cholesterol | Total minus HDL, `BPQ100D` for medicine | AHA table, minus 20 if treated |
+| Blood sugar | HbA1c first, then fasting glucose; `DIQ010` | AHA table |
+| Diet | HEI-2015, NCI's simple method, from `DR1IFF_J`, `DR2IFF_J` and USDA's FPED 2017-2018 | AHA's percentile points among these adults, using survey weights |
+
+**Work activity is left out on purpose.** With it, activity scored 78.8, not among the lowest areas as the AHA reports, and the
+overall average moved further from theirs (68.5, compared with 66.0 without it). This choice was made after seeing those
+results, and reviewers should know that.
+
+## Checking the labels against the AHA
+
+Using the AHA's standard BMI row, ages 20 to 79, not pregnant, no heart disease or stroke, with survey weights:
+
+| | Ours (2017-2018) | AHA (2013-2018) |
+| --- | --- | --- |
+| Adult average | 66.0 | 64.7 |
+| Women / men | 67.6 / 64.4 | 67.0 / 62.5 |
+| High / moderate / low | 20.2% / 64.3% / 15.5% | 19.6% / 62.5% / 17.9% |
+
+Diet, activity and BMI are the lowest areas, as the AHA reports. The AHA figures come from news summaries of Lloyd-Jones et al.
+(see Sources), and the comparison isn't exact because the survey years differ.
+
+## How well it does (5-fold cross-validation, Asian and Pacific BMI row)
+
+| Method | Average error | Typical error (RMSE) | R² | Same level |
+| --- | --- | --- | --- | --- |
+| Guessing everyone's average | 12.2 | 15.0 | 0.00 | 43% |
+| Age alone | 11.8 | 14.5 | 0.07 | 38% |
+| AHA rules on setup answers, no training | 9.4 | 11.8 | 0.39 | 55% |
+| Linear model on raw answers | 8.6 | 10.7 | 0.50 | 51% |
+| Gradient boosting on raw answers | 6.7 | 8.4 | 0.69 | 62% |
+| **This model** | **6.5** | **8.1** | **0.71** | **64%** |
+| This model, if setup also asked about diagnosed high blood pressure, cholesterol and diabetes | 6.2 | 7.7 | 0.74 | 65% |
+
+- 78% of estimates are within 10 points.
+- 17% of the time, the estimate's level looks better than the real one. The limit of 79 reduces this at the top.
+- Average error is similar across groups: women 6.3, men 6.6, ages 20-39 6.2, 40-59 6.7, 60+ 6.5.
+- For context, Zheng et al. reported a typical error of 9.21 for their fewest-input NHANES model, but 18.33 on outside data. Their
+  inputs differ, so this isn't a direct comparison.
 
 ## Known limits
 
-- US data, not Filipino; not yet tested on HeartLink patients.
-- Cross-sectional: it describes who *has* heart disease, not who will get it. Some habits look protective or harmful
-  because people change them after a diagnosis (former smokers, light drinkers).
-- Self-reported answers; no blood pressure, cholesterol or diabetes at this stage.
-- Label, inputs and band cut-offs are proposals until the cardiologist reviews them.
+- It mostly reads what the person told us. BMI, activity, sleep and smoking do most of the work, and it says little about blood
+  pressure, cholesterol, blood sugar or diet (typical error on those four areas: 15.3, compared with 17.7 for guessing).
+- It uses US data, it hasn't been tested on Filipino users or HeartLink patients, and expect it to do worse on them.
+- Most inputs are self-reported, though the labels use measurements.
+- It's only used until the first log, and the score can jump at that point.
+- Retraining from the portal's clinical reviews (HL-059) is switched off. Those reviews hold yes/no labels from the old method. The
+  export and the accuracy check remain.
+
+## Sources
+
+1. Lloyd-Jones DM, et al. [Life's Essential 8](https://pmc.ncbi.nlm.nih.gov/articles/PMC10503546/). Circulation, 2022. Points tables.
+2. Lloyd-Jones DM, et al. Status of Cardiovascular Health in US Adults and Children Using the American Heart Association's New
+   Life's Essential 8 Metrics. Circulation, 2022. Published averages, read through
+   [a news summary](https://www.news-medical.net/news/20220629/Study-Nearly-8025-of-people-in-the-US-have-low-to-moderate-cardiovascular-health.aspx).
+3. Zheng Y, et al. [Estimation of life's essential 8 score with incomplete data of individual metrics](https://www.frontiersin.org/articles/10.3389/fcvm.2023.1216693/full).
+   Frontiers in Cardiovascular Medicine, 2023.
+4. [CDC NHANES 2017-2018](https://wwwn.cdc.gov/nchs/nhanes/continuousnhanes/default.aspx?BeginYear=2017).
+5. National Cancer Institute: [HEI scoring method](https://epi.grants.cancer.gov/hei/hei-scoring-method.html),
+   [HEI-2015 standards](https://epi.grants.cancer.gov/hei/developing.html).
+6. [USDA Food Patterns Equivalents Database](https://www.ars.usda.gov/northeast-area/beltsville-md-bhnrc/beltsville-human-nutrition-research-center/food-surveys-research-group/docs/fped-databases/).
 
 ## Replaced
 
-`heartlink_model.pkl` (in git history): 37 inputs, labels generated by an AI, `class_weight="balanced"`. It rated 54% of
-adults Critical, did no better than age alone (AUC 0.75), and the app sent its drinking inputs backwards.
-
-## How readings move the score (for the cardiologist's review, OT-10)
-
-The starting score above is the base until the first blood pressure reading. Each reading gets a band score from
-`compute_vitals_hss` (`app/services/hss_service.py`): under 120/80 → 90, 120–129 → 78, 130–139 or 80–89 → 68,
-140+/90+ → 52, under 90/60 → 35, 180+/120+ → 25, then −4/−8 for a fast or slow pulse and −5 for an unusual pulse
-pressure. Since 2026-10-28 a reading **moves** the base instead of replacing it (`smoothed_base`):
-
-| Reading | What happens to the base | Example (base 99) |
-|---|---|---|
-| Emergency (≥180/120 or <90/60, the app's emergency rule) | Drops straight to the band score; never smoothed, never raised | 185/95 → 20 |
-| Healthy (band 90: under 120/80, normal pulse) | Never lowers it; below 90 it moves up a third of the way | 118/76 → 99 |
-| Anything else | Moves a third of the way toward the band score | 134/86 → 89, again → 82, again → 77 |
-
-The day's meal, exercise, sleep, medicine, streak and missing-data points (±20 at most) are then added on top
-(`compute_lifestyle_composite_hss`), after every reading as well as after meals and exercise. After an emergency
-reading they can only lower the score, so good habits never lift it out of Critical that day.
-
-Questions for the review: are the band scores right, is "a third of the way" the right speed, and should a healthy
-reading also raise a score that is already above 90?
-
-## The day's habit points (for the cardiologist's and dietitian's review, OT-10)
-
-On top of the base, `compute_lifestyle_composite_hss` adds the day's points, ±20 at most:
-
-| What | Points |
-|---|---|
-| Sodium, the day's total against the patient's own limit (since 2026-10-28; it was per meal) | within the limit +2, over it −3, over 1.5× the limit −5 |
-| Saturated fat, per meal | over 5 g −2, under 1 g +1 |
-| Fibre, per meal | over 5 g +2 |
-| Exercise | +1 per 10 minutes (×2 moderate, ×3 vigorous) |
-| Sleep (since 2026-10-28 by ranges) | 7–9 h +3; 6–7 h or 9–10 h +1; under 5 h or over 11 h −2 |
-| Medicines taken today | +2 |
-| Chest discomfort or shortness of breath logged today | −10 |
-| Blood sugar under 70 or over 180 | −3, else +2 |
-| Weight up 1.5 kg or more since the last weighing | −15 |
-| Logging streak | +1 a day, up to +5 |
-| Nothing logged for 2 days | −5 |
-
-These values are the developers' first guess and need an expert's yes or changes.
-
-**Open question: weight gain.** Two rules disagree today: the alert (`api/health_logs`) fires at +1.36 kg (3 lb) within
-3 days, the score drops 15 at +1.5 kg since the last weighing. Which threshold and time window should both use?
+- `starting-score-2` (in git history): logistic regression on whether a person had been told they have heart disease or had a
+  stroke, turned into a score with our own formula, `(1 - probability) x 99 + 1`.
+- `heartlink_model.pkl` (in git history): 37 inputs and labels generated by an AI.

@@ -19,6 +19,7 @@ CHEST_SYMPTOM = "Chest Discomfort / Tightness"
 CHEST_SEVERITY_AT_LEAST = 7
 BREATH_SYMPTOM = "Shortness of Breath"
 BREATH_URGENT_CONTEXTS = ("resting",)
+FAINTED_SYMPTOM = "Fainted or Nearly Fainted"
 URGENT_REVIEW_HOURS = 48
 
 # Sample lane (drawn by an admin, at most once a week is the intent)

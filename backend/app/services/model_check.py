@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional
 from app.db.repositories import get_case_review_repo
 from app.services import review_rules as rules
 
-SCORERS = ("baseline_model", "bp_rules", "lifestyle_points", "unknown")
+SCORERS = ("heart_score", "baseline_model", "bp_rules", "lifestyle_points", "unknown")
 MIN_CLINICAL_REVIEWS = 30  # Proposed minimum before the measures are worth reading (pending the adviser)
 
 

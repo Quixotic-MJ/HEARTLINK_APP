@@ -52,6 +52,11 @@ export type Routine = {
   easierVersion: string;
   effortHint: string;
   frequency: string;
+  /** HL-094: empty until the physical therapist sets them. */
+  level: string;
+  category: string;
+  targetAreas: string[];
+  tempo: string;
   reviewedAt: string | null;
   /** Which score level it's for; the Exercises list marks the ones that suit the patient. */
   tier?: string;
@@ -104,6 +109,10 @@ export type RoutineApi = {
   stop_if?: string[] | null;
   easier_version?: string | null;
   effort_hint?: string | null;
+  difficulty_level?: string | null;
+  category?: string | null;
+  target_areas?: string[] | null;
+  tempo?: string | null;
   frequency?: string | null;
   reviewed_at?: string | null;
   hss_tier?: string | null;
@@ -181,6 +190,10 @@ export function toRoutine(data: RoutineApi): Routine {
     stopIf: textList(data.stop_if),
     easierVersion: (data.easier_version || "").trim(),
     effortHint: (data.effort_hint || "").trim(),
+    level: (data.difficulty_level || "").trim(),
+    category: (data.category || "").trim(),
+    targetAreas: textList(data.target_areas),
+    tempo: (data.tempo || "").trim(),
     frequency: (data.frequency || "").trim(),
     reviewedAt: data.reviewed_at || null,
     tier: data.hss_tier || "",
@@ -370,16 +383,37 @@ export function totalStepSeconds(steps: ExerciseStep[]) {
 }
 
 /** What the dashboard says about whether active exercise is a good idea today. */
-export type Readiness = { hss_score?: number | null; hss_tier?: string | null; has_recent_severe_symptom?: boolean | null };
+export type Readiness = {
+  hss_score?: number | null;
+  hss_tier?: string | null;
+  has_recent_severe_symptom?: boolean | null;
+  /** HL-093: the safety check; older servers leave it out. */
+  exercise_screening?: { answered: boolean; paused: boolean } | null;
+};
 
 /**
- * Active workouts pause when the score is critical (under 50) or a severe symptom was logged
- * recently. Breathing exercises stay open.
+ * Active workouts pause when the score is critical (under 50), a severe symptom was logged recently,
+ * or the safety check asks for a professional's OK. Breathing exercises stay open.
  */
 export function isWorkoutPaused(d: Readiness | undefined, kind: ExerciseKind) {
   if (!d || kind === "breathing") return false;
   const score = typeof d.hss_score === "number" ? d.hss_score : 0;
-  return d.hss_tier === "Critical" || (score > 0 && score < 50) || !!d.has_recent_severe_symptom;
+  return d.hss_tier === "Critical" || (score > 0 && score < 50) || !!d.has_recent_severe_symptom || !!d.exercise_screening?.paused;
+}
+
+/** HL-095: the words for an effort rating, 0 to 10. */
+export function effortLabel(n: number) {
+  if (n === 0) return "No effort";
+  if (n <= 2) return "Very easy";
+  if (n <= 4) return "Easy";
+  if (n <= 6) return "Moderate";
+  if (n <= 8) return "Hard";
+  return "Very hard";
+}
+
+/** HL-093: the safety check comes first if it hasn't been answered. Breathing doesn't need it. */
+export function needsScreening(d: Readiness | undefined, kind: ExerciseKind) {
+  return kind !== "breathing" && !!d?.exercise_screening && !d.exercise_screening.answered;
 }
 
 /** 252 → "4:12", 5 → "0:05" */

@@ -2,6 +2,7 @@ import React from "react";
 import { TouchableOpacity, Text, View } from "react-native";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../constants/theme";
+import { foodImpact, type FoodImpact } from "../../services/foodAdvice";
 
 // ─── Choice Chip ──────────────────────────────────────────────────────────────
 
@@ -51,40 +52,14 @@ export function SectionHeader({ title, icon, helperText }: { title: string; icon
 
 export type RiskResult = {
   level: string;
-  color: string;
-  bg: string;
-  border: string;
+  tone: FoodImpact["tone"];
   desc: string;
   icon: keyof typeof Feather.glyphMap;
 };
 
+const RISK_ICON = { high: "alert-circle", medium: "info", low: "check-circle" } as const;
+
 export function calcRiskFromValues(sodium: number, calories: number, satFat: number): RiskResult {
-  if (sodium > 800 || satFat > 6) {
-    return {
-      level: "High Sodium",
-      color: theme.danger,
-      bg: "rgba(239, 68, 68, 0.1)",
-      border: "rgba(239, 68, 68, 0.3)",
-      desc: "Sodium exceeds 800 mg per serving. Frequent consumption increases blood pressure.",
-      icon: "alert-circle",
-    };
-  }
-  if (sodium > 400 || satFat > 3) {
-    return {
-      level: "Moderate",
-      color: theme.warning,
-      bg: "rgba(245, 158, 11, 0.1)",
-      border: "rgba(245, 158, 11, 0.3)",
-      desc: "Moderate sodium content. Fits within daily budget if other meals are light.",
-      icon: "info",
-    };
-  }
-  return {
-    level: "Heart-Friendly",
-    color: theme.success,
-    bg: "rgba(16, 185, 129, 0.1)",
-    border: "rgba(16, 185, 129, 0.3)",
-    desc: "Low sodium and saturated fat. Excellent choice for cardiovascular stability.",
-    icon: "check-circle",
-  };
+  const impact = foodImpact(sodium, satFat);
+  return { level: impact.title, tone: impact.tone, desc: impact.desc, icon: RISK_ICON[impact.tone] };
 }

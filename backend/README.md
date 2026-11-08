@@ -1,5 +1,7 @@
 # HeartLink - Backend API
 
+> **Current scope: General Wellness.** The historical clinical access and scoring descriptions below do not override `app/utils/security.py` or the current product direction. Staff review content; personal records stay owner-only and the clinical portal routes are retired. Heart score and starting-score source are preserved unreviewed and unvalidated; website score panels are synthetic previews. Exercise metadata requires teammate migration `044_exercise_library_details.sql` in a separately approved isolated environment; authored fields must not be silently discarded when columns are unavailable. Incoming migration source is preserved only: no migration, seed, database/provider connection or deployment has been executed or authorized by this integration.
+
 The core backend for HeartLink, built with FastAPI. It is the only part of the system that talks to the database: the mobile app and web portal both go through it. It handles logins and permissions, health data, the Heart Stability Score (HSS), case review, and AI insights.
 
 ---
@@ -28,7 +30,9 @@ backend/
 │   │   ├── recipes_api/, notifications_api/, analytics_api/, companion/
 │   │   └── admin_api/       # Web portal: users, staff, content, case review queue, calibration.
 │   ├── services/            # The rules and calculations.
-│   │   ├── hss_service.py       # Heart Stability Score (model, blood-pressure rules, lifestyle points).
+│   │   ├── heart_score.py       # The Heart score, based on Life's Essential 8 (see app/ml/HEART_SCORE.md).
+│   │   ├── starting_score.py    # The first score after setup, from the machine learning model.
+│   │   ├── hss_service.py       # The level names and the emergency thresholds.
 │   │   ├── feature_transform.py # Turns onboarding answers into the model's 37 inputs.
 │   │   ├── review_rules.py      # Case review queue thresholds (proposed values, pending the cardiologist).
 │   │   ├── review_queue.py      # Urgent / sample / re-review lanes.

@@ -94,6 +94,26 @@ def test_published_edit_withdraws_and_invalidates_in_the_same_write(repo):
     assert len(repo.writes) == 1 and repo.writes[0]["status"] == "draft"
 
 
+@pytest.mark.parametrize("metadata,column,value", [
+    ("difficultyLevel", "difficulty_level", "Beginner"),
+    ("category", "category", "Leg movements"),
+    ("targetAreas", "target_areas", ["Hips"]),
+    ("tempo", "tempo", "Slow and steady"),
+])
+def test_each_metadata_edit_withdraws_approval_at_the_expected_revision(repo, metadata, column, value):
+    repo.row.update(status="published", expert_validated=True, reviewed_by="pt-1", reviewed_at=OPENED_AT)
+    original_steps = deepcopy(repo.row["steps"])
+    with pytest.raises(exercises.RoutineReviewConflict):
+        exercises.update_routine("e1", {metadata: value}, expected_updated_at="stale")
+    assert repo.writes == []
+    result = exercises.update_routine("e1", {metadata: value}, expected_updated_at=OPENED_AT)
+    assert result[column] == value
+    assert result["status"] == "draft" and not result["expert_validated"]
+    assert result["reviewed_by"] is None and result["reviewed_at"] is None
+    assert result["steps"] == original_steps and result["duration_minutes"] == 1
+    assert len(repo.writes) == 1 and repo.writes[0]["status"] == "draft"
+
+
 def test_partial_round_edit_uses_the_complete_stored_timeline(repo):
     result = exercises.update_routine("e1", {"rounds": 3}, expected_updated_at=OPENED_AT)
     assert result["duration_minutes"] == 2
@@ -166,3 +186,29 @@ def test_repository_compare_and_set_never_falls_back_to_a_second_id():
     assert SupabaseContentRepository(Client()).update_routine(uid, {"status": "draft"}, OPENED_AT) is None
     assert tables == ["exercise_routines"]
     assert filters == [("id", uid), ("updated_at", OPENED_AT)]
+
+
+def test_missing_metadata_columns_fail_without_retrying_a_stripped_save(monkeypatch):
+    from fastapi import HTTPException
+
+    attempts = []
+
+    class Query:
+        def insert(self, payload):
+            attempts.append(payload)
+            return self
+
+        def execute(self):
+            raise RuntimeError("Synthetic missing difficulty_level column")
+
+    class Client:
+        def table(self, name):
+            assert name == "exercise_routines"
+            return Query()
+
+    monkeypatch.setattr(exercises, "get_content_repo", lambda: SupabaseContentRepository(Client()))
+    with pytest.raises(HTTPException) as caught:
+        exercises.create_routine({"name": "Synthetic routine", "difficultyLevel": "Beginner", "targetAreas": ["Hips"]})
+    assert caught.value.status_code == 500
+    assert len(attempts) == 1
+    assert attempts[0]["difficulty_level"] == "Beginner" and attempts[0]["target_areas"] == ["Hips"]

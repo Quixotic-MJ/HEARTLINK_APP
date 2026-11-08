@@ -138,8 +138,11 @@ export function picksForScore(
   tier?: string | null,
   count = 2,
   /** HL-057: "recipe:<id>" / "exercise:<id>" a clinician marked not suitable for this patient. */
-  hidden: string[] = []
+  hidden: string[] = [],
+  /** HL-093: the safety check asks for a professional's OK, so only breathing is suggested. */
+  exercisesPaused = false
 ): { recipes: ExploreRecipe[]; exercises: ExploreExercise[] } {
+  if (exercisesPaused) exercises = exercises.filter((e) => e.type === "Breathing");
   if (hidden.length) {
     recipes = recipes.filter((r) => !hidden.includes(`recipe:${r.id}`));
     exercises = exercises.filter((e) => !hidden.includes(`exercise:${e.id}`));

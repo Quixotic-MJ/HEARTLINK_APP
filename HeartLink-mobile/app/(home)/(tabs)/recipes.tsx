@@ -1,3 +1,4 @@
+import { bandName } from "../../../constants/theme";
 import React, { useState, useMemo, useCallback } from "react";
 import {
   View,
@@ -334,7 +335,7 @@ export default function RecipesScreen({
               Recipes
             </Text>
             <Text style={{ fontSize: 12.5, color: c.slate }}>
-              Heart-healthy, dietitian-approved meals
+              Heart-healthy meals
             </Text>
           </View>
         </View>
@@ -440,7 +441,7 @@ export default function RecipesScreen({
                 }}
               >
                 <Text style={{ fontSize: 11.5, fontWeight: "600", color: isDark ? "#34D399" : "#059669" }}>
-                  {patientTier}
+                  {bandName(patientTier)}
                 </Text>
               </View>
             ) : null}

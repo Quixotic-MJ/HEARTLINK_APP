@@ -1,3 +1,4 @@
+import { bandName } from "../../../constants/theme";
 import React, { useState } from "react";
 import { FlatList, RefreshControl, ScrollView, Text, View, Platform } from "react-native";
 import { StatusBar } from "expo-status-bar";
@@ -21,6 +22,7 @@ import { suitsTier } from "../../../services/explore";
 
 const FILTERS = ["All", "Light Cardio", "Breathing", "Stationary", "General"] as const;
 type Filter = (typeof FILTERS)[number];
+const LEVELS = ["Beginner", "Intermediate", "Advanced"];
 
 const KIND_ICON = { breathing: "wind", cardio: "activity", steps: "user", guide: "play-circle" } as const;
 
@@ -62,7 +64,15 @@ export default function ExercisesScreen({ isEmbedded = false }: { isEmbedded?: b
   // Every approved exercise shows here; the ones for the patient's score level get a tag.
   const patientTier = useExploreScore().data?.tier ?? null;
   const knowsTier = !!patientTier && patientTier !== "Unknown";
-  const shown = filter === "All" ? all : all.filter((r) => r.type.toLowerCase() === filter.toLowerCase());
+  // HL-094: level and category filters appear once exercises have them; "All" keeps those without one in view.
+  const [level, setLevel] = useState("All");
+  const [category, setCategory] = useState("All");
+  const levels = LEVELS.filter((l) => all.some((r) => r.level === l));
+  const categories = [...new Set(all.map((r) => r.category).filter(Boolean))].sort();
+  const shown = all
+    .filter((r) => filter === "All" || r.type.toLowerCase() === filter.toLowerCase())
+    .filter((r) => level === "All" || r.level === level)
+    .filter((r) => category === "All" || r.category === category);
   const [refreshing, setRefreshing] = useState(false);
 
   const renderRow = ({ item }: { item: Routine }) => {
@@ -137,7 +147,7 @@ export default function ExercisesScreen({ isEmbedded = false }: { isEmbedded?: b
             {item.title}
           </Text>
           <Text style={{ fontSize: 12.5, color: c.slate }}>
-            {item.type} • {item.minutes} min • {item.intensity.toLowerCase()} intensity
+            {item.level ? `${item.level} • ` : ""}{item.category || item.type} • {item.minutes} min • {item.intensity.toLowerCase()} intensity
           </Text>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 1 }}>
             {suits ? (
@@ -301,6 +311,8 @@ export default function ExercisesScreen({ isEmbedded = false }: { isEmbedded?: b
             );
           })}
         </ScrollView>
+        {levels.length ? <SmallChips label="Level" options={levels} value={level} onChange={setLevel} /> : null}
+        {categories.length ? <SmallChips label="Category" options={categories} value={category} onChange={setCategory} /> : null}
       </View>
 
       {query.isLoading ? (
@@ -351,7 +363,7 @@ export default function ExercisesScreen({ isEmbedded = false }: { isEmbedded?: b
                       }}
                     >
                       <Text style={{ fontSize: 11.5, fontWeight: "600", color: isDark ? "#34D399" : "#059669" }}>
-                        {patientTier}
+                        {bandName(patientTier)}
                       </Text>
                     </View>
                   ) : null}
@@ -407,5 +419,35 @@ export default function ExercisesScreen({ isEmbedded = false }: { isEmbedded?: b
       <StatusBar style={isDark ? "light" : "dark"} />
       {content}
     </ScreenWrapper>
+  );
+}
+
+/** A second, smaller row of filters under the types. */
+function SmallChips({ label, options, value, onChange }: { label: string; options: string[]; value: string; onChange: (v: string) => void }) {
+  const { c } = useDs();
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      accessibilityLabel={`Filter by ${label.toLowerCase()}`}
+      style={{ marginTop: 8 }}
+      contentContainerStyle={{ gap: 6, paddingHorizontal: 20 }}
+    >
+      {["All", ...options].map((o) => {
+        const on = o === value;
+        return (
+          <AnimatedButton
+            key={o}
+            onPress={() => onChange(o)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: on }}
+            accessibilityLabel={o === "All" ? `All ${label.toLowerCase()}s` : o}
+            style={{ height: 32, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, justifyContent: "center", borderColor: on ? c.line : c.hairline, backgroundColor: on ? c.tint : c.canvas }}
+          >
+            <Text style={{ fontSize: 12.5, fontWeight: "500", color: on ? c.onTint : c.slate }}>{o === "All" ? `All ${label.toLowerCase()}s` : o}</Text>
+          </AnimatedButton>
+        );
+      })}
+    </ScrollView>
   );
 }

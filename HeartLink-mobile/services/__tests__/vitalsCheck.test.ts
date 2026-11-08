@@ -1,4 +1,4 @@
-import { BREATH, CHEST, completeReading, isHypertensiveCrisis, isSevereHypotension, isSymptomEmergency } from "../vitalsCheck";
+import { BREATH, CHEST, FAINTED, completeReading, isHypertensiveCrisis, isSevereHypotension, isSymptomEmergency } from "../vitalsCheck";
 
 describe("completeReading", () => {
   it("waits for both numbers before judging a reading", () => {
@@ -38,5 +38,10 @@ describe("emergency thresholds (unchanged)", () => {
     expect(isSymptomEmergency([BREATH], {}, null)).toBe(false);
     expect(isSymptomEmergency([BREATH], {}, "While resting")).toBe(true);
     expect(isSymptomEmergency([BREATH], {}, "During physical activity")).toBe(false);
+  });
+
+  it("flags fainting or nearly fainting on its own, with no strength or 'when' needed", () => {
+    expect(isSymptomEmergency([FAINTED], {}, null)).toBe(true);
+    expect(isSymptomEmergency(["Dizziness / Lightheadedness"], { "Dizziness / Lightheadedness": 10 }, null)).toBe(false);
   });
 });

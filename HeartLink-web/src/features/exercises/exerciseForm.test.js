@@ -8,6 +8,44 @@ import {
 } from "./exerciseForm.js";
 import { NEW_PART } from "./exerciseParts.js";
 
+test("exercise metadata survives validation and save with the same movement dose", () => {
+  const values = exerciseValues({
+    name: "Synthetic routine",
+    description: "Synthetic instructions",
+    difficultyLevel: "Beginner",
+    category: "Leg movements",
+    targetAreas: ["Thighs", "Hips"],
+    tempo: "Slow and steady",
+    rounds: 2,
+    restSeconds: 10,
+    steps: [{ instruction: "Lift", mode: "count", reps: 4, seconds_per_rep: 3, both_sides: true }],
+  });
+  assert.equal(values.targetAreas, "Thighs, Hips");
+  const parsed = exerciseSchema.parse(values);
+  const payload = exercisePayload(parsed, 58);
+  assert.equal(payload.difficultyLevel, "Beginner");
+  assert.equal(payload.category, "Leg movements");
+  assert.deepEqual(payload.targetAreas, ["Thighs", "Hips"]);
+  assert.equal(payload.tempo, "Slow and steady");
+  assert.equal(payload.duration, 1);
+  assert.equal(payload.rounds, 2);
+  assert.equal(payload.restSeconds, 10);
+  assert.equal(payload.steps[0].duration_seconds, 12);
+  assert.equal(payload.steps[0].both_sides, true);
+});
+
+test("empty optional metadata stays empty and comma-separated body areas are trimmed", () => {
+  const values = exerciseValues({ difficultyLevel: null, category: null, targetAreas: null, tempo: null });
+  for (const key of ["difficultyLevel", "category", "targetAreas", "tempo"])
+    assert.equal(values[key], "");
+  const payload = exercisePayload(values, 0);
+  assert.equal(payload.difficultyLevel, null);
+  assert.equal(payload.category, null);
+  assert.deepEqual(payload.targetAreas, []);
+  assert.equal(payload.tempo, null);
+  assert.deepEqual(exercisePayload({ ...values, targetAreas: " Hips, , Thighs " }, 0).targetAreas, ["Hips", "Thighs"]);
+});
+
 test("exercise form mapping keeps sections, count, side, media and legacy labels", () => {
   const input = {
     type: "Stretching",

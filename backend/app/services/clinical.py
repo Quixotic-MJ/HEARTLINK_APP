@@ -14,7 +14,7 @@ from app.services.feature_transform import transform_to_model_features
 
 def get_model_metadata() -> dict:
     """Which starting-score model is in use: its version and a hash of the file, for review snapshots."""
-    from app.services.hss_service import MODEL_PATH
+    from app.services.starting_score import MODEL_PATH
     try:
         with open(MODEL_PATH, "rb") as f:
             file_bytes = f.read()

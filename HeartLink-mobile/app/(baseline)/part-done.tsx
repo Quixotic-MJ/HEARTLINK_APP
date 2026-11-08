@@ -24,6 +24,7 @@ const SHORT_LABEL: Record<string, string> = {
   sleep: "Sleep",
   "ever-smoked": "Ever smoked",
   "smoke-now": "Smoke now",
+  "smoke-quit": "Quit",
   alcohol: "Alcohol",
   "alcohol-often": "How often",
   "alcohol-amount": "Drinks per day",

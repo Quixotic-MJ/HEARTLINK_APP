@@ -46,6 +46,7 @@ export function useExploreScore() {
         hss_tier?: string;
         recommendations?: { id: string | number; type: string }[];
         hidden_items?: { id: string | number; type: string }[];
+        exercise_screening?: { paused?: boolean } | null;
       };
       return {
         score: d.hss_score ?? null,
@@ -53,6 +54,8 @@ export function useExploreScore() {
         recommendations: d.recommendations ?? [],
         // HL-057: items a clinician marked not suitable for this patient (empty while the setting is off).
         hidden: (d.hidden_items ?? []).map((h) => `${h.type}:${h.id}`),
+        // HL-093: while the safety check asks for a professional's OK, only breathing is suggested
+        exercisesPaused: !!d.exercise_screening?.paused,
       };
     },
   });

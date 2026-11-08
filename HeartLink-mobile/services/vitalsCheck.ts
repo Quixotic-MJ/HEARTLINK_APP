@@ -4,7 +4,7 @@
  * Emergency thresholds (keep in step with services/companionService.ts):
  * - hypertensive crisis: systolic 180 or more, or diastolic 120 or more
  * - severe hypotension: systolic under 90, or diastolic under 60
- * - chest discomfort rated 7 or more, or shortness of breath while resting
+ * - chest discomfort rated 7 or more, shortness of breath while resting, or fainting or nearly fainting
  *
  * A blood pressure is only judged once it is a complete reading (both numbers, each in the range the
  * backend accepts), so typing "1" on the way to "128" never sets off the emergency guidance.
@@ -41,10 +41,11 @@ export function isSevereHypotension(r: Reading | null): boolean {
 
 export const CHEST = "Chest Discomfort / Tightness";
 export const BREATH = "Shortness of Breath";
+export const FAINTED = "Fainted or Nearly Fainted";
 
 /** A symptom answer that needs the emergency guidance. The "when" must be chosen before breath counts. */
 export function isSymptomEmergency(symptoms: string[], severities: Record<string, number>, context: string | null): boolean {
   const chest = symptoms.includes(CHEST) && (severities[CHEST] ?? 0) >= 7;
   const breathAtRest = symptoms.includes(BREATH) && context === "While resting";
-  return chest || breathAtRest;
+  return chest || breathAtRest || symptoms.includes(FAINTED);
 }

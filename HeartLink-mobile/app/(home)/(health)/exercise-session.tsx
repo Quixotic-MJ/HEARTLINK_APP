@@ -24,9 +24,10 @@ import { BreathingExerciseActive } from "../../../components/exercise/BreathingE
 import { CardioExerciseActive } from "../../../components/exercise/CardioExerciseActive";
 import { StretchingExerciseActive } from "../../../components/exercise/StretchingExerciseActive";
 import { ExerciseResult } from "../../../components/exercise/ExerciseResult";
-import { CheckInSheet, ShortSessionSheet, StopSheet } from "../../../components/exercise/SessionSheets";
+import { CheckInSheet, EffortSheet, ShortSessionSheet, StopSheet } from "../../../components/exercise/SessionSheets";
 import { SessionScreenProps, WORKOUT } from "../../../components/exercise/ExerciseBits";
-import { RoutineApi, exerciseKind, isWorkoutPaused, toRoutine } from "../../../services/exerciseSession";
+import { RoutineApi, exerciseKind, isWorkoutPaused, needsScreening, toRoutine } from "../../../services/exerciseSession";
+import { useExerciseScreening } from "../../../hooks/useExerciseScreening";
 import { useSavedExercises } from "../../../hooks/useExploreData";
 
 // A guided exercise, start to finish: details → get ready → the "during" screen for its type →
@@ -35,7 +36,7 @@ import { useSavedExercises } from "../../../hooks/useExploreData";
 // symptom was logged recently; breathing exercises stay open.
 
 type Phase = "overview" | "check" | "ready" | "active" | "done";
-type Sheet = null | "stop" | "short" | "checkin";
+type Sheet = null | "stop" | "short" | "checkin" | "effort";
 
 const ACTIVE_SCREEN = {
   breathing: BreathingExerciseActive,
@@ -83,8 +84,10 @@ export default function ExerciseSessionScreen() {
   // skip the standing-up safety check, even when a relaxation plays step by step.
   const calm = kind === "breathing" || (routine?.type ?? "").toLowerCase().includes("breath");
   const paused = isWorkoutPaused(readiness, calm ? "breathing" : kind);
+  const screeningPaused = !!readiness?.exercise_screening?.paused;
+  const screening = useExerciseScreening();
 
-  const save = (status: "completed" | "incomplete_due_to_symptoms", seconds: number) => {
+  const save = (status: "completed" | "incomplete_due_to_symptoms", seconds: number, effort?: number) => {
     if (!routine || !userId) return;
     logExercise.mutate({
       id: newLogId(),
@@ -95,6 +98,7 @@ export default function ExerciseSessionScreen() {
       planned_duration_seconds: routine.minutes * 60,
       planned_duration_minutes: routine.minutes,
       status,
+      ...(effort === undefined ? {} : { effort_rating: effort }),
     });
   };
 
@@ -138,9 +142,9 @@ export default function ExerciseSessionScreen() {
     router.replace("/(home)/(health)/log-symptoms?triggered_by_exercise_id=post-workout");
   };
 
-  const saveCompleted = () => {
+  const saveCompleted = (effort?: number) => {
     setSheet(null);
-    save("completed", savedSeconds);
+    save("completed", savedSeconds, effort);
     setPhase("done");
     voice.cue("done");
     say("Exercise saved. Well done.");
@@ -157,8 +161,12 @@ export default function ExerciseSessionScreen() {
     setConfirmClear(false);
     if (!userId) return;
     try {
-      const res = await apiFetch(`/api/health-logs/${userId}/clear-symptom-lock`, { method: "POST" });
-      if (!res.ok) throw new Error(String(res.status));
+      // Each reason for the pause is cleared on its own; a critical score can't be cleared here
+      if (readiness?.has_recent_severe_symptom) {
+        const res = await apiFetch(`/api/health-logs/${userId}/clear-symptom-lock`, { method: "POST" });
+        if (!res.ok) throw new Error(String(res.status));
+      }
+      if (screeningPaused) await screening.clear.mutateAsync();
       await refetchReadiness();
       queryClient.invalidateQueries({ queryKey: ["dashboard", userId] });
       showToast({ title: "Workouts open again", message: "Take it easy and stop if you feel unwell.", type: "success" });
@@ -247,11 +255,17 @@ export default function ExerciseSessionScreen() {
           routine={routine}
           kind={kind}
           paused={paused}
-          canClearPause={!!readiness?.has_recent_severe_symptom}
+          canClearPause={!!readiness?.has_recent_severe_symptom || screeningPaused}
+          screeningPaused={screeningPaused}
           checking={checking}
           onStart={() => {
             // Breathing is done sitting down, so it skips the safety check.
-            if (!paused && !checking) setPhase(calm ? "ready" : "check");
+            if (paused || checking) return;
+            if (needsScreening(readiness, calm ? "breathing" : kind)) {
+              router.push("/(home)/(health)/exercise-screening");
+              return;
+            }
+            setPhase(calm ? "ready" : "check");
           }}
           onBack={() => router.back()}
           onClearPause={() => setConfirmClear(true)}
@@ -299,7 +313,8 @@ export default function ExerciseSessionScreen() {
         onKeepGoing={keepGoing}
       />
       <ShortSessionSheet visible={sheet === "short"} seconds={savedSeconds} onSave={() => setSheet("checkin")} onDiscard={discardShort} onKeepGoing={keepGoing} />
-      <CheckInSheet visible={sheet === "checkin"} onFine={saveCompleted} onUnwell={reportUnwell} onBack={keepGoing} />
+      <EffortSheet visible={sheet === "effort"} onDone={saveCompleted} />
+      <CheckInSheet visible={sheet === "checkin"} onFine={() => setSheet("effort")} onUnwell={reportUnwell} onBack={keepGoing} />
 
       <ConfirmDialog
         visible={confirmClear}

@@ -2,7 +2,8 @@ import os
 import zoneinfo
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
-from app.services import coach_note
+from app.services import coach_note, exercise_screening, heart_score
+from app.services.review_rules import FAINTED_SYMPTOM
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 from app.services.exercises import is_visible_to_patients, calories_burned
 from app.services.nutrition_targets import compute_targets
@@ -190,83 +191,40 @@ def _remember_ai_insight(key: tuple, line: str) -> None:
 
 
 def _event_records(user_hss: list) -> tuple:
-    """(latest record, score just before the latest log, the reading record of that log or None).
-
-    Logging a reading saves two records: the reading's new base, then the day's total on top of it (trigger
-    "health_log"). Both belong to one event, so the note compares with the score before that pair."""
+    """(latest record, the score before it, the latest record again if a blood pressure reading made it)."""
     latest = user_hss[0]
     factors = latest.get("contributing_factors") or {}
     rest = user_hss[1:]
-    reading = None
-    if factors.get("trigger") == "health_log" and factors.get("source") == "lifestyle_composite":
-        if rest and (rest[0].get("contributing_factors") or {}).get("trigger") == "health_log":
-            reading, rest = rest[0], rest[1:]
-    elif factors.get("trigger") == "health_log":
-        reading = latest
+    reading = latest if factors.get("trigger") == "health_log" and factors.get("systolic") else None
     previous = rest[0].get("score") if rest else None
     return latest, previous, reading
 
 
-def _own_points(user_hss: list) -> dict:
-    """What the latest log did by itself, so each log shows its own points (+2 from a meal, -3 from a reading):
-    - points: a reading's change to the base, or a meal/exercise/sleep log's change to today's habit points
-    - check_in_habits: habit points a check-in itself added (medicine, symptoms), told apart from the reading
-    - reset: yesterday's habit points that dropped off at midnight before this first log of the day
-    Older records without the breakdown fall back to the plain change in score."""
-    latest, previous, reading = _event_records(user_hss)
-    fallback = {"points": (latest.get("score", 0) - previous) if previous is not None else 0, "check_in_habits": 0, "reset": 0}
-    lf = latest.get("contributing_factors") or {}
-    composite = lf.get("source") == "lifestyle_composite"
-    before = user_hss[2:] if (reading is not None and reading is not latest) else user_hss[1:]
-    prev_comp = next((h for h in before if (h.get("contributing_factors") or {}).get("source") == "lifestyle_composite"), None)
-    pf = (prev_comp or {}).get("contributing_factors") or {}
-    if "total_lifestyle_adjustment" not in pf or (composite and "total_lifestyle_adjustment" not in lf):
-        return fallback
-    same_day = _safe_date(prev_comp.get("computed_at")) == _safe_date(latest.get("computed_at"))
-    habits_before = pf["total_lifestyle_adjustment"] if same_day else 0
-    reset = 0 if same_day else -pf["total_lifestyle_adjustment"]
-    habit_change = (lf["total_lifestyle_adjustment"] if composite else habits_before) - habits_before
-    if reading is not None:
-        prev_base = (reading.get("contributing_factors") or {}).get("previous_base")
-        if prev_base is None:
-            return fallback
-        return {"points": reading.get("score", 0) - prev_base, "check_in_habits": habit_change, "reset": reset}
-    return {"points": habit_change, "check_in_habits": 0, "reset": reset}
+def _just_left_the_starting_score(user_hss: list) -> bool:
+    """The first log after setup: the score moves from the model's estimate to the Heart score, so the change says
+    little about that one log."""
+    return len(user_hss) >= 2 and user_hss[0].get("source") != "baseline" and user_hss[1].get("source") == "baseline"
 
 
-def _score_parts(user_hss: list) -> dict | None:
-    """How the current score adds up, for the line under the heart: the part from readings (the base) plus the
-    habit points. `habits_today` is False while the score still carries an earlier day's habits (nothing logged
-    yet today)."""
-    if not user_hss:
-        return None
-    from app.services.hss_service import latest_base_score
-
-    latest = user_hss[0]
-    score = latest.get("score")
-    base = latest_base_score(user_hss)
-    if score is None or base is None:
-        return None
-    composite = (latest.get("contributing_factors") or {}).get("source") == "lifestyle_composite"
-    habits = int(score) - base if composite else 0
-    return {
-        "readings": int(score) - habits,
-        "habits": habits,
-        "habits_today": _safe_date(latest.get("computed_at")) == to_local_date(utc_now()),
-    }
+def _score_change(user_hss: list) -> int:
+    latest, previous, _ = _event_records(user_hss)
+    return (latest.get("score", 0) - previous) if previous is not None else 0
 
 
-def _side_note(user_hss: list) -> str | None:
-    """The small print under Today's note: habit points from the check-in itself, and the midnight reset."""
-    if len(user_hss) < 2:
-        return None
-    own = _own_points(user_hss)
-    lines = []
-    if own["check_in_habits"]:
-        lines.append(f"Your check-in also {'added' if own['check_in_habits'] > 0 else 'took away'} {abs(own['check_in_habits'])} habit points.")
-    if own["reset"]:
-        lines.append(f"Yesterday's {-own['reset']:+} habit points reset at midnight, as they do every day.")
-    return " ".join(lines) or None
+def _progress(factors: dict, source: str) -> str | None:
+    """Where the area this log counts toward now stands, in real numbers: "120 of 150 minutes this week"."""
+    areas = factors.get("areas") or {}
+    if source == "exercise" and "activity" in areas:
+        minutes, goal = areas["activity"].get("minutes", 0), areas["activity"].get("goal", 150)
+        return f"{minutes} of {goal} minutes this week" if minutes < goal else f"{minutes} minutes this week, past the {goal}-minute goal"
+    if source == "sleep" and "sleep" in areas:
+        return f"{areas['sleep'].get('hours', 0):g} hours of sleep on average"
+    if source == "meal" and "diet" in areas:
+        meal_days = areas["diet"].get("meal_days", 0)
+        if meal_days >= 3:
+            return f"sodium over your limit on {areas['diet'].get('sodium_days_over', 0)} of the last 7 days"
+        return f"{meal_days} of 3 days of meals logged this week"
+    return None
 
 
 def _note_for_latest_event(user_hss: list, latest_log: dict | None) -> tuple:
@@ -275,13 +233,14 @@ def _note_for_latest_event(user_hss: list, latest_log: dict | None) -> tuple:
 
     latest, previous, reading = _event_records(user_hss)
     score = latest.get("score", 0)
-    diff = _own_points(user_hss)["points"]  # this log's own points, not yesterday's habits dropping off at midnight
+    diff = _score_change(user_hss)
     factors = latest.get("contributing_factors") or {}
     trigger = factors.get("trigger") or ""
     moved = f"Up {diff}" if diff > 0 else f"Down {abs(diff)}"
 
     # Emergency-level reading or symptoms (the app's own rules) logged today: the note says so, whatever the score did
-    logged_today = bool(latest_log) and not latest_log.get("deleted_at") and         _safe_date(latest_log.get("logged_at")) == to_local_date(utc_now())
+    logged_today = bool(latest_log) and not latest_log.get("deleted_at") and \
+        _safe_date(latest_log.get("logged_at")) == to_local_date(utc_now())
     if logged_today and is_emergency(latest_log):
         sys_bp, dia_bp = latest_log.get("systolic_bp"), latest_log.get("diastolic_bp")
         from app.services.hss_service import is_emergency_reading
@@ -292,56 +251,76 @@ def _note_for_latest_event(user_hss: list, latest_log: dict | None) -> tuple:
         body = "If you feel unwell, call 911 now. HeartLink can't diagnose; please get checked in person."
         return title, body, "alert-triangle", "see_what_to_do"
 
+    if _just_left_the_starting_score(user_hss):
+        return ("Your score now comes from your logs.",
+                "Your first score was an estimate from your setup answers. Now it's based on your blood pressure, activity, sleep, nicotine, body weight and diet.",
+                "info", None)
+
+    if trigger == "method_update":
+        return ("Your Heart score was updated.",
+                "It's now based on the American Heart Association's Life's Essential 8. Tap the i on your score to see each area.",
+                "info", None)
+
     if reading is not None:
-        rf = reading.get("contributing_factors") or {}
-        sys_bp, dia_bp = rf.get("systolic"), rf.get("diastolic")
+        sys_bp, dia_bp = factors.get("systolic"), factors.get("diastolic")
         what = f"{round(sys_bp)}/{round(dia_bp)}" if sys_bp and dia_bp else "latest"
-        if rf.get("reading_kind") == "healthy":
+        if factors.get("reading_kind") == "healthy":
             title = f"Your {what} reading is in the healthy range."
-            body = f"Your score went up {diff}." if diff > 0 else f"Your score stays at {score}."
+            body = f"Your score went up {diff}." if diff > 0 else f"Your score is now {score}." if diff < 0 else f"Your score stays at {score}."
             return title, body, "check-circle", None
         if diff:
             title = f"{moved} after your {what} reading."
         else:
             title = f"Your {what} reading is above the healthy range."
-        body = "One reading moves your score only a little. Log another one later to see the trend."
+        body = "Your score uses your average for the week, so one reading moves it only a little. Log another one later to see the trend."
         return title, body, ("trending-down" if diff <= 0 else "trending-up"), "log_later"
 
-    if factors.get("staleness_points", 0) < 0 and diff < 0:
-        return ("Your score dropped because nothing was logged recently.",
-                "Log your vitals and meals to keep your score up to date.", "trending-down", "log_vitals")
+    if factors.get("rule") == "no_recent_reading" and diff < 0:
+        return ("Your score is limited because there's no recent blood pressure reading.",
+                "Log a reading to bring your score up to date.", "trending-down", "log_vitals")
 
-    source = "meal" if trigger.startswith("meal") else "exercise" if trigger.startswith("exercise") else ""
+    source = "meal" if trigger.startswith("meal") else "exercise" if trigger.startswith("exercise") else "sleep" if trigger.startswith("sleep") else ""
     removed = trigger.endswith("_delete")
-    if diff > 0:
-        title = f"{moved} from your {source}." if source and not removed else f"Your score went up {diff}."
-        return title, "Keep it up.", "trending-up", None
-    if diff < 0:
-        if source == "meal" and not removed:
-            return (f"{moved} after your meal.", "It was high in sodium or saturated fat. Review today's meals to see which.",
+    label = "workout" if source == "exercise" else source
+    progress = _progress(factors, source)
+    tail = f": {progress}." if progress else "."
+    if removed and diff:
+        return (f"{moved} after removing your {label or 'log'}{tail}", "Your score counts only what's logged in the last 7 days.",
+                "trending-down" if diff < 0 else "trending-up", None)
+    if source and not removed:
+        if diff > 0:
+            return f"{moved} from your {label}{tail}", "Keep it up.", "trending-up", None
+        if diff < 0 and source == "meal":
+            return (f"{moved} after your meal{tail}", "More days over your sodium limit lower your diet points. Review today's meals to see which.",
                     "trending-down", "review_meals")
-        if removed:
-            return (f"{moved} after removing your {source or 'log'}.", "Your score counts only what's logged today.",
-                    "trending-down", None)
-        return (f"Your score went down {abs(diff)}.", "Log your vitals and meals so the score reflects your day.",
+        if diff < 0:
+            return f"{moved} after your {label}{tail}", "Your score uses your average for the week.", "trending-down", None
+        if progress:
+            return f"No change yet: {progress}.", "Your score looks at your whole week, so it moves slowly.", "check-circle", None
+    if diff > 0:
+        return f"Your score went up {diff}.", "Keep it up.", "trending-up", None
+    if diff < 0:
+        return (f"Your score went down {abs(diff)}.", "Your score uses the last 7 days, so older logs drop out as time passes. Keep logging to keep it current.",
                 "trending-down", "log_vitals")
     if score < 50:
-        return ("Your score is in the critical range.", "Keep logging your readings, and see your care team in person.",
+        return ("Your score is in the lowest range.", "Keep logging your readings, and see your care team in person.",
                 "alert-circle", "log_vitals")
     return ("Your score is holding steady.", f"It stays at {score}.", "check-circle", None)
 
 
 def _note_kind(user_hss: list) -> tuple:
-    """What moved the score last ("meal", "exercise", "reading", "stale", "removed" or ""), the change and the score;
-    the same reading of the score history as _note_for_latest_event."""
-    latest, previous, reading = _event_records(user_hss)
+    """What moved the score last ("meal", "exercise", "sleep", "reading", "stale", "removed", "update" or ""), the change
+    and the score; the same reading of the score history as _note_for_latest_event."""
+    latest, _, reading = _event_records(user_hss)
     score = latest.get("score", 0)
-    diff = _own_points(user_hss)["points"]
+    diff = _score_change(user_hss)
     factors = latest.get("contributing_factors") or {}
     trigger = factors.get("trigger") or ""
-    if reading is not None:
+    if trigger == "method_update" or _just_left_the_starting_score(user_hss):
+        kind = "update"
+    elif reading is not None:
         kind = "reading"
-    elif factors.get("staleness_points", 0) < 0 and diff < 0:
+    elif factors.get("rule") == "no_recent_reading" and diff < 0:
         kind = "stale"
     elif trigger.endswith("_delete"):
         kind = "removed"
@@ -349,6 +328,8 @@ def _note_kind(user_hss: list) -> tuple:
         kind = "meal"
     elif trigger.startswith("exercise"):
         kind = "exercise"
+    elif trigger.startswith("sleep"):
+        kind = "sleep"
     else:
         kind = ""
     return kind, diff, score
@@ -377,12 +358,10 @@ def _generate_insight(
 
     title, body, icon, action = _note_for_latest_event(user_hss, latest_log)
 
-    # The fact stays the title; real numbers, a step for the time of day and one weekly pattern are added
-    pattern = None
+    # The fact stays the title; real numbers and a step for the time of day are added. The week's patterns are on Trends.
     if facts and action != "see_what_to_do":
         kind, diff, score = _note_kind(user_hss)
         title, body, icon, action = coach_note.improve_note(title, body, icon, action, kind, diff, score, facts)
-        pattern = coach_note.weekly_pattern(facts)
 
     ai_written = False
     # Try to enhance the body with Groq AI if available
@@ -394,29 +373,14 @@ def _generate_insight(
             # Increased timeout to 4.0s to accommodate the larger 120b model
             client = groq.Groq(api_key=groq_api_key, timeout=4.0)
             
-            factors = user_hss[0].get("contributing_factors", {})
-            context_str = ""
-            if factors:
-                points = []
-                if factors.get("meal_points"): points.append(f"{factors.get('meal_points', 0):+} pts from meals")
-                if factors.get("exercise_points"): points.append(f"{factors.get('exercise_points', 0):+} pts from exercise")
-                if factors.get("sleep_points"): points.append(f"{factors.get('sleep_points', 0):+} pts from sleep")
-                if factors.get("medication_points"): points.append(f"{factors.get('medication_points', 0):+} pts from medication adherence")
-                if factors.get("blood_sugar_points"): points.append(f"{factors.get('blood_sugar_points', 0):+} pts from blood sugar levels")
-                if factors.get("weight_gain_points"): points.append(f"{factors.get('weight_gain_points', 0):+} pts from rapid weight changes")
-                if factors.get("symptom_points"): points.append(f"{factors.get('symptom_points', 0):+} pts from reported symptoms")
-                if factors.get("staleness_points"): points.append(f"{factors.get('staleness_points', 0):+} pts penalty for missing data")
-                if points:
-                    context_str = "Today's score was affected by: " + ", ".join(points) + "."
-
             today = to_local_date(utc_now()).isoformat()
-            cache_key = (user_id or first_name, today, title, body, pattern, context_str)
+            cache_key = (user_id or first_name, today, title, body)
             ai_body = _ai_insight_lines.get(cache_key)
             if ai_body is None and _ai_insight_allowed(user_id or first_name, today):
                 # The AI only rewords the second line; anything with a new number or a medical claim is dropped
-                facts_text = " ".join(x for x in (title, body, pattern or "") if x)
+                facts_text = " ".join(x for x in (title, body) if x)
                 ai_body = coach_note.checked_ai_line(
-                    _ask_ai_for_insight(client, coach_note.ai_prompt(first_name, title, body, pattern)), facts_text
+                    _ask_ai_for_insight(client, coach_note.ai_prompt(first_name, title, body)), facts_text
                 )
                 if ai_body:
                     _remember_ai_insight(cache_key, ai_body)
@@ -428,11 +392,7 @@ def _generate_insight(
             # Silently fallback to the deterministic rule-based body if timeout or error
             pass
 
-    side_note = None if action == "see_what_to_do" else _side_note(user_hss)
-    return {
-        "title": title, "body": body, "icon": icon, "action": action, "pattern": pattern, "side_note": side_note,
-        "ai_written": ai_written,
-    }
+    return {"title": title, "body": body, "icon": icon, "action": action, "ai_written": ai_written}
 
 
 def _ask_ai_for_insight(client, prompt: str) -> str:
@@ -576,7 +536,7 @@ def _get_today_activity(user_id: str) -> dict:
 
     # Context, Severe Symptoms, Weight Gain, Blood Sugar
     vitals_context = vitals_today[0].get("context") if vitals_today else None
-    severe_symptom_count = sum(1 for l in vitals_today if any(s in l.get("symptoms", []) for s in ["Chest Discomfort / Tightness", "Shortness of Breath"]))
+    severe_symptom_count = sum(1 for l in vitals_today if any(s in l.get("symptoms", []) for s in ["Chest Discomfort / Tightness", "Shortness of Breath", FAINTED_SYMPTOM]))
     rapid_weight_gain = False # Requires alert fetch, implemented in hss_service
     blood_sugar = vitals_today[0].get("blood_sugar") if vitals_today else None
 
@@ -602,7 +562,7 @@ def _get_today_activity(user_id: str) -> dict:
         "latest_blood_sugar": blood_sugar,
         "streak_data": _calculate_streak_data(meal_logs, exercise_logs, daily_health_logs, sleep_logs),
         # For Today's note (coach_note.day_facts); taken out before the dashboard is sent
-        "_logs": {"meals": meal_logs, "exercises": exercise_logs, "vitals": daily_health_logs},
+        "_logs": {"meals": meal_logs, "exercises": exercise_logs, "vitals": daily_health_logs, "sleep": sleep_logs},
     }
 
 
@@ -615,7 +575,7 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
     canonical_id = profile.get("id") or user_id
 
     hss_repo = get_hss_repo()
-    user_hss = hss_repo.list_hss_history(canonical_id)
+    user_hss = heart_score.refresh_if_outdated(canonical_id, hss_repo.list_hss_history(canonical_id))
     latest_hss = (
         user_hss[0]
         if user_hss
@@ -653,7 +613,7 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
             is_chest_pain = "Chest Discomfort / Tightness" in symptoms and severity_map.get("Chest Discomfort / Tightness", 1) >= 7
             is_sob_rest = "Shortness of Breath" in symptoms and context_val == "resting"
             
-            if is_chest_pain or is_sob_rest:
+            if is_chest_pain or is_sob_rest or FAINTED_SYMPTOM in symptoms:
                 has_recent_severe_symptom = True
                 break
         except Exception:
@@ -708,10 +668,12 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
     # An exercise is tagged with the band it was approved for (Stable = the most active, Critical = the gentlest).
     # A patient gets their own band's or gentler ones, never more active ones; during the 24-hour rest after a severe
     # symptom, breathing exercises only (the exercise screen says the same).
+    # HL-093: while the safety check asks for a professional's OK, only breathing is suggested (as during a rest day)
+    screening = exercise_screening.status_for(canonical_id)
     reco_exercises = [
         e
         for e in exercise_routines
-        if exercise_suits(e, tier, has_recent_severe_symptom)
+        if exercise_suits(e, tier, has_recent_severe_symptom or screening["paused"])
         and is_visible_to_patients(e)
         and e.get("id") not in today_exercise_ids
         and ("exercise", str(e.get("id"))) not in hidden
@@ -776,6 +738,7 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
             sleep_hours=today_activity.get("total_sleep_hours") or 0,
             sodium_limit=sodium_limit,
             movement_goal=(threshold or {}).get("active_minutes_goal") or 30,
+            exercise_paused=bool(has_recent_severe_symptom or screening["paused"] or tier == "Critical"),
         )
     except Exception as e:  # the plain note still works without the extra facts
         logger.warning(f"Today's note facts failed: {e}")
@@ -799,7 +762,6 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
         "hss_tier": latest_hss.get("tier", "Unknown"),
         "hss_factors": latest_hss.get("contributing_factors", {}),
         # Under the heart: "74 from your readings + 2 from today's habits"
-        "score_parts": _score_parts(user_hss),
         "last_sync": latest_hss.get("computed_at"),
         "unread_notifications_count": unread_count,
         "latest_vitals": {
@@ -816,6 +778,7 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
             "trend": trend,
             "trend_since": _trend_since(user_hss),
             "logged_at": latest_log.get("logged_at") if latest_log else None,
+            "context": latest_log.get("context") if latest_log else None,
         },
         "latest_alert": latest_alert,
         "recommendations": recommendations,
@@ -823,6 +786,7 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
         "hidden_items": [{"type": t, "id": i} for t, i in sorted(hidden)],
         "checkup_reminder": review_feedback.checkup_reminder(canonical_id),
         "insight": insight,
+        "weekly_report": coach_note.weekly_report_status(logs, profile.get("created_at")),
         "today_activity": today_activity,
         "nutrition_budget": {
             "sodium": {
@@ -854,6 +818,7 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
         },
         "streak": today_activity["streak_data"],
         "has_recent_severe_symptom": has_recent_severe_symptom,
+        "exercise_screening": screening,
     }
 
 

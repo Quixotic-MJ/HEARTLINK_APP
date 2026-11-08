@@ -7,19 +7,10 @@ import DsButton from "../onboarding/DsButton";
 import { useDs } from "../onboarding/useDs";
 import { bandTag } from "./ScoreCard";
 import { light, dark } from "../../constants/theme";
+import { basedOnText, HeartFactors, pressureText } from "../../services/heartScore";
 import { isHypertensiveCrisis, isSevereHypotension } from "../../services/vitalsCheck";
 
 export type TodayPage = { key: string; label: string; content: React.ReactNode };
-
-/** How the score adds up (dashboard `score_parts`): the readings part plus the habit points. */
-export type ScoreParts = { readings: number; habits: number; habits_today: boolean };
-
-/** "74 from your readings + 2 from today's habits" */
-export function partsText(p: ScoreParts): string {
-  const day = p.habits_today ? "today's" : "yesterday's";
-  if (!p.habits) return `${p.readings} from your readings, no habit points yet today`;
-  return `${p.readings} from your readings ${p.habits > 0 ? "+" : "−"} ${Math.abs(p.habits)} from ${day} habits`;
-}
 
 /**
  * The dashboard's top card: pages you swipe through (or pick with the dots), like a fitness app's rings card.
@@ -97,7 +88,7 @@ export function ScorePage({
   label,
   hasScore,
   change,
-  parts,
+  factors,
   reason,
   onExplain,
   onLogBloodPressure,
@@ -105,10 +96,10 @@ export function ScorePage({
 }: {
   label: string;
   hasScore: boolean;
-  /** e.g. "Up 3 since yesterday"; only shown when the server sends no breakdown (`parts`) */
+  /** e.g. "Up 3 since yesterday" */
   change?: string | null;
-  /** How the score adds up; shown under the band instead of the change since yesterday */
-  parts?: ScoreParts | null;
+  /** The score's details from the server: blood pressure and how many areas it's based on */
+  factors?: HeartFactors | null;
   /** e.g. "+2 from meals" */
   reason?: string | null;
   onExplain: () => void;
@@ -141,15 +132,18 @@ export function ScorePage({
             <View style={{ paddingVertical: 4, paddingHorizontal: 12, borderRadius: 999, backgroundColor: tag.bg }}>
               <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 14, fontWeight: "700", color: tag.fg }}>{tag.text}</Text>
             </View>
-            {change && !parts ? (
+            {change ? (
               <Text style={{ fontSize: 15, fontWeight: "600", color: up ? t.successText : c.charcoal }}>
                 {up ? "↑ " : "↓ "}
                 {change}
               </Text>
             ) : null}
           </View>
-          {parts ? (
-            <Text style={{ fontSize: 14, fontWeight: "500", color: c.charcoal, textAlign: "center" }}>{partsText(parts)}</Text>
+          {pressureText(factors) ? (
+            <Text style={{ fontSize: 14, fontWeight: "500", color: c.charcoal, textAlign: "center" }}>{pressureText(factors)}</Text>
+          ) : null}
+          {basedOnText(factors) ? (
+            <Text style={{ fontSize: 13, color: c.slate, textAlign: "center" }}>{basedOnText(factors)}</Text>
           ) : null}
           {reason ? <Text style={{ fontSize: 13, color: c.slate, textAlign: "center" }}>{reason}</Text> : null}
         </View>
@@ -304,7 +298,7 @@ export function habitsSummary({
   if (sodiumMg <= 0 && movementMins <= 0 && !sleepHours) {
     return {
       tone: "neutral",
-      text: "Log meals, movement, and sleep below to earn up to 20 habit points.",
+      text: "Log meals, movement and sleep below. Your Heart score looks at your last 7 days.",
     };
   }
   const movementMet = movementGoal > 0 && movementMins >= movementGoal;
@@ -580,8 +574,8 @@ export function readingLevel(sys: number, dia: number): { text: string; emergenc
 }
 
 /** Page 3: the latest blood pressure and pulse. */
-export function LatestReadingPage({ systolic, diastolic, bpm, when, onLog }: {
-  systolic: number | null; diastolic: number | null; bpm: number | null; when: string | null; onLog: () => void;
+export function LatestReadingPage({ systolic, diastolic, bpm, pulseContext, when, onLog }: {
+  systolic: number | null; diastolic: number | null; bpm: number | null; pulseContext?: string | null; when: string | null; onLog: () => void;
 }) {
   const { c, isDark } = useDs();
   const t = isDark ? dark : light;
@@ -612,7 +606,7 @@ export function LatestReadingPage({ systolic, diastolic, bpm, when, onLog }: {
         </View>
         {bpm ? (
           <View style={{ paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999, backgroundColor: c.surfaceAlt }}>
-            <Text style={{ fontSize: 13, fontWeight: "600", color: c.charcoal }}>Pulse {bpm} bpm</Text>
+            <Text style={{ fontSize: 13, fontWeight: "600", color: c.charcoal }}>Pulse {bpm} bpm{pulseContext === "resting" ? " at rest" : pulseContext === "after_exercise" ? " after activity" : ""}</Text>
           </View>
         ) : null}
       </View>

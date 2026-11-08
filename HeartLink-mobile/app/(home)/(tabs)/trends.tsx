@@ -12,7 +12,7 @@ import * as Sharing from "expo-sharing";
 import { apiFetch } from "../../../lib/api";
 import { useUser } from "../../../contexts/UserContext";
 import { Header } from "../../../components/Header";
-import { ds, DsColors } from "../../../constants/theme";
+import { bandName, ds, DsColors } from "../../../constants/theme";
 import { useDs } from "../../../components/onboarding/useDs";
 import DsButton from "../../../components/onboarding/DsButton";
 import AnimatedButton from "../../../components/ui/AnimatedButton";
@@ -22,6 +22,7 @@ import { useNetInfo } from "@react-native-community/netinfo";
 import { bandTag } from "../../../components/dashboard/ScoreCard";
 import { TrendChart } from "../../../components/trends/TrendChart";
 import { LongTermTrends } from "../../../components/trends/LongTermTrends";
+import { WeeklyInsight, type WeeklyInsightLine } from "../../../components/trends/WeeklyInsight";
 import { isPremiumProfile } from "../../../services/premium";
 import { isLongTerm, periodName } from "../../../services/longTermTrends";
 import {
@@ -67,6 +68,7 @@ type Analytics = {
   exercise_logs?: ExerciseRow[];
   sleep_logs?: SleepRow[];
   thresholds?: { sodium_limit_mg?: number | null; active_minutes_goal?: number | null } | null;
+  weekly_insights?: WeeklyInsightLine[];
 };
 
 let isCurrentlySharing = false;
@@ -320,6 +322,7 @@ export default function TrendsTabScreen() {
 
           {data && !long ? (
             <>
+              {data.weekly_insights ? <WeeklyInsight lines={data.weekly_insights} /> : null}
               <View style={{ gap: 12 }}>
                 <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "600", color: c.ink }}>
                   Day by day
@@ -542,10 +545,10 @@ function MetricCard({
     const lows = t.ranges.filter((g): g is { low: number; high: number } => g !== null).map((g) => g.low);
     const yMin = Math.max(0, Math.min(60, Math.floor((Math.min(...values, ...lows) - 5) / 10) * 10));
     const bands = [
-      { from: 80, to: 100, fill: c.sky, label: "Stable", labelColor: c.onTint },
-      { from: 60, to: 80, fill: c.yellow, label: "Moderate", labelColor: c.warmText },
-      { from: 50, to: 60, fill: c.peach, label: "Elevated risk", labelColor: c.warmText },
-      { from: 0, to: 50, fill: c.rose, label: "Critical", labelColor: c.charcoal },
+      { from: 80, to: 100, fill: c.sky, label: bandName("Stable"), labelColor: c.onTint },
+      { from: 60, to: 80, fill: c.yellow, label: bandName("Moderate"), labelColor: c.warmText },
+      { from: 50, to: 60, fill: c.peach, label: bandName("Elevated Risk"), labelColor: c.warmText },
+      { from: 0, to: 50, fill: c.rose, label: bandName("Critical"), labelColor: c.charcoal },
     ]
       .filter((b) => b.to > yMin)
       .map((b) => ({ ...b, from: Math.max(b.from, yMin) }));

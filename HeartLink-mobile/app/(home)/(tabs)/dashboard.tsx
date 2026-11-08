@@ -53,6 +53,7 @@ import { CheckinGrid, type CheckinTile, type MedicineStatus } from "../../../com
 import { PressureWeek } from "../../../components/dashboard/PressureWeek";
 import { useWeekTrends } from "../../../hooks/useWeekTrends";
 import { playSound } from "../../../services/sounds";
+import { getWeeklyReportOpenedAt, isWeeklyReportReady } from "../../../services/weeklyReport";
 import { apiFetch } from "../../../lib/api";
 import { theme as colors, light as lightColors, dark as darkColors, ds } from "../../../constants/theme";
 // ─── Score theme ──────────────────────────────────────────────────────────────
@@ -216,6 +217,15 @@ export default function DashboardScreen() {
     if (!checkupHiddenKey) return;
     AsyncStorage.getItem(checkupHiddenKey).then(setHiddenCheckupAt).catch(() => {});
   }, [checkupHiddenKey]);
+
+  // undefined until it's read, so the weekly report banner doesn't flash in and out
+  const [reportOpenedAt, setReportOpenedAt] = useState<string | null | undefined>(undefined);
+  useFocusEffect(
+    useCallback(() => {
+      if (!userId) return;
+      getWeeklyReportOpenedAt(userId).then(setReportOpenedAt).catch(() => setReportOpenedAt(undefined));
+    }, [userId]),
+  );
 
   const isNavigatingRef = useRef(false);
   const [pulseAnim] = useState(() => new Animated.Value(1));
@@ -840,7 +850,7 @@ export default function DashboardScreen() {
                       label={theme.label}
                       hasScore={hasHssScore}
                       change={scoreChange}
-                      parts={data?.score_parts ?? null}
+                      factors={data?.hss_factors ?? null}
                       reason={streakDays > 1 ? `${streakDays}-day logging streak` : null}
                       onExplain={() => {
                         Haptics.selectionAsync();
@@ -894,6 +904,7 @@ export default function DashboardScreen() {
                       systolic={latestSbp}
                       diastolic={latestDbp}
                       bpm={latestBpm}
+                      pulseContext={data?.latest_vitals?.context}
                       when={latestWhen}
                       onLog={() => handleMissionPress("vitals")}
                     />
@@ -904,7 +915,8 @@ export default function DashboardScreen() {
           </TourSpot>
         </Reanimated.View>
 
-        {/* ── Weekly report banner (Visit summary) ── */}
+        {/* ── Weekly report banner (Visit summary): only when the report is ready ── */}
+        {reportOpenedAt !== undefined && isWeeklyReportReady(data?.weekly_report, reportOpenedAt) ? (
         <Reanimated.View entering={FadeInDown.delay(140).duration(260)}>
           <TouchableOpacity
             activeOpacity={0.8}
@@ -949,6 +961,7 @@ export default function DashboardScreen() {
             <Feather name="chevron-right" size={18} color={c.slate} />
           </TouchableOpacity>
         </Reanimated.View>
+        ) : null}
 
         {/* ── Today's check-ins: blood pressure (with medicine), meals, movement, sleep ── */}
         <Reanimated.View entering={FadeInDown.delay(180).duration(260)}>

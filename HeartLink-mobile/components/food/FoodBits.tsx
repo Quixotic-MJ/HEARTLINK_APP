@@ -88,9 +88,9 @@ export function TickBox({ on }: { on: boolean }) {
 export function ImpactNote({ risk }: { risk: RiskResult }) {
   const { c } = useDs();
   const tone =
-    risk.level === "High Sodium"
+    risk.tone === "high"
       ? { bg: c.rose, icon: c.danger, text: c.charcoal }
-      : risk.level === "Moderate"
+      : risk.tone === "medium"
         ? { bg: c.peach, icon: c.warmText, text: c.warmText }
         : { bg: c.mint, icon: c.success, text: c.charcoal };
   return (

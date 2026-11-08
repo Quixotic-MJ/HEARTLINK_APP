@@ -2,6 +2,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, Depends, status, 
 from typing import List, Dict, Any
 from app.services.health_logs import get_health_logs, create_health_log, delete_health_log, get_paginated_health_logs
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
+from app.services.review_rules import FAINTED_SYMPTOM
 from app.utils.security import get_current_user, verify_user_access, check_expert_permission
 
 router = APIRouter(prefix="/api/health-logs", tags=["Health Logs"])
@@ -110,36 +111,11 @@ def add_health_log(
     # Dynamic HSS recording and clinical alert ingestion (TKT-CLN-04)
     if sys_bp is not None and dia_bp is not None:
         try:
-            from datetime import datetime
-            from app.services.hss_service import (
-                compute_lifestyle_composite_hss, compute_vitals_hss, determine_tier, latest_base_score,
-                reading_kind, smoothed_base,
-            )
-            from app.db.repositories import get_hss_repo, get_health_logs_repo
+            from app.db.repositories import get_health_logs_repo
+            from app.services.heart_score import reading_extra, try_recalculate
 
-            band_score, _, _ = compute_vitals_hss(int(sys_bp), int(dia_bp), int(hr) if hr else None, data.get("context"))
-            # The reading moves the score's base (it no longer replaces it): see hss_service.smoothed_base
-            kind = reading_kind(sys_bp, dia_bp, band_score)
-            previous_base = latest_base_score(get_hss_repo().list_hss_history(user_id, limit=20))
-            score = smoothed_base(previous_base, band_score, kind)
-            get_hss_repo().create_hss_record(user_id, {
-                "score": score,
-                "tier": determine_tier(score),
-                "risk_probability": round((100 - score) / 100.0, 3),
-                "source": "telemetry",
-                "contributing_factors": {
-                    "systolic": sys_bp,
-                    "diastolic": dia_bp,
-                    "heart_rate": hr,
-                    "trigger": "health_log",
-                    "band_score": band_score,
-                    "previous_base": previous_base,
-                    "reading_kind": kind,
-                },
-                "computed_at": log.get("logged_at") or utc_now().isoformat()
-            })
-            # The day's meal, exercise, sleep and medicine points stay on top of the new base
-            compute_lifestyle_composite_hss(user_id, trigger="health_log")
+            # Saved first and on its own, so a scoring problem can't stop the alert below
+            try_recalculate(user_id, "health_log", extra=reading_extra(sys_bp, dia_bp, hr))
 
             # Create clinical alert if acute emergency boundaries are breached
             if (sys_bp >= 180 or dia_bp >= 120) or (sys_bp < 90 or dia_bp < 60):
@@ -184,8 +160,9 @@ def add_health_log(
 
     is_chest_pain = "Chest Discomfort / Tightness" in symptoms and severity_map.get("Chest Discomfort / Tightness", 1) >= 7
     is_sob_rest = "Shortness of Breath" in symptoms and context_val == "resting"
+    is_fainted = FAINTED_SYMPTOM in symptoms
 
-    if is_chest_pain or is_sob_rest:
+    if is_chest_pain or is_sob_rest or is_fainted:
         try:
             from datetime import datetime
             from app.db.repositories import get_health_logs_repo
@@ -196,6 +173,8 @@ def add_health_log(
                 details_list.append(f"Severe Chest Discomfort (Level {lvl}/10)")
             if is_sob_rest:
                 details_list.append("Shortness of Breath at rest")
+            if is_fainted:
+                details_list.append("Fainted or nearly fainted")
                 
             get_health_logs_repo().create_alert({
                 "user_id": user_id,
@@ -262,6 +241,8 @@ def remove_health_log(user_id: str, log_id: str, current_user: dict = Depends(ge
     success, msg, status_code = delete_health_log(user_id, log_id)
     if not success:
         raise HTTPException(status_code=status_code, detail=msg)
+    from app.services.heart_score import try_recalculate
+    try_recalculate(user_id, "health_delete")
     return {"success": True, "message": msg}
 
 @router.post("/{user_id}/clear-symptom-lock", response_model=Dict[str, Any])

@@ -1,5 +1,7 @@
 # HeartLink
 
+> **Current scope: General Wellness.** The historical cardiovascular, HSS and clinical workflow descriptions below are retained as teammate provenance and are superseded by `Vault/HeartLink/Product/General Wellness/General Wellness Product Direction.md`. The staff website supports account/content operations and specialty content review; personal health records remain owner-only. Score implementations are unreviewed and unvalidated; website score panels are synthetic design previews. This local integration is not a deployment or approval to connect to production or execute migrations.
+
 ## App Purpose
 The application aims to monitor and track users' dietary and lifestyle habits and provide personalized recommendations, including food recipes and exercise routines, based on the user's Health Stability Score (HSS) to support cardiovascular health improvement.
 HeartLink is designed to track and prevent heart disease from worsening, notice early warning signs, and remind users to get a timely in-person checkup from a nearby clinic.
@@ -80,8 +82,8 @@ flowchart TB
 **Only the backend talks to Supabase.** The mobile app and web portal call the backend; direct table access with the public Supabase key is blocked (migration 020).
 
 ### How the Heart Stability Score (HSS) is calculated
-* **At onboarding:** a scikit-learn **Logistic Regression** model (`backend/app/ml/heartlink_model.pkl`) reads 37 questionnaire and diet inputs and predicts the chance of "higher risk". The score is `HSS = (1 − probability) × 99 + 1`.
-* **After that:** logged blood pressure and heart rate are scored with fixed guideline rules, and daily meals, exercise and sleep add or subtract lifestyle points.
+* **At setup:** a linear regression trained on NHANES 2017-2018 estimates a Life's Essential 8 score from the setup answers. Details: `backend/app/ml/STARTING_SCORE.md`.
+* **From the first log:** each area (blood pressure, activity, sleep, nicotine, body weight, diet) gets the American Heart Association's Life's Essential 8 points, and the score is the average of the areas with data. HeartLink's own blood pressure rules then set limits on it. It's based on that method, not the official score, and it hasn't been validated or reviewed yet. Details: `app/ml/HEART_SCORE.md`.
 * **Levels:** 80–100 Stable · 60–79 Moderate · 50–59 Elevated Risk · 1–49 Critical.
 
 ## 👥 User Roles & Access

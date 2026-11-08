@@ -95,11 +95,11 @@ def add_meal_log(user_id: str, data: Dict[str, Any], current_user: dict = Depend
 
     # Dynamic HSS Lifestyle Recalculation (HL-ENG-18)
     try:
-        from app.services.hss_service import compute_lifestyle_composite_hss
-        compute_lifestyle_composite_hss(user_id, trigger="meal_log")
+        from app.services.heart_score import recalculate_score
+        recalculate_score(user_id, "meal_log")
     except Exception as e:
         import logging
-        logging.getLogger(__name__).warning(f"Failed to recalculate lifestyle HSS for {user_id}: {e}")
+        logging.getLogger(__name__).warning(f"Failed to recalculate the Heart score for {user_id}: {e}")
 
     return {"success": True, "message": "Meal log saved", "data": log}
 
@@ -118,10 +118,10 @@ def remove_meal_log(user_id: str, meal_id: str, current_user: dict = Depends(get
     if not deleted:
         raise HTTPException(status_code=404, detail="Meal log not found")
 
-    # Recalculate lifestyle composite HSS after meal log deletion (HL-ENG-29)
+    # Recalculate the Heart score after meal log deletion (HL-ENG-29)
     try:
-        from app.services.hss_service import compute_lifestyle_composite_hss
-        compute_lifestyle_composite_hss(user_id, trigger="meal_delete")
+        from app.services.heart_score import recalculate_score
+        recalculate_score(user_id, "meal_delete")
     except Exception as e:
         import logging
         logging.getLogger(__name__).warning(f"Failed to recalculate composite HSS after meal deletion for {user_id}: {e}")

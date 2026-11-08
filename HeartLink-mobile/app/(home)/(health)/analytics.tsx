@@ -74,9 +74,9 @@ export default function HealthAnalyticsScreen() {
   const latestTone = bandTone(latestHSS, c);
 
   const legend: { label: string; score: number }[] = [
-    { label: "Optimal (80-100)", score: 80 },
-    { label: "Moderate (60-79)", score: 60 },
-    { label: "At Risk (<60)", score: 0 },
+    { label: "On track (80-100)", score: 80 },
+    { label: "Room to improve (60-79)", score: 60 },
+    { label: "Needs attention (under 60)", score: 0 },
   ];
 
   return (

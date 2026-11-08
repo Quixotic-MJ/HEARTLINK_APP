@@ -45,7 +45,7 @@ backend on a phone, use the computer's local network IP (e.g. `192.168.x.x`), no
 - `expo-haptics` for vibration feedback, `expo-secure-store` for auth tokens,
   `@react-native-community/netinfo` for online/offline status
 - `expo-speech` for spoken exercise instructions (`hooks/useVoiceGuide.ts`), `expo-audio` for its short
-  tones (countdown beeps, new-part chime, finish; `services/workoutSounds.ts`, files in `assets/sounds/`),
+  tones (countdown beeps, new-part chime, finish; `services/sounds.ts`, files in `assets/sounds/`),
   `expo-keep-awake` to keep the screen on during an exercise
 - `expo-notifications` for daily reminders (`utils/notifications.ts`) and push notifications
   (`services/pushNotifications.ts`, HL-025), with `expo-device` and `expo-dev-client` for EAS builds
@@ -110,8 +110,8 @@ logic out of screen files.
   - **< 90 systolic or < 60 diastolic** (severe hypotension)
 - Reference: `app/(home)/(health)/log-symptoms.tsx`. `isHypertensiveCrisis` and
   `isSevereHypotension` feed `isEmergency`, which opens the emergency guidance modal and shows an
-  emergency toast on submit. The same `isEmergency` also fires for chest discomfort rated ≥ 7, or
-  shortness of breath while resting.
+  emergency toast on submit. The same `isEmergency` also fires for chest discomfort rated ≥ 7,
+  shortness of breath while resting, or fainting or nearly fainting (HL-092).
 - `services/companionService.ts` uses the same thresholds for the dashboard warning text. Keep the
   two in sync.
 - Never remove, weaken or skip these checks, even if the task doesn't mention safety. If you touch a

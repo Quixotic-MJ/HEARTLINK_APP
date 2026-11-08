@@ -15,6 +15,8 @@ export interface ExercisePayload {
   routine_id?: string;
   planned_duration_seconds?: number;
   planned_duration_minutes?: number;
+  /** HL-095: how hard it felt, 0 to 10; optional. */
+  effort_rating?: number;
 }
 
 /**

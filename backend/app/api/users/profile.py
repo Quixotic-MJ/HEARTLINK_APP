@@ -1,5 +1,5 @@
 from fastapi import APIRouter, status, HTTPException, Depends, Request, Response
-from app.utils.security import get_current_user, get_current_admin_only, set_auth_cookies, REFRESH_COOKIE_NAME, STAFF_ROLES
+from app.utils.security import get_current_user, get_current_admin_only, set_auth_cookies, REFRESH_COOKIE_NAME, STAFF_ROLES, verify_user_access
 from app.services.session_service import restart_after_password_change
 from app.utils.rate_limiter import limiter, user_or_ip_key
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
@@ -9,7 +9,9 @@ from app.schemas.user import (
     DeleteAccountRequest,
     RemindersUpdateRequest,
     CareTeamContactRequest,
-    BaselineOnboardingRequest
+    BaselineOnboardingRequest,
+    HeartAnswersUpdate,
+    ExerciseScreeningRequest,
 )
 from app.services.users import (
     update_profile,
@@ -75,6 +77,14 @@ async def update_user_profile(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
+    # Height and weight set the score's body weight area. During setup there are no answers yet, so nothing to update.
+    if payload.height_cm is not None or payload.weight_kg is not None:
+        try:
+            from app.db.repositories import get_baseline_repo
+            if get_baseline_repo().get_baseline(user_id):
+                try_recalculate(user_id, "profile_update")
+        except Exception as e:
+            logger.warning(f"Couldn't update the Heart score after a profile change: {e}")
     return {"success": True, "message": "Profile updated", "data": result}
 
 
@@ -237,8 +247,36 @@ async def update_user_reminders_route(
     return {"success": True, "message": "Reminders updated", "data": result}
 
 
-from app.services.hss_service import compute_initial_hss, HSSModelError
+from app.services.heart_score import recalculate_score, try_recalculate
+from app.services.starting_score import compute_initial_hss, HSSModelError, load_hss_model
 from datetime import datetime
+
+# HL-093: the pre-exercise safety check
+@router.get("/{user_id}/exercise-screening")
+async def get_exercise_screening(user_id: str, current_user: dict = Depends(get_current_user)):
+    verify_user_access(current_user, user_id)
+    from app.services import exercise_screening
+
+    return exercise_screening.status_for(user_id)
+
+
+@router.put("/{user_id}/exercise-screening")
+async def save_exercise_screening(
+    user_id: str, payload: ExerciseScreeningRequest, current_user: dict = Depends(get_current_user)
+):
+    verify_user_access(current_user, user_id)
+    from app.services import exercise_screening
+
+    return exercise_screening.save_answers(user_id, payload.answers)
+
+
+@router.post("/{user_id}/exercise-screening/clear")
+async def clear_exercise_screening(user_id: str, current_user: dict = Depends(get_current_user)):
+    verify_user_access(current_user, user_id)
+    from app.services import exercise_screening
+
+    return exercise_screening.clear(user_id)
+
 
 @router.post("/{user_id}/baseline/complete", status_code=status.HTTP_201_CREATED)
 async def complete_baseline_onboarding(
@@ -246,12 +284,7 @@ async def complete_baseline_onboarding(
     payload: BaselineOnboardingRequest,
     current_user: dict = Depends(get_current_user),
 ):
-    caller_id = current_user.get("user_id")
-    if caller_id != user_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You may only complete baseline onboarding for your own account.",
-        )
+    verify_user_access(current_user, user_id)
     
     from app.db.repositories import get_profile_repo, get_hss_repo
     profile_repo = get_profile_repo()
@@ -268,10 +301,12 @@ async def complete_baseline_onboarding(
         )
 
     onboarding_data = payload.model_dump()
-    
-    # 1. Compute HSS score using the ML model
+    if not onboarding_data.get("smoke_quit_when"):
+        onboarding_data.pop("smoke_quit_when", None)
+
+    # 1. The starting score from the machine learning model
     try:
-        hss_score, hss_tier, risk_probability = compute_initial_hss(onboarding_data, user_profile)
+        hss_score, hss_tier, model_estimate, rule = compute_initial_hss(onboarding_data, user_profile)
     except HSSModelError as e:
         logger.error(f"Health Stability Score computation failed: {e}", exc_info=True)
         raise HTTPException(
@@ -282,15 +317,16 @@ async def complete_baseline_onboarding(
     # 2. Save the onboarding data (also marks onboarding_status as complete)
     from app.services.users import save_baseline_onboarding
     result = save_baseline_onboarding(user_id, onboarding_data, user_profile)
-    
-    # 3. Save or update the baseline HSS score
+
+    # 3. Save the starting score. The Heart score takes over at the first log (heart_score.py)
     now_utc = utc_now()
     hss_repo = get_hss_repo()
     new_hss = hss_repo.create_hss_record(user_id, {
         "score": hss_score,
         "tier": hss_tier,
-        "risk_probability": risk_probability,
         "source": "baseline",
+        "model_version": load_hss_model().get("version"),
+        "contributing_factors": {"source": "starting_model", "trigger": "setup", "model_estimate": round(model_estimate, 1), "rule": rule},
         "computed_at": now_utc.isoformat()
     })
 
@@ -300,6 +336,23 @@ async def complete_baseline_onboarding(
         "data": result,
         "initial_hss": new_hss
     }
+
+@router.put("/{user_id}/baseline/answers", status_code=status.HTTP_200_OK)
+async def update_heart_answers(
+    user_id: str,
+    payload: HeartAnswersUpdate,
+    current_user: dict = Depends(get_current_user),
+):
+    """HL-114: smoking and diet answers can change after setup, and the Heart score follows them."""
+    verify_user_access(current_user, user_id)
+    from app.db.repositories import get_baseline_repo
+    repo = get_baseline_repo()
+    if not repo.get_baseline(user_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Finish setup first.")
+    saved = repo.save_baseline(user_id, payload.model_dump())
+    new_hss = recalculate_score(user_id, "answers_update")
+    return {"success": True, "message": "Answers updated", "data": saved, "hss": new_hss}
+
 
 @router.post("/{user_id}/care-team", status_code=status.HTTP_201_CREATED)
 async def add_care_team_member(

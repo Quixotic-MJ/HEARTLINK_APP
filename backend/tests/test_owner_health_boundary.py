@@ -12,6 +12,7 @@ OWNER = "11111111-1111-1111-1111-111111111111"
 STAFF = ["admin", "Dietitian", "Physical Therapist", "Cardiologist"]
 PERSONAL_READS = [
     f"/api/users/{OWNER}/profile", f"/api/users/{OWNER}/reminders",
+    f"/api/users/{OWNER}/exercise-screening",
     f"/api/health-logs/{OWNER}", f"/api/meals/{OWNER}",
     f"/api/exercises/logs/{OWNER}", f"/api/sleep-logs/{OWNER}",
     f"/api/analytics/{OWNER}", f"/api/analytics/{OWNER}/long-term",
@@ -19,7 +20,19 @@ PERSONAL_READS = [
     f"/api/recipes/saved/{OWNER}", f"/api/exercises/saved/{OWNER}",
 ]
 CONTACT = {"name": "Synthetic contact", "role_title": "Contact", "phone": "09123456789"}
+HEART_ANSWERS = {"ever_smoked": False, "fruit_veg_servings": "2-3", "fried_food_freq": "sometimes", "salty_food_freq": "sometimes"}
+BASELINE = {**HEART_ANSWERS, "vigorous_activity": False, "moderate_activity": False,
+            "walk_bike_transport": False, "sedentary_hours": "4-6h", "sleep_hours": 7.5,
+            "ever_drank": False, "diet_level": "average"}
+NEW_PERSONAL_ROUTES = [
+    ("GET", f"/api/users/{OWNER}/exercise-screening", None),
+    ("PUT", f"/api/users/{OWNER}/exercise-screening", {"answers": {}}),
+    ("POST", f"/api/users/{OWNER}/exercise-screening/clear", None),
+    ("POST", f"/api/users/{OWNER}/baseline/complete", BASELINE),
+    ("PUT", f"/api/users/{OWNER}/baseline/answers", HEART_ANSWERS),
+]
 PERSONAL_WRITES = [
+    *NEW_PERSONAL_ROUTES[1:],
     ("PUT", f"/api/users/{OWNER}/profile", {"first_name": "Synthetic", "date_of_birth": "1990-01-01",
                                             "sex": "female", "height_cm": 160, "weight_kg": 60}),
     ("DELETE", f"/api/users/{OWNER}", {"password": "SyntheticNotARealCredential"}),
@@ -92,6 +105,38 @@ def test_staff_cannot_modify_another_accounts_personal_data(personal_api, staff,
     client, caller = personal_api
     caller.update(role="admin" if staff == "admin" else "medical_expert", expert_type=staff)
     assert client.request(method, path, json=body).status_code == 403
+
+
+@pytest.mark.parametrize("method,path,body", NEW_PERSONAL_ROUTES)
+def test_new_personal_routes_require_a_recognized_owner(personal_api, monkeypatch, method, path, body):
+    client, caller = personal_api
+    caller.update(user_id=OWNER, role="unknown")
+
+    def blocked(*_args, **_kwargs):
+        raise AssertionError("Unknown identities must not reach personal storage")
+
+    for name in ("status_for", "save_answers", "clear"):
+        monkeypatch.setattr(f"app.services.exercise_screening.{name}", blocked)
+    assert client.request(method, path, json=body).status_code == 403
+
+
+def test_owner_can_save_read_and_clear_their_exercise_screening(personal_api, monkeypatch):
+    from app.services.exercise_screening import QUESTION_IDS
+
+    client, caller = personal_api
+    caller.update(user_id=OWNER, role="patient")
+    rows = {}
+    repo = SimpleNamespace(get=lambda uid: rows.get(uid), save=lambda uid, row: rows.update({uid: row}))
+    monkeypatch.setattr("app.db.repositories.get_exercise_screening_repo", lambda: repo)
+    path = f"/api/users/{OWNER}/exercise-screening"
+    assert client.get(path).json()["answered"] is False
+    answers = {question: question == "joint_problem" for question in QUESTION_IDS}
+    saved = client.put(path, json={"answers": answers})
+    assert saved.status_code == 200 and saved.json()["paused"] is True
+    cleared = client.post(path + "/clear")
+    assert cleared.status_code == 200 and cleared.json()["cleared"] is True
+    assert client.get(path).json() == cleared.json()
+    assert list(rows) == [OWNER] and rows[OWNER]["answers"] == answers
 
 
 def test_admin_personal_notification_update_is_scoped_to_their_own_account(personal_api, monkeypatch):

@@ -117,6 +117,10 @@ class SupabaseExercisesRepository(ExercisesRepository):
             if data.get("routine_id"):
                 valid_routine_id = resolve_uuid(data["routine_id"])
                 payload["routine_id"] = valid_routine_id
+            # HL-095: how hard it felt, 0 to 10; anything else is left out
+            effort = data.get("effort_rating")
+            if isinstance(effort, int) and not isinstance(effort, bool) and 0 <= effort <= 10:
+                payload["effort_rating"] = effort
 
             payload = serialize_for_db(payload)
             
@@ -129,6 +133,13 @@ class SupabaseExercisesRepository(ExercisesRepository):
             except Exception as insert_err:
                 err_msg = str(insert_err)
                 
+                # Fallback 0: the effort column isn't there yet (migration 044); the session still gets saved
+                if "effort_rating" in err_msg:
+                    insert_payload.pop("effort_rating", None)
+                    res = self.client.table("exercise_logs").insert(insert_payload).execute()
+                    result = res.data[0] if res.data else payload
+                    return self._normalize_log(result)
+
                 # Fallback 1: Column 'duration_seconds' does not exist yet (PGRST204)
                 if "duration_seconds" in err_msg or "PGRST204" in err_msg:
                     insert_payload.pop("duration_seconds", None)

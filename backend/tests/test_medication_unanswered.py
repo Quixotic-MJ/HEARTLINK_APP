@@ -6,7 +6,6 @@ import app.db.repositories as repos
 import app.services.health_logs as health_log_service
 from app.main import app
 from app.services import dashboard
-from app.services.hss_service import compute_lifestyle_composite_hss
 from app.utils.security import create_access_token, revoked_token_hashes
 from app.utils.time import utc_now
 
@@ -73,23 +72,3 @@ def test_dashboard_counts_no_medicines_as_not_taken(monkeypatch, medication, exp
     for name in ("get_meals_repo", "get_exercises_repo", "get_sleep_repo"):
         monkeypatch.setattr(dashboard, name, lambda: Empty())
     assert dashboard._get_today_activity(PATIENT_ID)["medication_taken"] is expected
-
-
-@pytest.mark.parametrize("medication, points", [(True, 2), (False, 0), (None, 0)])
-def test_score_gives_no_medication_points_for_no_medicines(monkeypatch, medication, points):
-    recorded = {}
-
-    class Hss:
-        def list_hss_history(self, uid):
-            return []
-
-        def create_hss_record(self, uid, data):
-            recorded.update(data)
-            return data
-
-    monkeypatch.setattr(health_log_service, "get_health_logs", lambda uid, **k: [_today_log(medication)])
-    monkeypatch.setattr(repos, "get_hss_repo", lambda: Hss())
-    for name in ("get_baseline_repo", "get_meals_repo", "get_exercises_repo", "get_sleep_repo"):
-        monkeypatch.setattr(repos, name, lambda: Empty())
-    compute_lifestyle_composite_hss(PATIENT_ID)
-    assert recorded["contributing_factors"]["medication_points"] == points

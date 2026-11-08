@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, ScrollView, Image } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
+import { foodImpact } from "../../../services/foodAdvice";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -226,7 +227,7 @@ export default function RecipeDetailsScreen() {
   const currentSatFat =
     (recipe.nutrition.saturatedFat ?? 0) * servingsMultiplier;
 
-  const isHighSodium = currentSodium >= 140;
+  const sodiumNote = foodImpact(currentSodium, 0);
 
   const handleLogMeal = async () => {
     setIsSubmitting(true);
@@ -384,13 +385,13 @@ export default function RecipeDetailsScreen() {
               ))}
             </View>
 
-            {isHighSodium && (
+            {sodiumNote.tone === "high" && (
               <View className="flex-row" style={{ gap: 10, padding: 14, borderRadius: 12, backgroundColor: c.rose }}>
                 <Feather name="alert-triangle" size={18} color={c.danger} style={{ marginTop: 1 }} />
                 <View style={{ flex: 1, gap: 2 }}>
-                  <Text style={{ fontSize: 14, fontWeight: "600", color: c.charcoal }}>Exceeds your per-meal sodium limit</Text>
+                  <Text style={{ fontSize: 14, fontWeight: "600", color: c.charcoal }}>{sodiumNote.title}</Text>
                   <Text style={{ fontSize: 14, lineHeight: 20, color: c.charcoal }}>
-                    Based on your baseline, this portion exceeds your recommended per-meal sodium limit.
+                    {sodiumNote.desc}
                   </Text>
                 </View>
               </View>

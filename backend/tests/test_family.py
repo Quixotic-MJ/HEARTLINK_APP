@@ -261,6 +261,8 @@ def test_account_kind_is_patient_or_family(world):
     ({"symptoms": ["Chest Discomfort / Tightness"], "severity_map": {"Chest Discomfort / Tightness": 6}}, False),
     ({"symptoms": ["Shortness of Breath"], "context": "resting"}, True),
     ({"symptoms": ["Shortness of Breath"], "context": "after_exercise"}, False),
+    ({"symptoms": ["Fainted or Nearly Fainted"]}, True),
+    ({"symptoms": ["Dizziness / Lightheadedness"], "severity_map": {"Dizziness / Lightheadedness": 10}}, False),
     ({}, False),
 ])
 def test_emergency_rules_match_the_app(data, emergency):

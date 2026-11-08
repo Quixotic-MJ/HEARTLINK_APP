@@ -22,7 +22,7 @@ export const TOUR_STEPS: TourStep[] = [
   {
     target: "score",
     title: "Your heart score",
-    body: "Built from your readings and habits; its colour shows the band. Swipe this card (or tap the dots) to see today's habits and your latest reading. Tap the i to see how the score is worked out. It isn't a diagnosis.",
+    body: "Based on your blood pressure, activity, sleep, nicotine, body weight and diet over the last week; its colour shows the band. Swipe this card (or tap the dots) to see today's habits and your latest reading. Tap the i to see the points for each area. It isn't a diagnosis.",
   },
   {
     target: "missions",
@@ -42,7 +42,7 @@ export const TOUR_STEPS: TourStep[] = [
   {
     target: "summary",
     title: "Picked for you",
-    body: "Dietitian-approved meals and PT-approved exercises that suit your score and what's left of today. Tap one to log it or start it.",
+    body: "Meals and exercises that suit your score and what's left of today. Tap one to log it or start it.",
   },
   {
     target: "care",

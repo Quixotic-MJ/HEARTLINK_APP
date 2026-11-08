@@ -25,6 +25,7 @@ from app.db.repositories import (
 )
 from app.services.health_report import TZ, _day, _live, _local, _number
 from app.services.premium import PREMIUM_REQUIRED, is_premium
+from app.services.review_rules import FAINTED_SYMPTOM
 from app.utils.time import parse_utc, to_local_date, utc_now
 
 logger = logging.getLogger(__name__)
@@ -242,7 +243,8 @@ def summary(user_id: str, patient_id: str) -> Dict[str, Any]:
 
 def is_emergency(data: Dict[str, Any]) -> bool:
     """The app's emergency rules (log-symptoms.tsx, companionService.ts), unchanged: blood pressure at 180/120 or
-    more, or under 90/60; chest discomfort rated 7 or more; shortness of breath while resting."""
+    more, or under 90/60; chest discomfort rated 7 or more; shortness of breath while resting; fainting or nearly
+    fainting."""
     sys_bp, dia_bp = _number(data.get("systolic_bp")), _number(data.get("diastolic_bp"))
     if sys_bp is not None and dia_bp is not None and (sys_bp >= 180 or dia_bp >= 120 or sys_bp < 90 or dia_bp < 60):
         return True
@@ -250,7 +252,7 @@ def is_emergency(data: Dict[str, Any]) -> bool:
     severity = data.get("severity_map") or {}
     chest = "Chest Discomfort / Tightness" in symptoms and (_number(severity.get("Chest Discomfort / Tightness")) or 1) >= 7
     breath = "Shortness of Breath" in symptoms and data.get("context") == "resting"
-    return bool(chest or breath)
+    return bool(chest or breath or FAINTED_SYMPTOM in symptoms)
 
 
 def _what(data: Dict[str, Any]) -> str:

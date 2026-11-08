@@ -30,6 +30,10 @@ export const exerciseSchema = z
     requirements: z.array(z.string()).default([]),
     position: z.string().optional(),
     setting: z.string().optional(),
+    difficultyLevel: z.string().optional(),
+    category: z.string().optional(),
+    targetAreas: z.string().optional(),
+    tempo: z.string().optional(),
     effortHint: z.string().optional(),
     frequency: z.string().optional(),
     easierVersion: z.string().optional(),
@@ -115,6 +119,10 @@ export const EMPTY_FORM = {
   requirements: [],
   position: "",
   setting: "",
+  difficultyLevel: "",
+  category: "",
+  targetAreas: "",
+  tempo: "",
   effortHint: "",
   frequency: "",
   easierVersion: "",
@@ -173,6 +181,10 @@ export function exerciseValues(exercise) {
       .filter(Boolean),
     position: exercise.position || "",
     setting: exercise.setting || "",
+    difficultyLevel: exercise.difficultyLevel || "",
+    category: exercise.category || "",
+    targetAreas: (exercise.targetAreas || []).join(", "),
+    tempo: exercise.tempo || "",
     effortHint: exercise.effortHint || "",
     frequency: exercise.frequency || "",
     easierVersion: exercise.easierVersion || "",
@@ -239,6 +251,13 @@ export function exercisePayload(data, totalSeconds) {
       : Math.max(1, Math.ceil(totalSeconds / 60)),
     position: data.position || null,
     setting: data.setting || null,
+    difficultyLevel: data.difficultyLevel || null,
+    category: data.category || null,
+    targetAreas: (data.targetAreas || "")
+      .split(",")
+      .map((area) => area.trim())
+      .filter(Boolean),
+    tempo: data.tempo || null,
     guideImages: (data.guideImages || [])
       .map((g) => (g.url || "").trim())
       .filter(Boolean),
