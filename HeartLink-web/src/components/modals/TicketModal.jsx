@@ -1,449 +1,316 @@
-import { useRef, useState } from "react";
-import {
-  X,
-  MessageSquare,
-  Smartphone,
-  Save,
-  Archive,
-  Clock,
-  User,
-  AlertCircle,
-  RotateCcw,
-} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { X } from "lucide-react";
 import FeedbackCategoryBadge from "../ui/FeedbackCategoryBadge";
-import { apiFetch } from "../../api";
 import { useDialogFocus } from "../../hooks/useDialogFocus";
+import { UI } from "../../styles/tokens";
 
-const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
+export default function TicketModal({
+  isOpen,
+  onClose,
+  ticket,
+  onUpdate,
+  onArchive,
+}) {
+  const [notes, setNotes] = useState(ticket?.adminNotes || "");
+  const [status, setStatus] = useState(ticket?.status || "Unknown");
+  const [mode, setMode] = useState("edit");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const pending = useRef(false);
   const dialogRef = useRef(null);
-  const [adminNotes, setAdminNotes] = useState("");
-  const [ticketStatus, setTicketStatus] = useState("Open");
-
-  // Keep track of original values to detect changes
-  const [initialNotes, setInitialNotes] = useState("");
-  const [initialStatus, setInitialStatus] = useState("Open");
-
-  // Confirmation Overlays states
-  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
-  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
-
-  // Concurrency Conflict states
-  const [conflictError, setConflictError] = useState(false);
-  const [serverTicketData, setServerTicketData] = useState(null);
-
-  // Load the ticket into the form when the modal opens on it
-  const openKey = isOpen && ticket ? ticket.id : null;
-  const [shownFor, setShownFor] = useState(null);
-  if (openKey !== shownFor) {
-    setShownFor(openKey);
-    if (openKey !== null) {
-      setAdminNotes(ticket.adminNotes || "");
-      setTicketStatus(ticket.status || "Open");
-      setInitialNotes(ticket.adminNotes || "");
-      setInitialStatus(ticket.status || "Open");
-
-      // Reset confirmation and error states
-      setShowDiscardConfirm(false);
-      setShowArchiveConfirm(false);
-      setConflictError(false);
-      setServerTicketData(null);
-    }
-  }
-
-  // Intercept close events to check for dirty state
-  const hasUnsavedChanges =
-    adminNotes !== initialNotes || ticketStatus !== initialStatus;
-
-  const handleCloseAttempt = () => {
-    if (hasUnsavedChanges) {
-      setShowDiscardConfirm(true);
-    } else {
-      onClose();
-    }
+  const errorRef = useRef(null);
+  const notesRef = useRef(null);
+  const cancelRef = useRef(null);
+  const dirty =
+    notes !== (ticket?.adminNotes || "") || status !== ticket?.status;
+  const close = () => {
+    if (pending.current) return;
+    if (mode !== "edit") setMode("edit");
+    else if (dirty) setMode("discard");
+    else onClose();
   };
-
-  const hasOverlay = showDiscardConfirm || showArchiveConfirm || conflictError;
-  useDialogFocus(isOpen && !hasOverlay, dialogRef, handleCloseAttempt);
-
+  useDialogFocus(isOpen, dialogRef, close);
+  useEffect(() => {
+    if (mode !== "edit") cancelRef.current?.focus();
+    else notesRef.current?.focus();
+  }, [mode]);
   if (!isOpen || !ticket) return null;
-
-  // Check backend to verify no concurrent updates have occurred
-  const checkConcurrencyConflict = async () => {
+  const archived = ticket.status === "Archived";
+  const knownStatus = ["Open", "In Progress", "Resolved", "Archived"].includes(
+    ticket.status,
+  );
+  const revision = ticket.updated_at;
+  const canUpdate = !!revision && knownStatus;
+  const run = async (nextStatus) => {
+    if (pending.current || !canUpdate) return;
+    pending.current = true;
+    setBusy(true);
+    setError("");
+    const changedNotes = notes !== (ticket.adminNotes || "") ? notes : undefined;
     try {
-      const latestTickets = await apiFetch("/api/feedback/");
-      if (latestTickets) {
-        const serverTicket = latestTickets.find((t) => t.id === ticket.id);
-        if (serverTicket) {
-          const statusChanged = serverTicket.status !== initialStatus;
-          const notesChanged = serverTicket.adminNotes !== initialNotes;
-          if (statusChanged || notesChanged) {
-            setServerTicketData(serverTicket);
-            setConflictError(true);
-            return true;
-          }
-        }
-      }
-    } catch (e) {
-      console.error("Conflict check failed:", e);
+      if (nextStatus === "Archived")
+        await onArchive(ticket.id, changedNotes, revision);
+      else await onUpdate(ticket.id, nextStatus, changedNotes, revision);
+    } catch (failure) {
+      const detail = failure.data?.detail;
+      setError(
+        typeof detail === "string"
+          ? detail
+          : "Could not save this ticket. Your draft is kept here.",
+      );
+      requestAnimationFrame(() => errorRef.current?.focus());
+    } finally {
+      pending.current = false;
+      setBusy(false);
     }
-    return false;
   };
-
-  const handleSave = async () => {
-    const isConflict = await checkConcurrencyConflict();
-    if (isConflict) return;
-    onUpdate(ticket.id, ticketStatus, adminNotes);
-  };
-
-  const handleArchiveClick = () => {
-    setShowArchiveConfirm(true);
-  };
-
-  const handleArchiveConfirmAction = async () => {
-    const isConflict = await checkConcurrencyConflict();
-    if (isConflict) {
-      setShowArchiveConfirm(false);
-      return;
-    }
-    onArchive(ticket.id, adminNotes);
-    setShowArchiveConfirm(false);
-  };
-
-  const handleRestoreClick = async () => {
-    const isConflict = await checkConcurrencyConflict();
-    if (isConflict) return;
-    onUpdate(ticket.id, "Open", adminNotes);
-  };
-
-  const isArchived = ticket.status === "Archived";
+  const metadata = (key) =>
+    typeof ticket.deviceMeta?.[key] === "string"
+      ? ticket.deviceMeta[key]
+      : "Not recorded";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 font-cal-sans text-cal-ink">
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-cal-ink/40 transition-opacity cursor-pointer"
-        onClick={handleCloseAttempt}
-      />
-
-      {/* Modal Panel */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 font-cal-sans text-cal-ink">
+      <div className="absolute inset-0 bg-cal-ink/40" onClick={close} />
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="ticket-modal-title"
         tabIndex={-1}
-        className="relative z-10 flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas text-cal-ink shadow-[0_12px_36px_rgba(0,0,0,0.12)]"
+        aria-busy={busy}
+        className="relative flex max-h-full w-full max-w-lg flex-col overflow-hidden rounded-xl border border-cal-hairline bg-cal-canvas shadow-xl"
       >
-        {/* Custom Confirmation Overlays */}
-        {showDiscardConfirm && (
-          <div className="absolute inset-0 z-30 flex items-center justify-center bg-cal-ink/50 p-6 backdrop-blur-[2px]">
-            <div className="flex max-w-sm flex-col rounded-[12px] border border-cal-hairline bg-cal-canvas p-5 shadow-[0_12px_32px_rgba(0,0,0,0.15)] text-left">
-              <h4 className="font-cal-display text-[17px] font-semibold text-cal-ink">
+        <div className="flex items-start justify-between gap-3 border-b border-cal-hairline p-5">
+          <div>
+            <h2 id="ticket-modal-title" className="text-lg font-semibold">
+              {ticket.ticketId || "Support ticket"}
+            </h2>
+            <p className="mt-1 text-sm text-cal-muted">
+              Account, technical and content feedback—not a medical-advice
+              inbox.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={close}
+            disabled={busy}
+            aria-label="Close ticket"
+            className={UI.button.icon}
+          >
+            <X size={18} aria-hidden="true" />
+          </button>
+        </div>
+        <div className="space-y-4 overflow-y-auto p-5">
+          {error && (
+            <p
+              ref={errorRef}
+              role="alert"
+              tabIndex={-1}
+              className="rounded-lg border border-cal-error p-3 text-sm"
+            >
+              {error} Your unsaved notes are retained.
+            </p>
+          )}
+          {mode === "discard" ? (
+            <section className="space-y-4" aria-labelledby="discard-heading">
+              <h3 id="discard-heading" className="font-semibold">
                 Discard unsaved changes?
-              </h4>
-              <p className="mt-1.5 text-[12.5px] leading-relaxed text-cal-muted">
-                You have unsaved changes in your notes or resolution status.
-                Are you sure you want to discard them?
+              </h3>
+              <p className="text-sm text-cal-muted">
+                Closing will discard your draft notes and status selection.
               </p>
-              <div className="mt-5 flex justify-end gap-2.5">
+              <div className="flex flex-wrap gap-2">
                 <button
+                  ref={cancelRef}
                   type="button"
-                  onClick={() => setShowDiscardConfirm(false)}
-                  className="inline-flex h-9 items-center justify-center rounded-[8px] border border-cal-hairline bg-cal-canvas px-3.5 text-[13px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer"
+                  onClick={() => setMode("edit")}
+                  className={UI.button.secondary}
                 >
                   Keep editing
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowDiscardConfirm(false);
-                    onClose();
-                  }}
-                  className="inline-flex h-9 items-center justify-center rounded-[8px] bg-cal-error px-3.5 text-[13px] font-semibold text-white hover:bg-cal-error/90 transition-colors cursor-pointer"
+                  onClick={onClose}
+                  className={UI.button.secondary}
                 >
-                  Discard
+                  Discard draft
                 </button>
               </div>
-            </div>
-          </div>
-        )}
-
-        {showArchiveConfirm && (
-          <div className="absolute inset-0 z-30 flex items-center justify-center bg-cal-ink/50 p-6 backdrop-blur-[2px]">
-            <div className="flex max-w-sm flex-col rounded-[12px] border border-cal-hairline bg-cal-canvas p-5 shadow-[0_12px_32px_rgba(0,0,0,0.15)] text-left">
-              <h4 className="font-cal-display text-[17px] font-semibold text-cal-ink">
-                Archive feedback ticket?
-              </h4>
-              <p className="mt-1.5 text-[12.5px] leading-relaxed text-cal-muted">
-                Archived tickets are moved to cold storage but remain searchable
-                and can be restored at any time.
+            </section>
+          ) : mode === "archive" ? (
+            <section className="space-y-4" aria-labelledby="archive-heading">
+              <h3 id="archive-heading" className="font-semibold">
+                Archive support ticket?
+              </h3>
+              <p className="text-sm text-cal-muted">
+                The ticket stays searchable and can be restored. Archiving does
+                not delete its records or send a reply.
               </p>
-              <div className="mt-5 flex justify-end gap-2.5">
+              <div className="flex flex-wrap gap-2">
                 <button
+                  ref={cancelRef}
                   type="button"
-                  onClick={() => setShowArchiveConfirm(false)}
-                  className="inline-flex h-9 items-center justify-center rounded-[8px] border border-cal-hairline bg-cal-canvas px-3.5 text-[13px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer"
+                  onClick={() => setMode("edit")}
+                  disabled={busy}
+                  className={UI.button.secondary}
                 >
-                  Cancel
+                  Cancel archive
                 </button>
                 <button
                   type="button"
-                  onClick={handleArchiveConfirmAction}
-                  className="inline-flex h-9 items-center justify-center rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-3.5 text-[13px] font-semibold text-cal-on-primary transition-colors cursor-pointer"
+                  onClick={() => run("Archived")}
+                  disabled={busy}
+                  className={UI.button.primary}
                 >
-                  Archive ticket
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {conflictError && (
-          <div className="absolute inset-0 z-30 flex items-center justify-center bg-cal-ink/50 p-6 backdrop-blur-[2px]">
-            <div className="flex max-w-sm flex-col rounded-[12px] border border-cal-hairline bg-cal-canvas p-5 shadow-[0_12px_32px_rgba(0,0,0,0.15)] text-left">
-              <h4 className="flex items-center gap-1.5 font-cal-display text-[17px] font-semibold text-cal-error">
-                <AlertCircle size={16} /> Conflict detected
-              </h4>
-              <p className="mt-1.5 text-[12.5px] leading-relaxed text-cal-muted">
-                This ticket was updated by another administrator. Reload the
-                latest version before saving your changes.
-              </p>
-              <div className="mt-5 flex justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setConflictError(false)}
-                  className="inline-flex h-9 items-center justify-center rounded-[8px] border border-cal-hairline bg-cal-canvas px-3.5 text-[13px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (serverTicketData) {
-                      setAdminNotes(serverTicketData.adminNotes || "");
-                      setTicketStatus(serverTicketData.status || "Open");
-                      setInitialNotes(serverTicketData.adminNotes || "");
-                      setInitialStatus(serverTicketData.status || "Open");
-                    }
-                    setConflictError(false);
-                  }}
-                  className="inline-flex h-9 items-center justify-center rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-3.5 text-[13px] font-semibold text-cal-on-primary transition-colors cursor-pointer"
-                >
-                  Reload latest
+                  {busy ? "Archiving…" : "Confirm archive"}
                 </button>
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* Modal Header */}
-        <div className="flex items-start justify-between gap-3 border-b border-cal-hairline bg-cal-canvas px-6 pt-5 pb-4">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-soft text-cal-ink">
-              <MessageSquare size={16} aria-hidden="true" />
-            </div>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
+            </section>
+          ) : (
+            <>
+              <FeedbackCategoryBadge category={ticket.category} />
+              <dl className="space-y-2 text-sm">
+                <div>
+                  <dt className="text-cal-muted">Account reference</dt>
+                  <dd className="break-all font-cal-mono text-xs">
+                    {ticket.userId || "Not recorded"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-cal-muted">Submitted</dt>
+                  <dd>
+                    {ticket.created_at
+                      ? new Date(ticket.created_at).toLocaleString("en-PH", {
+                          timeZone: "Asia/Manila",
+                        }) + " (Asia/Manila)"
+                      : ticket.date || "Not recorded"}
+                  </dd>
+                </div>
+              </dl>
+              <section aria-labelledby="ticket-message-heading">
                 <h3
-                  id="ticket-modal-title"
-                  className="font-cal-mono text-[17px] font-semibold tabular-nums text-cal-ink"
+                  id="ticket-message-heading"
+                  className="mb-2 text-sm font-semibold"
                 >
-                  {ticket.ticketId}
+                  User message
                 </h3>
-                <FeedbackCategoryBadge category={ticket.category} />
-              </div>
-              <p className="mt-0.5 flex items-center gap-1 font-cal-mono text-[11.5px] tabular-nums text-cal-muted">
-                <Clock size={11} aria-hidden="true" />
-                <span>Submitted {ticket.date}</span>
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleCloseAttempt}
-            aria-label="Close"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-cal-hairline bg-cal-canvas text-cal-muted hover:bg-cal-surface-soft hover:text-cal-ink transition-colors cursor-pointer"
-          >
-            <X size={16} />
-          </button>
-        </div>
-
-        {/* Modal Content */}
-        <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
-          {/* Account Context */}
-          <div className="flex items-center justify-between rounded-[10px] border border-cal-hairline bg-cal-surface-soft px-4 py-3">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-7 w-7 items-center justify-center rounded-full border border-cal-hairline bg-cal-canvas text-cal-muted">
-                <User size={12} aria-hidden="true" />
-              </div>
-              <div>
-                <p className="text-[11.5px] font-medium text-cal-muted">
-                  Account reference
+                <p className="break-words whitespace-pre-wrap rounded-lg border border-cal-hairline bg-cal-surface-soft p-4 text-sm leading-relaxed">
+                  {ticket.fullMessage || "No message recorded."}
                 </p>
-                <p className="font-cal-mono text-[13px] font-semibold tabular-nums text-cal-ink">
-                  {ticket.userId || "N/A"}
+              </section>
+              <details className="rounded-lg border border-cal-hairline p-3 text-sm">
+                <summary className="cursor-pointer font-medium">
+                  Technical metadata
+                </summary>
+                <dl className="mt-3 space-y-2 break-words">
+                  {[
+                    ["os", "Operating system"],
+                    ["appVersion", "App version"],
+                    ["model", "Device model"],
+                  ].map(([key, label]) => (
+                    <div key={key}>
+                      <dt className="text-cal-muted">{label}</dt>
+                      <dd>{metadata(key)}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </details>
+              {!canUpdate && (
+                <p className="text-sm text-cal-muted">
+                  This ticket has no usable revision or status. Updates are
+                  unavailable until the record can be refreshed.
                 </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Full Issue Description */}
-          <div>
-            <h4 className="mb-1.5 flex items-center gap-1.5 text-[12px] font-medium text-cal-muted">
-              <MessageSquare size={12} className="text-cal-ink" />
-              <span>User message</span>
-            </h4>
-            <div className="rounded-[10px] border border-cal-hairline bg-cal-surface-soft p-4">
-              <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed text-cal-ink">
-                {ticket.fullMessage || "No message provided."}
-              </p>
-            </div>
-          </div>
-
-          {/* Device Metadata */}
-          <div>
-            <h4 className="mb-1.5 flex items-center gap-1.5 text-[12px] font-medium text-cal-muted">
-              <Smartphone size={12} className="text-cal-ink" />
-              <span>Device metadata</span>
-            </h4>
-            <div className="grid grid-cols-2 gap-px overflow-hidden rounded-[10px] border border-cal-hairline bg-cal-hairline text-[12.5px]">
-              <div className="bg-cal-canvas p-3">
-                <p className="text-[11px] font-medium text-cal-muted">
-                  Operating system
-                </p>
-                <p className="mt-0.5 font-semibold text-cal-ink">
-                  {ticket.deviceMeta?.os || "N/A"}
-                </p>
-              </div>
-              <div className="bg-cal-canvas p-3">
-                <p className="text-[11px] font-medium text-cal-muted">
-                  App version
-                </p>
-                <p className="mt-0.5 font-cal-mono font-semibold tabular-nums text-cal-ink">
-                  {ticket.deviceMeta?.appVersion || "N/A"}
-                </p>
-              </div>
-              <div className="col-span-2 bg-cal-canvas p-3">
-                <p className="text-[11px] font-medium text-cal-muted">
-                  Device model
-                </p>
-                <p className="mt-0.5 font-semibold text-cal-ink">
-                  {ticket.deviceMeta?.model || "N/A"}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Admin Resolution Area */}
-          <div>
-            <h4 className="mb-1.5 flex items-center gap-1.5 text-[12px] font-medium text-cal-muted">
-              <Save size={12} className="text-cal-ink" />
-              <span>Resolution logging</span>
-            </h4>
-
-            <div className="space-y-3">
-              <div>
-                <label
-                  htmlFor="admin-ticket-notes"
-                  className="mb-1 block text-[13px] font-medium text-cal-ink"
-                >
-                  Admin / Developer notes
-                </label>
-                <textarea
-                  id="admin-ticket-notes"
-                  rows="3"
-                  value={adminNotes}
-                  onChange={(e) => setAdminNotes(e.target.value)}
-                  className="w-full resize-none rounded-[8px] border border-cal-hairline bg-cal-canvas px-3.5 py-2.5 text-[13.5px] leading-relaxed text-cal-ink placeholder:text-cal-muted-soft focus:border-cal-ink focus:outline-none transition-colors"
-                  placeholder="Log root cause of issue or deployed fixes…"
-                />
-              </div>
-
-              {!isArchived ? (
+              )}
+              <fieldset
+                disabled={busy || archived || !canUpdate}
+                className="space-y-3"
+              >
                 <div>
                   <label
-                    htmlFor="admin-ticket-status"
-                    className="mb-1 block text-[13px] font-medium text-cal-ink"
+                    htmlFor="support-internal-notes"
+                    className={UI.input.label}
+                  >
+                    Internal Admin notes
+                  </label>
+                  <textarea
+                    ref={notesRef}
+                    id="support-internal-notes"
+                    rows={4}
+                    maxLength={4000}
+                    value={notes}
+                    onChange={(event) => setNotes(event.target.value)}
+                    aria-describedby="support-notes-boundary"
+                    className={UI.input.textarea}
+                    placeholder="Technical follow-up only; do not copy health readings or credentials."
+                  />
+                  <p
+                    id="support-notes-boundary"
+                    className="mt-2 text-xs leading-relaxed text-cal-muted"
+                  >
+                    Stored for staff only. Saving these notes does not deliver a
+                    reply to the app user.
+                  </p>
+                </div>
+                <div>
+                  <label
+                    htmlFor="support-ticket-status"
+                    className={UI.input.label}
                   >
                     Ticket status
                   </label>
                   <select
-                    id="admin-ticket-status"
-                    value={ticketStatus}
-                    onChange={(e) => setTicketStatus(e.target.value)}
-                    className="h-10 w-full rounded-[8px] border border-cal-hairline bg-cal-canvas px-3.5 text-[13.5px] font-medium text-cal-ink focus:border-cal-ink focus:outline-none transition-colors cursor-pointer"
+                    id="support-ticket-status"
+                    value={status}
+                    onChange={(event) => setStatus(event.target.value)}
+                    className={UI.input.select + " w-full"}
                   >
-                    <option value="Open">Open</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Resolved">Resolved</option>
-                    <option value="Archived">Archived</option>
+                    {!knownStatus && (
+                      <option value={status}>Unrecognised status</option>
+                    )}
+                    {["Open", "In Progress", "Resolved"].map((value) => (
+                      <option key={value}>{value}</option>
+                    ))}
+                    {archived && <option>Archived</option>}
                   </select>
                 </div>
-              ) : (
-                <div className="flex items-center justify-between rounded-[10px] border border-cal-hairline bg-cal-surface-soft p-3.5">
-                  <div>
-                    <p className="text-[11.5px] font-medium text-cal-muted">
-                      Current status
-                    </p>
-                    <p className="font-semibold text-cal-ink">Archived</p>
-                  </div>
-                  <span className="text-[12px] text-cal-muted">
-                    Restoring returns ticket to Open
-                  </span>
-                </div>
+              </fieldset>
+            </>
+          )}
+        </div>
+        {mode === "edit" && (
+          <div className="flex flex-wrap justify-between gap-2 border-t border-cal-hairline p-4">
+            <button
+              type="button"
+              disabled={busy || !canUpdate}
+              onClick={() => (archived ? run("Open") : setMode("archive"))}
+              className={UI.button.secondary}
+            >
+              {archived ? "Restore ticket" : "Archive"}
+            </button>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={close}
+                disabled={busy}
+                className={UI.button.secondary}
+              >
+                Close
+              </button>
+              {!archived && (
+                <button
+                  type="button"
+                  disabled={busy || !dirty || !canUpdate}
+                  onClick={() => run(status)}
+                  className={UI.button.primary}
+                >
+                  {busy ? "Saving…" : "Save ticket"}
+                </button>
               )}
             </div>
           </div>
-        </div>
-
-        {/* Modal Footer / Actions */}
-        <div className="flex shrink-0 items-center justify-between border-t border-cal-hairline bg-cal-canvas px-6 py-4">
-          {!isArchived ? (
-            <button
-              type="button"
-              onClick={handleArchiveClick}
-              className="inline-flex h-10 items-center gap-1.5 rounded-[8px] border border-cal-hairline bg-cal-canvas px-3.5 text-[13px] font-semibold text-cal-muted hover:bg-cal-surface-soft hover:text-cal-ink transition-colors cursor-pointer"
-              title="Archive submission"
-            >
-              <Archive size={14} />
-              <span>Archive</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleRestoreClick}
-              className="inline-flex h-10 items-center gap-1.5 rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-4 text-[13px] font-semibold text-cal-on-primary transition-colors cursor-pointer"
-              title="Restore archived ticket"
-            >
-              <RotateCcw size={14} />
-              <span>Restore ticket</span>
-            </button>
-          )}
-
-          <div className="flex items-center gap-2.5">
-            <button
-              type="button"
-              onClick={handleCloseAttempt}
-              className="inline-flex h-10 items-center justify-center rounded-[8px] border border-cal-hairline bg-cal-canvas px-4 text-[13.5px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer"
-            >
-              Cancel
-            </button>
-            {!isArchived && (
-              <button
-                type="button"
-                onClick={handleSave}
-                className="inline-flex h-10 items-center gap-1.5 rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-5 text-[13.5px] font-semibold text-cal-on-primary transition-colors cursor-pointer"
-              >
-                <Save size={14} />
-                <span>Update ticket</span>
-              </button>
-            )}
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
-};
-
-export default TicketModal;
+}

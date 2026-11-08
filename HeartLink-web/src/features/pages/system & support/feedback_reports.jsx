@@ -75,7 +75,7 @@ function StatusBadge({ status }) {
           <span>Archived</span>
         </span>
       );
-    default:
+    case "Open":
       return (
         <span
           className={`${PILL} border-cal-error/25 bg-cal-error/10 text-cal-ink`}
@@ -86,6 +86,14 @@ function StatusBadge({ status }) {
             aria-hidden="true"
           />
           <span>Open</span>
+        </span>
+      );
+    default:
+      return (
+        <span
+          className={`${PILL} border-cal-hairline bg-cal-surface-soft text-cal-muted`}
+        >
+          {status || "Unknown"}
         </span>
       );
   }
@@ -122,31 +130,42 @@ const Feedback = () => {
     setActiveTicket(null);
   };
 
-  const handleUpdateTicket = async (id, newStatus, newNotes) => {
+  const handleUpdateTicket = async (
+    id,
+    newStatus,
+    newNotes,
+    expectedUpdatedAt,
+  ) => {
     try {
       await apiFetch(`/api/feedback/${id}`, {
         method: "PUT",
-        body: JSON.stringify({ status: newStatus, adminNotes: newNotes }),
+        body: JSON.stringify({
+          status: newStatus,
+          adminNotes: newNotes,
+          expectedUpdatedAt,
+        }),
       });
       toast.success("Ticket updated", {
         description: `Ticket ${id} marked as ${newStatus}.`,
       });
       closeModal();
     } catch (err) {
-      console.error("Error updating ticket:", err);
       toast.error("Failed to update ticket", {
         description: err?.data?.detail || "Could not update ticket.",
       });
+      if (err.status === 409) ticketsQuery.refetch();
+      throw err;
     }
   };
 
-  const handleArchiveTicket = async (id, notes) => {
+  const handleArchiveTicket = async (id, notes, expectedUpdatedAt) => {
     try {
       await apiFetch(`/api/feedback/${id}`, {
         method: "PUT",
         body: JSON.stringify({
           status: "Archived",
           adminNotes: notes,
+          expectedUpdatedAt,
         }),
       });
       toast.success("Ticket archived", {
@@ -154,10 +173,11 @@ const Feedback = () => {
       });
       closeModal();
     } catch (err) {
-      console.error("Error archiving ticket:", err);
       toast.error("Failed to archive ticket", {
         description: err?.data?.detail || "Could not archive ticket.",
       });
+      if (err.status === 409) ticketsQuery.refetch();
+      throw err;
     }
   };
 
@@ -193,40 +213,38 @@ const Feedback = () => {
 
   // Sort Logic
   filteredTickets.sort((a, b) => {
-    const dateA = new Date(a.date).getTime();
-    const dateB = new Date(b.date).getTime();
+    const dateA = Date.parse(a.created_at || a.date) || 0;
+    const dateB = Date.parse(b.created_at || b.date) || 0;
     if (dateA === dateB) {
-      return sortOrder === "newest" ? b.id - a.id : a.id - b.id;
+      return String(a.id).localeCompare(String(b.id));
     }
     return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
   });
 
   // Pagination Logic
   const totalPages = Math.ceil(filteredTickets.length / itemsPerPage) || 1;
+  if (currentPage > totalPages) setCurrentPage(totalPages);
   const paginatedTickets = filteredTickets.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
 
   // Metrics Logic
   const totalTickets = tickets.length;
   const openTicketsCount = tickets.filter(
-    (t) => t.status === "Open" || t.status === "In Progress"
+    (t) => t.status === "Open" || t.status === "In Progress",
   ).length;
   const resolvedTicketsCount = tickets.filter(
-    (t) => t.status === "Resolved"
+    (t) => t.status === "Resolved",
   ).length;
   const bugReportsCount = tickets.filter(
-    (t) => t.category === "Bug Report"
+    (t) => t.category === "Bug Report",
   ).length;
 
   // Reset page when filters change (render-derived, no effect)
-  const filterKey = [
-    searchQuery,
-    filterCategory,
-    filterStatus,
-    sortOrder,
-  ].join("|");
+  const filterKey = [searchQuery, filterCategory, filterStatus, sortOrder].join(
+    "|",
+  );
   const [pageFilterKey, setPageFilterKey] = useState(filterKey);
   if (filterKey !== pageFilterKey) {
     setPageFilterKey(filterKey);
@@ -241,10 +259,7 @@ const Feedback = () => {
 
   const rangeStart =
     filteredTickets.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
-  const rangeEnd = Math.min(
-    currentPage * itemsPerPage,
-    filteredTickets.length
-  );
+  const rangeEnd = Math.min(currentPage * itemsPerPage, filteredTickets.length);
 
   return (
     <AdminLayout>
@@ -261,7 +276,8 @@ const Feedback = () => {
             </h2>
             <p className="mt-1.5 max-w-[64ch] text-[14px] leading-[1.5] text-cal-muted">
               Review mobile user bug tickets, UI/UX improvement ideas, and
-              account inquiries submitted through the patient app.
+              account and content inquiries submitted through the app. Staff
+              notes are internal, not delivered replies or medical advice.
             </p>
           </div>
         </div>
@@ -278,7 +294,7 @@ const Feedback = () => {
               </span>
             </div>
             <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
-              {loading ? "—" : totalTickets}
+              {loading || fetchError ? "—" : totalTickets}
             </div>
             <div className="mt-2 text-[12px] text-cal-muted">
               All submitted user inquiries
@@ -295,7 +311,7 @@ const Feedback = () => {
               </span>
             </div>
             <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
-              {loading ? "—" : openTicketsCount}
+              {loading || fetchError ? "—" : openTicketsCount}
             </div>
             <div className="mt-2 text-[12px] text-cal-muted">
               Awaiting admin resolution
@@ -312,7 +328,7 @@ const Feedback = () => {
               </span>
             </div>
             <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
-              {loading ? "—" : resolvedTicketsCount}
+              {loading || fetchError ? "—" : resolvedTicketsCount}
             </div>
             <div className="mt-2 text-[12px] text-cal-muted">
               Addressed &amp; closed tickets
@@ -329,7 +345,7 @@ const Feedback = () => {
               </span>
             </div>
             <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
-              {loading ? "—" : bugReportsCount}
+              {loading || fetchError ? "—" : bugReportsCount}
             </div>
             <div className="mt-2 text-[12px] text-cal-muted">
               Technical issues reported
@@ -364,7 +380,11 @@ const Feedback = () => {
                       <motion.div
                         layoutId="feedback-status-filter-tab"
                         className="absolute inset-0 rounded-full bg-cal-primary shadow-xs"
-                        transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 420,
+                          damping: 34,
+                        }}
                       />
                     )}
                     <span className="relative z-10">{tab.label}</span>
@@ -467,7 +487,12 @@ const Feedback = () => {
           )}
 
           {/* Inbox Table */}
-          <div className="w-full overflow-x-auto">
+          <div
+            className="w-full overflow-x-auto"
+            role="region"
+            aria-label="Support tickets table"
+            tabIndex={0}
+          >
             <table className="w-full min-w-[880px] border-collapse text-left">
               <thead>
                 <tr className="border-b border-cal-hairline bg-cal-surface-soft/70">
@@ -518,9 +543,16 @@ const Feedback = () => {
                       className="group cursor-pointer transition-colors hover:bg-cal-surface-soft/70"
                     >
                       <td className="px-4 py-3.5 sm:px-5 align-middle whitespace-nowrap">
-                        <p className="font-cal-mono text-[13px] font-semibold tabular-nums text-cal-ink group-hover:underline">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openModal(ticket);
+                          }}
+                          className="font-cal-mono text-[13px] font-semibold tabular-nums text-cal-ink hover:underline"
+                        >
                           {ticket.ticketId}
-                        </p>
+                        </button>
                         <p className="mt-0.5 flex items-center gap-1 font-cal-mono text-[11.5px] tabular-nums text-cal-muted">
                           <Clock size={11} aria-hidden="true" />
                           <span>{ticket.date}</span>
@@ -629,6 +661,7 @@ const Feedback = () => {
 
         {/* Modal: Ticket Resolution Workspace */}
         <TicketModal
+          key={activeTicket?.id || "no-ticket"}
           isOpen={isModalOpen}
           onClose={closeModal}
           ticket={activeTicket}

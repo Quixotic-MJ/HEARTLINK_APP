@@ -1,10 +1,8 @@
-from fastapi import APIRouter, HTTPException, Depends, Request
-from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
-from datetime import datetime
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from app.utils.security import verify_token, get_optional_token
-from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
+from fastapi import APIRouter, HTTPException, Depends
+from pydantic import BaseModel, ConfigDict, Field
+from typing import Optional, Dict, Any
+from app.utils.security import get_current_user, get_current_admin_only
+from app.utils.time import parse_utc
 from app.utils.activity_helper import record_admin_activity
 from app.db.repositories import get_feedback_repo, get_profile_repo
 import logging
@@ -12,11 +10,12 @@ import logging
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/feedback", tags=["Feedback"])
-security = HTTPBearer(auto_error=False)
 
 class TicketUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    expected_updated_at: str = Field(alias="expectedUpdatedAt", min_length=1)
     status: Optional[str] = None
-    adminNotes: Optional[str] = None
+    adminNotes: Optional[str] = Field(default=None, max_length=4000)
 
 class TicketCreate(BaseModel):
     category: str
@@ -26,28 +25,14 @@ class TicketCreate(BaseModel):
     userEmail: Optional[str] = "Not Provided"
     userId: Optional[str] = "N/A"
 
-def get_feedback_user(request: Request, credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
-    token = get_optional_token(request, credentials)
-    if not token:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    
-    payload = verify_token(token)
-    user_id = payload.get("user_id")
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Invalid token claims")
-        
-    user = get_profile_repo().get_by_id(user_id)
+def get_feedback_user(current_user: dict = Depends(get_current_user)):
+    user = get_profile_repo().get_by_id(current_user["user_id"])
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
         
-    if user.get("account_status") != "active":
-        raise HTTPException(status_code=403, detail="Access Denied: Account is disabled or archived")
-        
     return user
 
-def require_admin(current_user: dict = Depends(get_feedback_user)):
-    if current_user.get("role") != "admin":
-        raise HTTPException(status_code=403, detail="Access Denied: Admins only")
+def require_admin(current_user: dict = Depends(get_current_admin_only)):
     return current_user
 
 @router.get("/")
@@ -127,6 +112,12 @@ def update_feedback_ticket(
     if not existing:
         raise HTTPException(status_code=404, detail="Ticket not found")
 
+    revision = parse_utc(ticket_update.expected_updated_at)
+    if not revision:
+        raise HTTPException(status_code=400, detail="A valid ticket revision is required")
+    if parse_utc(existing.get("updated_at")) != revision:
+        raise HTTPException(status_code=409, detail="This ticket changed. Reopen the latest version before saving.")
+
     old_status = existing.get("status")
     update_data = {}
     if ticket_update.status is not None:
@@ -134,9 +125,11 @@ def update_feedback_ticket(
     if ticket_update.adminNotes is not None:
         update_data["adminNotes"] = ticket_update.adminNotes
 
-    updated = repo.update_ticket(ticket_id, update_data)
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No ticket changes supplied")
+    updated = repo.update_ticket(existing["id"], update_data, ticket_update.expected_updated_at)
     if not updated:
-        raise HTTPException(status_code=404, detail="Ticket update failed")
+        raise HTTPException(status_code=409, detail="This ticket changed. Reopen the latest version before saving.")
 
     # Log admin activity
     action = "updated"
@@ -147,7 +140,7 @@ def update_feedback_ticket(
             action = "restored"
             
     record_admin_activity(
-        admin_user_id=current_user["id"],
+        admin_user_id=current_user["user_id"],
         action=action,
         target_type="feedback",
         target_id=str(ticket_id),
