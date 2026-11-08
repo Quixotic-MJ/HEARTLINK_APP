@@ -1,82 +1,105 @@
 import * as z from "zod";
 import { NEW_PART, partFromStep, stepFromPart } from "./exerciseParts.js";
 
-const partSchema = z
+const partSchema = z.object({
+  instruction: z.string(),
+  details: z.string().optional(),
+  mode: z.enum(["time", "count"]).default("time"),
+  minutes: z.coerce.number().default(0),
+  seconds: z.coerce.number().default(30),
+  reps: z.coerce.number().default(0),
+  seconds_per_rep: z.coerce.number().default(0),
+  both_sides: z.boolean().default(false),
+  // Breathing exercises only: what this step asks for. Empty = the app reads it from the words.
+  breath: z.enum(["", "in", "hold", "out"]).optional(),
+  image: z.string().optional(),
+});
+
+export const exerciseSchema = z
   .object({
-    instruction: z.string().min(1, "Instruction cannot be empty"),
-    details: z.string().optional(),
-    mode: z.enum(["time", "count"]).default("time"),
-    minutes: z.coerce.number().min(0).default(0),
-    seconds: z.coerce
+    name: z.string().min(1, "Name is required."),
+    description: z.string().min(1, "Description is required."),
+    duration: z.coerce.number().min(1, "Must be at least 1 minute."),
+    mediaUrl: z.string().optional(),
+    videoUrl: z.string().optional(),
+    type: z.string().default("General"),
+    intensity: z.string().default("Low"),
+    goal: z.string().optional(),
+    status: z.string().default("draft"),
+    calories: z.coerce.number().min(0).default(0),
+    requirements: z.array(z.string()).default([]),
+    position: z.string().optional(),
+    setting: z.string().optional(),
+    effortHint: z.string().optional(),
+    frequency: z.string().optional(),
+    easierVersion: z.string().optional(),
+    skipIf: z.array(z.object({ value: z.string() })).optional(),
+    stopIf: z.array(z.object({ value: z.string() })).optional(),
+    setupSteps: z
+      .array(
+        z.object({
+          instruction: z.string(),
+          details: z.string().optional(),
+          image: z.string().optional(),
+        }),
+      )
+      .optional(),
+    warmupParts: z.array(partSchema).optional(),
+    mainParts: z.array(partSchema).optional(),
+    cooldownParts: z.array(partSchema).optional(),
+    rounds: z.coerce
+      .number()
+      .min(1, "At least 1")
+      .max(20, "20 at most")
+      .default(1),
+    restSeconds: z.coerce
       .number()
       .min(0)
-      .max(59, "Use 0 to 59 seconds")
-      .default(30),
-    reps: z.coerce.number().int().min(0).max(100).default(0),
-    seconds_per_rep: z.coerce.number().int().min(0).max(60).default(0),
-    both_sides: z.boolean().default(false),
-    // Breathing exercises only: what this step asks for. Empty = the app reads it from the words.
-    breath: z.enum(["", "in", "hold", "out"]).optional(),
-    image: z.string().optional(),
+      .max(600, "10 minutes at most")
+      .default(0),
+    guideImages: z
+      .array(z.object({ url: z.string().min(1, "URL cannot be empty") }))
+      .optional(),
   })
-  .refine((p) => p.mode !== "count" || p.reps > 0, {
-    message: "Set the reviewed count",
-    path: ["reps"],
-  })
-  .refine((p) => p.mode !== "count" || p.seconds_per_rep > 0, {
-    message: "Set the reviewed pace",
-    path: ["seconds_per_rep"],
-  })
-  .refine((p) => p.mode === "count" || p.minutes * 60 + p.seconds > 0, {
-    message: "Give it a time",
-    path: ["seconds"],
+  .superRefine((data, ctx) => {
+    const sections =
+      data.type === "Breathing"
+        ? ["mainParts"]
+        : ["warmupParts", "mainParts", "cooldownParts"];
+    for (const section of sections) {
+      (data[section] || []).forEach((part, index) => {
+        const issue = (field, message) =>
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [section, index, field],
+            message,
+          });
+        if (!part.instruction.length)
+          issue("instruction", "Instruction cannot be empty");
+        if (part.mode === "count" && data.type !== "Breathing") {
+          if (part.reps <= 0) issue("reps", "Set the reviewed count");
+          else if (!Number.isInteger(part.reps) || part.reps > 100)
+            issue("reps", "Use 1 to 100 whole repetitions");
+          if (part.seconds_per_rep <= 0)
+            issue("seconds_per_rep", "Set the reviewed pace");
+          else if (
+            !Number.isInteger(part.seconds_per_rep) ||
+            part.seconds_per_rep > 60
+          )
+            issue(
+              "seconds_per_rep",
+              "Use 1 to 60 whole seconds per repetition",
+            );
+        } else {
+          if (part.minutes < 0) issue("minutes", "Minutes cannot be negative");
+          if (part.seconds < 0 || part.seconds > 59)
+            issue("seconds", "Use 0 to 59 seconds");
+          else if (part.minutes * 60 + part.seconds <= 0)
+            issue("seconds", "Give it a time");
+        }
+      });
+    }
   });
-
-export const exerciseSchema = z.object({
-  name: z.string().min(1, "Name is required."),
-  description: z.string().min(1, "Description is required."),
-  duration: z.coerce.number().min(1, "Must be at least 1 minute."),
-  mediaUrl: z.string().optional(),
-  videoUrl: z.string().optional(),
-  type: z.string().default("General"),
-  intensity: z.string().default("Low"),
-  goal: z.string().optional(),
-  status: z.string().default("draft"),
-  calories: z.coerce.number().min(0).default(0),
-  requirements: z.array(z.string()).default([]),
-  position: z.string().optional(),
-  setting: z.string().optional(),
-  effortHint: z.string().optional(),
-  frequency: z.string().optional(),
-  easierVersion: z.string().optional(),
-  skipIf: z.array(z.object({ value: z.string() })).optional(),
-  stopIf: z.array(z.object({ value: z.string() })).optional(),
-  setupSteps: z
-    .array(
-      z.object({
-        instruction: z.string(),
-        details: z.string().optional(),
-        image: z.string().optional(),
-      }),
-    )
-    .optional(),
-  warmupParts: z.array(partSchema).optional(),
-  mainParts: z.array(partSchema).optional(),
-  cooldownParts: z.array(partSchema).optional(),
-  rounds: z.coerce
-    .number()
-    .min(1, "At least 1")
-    .max(20, "20 at most")
-    .default(1),
-  restSeconds: z.coerce
-    .number()
-    .min(0)
-    .max(600, "10 minutes at most")
-    .default(0),
-  guideImages: z
-    .array(z.object({ url: z.string().min(1, "URL cannot be empty") }))
-    .optional(),
-});
 
 export const EMPTY_FORM = {
   name: "",

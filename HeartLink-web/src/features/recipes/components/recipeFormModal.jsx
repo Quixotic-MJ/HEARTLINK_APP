@@ -18,6 +18,7 @@ import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DEFAULT_VALUES, UNIT_GROUPS, UNIT_VALUES, foodSchema, recipePayload, recipeValues } from "../recipeForm.js";
 import { InputField } from "../../../components/ui/inputField.jsx";
+import { FormErrorSummary } from "../../../components/ui/formErrorSummary.jsx";
 import { apiUpload } from "../../../lib/api.js";
 import { useDialogFocus } from "../../../hooks/useDialogFocus.js";
 
@@ -43,6 +44,25 @@ const TAB_FIELDS = {
   ingredients: ["ingredients", "steps"],
   media: ["mediaUrl"],
 };
+
+function describeRecipeField(name) {
+  const [group, index, field] = name.split(".");
+  if (group === "ingredients" && index !== undefined) {
+    return { id: name, label: `Ingredient ${Number(index) + 1} ${field}` };
+  }
+  if (group === "steps" && index !== undefined) {
+    return { id: name, label: `Cooking step ${Number(index) + 1}` };
+  }
+  const labels = {
+    name: "Recipe name", foodSourceType: "Food source", category: "Category",
+    categoryOther: "Other category", prepTimeMinutes: "Preparation time", servings: "Servings",
+    difficulty: "Difficulty", calories: "Calories", sodium: "Sodium", satFat: "Saturated fat",
+    cholesterol: "Cholesterol", fiber: "Fiber", ingredients: "Ingredients", steps: "Cooking steps",
+    mediaUrl: "Dish photograph",
+  };
+  const ids = { foodSourceType: "recipe-food-source", category: "recipe-category", difficulty: "recipe-difficulty", mediaUrl: "recipe-media-upload" };
+  return { id: ids[name] || name, label: labels[name] || name };
+}
 
 const PILL =
   "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11.5px] font-medium whitespace-nowrap";
@@ -117,11 +137,12 @@ const FoodFormModal = ({
     control,
     reset,
     setValue,
-    formState: { errors },
+    formState: { errors, submitCount },
   } = useForm({
     resolver: zodResolver(foodSchema),
     defaultValues: DEFAULT_VALUES,
     mode: "onTouched",
+    shouldFocusError: false,
   });
 
   const {
@@ -569,10 +590,18 @@ const FoodFormModal = ({
           </div>
         ) : (
           <form
+            noValidate
             onSubmit={(event) => handleSubmit(onSubmit, onInvalid)(event)}
             aria-busy={busy}
             className="flex-1 overflow-y-auto px-6 py-5"
           >
+            <FormErrorSummary
+              errors={errors}
+              submitCount={submitCount}
+              describeField={describeRecipeField}
+              disabled={busy}
+              onSelect={(name) => setTab(TABS.find(([id]) => TAB_FIELDS[id].includes(name.split(".")[0]))?.[0] || "basics")}
+            />
             <fieldset disabled={busy} className="contents">
             {tab === "basics" && (
               <div className="space-y-4">
@@ -763,7 +792,7 @@ const FoodFormModal = ({
             {tab === "ingredients" && (
               <div className="space-y-6">
                 <div>
-                  <h4 className="mb-2.5 font-cal-display text-[17px] font-semibold tracking-[-0.3px] text-cal-ink">
+                  <h4 id="ingredients" tabIndex={-1} className="mb-2.5 font-cal-display text-[17px] font-semibold tracking-[-0.3px] text-cal-ink">
                     Ingredients
                   </h4>
                   {errors.ingredients?.root && (
@@ -775,11 +804,15 @@ const FoodFormModal = ({
                   <div className="mb-3 space-y-2.5">
                     {ingredientsFields.map((field, index) => (
                       <div key={field.id} className="space-y-1">
-                        <div className="flex items-center gap-2">
+                        <div className="grid grid-cols-[5rem_minmax(0,1fr)_2.25rem] items-center gap-2 sm:grid-cols-[5rem_9rem_minmax(0,1fr)_2.25rem]">
                           <input
                             type="number"
                             step="any"
                             {...register(`ingredients.${index}.amount`)}
+                            id={`ingredients.${index}.amount`}
+                            aria-label={`Ingredient ${index + 1} amount`}
+                            aria-invalid={!!errors.ingredients?.[index]?.amount}
+                            aria-describedby={errors.ingredients?.[index]?.amount ? `ingredients.${index}.amount-error` : undefined}
                             placeholder="Amt"
                             className={`h-9 w-20 rounded-[8px] border bg-cal-canvas px-2.5 font-cal-mono text-[13px] text-cal-ink placeholder:font-cal-sans placeholder:text-cal-muted outline-none transition-colors ${
                               errors.ingredients?.[index]?.amount
@@ -787,10 +820,11 @@ const FoodFormModal = ({
                                 : "border-cal-hairline focus:border-cal-ink"
                             }`}
                           />
-                          <div className="relative w-36 shrink-0">
+                          <div className="relative min-w-0">
                             <select
                               {...register(`ingredients.${index}.unit`)}
-                              aria-label="Unit"
+                              id={`ingredients.${index}.unit`}
+                              aria-label={`Ingredient ${index + 1} unit`}
                               className={`h-9 w-full appearance-none rounded-[8px] border bg-cal-canvas pl-2.5 pr-7 text-[13px] text-cal-ink outline-none transition-colors cursor-pointer ${
                                 errors.ingredients?.[index]?.unit
                                   ? "border-cal-error focus:border-cal-error"
@@ -823,8 +857,12 @@ const FoodFormModal = ({
                           <input
                             type="text"
                             {...register(`ingredients.${index}.name`)}
+                            id={`ingredients.${index}.name`}
+                            aria-label={`Ingredient ${index + 1} name`}
+                            aria-invalid={!!errors.ingredients?.[index]?.name}
+                            aria-describedby={errors.ingredients?.[index]?.name ? `ingredients.${index}.name-error` : undefined}
                             placeholder="Ingredient name"
-                            className={`h-9 flex-1 rounded-[8px] border bg-cal-canvas px-3 text-[13.5px] text-cal-ink placeholder:text-cal-muted outline-none transition-colors ${
+                            className={`col-span-2 row-start-2 h-9 min-w-0 rounded-[8px] border bg-cal-canvas px-3 text-[13.5px] text-cal-ink placeholder:text-cal-muted outline-none transition-colors sm:col-span-1 sm:row-start-auto ${
                               errors.ingredients?.[index]?.name
                                 ? "border-cal-error focus:border-cal-error"
                                 : "border-cal-hairline focus:border-cal-ink"
@@ -834,18 +872,18 @@ const FoodFormModal = ({
                             type="button"
                             onClick={() => removeIngredient(index)}
                             aria-label="Remove ingredient"
-                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] text-cal-muted hover:bg-cal-error/10 hover:text-cal-error transition-colors cursor-pointer"
+                            className="col-start-3 row-start-1 flex h-9 w-9 items-center justify-center rounded-[8px] text-cal-muted hover:bg-cal-error/10 hover:text-cal-error transition-colors cursor-pointer sm:col-start-auto sm:row-start-auto"
                           >
                             <Trash2 size={14.5} />
                           </button>
                         </div>
                         {errors.ingredients?.[index]?.name && (
-                          <span className="ml-1 block text-[12px] font-medium text-cal-error">
+                          <span id={`ingredients.${index}.name-error`} className="ml-1 block text-[12px] font-medium text-cal-error">
                             {errors.ingredients[index].name.message}
                           </span>
                         )}
                         {errors.ingredients?.[index]?.amount && (
-                          <span className="ml-1 block text-[12px] font-medium text-cal-error">
+                          <span id={`ingredients.${index}.amount-error`} className="ml-1 block text-[12px] font-medium text-cal-error">
                             {errors.ingredients[index].amount.message}
                           </span>
                         )}
@@ -866,7 +904,7 @@ const FoodFormModal = ({
                 </div>
 
                 <div className="border-t border-cal-hairline pt-5">
-                  <h4 className="mb-2.5 font-cal-display text-[17px] font-semibold tracking-[-0.3px] text-cal-ink">
+                  <h4 id="steps" tabIndex={-1} className="mb-2.5 font-cal-display text-[17px] font-semibold tracking-[-0.3px] text-cal-ink">
                     Cooking steps
                   </h4>
                   {errors.steps?.root && (
@@ -886,6 +924,10 @@ const FoodFormModal = ({
                             <textarea
                               rows={2}
                               {...register(`steps.${index}.value`)}
+                              id={`steps.${index}.value`}
+                              aria-label={`Cooking step ${index + 1}`}
+                              aria-invalid={!!errors.steps?.[index]?.value}
+                              aria-describedby={errors.steps?.[index]?.value ? `steps.${index}.value-error` : undefined}
                               placeholder="Describe preparation step…"
                               className={`w-full resize-none rounded-[8px] border bg-cal-canvas px-3 py-2 text-[13.5px] text-cal-ink placeholder:text-cal-muted outline-none transition-colors ${
                                 errors.steps?.[index]?.value
@@ -930,7 +972,7 @@ const FoodFormModal = ({
                           </div>
                         </div>
                         {errors.steps?.[index]?.value && (
-                          <span className="ml-1 block text-[12px] font-medium text-cal-error">
+                          <span id={`steps.${index}.value-error`} className="ml-1 block text-[12px] font-medium text-cal-error">
                             {errors.steps[index].value.message}
                           </span>
                         )}

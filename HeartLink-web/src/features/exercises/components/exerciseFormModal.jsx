@@ -23,6 +23,7 @@ import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { EMPTY_FORM, exercisePayload, exerciseSchema, exerciseValues, fromValues } from "../exerciseForm.js";
 import { InputField } from "../../../components/ui/inputField.jsx";
+import { FormErrorSummary } from "../../../components/ui/formErrorSummary.jsx";
 import { BASE_URL, apiUpload } from "../../../lib/api.js";
 import {
   EquipmentPicker,
@@ -89,6 +90,21 @@ const TAB_FIELDS = {
   media: ["mediaUrl", "videoUrl", "guideImages"],
 };
 
+function describeExerciseField(name) {
+  const [group, index, field] = name.split(".");
+  const sections = { warmupParts: "Warm-up", mainParts: "Main part", cooldownParts: "Cool-down", setupSteps: "Setup" };
+  if (sections[group] && index !== undefined) {
+    const fields = { instruction: "instruction", minutes: "minutes", seconds: "seconds", reps: "repetitions", seconds_per_rep: "seconds per repetition", mode: "timing mode", breath: "breath phase" };
+    return { id: name, label: `${sections[group]} ${fields[field] || field} ${Number(index) + 1}` };
+  }
+  if (group === "guideImages" && index !== undefined) {
+    return { id: name, label: `Extra picture ${Number(index) + 1} URL` };
+  }
+  const labels = { name: "Routine name", description: "Description", duration: "Duration", type: "Exercise type", intensity: "Intensity", goal: "Routine goal", calories: "Estimated calories", rounds: "Rounds", restSeconds: "Rest between rounds", position: "Position", setting: "Setting", effortHint: "How it should feel", frequency: "How often", easierVersion: "Easier version", mediaUrl: "Thumbnail image", videoUrl: "Instructional video link" };
+  const ids = { description: "exercise-description", type: "exercise-type", intensity: "exercise-intensity", position: "exercise-position", setting: "exercise-setting" };
+  return { id: ids[name] || name, label: labels[name] || name };
+}
+
 const PILL =
   "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11.5px] font-semibold leading-none whitespace-nowrap";
 
@@ -126,11 +142,12 @@ const ExerciseFormModal = ({
     control,
     reset,
     setValue,
-    formState: { errors },
+    formState: { errors, submitCount },
   } = useForm({
     resolver: zodResolver(exerciseSchema),
     defaultValues: EMPTY_FORM,
     mode: "onTouched",
+    shouldFocusError: false,
   });
 
   const {
@@ -931,9 +948,17 @@ const ExerciseFormModal = ({
           </div>
         ) : (
           <form
+            noValidate
             onSubmit={(event) => handleSubmit(onSubmit, onInvalid)(event)}
             className="flex-1 overflow-y-auto px-6 py-5"
           >
+            <FormErrorSummary
+              errors={errors}
+              submitCount={submitCount}
+              describeField={describeExerciseField}
+              disabled={saving || isUploading || partUploads > 0}
+              onSelect={(name) => setTab(TABS.find(([id]) => TAB_FIELDS[id].includes(name.split(".")[0]))?.[0] || "basics")}
+            />
             <fieldset
               disabled={saving || isUploading || partUploads > 0}
               className="min-w-0"
@@ -959,6 +984,8 @@ const ExerciseFormModal = ({
                       id="exercise-description"
                       rows="2"
                       {...register("description")}
+                      aria-invalid={!!errors.description}
+                      aria-describedby={errors.description ? "exercise-description-error" : undefined}
                       className={`w-full resize-none rounded-[8px] border bg-cal-canvas px-3.5 py-2.5 text-[14px] text-cal-ink placeholder:text-cal-muted-soft outline-none transition-colors ${
                         errors.description
                           ? "border-cal-error focus:border-cal-error"
@@ -967,7 +994,7 @@ const ExerciseFormModal = ({
                       placeholder="Short text summary of physical benefits…"
                     />
                     {errors.description && (
-                      <p className="mt-1 text-[12px] font-medium text-cal-error">
+                      <p id="exercise-description-error" className="mt-1 text-[12px] font-medium text-cal-error">
                         {errors.description.message}
                       </p>
                     )}
@@ -1281,7 +1308,7 @@ const ExerciseFormModal = ({
                       Before you start
                     </label>
                     <p className="mb-2 text-[12px] text-cal-muted">
-                      Patients tick these off on the app&apos;s &ldquo;Before
+                      App users tick these off on the app&apos;s &ldquo;Before
                       you start&rdquo; check.
                     </p>
                     <EquipmentPicker
@@ -1298,12 +1325,13 @@ const ExerciseFormModal = ({
                 <div className="space-y-6">
                   {/* Thumbnail Image */}
                   <div>
-                    <label className="mb-1.5 block text-[13px] font-medium text-cal-ink">
+                    <label htmlFor="mediaUrl" className="mb-1.5 block text-[13px] font-medium text-cal-ink">
                       Thumbnail image
                     </label>
                     <div className="flex gap-2">
                       <input
                         {...register("mediaUrl")}
+                        id="mediaUrl"
                         type="text"
                         placeholder="Paste image URL…"
                         className="h-10 flex-1 rounded-[8px] border border-cal-hairline bg-cal-canvas px-3.5 text-[14px] text-cal-ink placeholder:text-cal-muted-soft focus:border-cal-ink focus:outline-none transition-colors"
@@ -1377,11 +1405,12 @@ const ExerciseFormModal = ({
 
                   {/* Instructional Video Link */}
                   <div>
-                    <label className="mb-1.5 block text-[13px] font-medium text-cal-ink">
+                    <label htmlFor="videoUrl" className="mb-1.5 block text-[13px] font-medium text-cal-ink">
                       Instructional video link
                     </label>
                     <input
                       {...register("videoUrl")}
+                      id="videoUrl"
                       type="text"
                       placeholder="Paste YouTube video link…"
                       className="h-10 w-full rounded-[8px] border border-cal-hairline bg-cal-canvas px-3.5 text-[14px] text-cal-ink placeholder:text-cal-muted-soft focus:border-cal-ink focus:outline-none transition-colors"
@@ -1422,7 +1451,7 @@ const ExerciseFormModal = ({
                         return (
                           <div
                             key={field.id}
-                            className="flex items-center gap-3 rounded-[10px] border border-cal-hairline bg-cal-surface-soft p-3"
+                            className="grid grid-cols-[2.75rem_minmax(0,1fr)] gap-3 rounded-[10px] border border-cal-hairline bg-cal-surface-soft p-3 sm:flex sm:items-center"
                           >
                             <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[8px] border border-cal-hairline bg-cal-canvas">
                               {guideUrl ? (
@@ -1440,12 +1469,16 @@ const ExerciseFormModal = ({
                             </div>
 
                             <div className="min-w-0 flex-1 space-y-1.5">
-                              <div className="flex gap-2">
+                              <div className="flex flex-wrap gap-2 sm:flex-nowrap">
                                 <input
                                   {...register(`guideImages.${index}.url`)}
+                                  id={`guideImages.${index}.url`}
+                                  aria-label={`Extra picture ${index + 1} URL`}
+                                  aria-invalid={!!errors.guideImages?.[index]?.url}
+                                  aria-describedby={errors.guideImages?.[index]?.url ? `guideImages.${index}.url-error` : undefined}
                                   type="text"
                                   placeholder="Paste guide image URL…"
-                                  className="h-9 flex-1 rounded-[8px] border border-cal-hairline bg-cal-canvas px-3 text-[13px] text-cal-ink placeholder:text-cal-muted-soft focus:border-cal-ink focus:outline-none transition-colors"
+                                  className="h-9 min-w-0 basis-full rounded-[8px] border border-cal-hairline bg-cal-canvas px-3 text-[13px] text-cal-ink placeholder:text-cal-muted-soft focus:border-cal-ink focus:outline-none transition-colors sm:flex-1 sm:basis-auto"
                                 />
                                 <label className="inline-flex h-9 shrink-0 items-center justify-center rounded-[8px] border border-cal-hairline bg-cal-canvas px-3 text-[12px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer">
                                   Upload
@@ -1487,6 +1520,11 @@ const ExerciseFormModal = ({
                                   />
                                 </label>
                               </div>
+                              {errors.guideImages?.[index]?.url && (
+                                <p id={`guideImages.${index}.url-error`} className="text-[12px] font-medium text-cal-error">
+                                  {errors.guideImages[index].url.message}
+                                </p>
+                              )}
                               {uploadErrors[`guide-${index}`] && (
                                 <p className="text-[11.5px] font-medium text-cal-error">
                                   {uploadErrors[`guide-${index}`]}
@@ -1494,7 +1532,7 @@ const ExerciseFormModal = ({
                               )}
                             </div>
 
-                            <div className="flex shrink-0 items-center gap-0.5">
+                            <div className="col-span-2 flex shrink-0 items-center justify-end gap-0.5">
                               <button
                                 type="button"
                                 onClick={() => {

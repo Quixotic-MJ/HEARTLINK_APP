@@ -180,6 +180,7 @@ export function PartsEditor({
           return (
             <div
               key={field.id}
+              onFocusCapture={() => setOpenIndex(index)}
               className="flex items-start gap-3 rounded-[10px] border border-cal-hairline bg-cal-surface-soft p-3.5"
             >
               <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-[6px] border border-cal-hairline bg-cal-canvas font-cal-mono text-[11.5px] font-semibold tabular-nums text-cal-ink">
@@ -190,6 +191,9 @@ export function PartsEditor({
                 <div>
                   <input
                     {...register(`${name}.${index}.instruction`)}
+                    id={`${name}.${index}.instruction`}
+                    aria-invalid={!!err?.instruction}
+                    aria-describedby={err?.instruction ? `${name}.${index}.instruction-error` : undefined}
                     aria-label={`${title} instruction ${index + 1}`}
                     className={`${inputClass} font-medium ${
                       err?.instruction
@@ -203,7 +207,7 @@ export function PartsEditor({
                     }
                   />
                   {err?.instruction && (
-                    <span className="mt-1 block text-[11.5px] font-medium text-cal-error">
+                    <span id={`${name}.${index}.instruction-error`} className="mt-1 block text-[11.5px] font-medium text-cal-error">
                       {err.instruction.message}
                     </span>
                   )}
@@ -211,6 +215,7 @@ export function PartsEditor({
 
                 <input
                   {...register(`${name}.${index}.details`)}
+                    id={`${name}.${index}.details`}
                   aria-label={`${title} detail ${index + 1}`}
                   className={inputClass}
                   placeholder="Extra detail (optional), e.g. Keep your back straight"
@@ -223,6 +228,7 @@ export function PartsEditor({
                       <div className="relative">
                         <select
                           {...register(`${name}.${index}.breath`)}
+                    id={`${name}.${index}.breath`}
                           aria-label={`${title} breath phase ${index + 1}`}
                           className={selectClass}
                           title="The app moves the breathing circle to match."
@@ -244,6 +250,7 @@ export function PartsEditor({
                       <div className="relative">
                         <select
                           {...register(`${name}.${index}.mode`)}
+                    id={`${name}.${index}.mode`}
                           aria-label={`${title} timing mode ${index + 1}`}
                           className={selectClass}
                         >
@@ -266,6 +273,9 @@ export function PartsEditor({
                           type="number"
                           min="1"
                           {...register(`${name}.${index}.reps`)}
+                    id={`${name}.${index}.reps`}
+                    aria-invalid={!!err?.reps}
+                    aria-describedby={err?.reps ? `${name}.${index}.reps-error` : undefined}
                           aria-label={`${title} repetitions ${index + 1}`}
                           className={monoInputClass}
                         />
@@ -276,6 +286,9 @@ export function PartsEditor({
                           type="number"
                           min="1"
                           {...register(`${name}.${index}.seconds_per_rep`)}
+                    id={`${name}.${index}.seconds_per_rep`}
+                    aria-invalid={!!err?.seconds_per_rep}
+                    aria-describedby={err?.seconds_per_rep ? `${name}.${index}.seconds_per_rep-error` : undefined}
                           aria-label={`${title} seconds per repetition ${index + 1}`}
                           className={monoInputClass}
                           title="About how long one repeat takes"
@@ -290,6 +303,9 @@ export function PartsEditor({
                           type="number"
                           min="0"
                           {...register(`${name}.${index}.minutes`)}
+                    id={`${name}.${index}.minutes`}
+                    aria-invalid={!!err?.minutes}
+                    aria-describedby={err?.minutes ? `${name}.${index}.minutes-error` : undefined}
                           aria-label={`${title} minutes ${index + 1}`}
                           className={monoInputClass}
                         />
@@ -301,6 +317,9 @@ export function PartsEditor({
                           min="0"
                           max="59"
                           {...register(`${name}.${index}.seconds`)}
+                    id={`${name}.${index}.seconds`}
+                    aria-invalid={!!err?.seconds}
+                    aria-describedby={err?.seconds ? `${name}.${index}.seconds-error` : undefined}
                           aria-label={`${title} seconds ${index + 1}`}
                           className={monoInputClass}
                         />
@@ -313,6 +332,7 @@ export function PartsEditor({
                       <input
                         type="checkbox"
                         {...register(`${name}.${index}.both_sides`)}
+                    id={`${name}.${index}.both_sides`}
                         className="h-4 w-4 rounded border-cal-hairline accent-cal-primary cursor-pointer"
                       />
                       <span>Both sides</span>
@@ -324,16 +344,11 @@ export function PartsEditor({
                   </span>
                 </div>
 
-                {err?.seconds && (
-                  <span className="block text-[11.5px] font-medium text-cal-error">
-                    {err.seconds.message}
-                  </span>
-                )}
-                {(err?.reps || err?.seconds_per_rep) && (
-                  <p role="alert" className="text-[13px] text-cal-error">
-                    {err.reps?.message || err.seconds_per_rep?.message}
+                {["minutes", "seconds", "reps", "seconds_per_rep"].map((field) => err?.[field] && (
+                  <p key={field} id={`${name}.${index}.${field}-error`} className="text-[12px] font-medium text-cal-error">
+                    {err[field].message}
                   </p>
-                )}
+                ))}
 
                 <ImageField
                   onUploadChange={onUploadChange}

@@ -112,3 +112,78 @@ test("extracted exercise validation still rejects unknown or invalid reviewed do
     );
   }
 });
+
+test("form validation checks the selected timing mode without changing the entered dose", () => {
+  const base = {
+    ...EMPTY_FORM,
+    name: "Synthetic routine",
+    description: "Synthetic instructions",
+  };
+  const counted = exerciseSchema.safeParse({
+    ...base,
+    mainParts: [
+      {
+        ...NEW_PART,
+        instruction: "Lift",
+        mode: "count",
+        reps: 4,
+        seconds_per_rep: 3,
+        minutes: -1,
+        seconds: 60,
+      },
+    ],
+  });
+  assert.equal(counted.success, true);
+  assert.equal(counted.data.mainParts[0].seconds, 60);
+  assert.equal(exercisePayload(counted.data, 12).steps[0].duration_seconds, 12);
+  const timed = exerciseSchema.safeParse({
+    ...base,
+    mainParts: [
+      {
+        ...NEW_PART,
+        instruction: "Move",
+        mode: "time",
+        minutes: 0,
+        seconds: 30,
+        reps: -1,
+        seconds_per_rep: 99,
+      },
+    ],
+  });
+  assert.equal(timed.success, true);
+  assert.equal(exercisePayload(timed.data, 30).steps[0].duration_seconds, 30);
+  const breathing = exerciseSchema.safeParse({
+    ...base,
+    type: "Breathing",
+    warmupParts: [{ ...NEW_PART, instruction: "", seconds: 60 }],
+    mainParts: [
+      {
+        ...NEW_PART,
+        instruction: "Breathe",
+        mode: "count",
+        reps: 0,
+        seconds_per_rep: 0,
+        minutes: 0,
+        seconds: 4,
+      },
+    ],
+  });
+  assert.equal(breathing.success, true);
+  assert.equal(exercisePayload(breathing.data, 4).steps[0].duration_seconds, 4);
+  for (const part of [
+    { mode: "count", reps: 101 },
+    { mode: "count", reps: 1.5 },
+    { mode: "count", seconds_per_rep: 61 },
+    { mode: "count", seconds_per_rep: 1.5 },
+    { mode: "time", minutes: -1 },
+    { mode: "time", seconds: -1 },
+  ]) {
+    assert.equal(
+      exerciseSchema.safeParse({
+        ...base,
+        mainParts: [{ ...NEW_PART, instruction: "Move", ...part }],
+      }).success,
+      false,
+    );
+  }
+});
