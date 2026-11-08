@@ -8,9 +8,9 @@ import {
 } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
-import { Bell, EllipsisVertical, LogOut, Settings, X } from "lucide-react";
+import { EllipsisVertical, LogOut, X } from "lucide-react";
 import { useAuth } from "../../contexts/useAuth.js";
-import { canAccess, homeFor } from "../../app/access.js";
+import { homeFor } from "../../app/access.js";
 import { portalNavigationFor } from "../../app/portalNavigation.js";
 import { useApiQuery } from "../../hooks/useApiQuery.js";
 import { useDialogFocus } from "../../hooks/useDialogFocus.js";
@@ -263,6 +263,7 @@ const Sidebar = ({
   const location = useLocation();
   const asideRef = useRef(null);
   const userMenuRef = useRef(null);
+  const userMenuButtonRef = useRef(null);
 
   const [userMenuState, setUserMenuState] = useState({ open: false, path: "" });
 
@@ -285,7 +286,6 @@ const Sidebar = ({
 
   const role = user?.role;
   const expertType = user?.expert_type;
-  const canOpen = (path) => canAccess(user, path);
 
   const userName =
     user?.first_name || user?.last_name
@@ -306,6 +306,7 @@ const Sidebar = ({
   // Close popovers on outside click or Escape
   useEffect(() => {
     if (!userMenuOpen) return;
+    userMenuRef.current?.querySelector('[role="menuitem"]')?.focus();
 
     function handlePointerDown(event) {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
@@ -316,6 +317,7 @@ const Sidebar = ({
     function handleKeyDown(event) {
       if (event.key === "Escape") {
         setUserMenuState({ open: false, path: "" });
+        userMenuButtonRef.current?.focus();
       }
     }
 
@@ -329,12 +331,6 @@ const Sidebar = ({
 
   const closeMobileIfNeeded = () => {
     if (isMobileMenu) setSidebarOpen(false);
-  };
-
-  const handleNavigate = (path) => {
-    setUserMenuState({ open: false, path: "" });
-    closeMobileIfNeeded();
-    navigate(path);
   };
 
   const handleLogout = () => {
@@ -441,24 +437,21 @@ const Sidebar = ({
 
         {/* ─── 4. Bottom User Profile Footer (NavUser + Account Menu) ──────── */}
         <div
-          className="relative border-t border-cal-hairline bg-cal-surface-soft p-2.5"
+          className={`relative flex items-center gap-1 border-t border-cal-hairline bg-cal-surface-soft p-2.5 ${collapsed ? "flex-col" : ""}`}
           ref={userMenuRef}
         >
-          <button
-            type="button"
-            onClick={() =>
-              setUserMenuState((prev) => ({
-                open: !(prev.open && prev.path === location.pathname),
-                path: location.pathname,
-              }))
-            }
-            aria-expanded={userMenuOpen}
-            aria-haspopup="menu"
-            title={collapsed ? `${userName} (${userSubline})` : undefined}
+          <Link
+            to="/settings"
+            onClick={() => {
+              setUserMenuState({ open: false, path: "" });
+              closeMobileIfNeeded();
+            }}
+            aria-label="Account settings"
+            title={collapsed ? `${userName} — Account settings` : "Account settings"}
             className={`group flex items-center rounded-[8px] transition-all duration-200 hover:bg-cal-surface-card active:scale-[0.98] cursor-pointer ${
               collapsed
                 ? "mx-auto h-10 w-10 justify-center p-0"
-                : "w-full gap-2.5 p-1.5 text-left"
+                : "min-w-0 flex-1 gap-2.5 p-1.5 text-left"
             }`}
           >
             {/* Cal.com 36px Circular Avatar */}
@@ -483,11 +476,24 @@ const Sidebar = ({
                   {userSubline}
                 </div>
               </div>
-              <EllipsisVertical
-                size={16}
-                className="shrink-0 text-cal-muted group-hover:text-cal-ink transition-colors ml-1"
-              />
             </div>
+          </Link>
+          <button
+            ref={userMenuButtonRef}
+            type="button"
+            onClick={() =>
+              setUserMenuState((prev) => ({
+                open: !(prev.open && prev.path === location.pathname),
+                path: location.pathname,
+              }))
+            }
+            aria-label="Account menu"
+            aria-expanded={userMenuOpen}
+            aria-haspopup="menu"
+            title="Account menu"
+            className="portal-icon-button"
+          >
+            <EllipsisVertical size={16} aria-hidden="true" />
           </button>
 
           {/* User Account Popover Menu */}
@@ -501,59 +507,6 @@ const Sidebar = ({
                   : "bottom-[calc(100%+6px)] left-2.5 right-2.5"
               }`}
             >
-              {/* Signed-in Identity Summary */}
-              <div className="flex items-start gap-2.5 border-b border-cal-hairline px-2.5 py-2.5 mb-1">
-                <div
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-cal-hairline text-[12.5px] font-semibold ${avatarSurface}`}
-                >
-                  {userInitials}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-semibold text-cal-ink leading-tight">
-                    {userName}
-                  </p>
-                  {user?.email && (
-                    <p className="mt-0.5 truncate text-[11.5px] text-cal-muted">
-                      {user.email}
-                    </p>
-                  )}
-                  <span className="mt-1.5 inline-flex items-center rounded-full bg-cal-surface-card px-2.5 py-0.5 text-[11px] font-medium text-cal-ink">
-                    {roleLabel}
-                  </span>
-                </div>
-              </div>
-
-              {canOpen("/notifications") && (
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => handleNavigate("/notifications")}
-                  className="flex w-full items-center gap-2.5 rounded-[6px] px-2.5 py-2 text-left text-[13px] font-medium text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer"
-                >
-                  <Bell size={15} className="shrink-0 text-cal-muted" />
-                  <span className="flex-1 truncate">Notifications</span>
-                  {unreadCount > 0 && (
-                    <span className="rounded-full bg-cal-surface-card px-2 py-0.5 font-cal-mono text-[11px] font-medium text-cal-ink">
-                      {unreadCount}
-                    </span>
-                  )}
-                </button>
-              )}
-
-              {canOpen("/settings") && (
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => handleNavigate("/settings")}
-                  className="flex w-full items-center gap-2.5 rounded-[6px] px-2.5 py-2 text-left text-[13px] font-medium text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer"
-                >
-                  <Settings size={15} className="shrink-0 text-cal-muted" />
-                  <span className="truncate">Settings</span>
-                </button>
-              )}
-
-              <div className="my-1 border-t border-cal-hairline" />
-
               <button
                 type="button"
                 role="menuitem"

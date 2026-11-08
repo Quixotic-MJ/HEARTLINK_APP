@@ -38,7 +38,7 @@ const PAGES = [
   {
     path: "/broadcasts",
     label: "Announcements",
-    section: "Content",
+    section: "Operations",
     icon: Megaphone,
   },
   {

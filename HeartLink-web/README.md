@@ -104,7 +104,7 @@ npm run dev -- --host 127.0.0.1 --port 5180 --strictPort
 | `recordedMetadata.js` | Labelled Philippine review dates and truthful unknown-category counts/filters |
 | `visualWorkspaces.js` | Gallery/list views, exclusive workflow filters, three-dot menu keyboard/focus, compact labels, aligned footers, two-column previews and responsive archive/draft controls |
 | `operationalVisuals.js` | Operational layouts/dialogs, readable Activity typography, row hover and keyboard-accessible references |
-| `navigationAndMedia.js` | Four-role global/local search handoff, shared navigation, responsive shell, photo/video/fallback routine media, keyboard/player controls and no autoplay |
+| `navigationAndMedia.js` | Four-role global/local search handoff, account Settings shortcut and Sign out menu, responsive shell, photo/video/fallback routine media, keyboard/player controls and no autoplay |
 
 Stop that dedicated frontend process when finished. Browser fixtures prove UI
 behavior, not actual API/database integration, device delivery or release readiness.
@@ -133,6 +133,11 @@ shell Actions/Quick Create links, the sidebar Search entry and the live clock ar
 removed. The notification bell opens recent notices; Notifications in the sidebar
 opens the full inbox. Recipe/exercise active accents complement their workspaces
 without changing permissions or HeartLink branding.
+
+Content contains Recipes and Exercises; Announcements belongs to Operations.
+The footer avatar/name opens the signed-in account's existing Settings page. Its
+separate three-dot menu contains only Sign out, retaining the confirmation dialog.
+Notifications and Settings remain visible sidebar destinations, not menu duplicates.
 
 Exercise list and gallery media share the existing thumbnail/video fields. Native
 uploaded videos have controlled playback in the read-only preview; nothing

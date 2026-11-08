@@ -220,9 +220,6 @@ export default function Exercises() {
                   : `${filtered.length} of ${routines.length} routines`}
               </p>
             </div>
-            <p className="library-workflow-hint">
-              Approved drafts are ready to publish.
-            </p>
           </div>
           {query.isError ? (
             <LoadError what="the routine library" onRetry={query.refetch} />

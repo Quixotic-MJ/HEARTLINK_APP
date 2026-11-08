@@ -26,6 +26,18 @@ test("portal navigation and record-search shortcuts stay role-scoped", () => {
     );
   }
   assert.equal(
+    portalNavigationFor({ role: "admin" }).find(
+      (page) => page.path === "/broadcasts",
+    ).section,
+    "Operations",
+  );
+  assert.deepEqual(
+    portalNavigationFor({ role: "admin" })
+      .filter((page) => page.section === "Content")
+      .map((page) => page.path),
+    ["/foods", "/exercises"],
+  );
+  assert.equal(
     portalSearchTargetsFor({ role: "admin" }, "/exercises")[0].path,
     "/exercises",
   );

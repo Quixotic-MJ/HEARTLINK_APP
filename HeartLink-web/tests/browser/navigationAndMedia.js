@@ -129,6 +129,8 @@ export default async function navigationAndMedia(page) {
             ? "/foods"
             : "/notifications";
       await local.goto(origin + start);
+      if (await local.getByText("Approved drafts are ready to publish.", { exact: true }).count())
+        throw Error("The removed workflow helper is still visible");
       if (start === "/exercises") {
         await local
           .getByRole("button", { name: "List view", exact: true })
@@ -332,6 +334,38 @@ export default async function navigationAndMedia(page) {
           });
         await local.keyboard.press("Escape");
       }
+      await local.setViewportSize({ width: 1440, height: 1000 });
+      const sidebar = local.locator(".portal-sidebar"),
+        accountSettings = sidebar.getByRole("link", { name: "Account settings", exact: true }),
+        accountTrigger = sidebar.getByRole("button", { name: "Account menu", exact: true }),
+        accountMenu = sidebar.getByRole("menu", { name: "Account menu", exact: true });
+      await accountSettings.click();
+      await local.waitForURL(origin + "/settings");
+      await local.getByRole("heading", { name: "Settings", exact: true }).waitFor();
+      await accountTrigger.focus();
+      await local.keyboard.press("Enter");
+      await accountMenu.waitFor();
+      if (JSON.stringify(await accountMenu.getByRole("menuitem").allTextContents()) !== JSON.stringify(["Sign out"]))
+        throw Error("Account menu duplicates navigation or loses Sign out");
+      await local.keyboard.press("Escape");
+      if (!(await accountTrigger.evaluate((el) => el === document.activeElement)))
+        throw Error("Account menu did not restore keyboard focus");
+      await accountTrigger.click();
+      await accountMenu.getByRole("menuitem", { name: "Sign out", exact: true }).click();
+      const signOut = local.getByRole("dialog", { name: "Sign out of HeartLink?", exact: true });
+      await signOut.getByRole("button", { name: "Cancel", exact: true }).click();
+      if (new URL(local.url()).pathname !== "/settings")
+        throw Error("Cancelling Sign out navigates away from Settings");
+      await local.setViewportSize({ width: 375, height: 812 });
+      await header.getByRole("button", { name: /^(Toggle|Expand) sidebar$/ }).click();
+      await sidebar.getByRole("link", { name: "Account settings", exact: true }).click();
+      await local.waitForFunction(() => document.querySelector(".portal-sidebar")?.inert);
+      await header.getByRole("button", { name: /^(Toggle|Expand) sidebar$/ }).click();
+      await accountTrigger.click();
+      const bounds = await accountMenu.boundingBox();
+      if (!bounds || bounds.x < 0 || bounds.y < 0 || bounds.x + bounds.width > 375 || bounds.y + bounds.height > 812)
+        throw Error("Account menu exceeds the phone viewport");
+      await local.screenshot({ path: `.tmp/account-footer-${specialty || role}-phone.png` });
       if (writes || errors.length)
         throw Error(
           "Read-only shell/media checks wrote data or crashed: " +

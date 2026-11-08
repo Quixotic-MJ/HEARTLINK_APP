@@ -402,9 +402,6 @@ const Foods = () => {
                   : `${filteredRecipes.length} of ${recipes.length} recipes`}
               </p>
             </div>
-            <p className="library-workflow-hint">
-              Approved drafts are ready to publish.
-            </p>
             {showFilters && (
               <div
                 id="recipe-facets"

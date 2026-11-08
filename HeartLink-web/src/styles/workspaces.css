@@ -177,13 +177,9 @@
   font-variant-numeric: tabular-nums;
   opacity: 0.85;
 }
-.library-results,
-.library-workflow-hint {
+.library-results {
   font-size: 12px;
   color: var(--color-cal-muted);
-}
-.library-workflow-hint {
-  margin-top: -6px;
 }
 .library-card {
   display: flex;
