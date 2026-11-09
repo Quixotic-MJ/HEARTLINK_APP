@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "preview:synthetic": "vite --config vite.syntheticPreview.config.js --configLoader native",
+    "test:preview": "node --test preview/*.test.js",
     "build": "vite build",
     "test": "node --test \"src/**/*.test.js\"",
     "lint": "eslint .",
