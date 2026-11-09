@@ -1,9 +1,26 @@
 # Python
 __pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+*.egg-info/
 *.py[cod]
 
 # Node.js
 node_modules/
+.vite/
+dist/
+dist-ssr/
+
+# Generated test output
+coverage/
+htmlcov/
+.coverage
+.coverage.*
+playwright-report/
+test-results/
 
 # Environment files
 .env
@@ -25,6 +42,14 @@ scratch/
 # Data backups & PII dumps
 *.backup.*
 *.backup.json
+*.dump
+*.dump.*
+*.sql.gz
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+*.sqlite3-journal
+database-backups/
 mock_*.json
 backend/app/mock_*.json
 
@@ -32,3 +57,20 @@ backend/app/mock_*.json
 graphify-out/
 .agents/
 .claude/
+
+# Local-only knowledge, agent settings and scratch (not portable application source)
+/Vault/
+/AGENTS.md
+/.agent/
+/.codex/
+/.gemini/
+/.mcp.json
+.tmp/
+/HeartLink_Plan_Changes_and_Progress_Summary.docx
+
+# Local credential material; never add real credentials to example templates
+.secrets/
+*.pem
+*.key
+*.p12
+*.pfx
