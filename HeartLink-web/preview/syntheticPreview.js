@@ -12,7 +12,7 @@ export const previewStyle = `
 `;
 const chooser = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>HeartLink synthetic preview</title><style>${previewStyle}
 *{box-sizing:border-box}body{margin:0;background:#f0f6fa;color:#1b303b;font-family:PreviewSans,system-ui,sans-serif}main{max-width:780px;margin:7vh auto;padding:28px}h1{font-size:clamp(30px,5vw,44px);letter-spacing:-1.4px;margin:12px 0}p{max-width:65ch;line-height:1.6;color:#4c6371}.roles{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:28px 0}form{margin:0}button{width:100%;height:100%;text-align:left;background:white;color:inherit;border:1px solid #cbd9e1;border-radius:14px;padding:22px;cursor:pointer;font:inherit}button:hover{border-color:#245f7c;background:#f8fcff}button:focus-visible,a:focus-visible{outline:2px solid #245f7c;outline-offset:3px}strong{font-size:19px}small{display:block;line-height:1.5;margin-top:8px;color:#4c6371}a{color:#245f7c}@media(max-width:540px){main{margin:2vh auto;padding:20px}.roles{grid-template-columns:1fr}}
-</style></head><body><main><img src="/app-icon.svg" width="40" height="40" alt="HeartLink"><h1>Explore the website.</h1><p>This isolated preview uses invented records. Choose a demo role—no email, password or real account needed. You can browse content and open dialogs; saving, publishing and account changes are blocked.</p><div class="roles">${Object.entries(roles).map(([key, role]) => `<form method="post" action="/__preview/session?role=${key}"><button type="submit"><strong>${role.label}</strong><small>${role.description}</small></button></form>`).join("")}</div><p><a href="/">View the public landing page</a></p><small>No backend or database connection. Nothing is saved. Sample recipes and movements are layout placeholders, not health advice.</small></main></body></html>`;
+</style></head><body><main><img src="/app-icon.svg" width="40" height="40" alt="HeartLink"><h1>Explore the website.</h1><p>This isolated preview uses invented records. Choose a demo role—no email, password or real account needed. You can browse content and open dialogs; saving, publishing and account changes are blocked.</p><div class="roles">${Object.entries(roles).map(([key, role]) => `<form method="post" action="/__preview/session?role=${key}"><button type="submit"><strong>${role.label}</strong><small>${role.description}</small></button></form>`).join("")}</div><p><a href="/">View the public landing page</a></p><p><a href="/__preview/login">View the sign-in design</a></p><small>No backend or database connection. Nothing is saved. Sample recipes and movements are layout placeholders, not health advice.</small></main></body></html>`;
 
 function send(res, status, body, type = "application/json") {
   res.statusCode = status;
@@ -48,6 +48,7 @@ export function syntheticMiddleware(req, res, next) {
     return redirect(res, roles[chosen].home);
   }
   if (["/login", "/two-factor", "/set-password"].includes(path)) return redirect(res, "/__preview");
+  if (path === "/__preview/login" && req.method === "GET") return next();
   if (/^\/__preview\/media\/(recipe|exercise)-[0-3]\.svg$/.test(path)) {
     return send(res, 200, illustration(path.split("/").pop()), "image/svg+xml");
   }
@@ -91,8 +92,17 @@ export function syntheticPreviewPlugin() {
         throw Error("Synthetic preview requires dev serve on http://127.0.0.1:5181 with no proxy.");
       }
     },
-    configureServer(server) { server.middlewares.use(syntheticMiddleware); },
-    transformIndexHtml() {
+    configureServer(server) {
+      server.middlewares.use(syntheticMiddleware);
+      server.middlewares.use(async (req, res, next) => {
+        if (new URL(req.url, origin).pathname !== "/__preview/login") return next();
+        try {
+          const html = await server.transformIndexHtml("/__preview/login", '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>HeartLink sign-in design preview</title><style>.login-preview-notice{margin:0;padding:12px 24px;text-align:center;background:#eaf3f9;color:#183e53;font:13px sans-serif}fieldset:disabled .login-page form>button[type=submit]{background:var(--color-cal-primary);color:white}</style></head><body><div id="root"></div><script type="module" src="/preview/loginPreview.jsx"></script></body></html>');
+          send(res, 200, html, "text/html");
+        } catch (error) { next(error); }
+      });
+    },
+    transformIndexHtml(_html, context) {
       return [
         { tag: "style", children: previewStyle, injectTo: "head" },
         // React Router links otherwise avoid the dev middleware's /login redirect.
@@ -105,7 +115,9 @@ export function syntheticPreviewPlugin() {
           }
         }, true);`, injectTo: "head" },
         { tag: "aside", attrs: { class: "synthetic-banner", "aria-label": "Synthetic preview notice" },
-          children: 'Synthetic · Read-only<span class="preview-detail">No real accounts or database</span><a href="/__preview">Switch demo role</a>', injectTo: "body-prepend" },
+          children: context.path === "/__preview/login"
+            ? 'Sign-in design · Read-only<span class="preview-detail">Fields disabled · No authentication</span><a href="/__preview">Back to preview</a>'
+            : 'Synthetic · Read-only<span class="preview-detail">No real accounts or database</span><a href="/__preview">Switch demo role</a>', injectTo: "body-prepend" },
       ];
     },
   };

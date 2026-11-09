@@ -71,6 +71,8 @@ test("local-only host/origin guards and media boundaries", () => {
   assert.equal(request("/__preview/media/recipe-0.svg").statusCode, 200);
   assert.equal(request("/__preview/media/exercise-0.svg").statusCode, 200);
   assert.equal(request("/__preview/media/recipe-999.svg").statusCode, 404);
+  assert.equal(request("/__preview/login").fellThrough, true);
+  assert.equal(request("/__preview/login", { method: "POST" }).statusCode, 404);
   assert.match(request("/__preview").headers["Content-Security-Policy"], /form-action 'self'; frame-src 'none'/);
   assert.equal(request("/src/app/main.jsx").fellThrough, true);
 });
