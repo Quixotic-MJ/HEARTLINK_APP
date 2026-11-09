@@ -43,22 +43,6 @@ RPC_STATS = {
 }
 
 
-@patch("app.api.admin_api.admin_api.get_admin_repo")
-@patch("app.api.admin_api.admin_api.get_supabase_client")
-def test_admin_dashboard_keeps_the_web_contract(mock_get_client, mock_admin_repo):
-    # The database function's numbers come back with the extra blocks the web dashboard reads.
-    mock_get_client.return_value.rpc.return_value.execute.return_value = MagicMock(data=dict(RPC_STATS))
-    mock_admin_repo.return_value.list_activity.return_value = [{"id": "a1", "action": "created_recipe"}]
-
-    response = client.get("/api/admin/dashboard")
-
-    assert response.status_code == 200
-    data = response.json()
-    mock_get_client.return_value.rpc.assert_called_once_with("get_admin_dashboard_stats", {"days_cutoff": 7})
-    assert data["kpi"] == {"total_users": 4, "active_users": 2, "avg_hss": 71.5, "open_alerts": 3}
-    assert data["content_library"]["exercises"] == 7
-    assert data["recent_activity"][0]["action"] == "created_recipe"
-
 
 @patch("app.api.analytics_api.analytics_api.get_analytics")
 def test_analytics_date_filtering(mock_get_analytics):

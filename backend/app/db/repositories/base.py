@@ -7,6 +7,21 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
+def list_projected_rows(client, table: str, columns: str) -> List[Dict[str, Any]]:
+    """Read only the named columns of every row, past the default row limit (from Ivan's support ticket fixes)."""
+    rows = []
+    page_size = 500
+    while True:
+        response = (client.table(table).select(columns).order("id")
+                    .range(len(rows), len(rows) + page_size - 1).execute())
+        if getattr(response, "error", None) or not isinstance(response.data, list):
+            raise RuntimeError("Operational data unavailable")
+        rows.extend(response.data)
+        if len(response.data) < page_size:
+            return rows
+
+
 def serialize_for_db(obj: Any) -> Any:
     """Recursively serializes date, datetime, and UUID objects to JSON-serializable primitives."""
     if isinstance(obj, (datetime, date)):

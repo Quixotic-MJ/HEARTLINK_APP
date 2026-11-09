@@ -192,8 +192,8 @@ def test_notes_on_someone_who_is_not_a_patient_are_refused():
 
 # --- Who may read --------------------------------------------------------------------------------
 
-@pytest.mark.parametrize("user_id", ["cardio-1", "diet-1", "pt-1", "admin-1"])
-def test_every_expert_and_admin_reads_guidance_and_messages(user_id):
+@pytest.mark.parametrize("user_id", ["cardio-1", "diet-1", "pt-1"])
+def test_every_expert_reads_guidance_and_messages(user_id):
     _post("cardio-1", "guidance")
     _post("pt-1", "message", "Started her on the 10-minute walk.")
     res = _call("GET", NOTES, user_id)
@@ -265,9 +265,15 @@ def test_patient_list_shows_latest_bp_score_and_open_alerts():
     assert res.json()[0]["id"] == OTHER_PATIENT_ID
 
 
-@pytest.mark.parametrize("user_id", ["cardio-1", "diet-1", "pt-1", "admin-1"])
-def test_staff_who_read_vitals_can_open_the_patient_list(user_id):
+@pytest.mark.parametrize("user_id", ["cardio-1", "diet-1", "pt-1"])
+def test_experts_can_open_the_patient_list(user_id):
     assert _call("GET", "/api/admin/patients", user_id).status_code == 200
+
+
+@pytest.mark.parametrize("path", ["/api/admin/patients", f"/api/admin/patients/{PATIENT_ID}/logs", NOTES])
+def test_admins_cant_open_patient_records(path):
+    """HL-107/136: the care team (experts) only, not Admins."""
+    assert _call("GET", path, "admin-1").status_code == 403
 
 
 def test_patient_list_is_closed_to_patients():
@@ -276,7 +282,6 @@ def test_patient_list_is_closed_to_patients():
 
 @pytest.mark.parametrize("user_id, sections", [
     ("cardio-1", {"health", "sleep", "scores", "alerts", "meals", "exercise"}),
-    ("admin-1", {"health", "sleep", "scores", "alerts", "meals", "exercise"}),
     ("diet-1", {"health", "sleep", "scores", "alerts", "meals"}),
     ("pt-1", {"health", "sleep", "scores", "alerts", "exercise"}),
 ])

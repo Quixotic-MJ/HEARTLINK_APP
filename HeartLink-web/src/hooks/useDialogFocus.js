@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 
 const FOCUSABLE =
-  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), video[controls], [tabindex]:not([tabindex="-1"])';
 
 /**
  * HL-083: keyboard use of a dialog or slide-in menu while `active`:
@@ -20,7 +20,12 @@ export function useDialogFocus(active, ref, onClose) {
     if (!active) return undefined;
     const opener = document.activeElement;
     const box = ref.current;
-    const items = () => (box ? [...box.querySelectorAll(FOCUSABLE)].filter((el) => el.offsetParent !== null || el === document.activeElement) : []);
+    const items = () =>
+      box
+        ? [...box.querySelectorAll(FOCUSABLE)].filter(
+            (el) => el.offsetParent !== null || el === document.activeElement,
+          )
+        : [];
     (items()[0] || box)?.focus();
 
     const onKeyDown = (event) => {
@@ -37,10 +42,18 @@ export function useDialogFocus(active, ref, onClose) {
       }
       const first = list[0];
       const last = list[list.length - 1];
-      if (event.shiftKey && (document.activeElement === first || !box.contains(document.activeElement))) {
+      if (
+        event.shiftKey &&
+        (document.activeElement === first ||
+          !box.contains(document.activeElement))
+      ) {
         event.preventDefault();
         last.focus();
-      } else if (!event.shiftKey && (document.activeElement === last || !box.contains(document.activeElement))) {
+      } else if (
+        !event.shiftKey &&
+        (document.activeElement === last ||
+          !box.contains(document.activeElement))
+      ) {
         event.preventDefault();
         first.focus();
       }
@@ -48,7 +61,12 @@ export function useDialogFocus(active, ref, onClose) {
     document.addEventListener("keydown", onKeyDown);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      if (opener && typeof opener.focus === "function" && document.contains(opener)) opener.focus();
+      if (
+        opener &&
+        typeof opener.focus === "function" &&
+        document.contains(opener)
+      )
+        opener.focus();
     };
   }, [active, ref]);
 }

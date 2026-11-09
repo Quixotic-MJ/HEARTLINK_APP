@@ -6,12 +6,15 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime
 import uuid
 import logging
-from app.db.repositories.base import handle_db_error, resolve_uuid, serialize_for_db
+from app.db.repositories.base import handle_db_error, resolve_uuid, serialize_for_db, list_projected_rows
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 
 logger = logging.getLogger(__name__)
 
 class ContentRepository:
+    def list_portal_content_statuses(self, kind: str) -> List[Dict[str, Any]]:
+        raise NotImplementedError
+
     # Recipes
     def list_recipes(self) -> List[Dict[str, Any]]:
         raise NotImplementedError
@@ -22,7 +25,12 @@ class ContentRepository:
     def create_recipe(self, data: Dict[str, Any]) -> Dict[str, Any]:
         raise NotImplementedError
 
-    def update_recipe(self, recipe_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def update_recipe(
+        self,
+        recipe_id: str,
+        data: Dict[str, Any],
+        expected_updated_at: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
         raise NotImplementedError
 
     def delete_recipe(self, recipe_id: str) -> bool:
@@ -47,7 +55,7 @@ class ContentRepository:
     def create_routine(self, data: Dict[str, Any]) -> Dict[str, Any]:
         raise NotImplementedError
 
-    def update_routine(self, routine_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def update_routine(self, routine_id: str, data: Dict[str, Any], expected_updated_at: Optional[str] = None) -> Optional[Dict[str, Any]]:
         raise NotImplementedError
 
     def delete_routine(self, routine_id: str) -> bool:
@@ -70,6 +78,12 @@ class ContentRepository:
 class SupabaseContentRepository(ContentRepository):
     def __init__(self, client):
         self.client = client
+
+    def list_portal_content_statuses(self, kind: str) -> List[Dict[str, Any]]:
+        table = {"recipes": "recipes", "exercises": "exercise_routines"}[kind]
+        return list_projected_rows(
+            self.client, table, "status,expert_validated,reviewed_by,reviewed_at,review_note"
+        )
 
     def _resolve_user_uuid(self, user_id: str) -> Optional[str]:
         valid_uuid = resolve_uuid(user_id)
@@ -119,7 +133,12 @@ class SupabaseContentRepository(ContentRepository):
             handle_db_error(e)
             return {}
 
-    def update_recipe(self, recipe_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def update_recipe(
+        self,
+        recipe_id: str,
+        data: Dict[str, Any],
+        expected_updated_at: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
         try:
             payload = {
                 "updated_at": utc_now().isoformat(),
@@ -128,10 +147,15 @@ class SupabaseContentRepository(ContentRepository):
             payload = serialize_for_db(payload)
             valid_id = resolve_uuid(recipe_id)
             if valid_id:
-                res = self.client.table("recipes").update(payload).eq("id", valid_id).execute()
-                if res.data:
-                    return res.data[0]
-            res = self.client.table("recipes").update(payload).eq("legacy_id", recipe_id).execute()
+                query = self.client.table("recipes").update(payload).eq("id", valid_id)
+                if expected_updated_at:
+                    query = query.eq("updated_at", expected_updated_at)
+                res = query.execute()
+                return res.data[0] if res.data else None
+            query = self.client.table("recipes").update(payload).eq("legacy_id", recipe_id)
+            if expected_updated_at:
+                query = query.eq("updated_at", expected_updated_at)
+            res = query.execute()
             return res.data[0] if res.data else None
         except Exception as e:
             handle_db_error(e)
@@ -246,7 +270,7 @@ class SupabaseContentRepository(ContentRepository):
             handle_db_error(e)
             return {}
 
-    def update_routine(self, routine_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def update_routine(self, routine_id: str, data: Dict[str, Any], expected_updated_at: Optional[str] = None) -> Optional[Dict[str, Any]]:
         try:
             payload = {
                 "updated_at": utc_now().isoformat(),
@@ -255,10 +279,12 @@ class SupabaseContentRepository(ContentRepository):
             payload = serialize_for_db(payload)
             valid_id = resolve_uuid(routine_id)
             if valid_id:
-                res = self.client.table("exercise_routines").update(payload).eq("id", valid_id).execute()
-                if res.data:
-                    return res.data[0]
-            res = self.client.table("exercise_routines").update(payload).eq("legacy_id", routine_id).execute()
+                query = self.client.table("exercise_routines").update(payload).eq("id", valid_id)
+            else:
+                query = self.client.table("exercise_routines").update(payload).eq("legacy_id", routine_id)
+            if expected_updated_at:
+                query = query.eq("updated_at", expected_updated_at)
+            res = query.execute()
             return res.data[0] if res.data else None
         except Exception as e:
             handle_db_error(e)

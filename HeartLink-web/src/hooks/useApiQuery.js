@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { apiFetch } from "../api";
+import { apiFetch } from "../lib/api.js";
 
 /**
  * HL-035: load a backend address with React Query. `select` turns the response into what the screen shows

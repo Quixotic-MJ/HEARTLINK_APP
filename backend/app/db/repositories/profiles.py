@@ -6,7 +6,7 @@ Encapsulates all user profile operations across Mock and Supabase modes.
 from typing import Optional, Dict, Any, List
 from datetime import datetime, date
 import uuid
-from app.db.repositories.base import handle_db_error, serialize_for_db
+from app.db.repositories.base import handle_db_error, serialize_for_db, list_projected_rows
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 from app.utils.phone import normalize_phone_for_storage
 
@@ -48,10 +48,41 @@ class ProfileRepository:
     def toggle_status(self, user_id: str) -> Optional[Dict[str, Any]]:
         raise NotImplementedError
 
+    def list_portal_account_statuses(self) -> List[Dict[str, Any]]:
+        raise NotImplementedError
+
+    def list_portal_accounts(self) -> List[Dict[str, Any]]:
+        raise NotImplementedError
+
+    def list_portal_staff(self) -> List[Dict[str, Any]]:
+        raise NotImplementedError
+
+    def list_portal_premium_accounts(self) -> List[Dict[str, Any]]:
+        raise NotImplementedError
+
 
 class SupabaseProfileRepository(ProfileRepository):
     def __init__(self, client):
         self.client = client
+
+    def list_portal_account_statuses(self) -> List[Dict[str, Any]]:
+        return list_projected_rows(self.client, "profiles", "role,account_status")
+
+    def list_portal_accounts(self) -> List[Dict[str, Any]]:
+        return list_projected_rows(
+            self.client, "profiles",
+            "id,role,first_name,last_name,phone,account_status,created_at,deactivation_reason,plan,premium_until,premium_source",
+        )
+
+    def list_portal_staff(self) -> List[Dict[str, Any]]:
+        return list_projected_rows(
+            self.client, "profiles",
+            "id,role,first_name,last_name,email,phone,expert_type,is_verified_clinician,clinician_verified_at,account_status,created_at",
+        )
+
+    def list_portal_premium_accounts(self) -> List[Dict[str, Any]]:
+        return list_projected_rows(self.client, "profiles",
+            "id,role,account_status,first_name,last_name,email,plan,premium_until,premium_source")
 
     def get_by_id(self, user_id: str) -> Optional[Dict[str, Any]]:
         try:

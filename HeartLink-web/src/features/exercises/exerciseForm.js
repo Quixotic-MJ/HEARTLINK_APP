@@ -1,0 +1,265 @@
+import * as z from "zod";
+import { NEW_PART, partFromStep, stepFromPart } from "./exerciseParts.js";
+
+const partSchema = z.object({
+  instruction: z.string(),
+  details: z.string().optional(),
+  mode: z.enum(["time", "count"]).default("time"),
+  minutes: z.coerce.number().default(0),
+  seconds: z.coerce.number().default(30),
+  reps: z.coerce.number().default(0),
+  seconds_per_rep: z.coerce.number().default(0),
+  both_sides: z.boolean().default(false),
+  // Breathing exercises only: what this step asks for. Empty = the app reads it from the words.
+  breath: z.enum(["", "in", "hold", "out"]).optional(),
+  image: z.string().optional(),
+});
+
+export const exerciseSchema = z
+  .object({
+    name: z.string().min(1, "Name is required."),
+    description: z.string().min(1, "Description is required."),
+    duration: z.coerce.number().min(1, "Must be at least 1 minute."),
+    mediaUrl: z.string().optional(),
+    videoUrl: z.string().optional(),
+    type: z.string().default("General"),
+    intensity: z.string().default("Low"),
+    goal: z.string().optional(),
+    status: z.string().default("draft"),
+    calories: z.coerce.number().min(0).default(0),
+    requirements: z.array(z.string()).default([]),
+    position: z.string().optional(),
+    setting: z.string().optional(),
+    difficultyLevel: z.string().optional(),
+    category: z.string().optional(),
+    targetAreas: z.string().optional(),
+    tempo: z.string().optional(),
+    effortHint: z.string().optional(),
+    frequency: z.string().optional(),
+    easierVersion: z.string().optional(),
+    skipIf: z.array(z.object({ value: z.string() })).optional(),
+    stopIf: z.array(z.object({ value: z.string() })).optional(),
+    setupSteps: z
+      .array(
+        z.object({
+          instruction: z.string(),
+          details: z.string().optional(),
+          image: z.string().optional(),
+        }),
+      )
+      .optional(),
+    warmupParts: z.array(partSchema).optional(),
+    mainParts: z.array(partSchema).optional(),
+    cooldownParts: z.array(partSchema).optional(),
+    rounds: z.coerce
+      .number()
+      .min(1, "At least 1")
+      .max(20, "20 at most")
+      .default(1),
+    restSeconds: z.coerce
+      .number()
+      .min(0)
+      .max(600, "10 minutes at most")
+      .default(0),
+    guideImages: z
+      .array(z.object({ url: z.string().min(1, "URL cannot be empty") }))
+      .optional(),
+  })
+  .superRefine((data, ctx) => {
+    const sections =
+      data.type === "Breathing"
+        ? ["mainParts"]
+        : ["warmupParts", "mainParts", "cooldownParts"];
+    for (const section of sections) {
+      (data[section] || []).forEach((part, index) => {
+        const issue = (field, message) =>
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [section, index, field],
+            message,
+          });
+        if (!part.instruction.length)
+          issue("instruction", "Instruction cannot be empty");
+        if (part.mode === "count" && data.type !== "Breathing") {
+          if (part.reps <= 0) issue("reps", "Set the reviewed count");
+          else if (!Number.isInteger(part.reps) || part.reps > 100)
+            issue("reps", "Use 1 to 100 whole repetitions");
+          if (part.seconds_per_rep <= 0)
+            issue("seconds_per_rep", "Set the reviewed pace");
+          else if (
+            !Number.isInteger(part.seconds_per_rep) ||
+            part.seconds_per_rep > 60
+          )
+            issue(
+              "seconds_per_rep",
+              "Use 1 to 60 whole seconds per repetition",
+            );
+        } else {
+          if (part.minutes < 0) issue("minutes", "Minutes cannot be negative");
+          if (part.seconds < 0 || part.seconds > 59)
+            issue("seconds", "Use 0 to 59 seconds");
+          else if (part.minutes * 60 + part.seconds <= 0)
+            issue("seconds", "Give it a time");
+        }
+      });
+    }
+  });
+
+export const EMPTY_FORM = {
+  name: "",
+  description: "",
+  duration: 10,
+  mediaUrl: "",
+  videoUrl: "",
+  type: "General",
+  intensity: "Low",
+  goal: "",
+  status: "draft",
+  calories: 0,
+  requirements: [],
+  position: "",
+  setting: "",
+  difficultyLevel: "",
+  category: "",
+  targetAreas: "",
+  tempo: "",
+  effortHint: "",
+  frequency: "",
+  easierVersion: "",
+  skipIf: [],
+  stopIf: [],
+  setupSteps: [],
+  warmupParts: [],
+  mainParts: [{ ...NEW_PART }],
+  cooldownParts: [],
+  rounds: 1,
+  restSeconds: 0,
+  guideImages: [],
+};
+
+const toValues = (list) =>
+  Array.isArray(list)
+    ? list
+        .filter(Boolean)
+        .map((v) => ({ value: typeof v === "string" ? v : v.value || "" }))
+    : [];
+export const fromValues = (list) =>
+  (list || []).map((v) => (v.value || "").trim()).filter(Boolean);
+
+export function exerciseValues(exercise) {
+  if (!exercise) return EMPTY_FORM;
+  const steps = Array.isArray(exercise.steps) ? exercise.steps : [];
+  // Old steps have no section: they all count as the main part.
+  const inSection = (section) =>
+    steps
+      .filter(
+        (s) =>
+          (typeof s === "object" && s?.section ? s.section : "main") ===
+          section,
+      )
+      .map(partFromStep);
+  const main = inSection("main");
+  return {
+    ...EMPTY_FORM,
+    ...exercise,
+    description: exercise.description || "",
+    mediaUrl: exercise.mediaUrl || "",
+    videoUrl: exercise.videoUrl || "",
+    // "Stretching" was an older type; it plays the same as Stationary.
+    type:
+      exercise.type === "Stretching"
+        ? "Stationary"
+        : exercise.type || "General",
+    intensity:
+      exercise.intensity === "Medium"
+        ? "Moderate"
+        : exercise.intensity || "Low",
+    goal: exercise.goal || "",
+    calories: exercise.calories || 0,
+    requirements: (exercise.requirements || [])
+      .map((r) => (typeof r === "string" ? r : r?.name || r?.value || ""))
+      .filter(Boolean),
+    position: exercise.position || "",
+    setting: exercise.setting || "",
+    difficultyLevel: exercise.difficultyLevel || "",
+    category: exercise.category || "",
+    targetAreas: (exercise.targetAreas || []).join(", "),
+    tempo: exercise.tempo || "",
+    effortHint: exercise.effortHint || "",
+    frequency: exercise.frequency || "",
+    easierVersion: exercise.easierVersion || "",
+    skipIf: toValues(exercise.skipIf),
+    stopIf: toValues(exercise.stopIf),
+    setupSteps: (exercise.setupSteps || []).map((s) => ({
+      instruction: s.instruction || "",
+      details: s.details || "",
+      image: s.image || "",
+    })),
+    warmupParts: inSection("warmup"),
+    mainParts: main.length ? main : [{ ...NEW_PART }],
+    cooldownParts: inSection("cooldown"),
+    rounds: exercise.rounds || 1,
+    restSeconds: exercise.restSeconds || 0,
+    guideImages: (exercise.guideImages || []).map((img) => ({
+      url: typeof img === "string" ? img : img?.url || "",
+    })),
+  };
+}
+
+export function exercisePayload(data, totalSeconds) {
+  const breathing = data.type === "Breathing";
+  const keep = (parts) =>
+    (parts || []).filter((p) => (p.instruction || "").trim());
+  const steps = breathing
+    ? keep(data.mainParts).map((p) => stepFromPart(p, "main", true))
+    : [
+        ...keep(data.warmupParts).map((p) => stepFromPart(p, "warmup", false)),
+        ...keep(data.mainParts).map((p) => stepFromPart(p, "main", false)),
+        ...keep(data.cooldownParts).map((p) =>
+          stepFromPart(p, "cooldown", false),
+        ),
+      ];
+  // The three part lists are only for the form; they're saved together as `steps`.
+  const rest = { ...data };
+  delete rest.warmupParts;
+  delete rest.mainParts;
+  delete rest.cooldownParts;
+  delete rest.expertValidated;
+  delete rest.hssTarget;
+
+  return {
+    ...rest,
+    calories: parseInt(data.calories || 0, 10),
+    requirements: (data.requirements || [])
+      .map((r) => r.trim())
+      .filter(Boolean),
+    skipIf: fromValues(data.skipIf),
+    stopIf: fromValues(data.stopIf),
+    setupSteps: (data.setupSteps || [])
+      .filter((s) => (s.instruction || "").trim())
+      .map((s) => ({
+        instruction: s.instruction.trim(),
+        details: (s.details || "").trim(),
+        ...(s.image ? { image: s.image.trim() } : {}),
+      })),
+    steps,
+    // Breathing repeats its breaths until its time is up; everything else adds up its parts.
+    rounds: breathing ? 1 : data.rounds,
+    restSeconds: breathing ? 0 : data.restSeconds,
+    duration: breathing
+      ? data.duration
+      : Math.max(1, Math.ceil(totalSeconds / 60)),
+    position: data.position || null,
+    setting: data.setting || null,
+    difficultyLevel: data.difficultyLevel || null,
+    category: data.category || null,
+    targetAreas: (data.targetAreas || "")
+      .split(",")
+      .map((area) => area.trim())
+      .filter(Boolean),
+    tempo: data.tempo || null,
+    guideImages: (data.guideImages || [])
+      .map((g) => (g.url || "").trim())
+      .filter(Boolean),
+  };
+}

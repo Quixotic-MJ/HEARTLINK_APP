@@ -9,6 +9,10 @@ class FakeContentRepo:
     def __init__(self):
         self.created = None
         self.updated = None
+        self.current = None  # the saved item, before this save
+
+    def get_recipe(self, item_id):
+        return self.current
 
     def create_recipe(self, data):
         self.created = data

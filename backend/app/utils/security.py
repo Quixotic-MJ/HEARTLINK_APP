@@ -307,24 +307,29 @@ def get_current_admin_user(request: Request, credentials: Optional[HTTPAuthoriza
     _enforce_password_change(request, user_id, user)
     return payload
 
-# HL-012: what each expert type may do. Admins may do everything (HL-074: one Admin role, no Super Admin).
-# Recipes are the Dietitian's, exercises the PT's; the Cardiologist reads every patient log
-# and may record vitals, but does not edit recipes or exercises.
-# Patient notes (HL-039/013/040): every expert reads them; the Cardiologist writes guidance,
+# HL-012: what each expert type may do (HL-074: one Admin role, no Super Admin).
+# Recipes are the Dietitian's, exercises the PT's; the Cardiologist reads every patient log but does not edit
+# recipes or exercises. Patient notes (HL-039/013/040): every expert reads them; the Cardiologist writes guidance,
 # Dietitians and PTs write to their shared message thread.
+# HL-107/136: patient health records are for the patient and the care team (the experts). Admins may do everything
+# else (accounts, content, operations) but never open a patient's health records. No portal page writes a
+# patient's logs, so experts have no log-writing permission.
 ADMIN_ROLES = {"admin"}
 EXPERT_PERMISSIONS = {
-    "Dietitian": {"recipes:edit", "meal_logs:read", "meal_logs:write", "vitals:read", "notes:read", "notes:message"},
+    "Dietitian": {"recipes:edit", "meal_logs:read", "vitals:read", "notes:read", "notes:message"},
     "Physical Therapist": {"exercises:edit", "exercise_logs:read", "vitals:read", "notes:read", "notes:message"},
-    "Cardiologist": {"meal_logs:read", "meal_logs:write", "exercise_logs:read", "vitals:read", "vitals:write",
-                     "notes:read", "notes:guidance"},
+    "Cardiologist": {"meal_logs:read", "exercise_logs:read", "vitals:read", "notes:read", "notes:guidance"},
+}
+HEALTH_RECORD_PERMISSIONS = {
+    "vitals:read", "vitals:write", "meal_logs:read", "meal_logs:write", "exercise_logs:read",
+    "notes:read", "notes:message", "notes:guidance",
 }
 
 
 def has_permission(current_user: dict, permission: str) -> bool:
     role = current_user.get("role")
     if role in ADMIN_ROLES:
-        return True
+        return permission not in HEALTH_RECORD_PERMISSIONS
     if role != "medical_expert":
         return False
     # Read the expert type fresh, so a changed specialization applies straight away.
@@ -374,9 +379,14 @@ def verify_user_access(current_user: dict, target_user_id: str) -> None:
     caller_id = current_user.get("user_id")
     caller_role = current_user.get("role")
     
-    # 1. Admins have system audit access
+    # 1. Admins manage accounts but don't open health records (HL-107/136): their own account only
     if caller_role in ADMIN_ROLES:
-        return
+        if caller_id and caller_id == target_user_id:
+            return
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access Denied: Admins manage accounts but don't open patients' health records.",
+        )
 
     # 2. Patient access: Strictly self only
     if caller_role == "patient":

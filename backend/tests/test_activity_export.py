@@ -49,7 +49,7 @@ def test_the_export_has_every_matching_entry_and_only_the_log_fields(api):
     body = client.get("/api/admin/activity/export?target_type=user&search=ana", headers=as_user("boss", "admin")).json()
     assert admin.calls[-1] == {"target_type": "user", "search": "ana"}
     assert body["count"] == 1
-    assert body["items"] == [{"created_at": "2026-10-27T01:00:00+00:00", "admin_name": "Ada", "action": "gave Premium for 30 days",
+    assert body["items"] == [{"created_at": "2026-10-27T01:00:00+00:00", "admin_name": "Ada", "action": "changed Premium access",
                               "target_type": "user", "target_name": "Ana Cruz", "target_id": "pat"}]
     assert "exported the activity log (1 entries" in recorded[-1]["action"]
 
@@ -57,6 +57,58 @@ def test_the_export_has_every_matching_entry_and_only_the_log_fields(api):
 def test_only_admins_can_export(api):
     client, as_user, _, _ = api
     assert client.get("/api/admin/activity/export", headers=as_user("doc", "medical_expert")).status_code == 403
+
+
+def test_log_and_export_share_the_operational_privacy_boundary(api, monkeypatch):
+    import sys
+    client, as_user, _, _ = api
+    hidden = [
+        {**LOGS[0], "id": "clinical", "target_type": "case", "action": "reviewed", "target_name": "SYNTHETIC_PRIVATE_READING"},
+        {**LOGS[0], "id": "dataset", "target_type": "dataset", "action": "exported the clinical dataset"},
+        {**LOGS[0], "id": "unknown", "target_type": "user", "action": "viewed SYNTHETIC_PRIVATE_READING"},
+    ]
+    monkeypatch.setattr(sys.modules[__name__], "LOGS", [*LOGS, *hidden])
+    for path in ("/api/admin/activity", "/api/admin/activity/export"):
+        response = client.get(path, headers=as_user("boss", "admin"))
+        assert response.status_code == 200
+        assert len(response.json()["items"]) == 2
+        assert "SYNTHETIC_PRIVATE_READING" not in response.text
+        assert "details" not in response.text
+        assert response.json()["items"][0]["action"] == "changed Premium access"
+
+
+@pytest.mark.parametrize("category", ["case", "dataset", "patient_note", "unknown"])
+def test_retired_or_unknown_log_filters_are_not_a_backdoor(api, category):
+    client, as_user, _, _ = api
+    for path in ("/api/admin/activity", "/api/admin/activity/export"):
+        assert client.get(f"{path}?target_type={category}", headers=as_user("boss", "admin")).status_code == 400
+
+
+def test_export_does_not_copy_raw_search_into_the_audit_record(api):
+    client, as_user, _, recorded = api
+    response = client.get("/api/admin/activity/export?search=SYNTHETIC_PRIVATE_SEARCH", headers=as_user("boss", "admin"))
+    assert response.status_code == 200
+    assert "SYNTHETIC_PRIVATE_SEARCH" not in str(recorded)
+
+
+def test_historical_account_reason_is_not_echoed_in_the_portal(api, monkeypatch):
+    import sys
+    client, as_user, _, _ = api
+    monkeypatch.setattr(sys.modules[__name__], "LOGS", [{**LOGS[0], "action": "disabled user account (reason: SYNTHETIC_PRIVATE_DETAIL)"}])
+    for path in ("/api/admin/activity", "/api/admin/activity/export"):
+        response = client.get(path, headers=as_user("boss", "admin"))
+        assert response.status_code == 200
+        assert response.json()["items"][0]["action"] == "disabled account"
+        assert "SYNTHETIC_PRIVATE_DETAIL" not in response.text
+
+
+def test_unavailable_log_is_not_an_empty_success():
+    from types import SimpleNamespace
+    from fastapi import HTTPException
+    class Broken(Query):
+        def execute(self): return SimpleNamespace(data=None, error="Synthetic failure")
+    with pytest.raises(HTTPException):
+        SupabaseAdminRepository(SimpleNamespace(table=lambda _: Broken(0, []))).list_activity()
 
 
 class Query:

@@ -1,4 +1,4 @@
-"""HL-073: the reason an admin gives when disabling an account is saved, logged, and cleared on enable."""
+"""Account disable reasons stay on the account, not copied into general audit text."""
 import pytest
 from fastapi.testclient import TestClient
 
@@ -36,12 +36,13 @@ def toggle(body=None):
     return client.put("/api/admin/users/p1/status", json=body)
 
 
-def test_disabling_saves_and_logs_the_reason(profiles):
+def test_disabling_saves_the_reason_without_copying_it_into_audit_text(profiles):
     fake, logged = profiles
     assert toggle({"reason": "  Policy violation  "}).status_code == 200
     assert fake.rows["p1"]["account_status"] == "disabled"
     assert fake.rows["p1"]["deactivation_reason"] == "Policy violation"
-    assert logged[-1]["action"] == "disabled user account (reason: Policy violation)"
+    assert logged[-1]["action"] == "disabled user account"
+    assert "Policy violation" not in str(logged)
 
 
 def test_enabling_clears_the_reason(profiles):
@@ -64,3 +65,19 @@ def test_very_long_reasons_are_cut(profiles):
     fake, _ = profiles
     toggle({"reason": "x" * 500})
     assert len(fake.rows["p1"]["deactivation_reason"]) == admin_api.DEACTIVATION_REASON_MAX
+
+
+@pytest.mark.parametrize("status", ["archived", "legacy", None])
+def test_access_toggle_does_not_restore_unknown_or_archived_accounts(profiles, status):
+    fake, logged = profiles
+    fake.rows["p1"]["account_status"] = status
+    assert toggle().status_code == 400
+    assert fake.rows["p1"]["account_status"] == status
+    assert logged == []
+
+
+def test_a_failed_status_write_is_not_reported_as_success(profiles, monkeypatch):
+    fake, logged = profiles
+    monkeypatch.setattr(fake, "update_profile", lambda *_args, **_kwargs: None)
+    assert toggle().status_code == 500
+    assert logged == []

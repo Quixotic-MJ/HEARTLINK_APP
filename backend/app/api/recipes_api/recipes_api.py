@@ -16,6 +16,7 @@ from app.utils.security import expert_id_if, require_permission, get_current_use
 from app.utils.activity_helper import record_admin_activity
 from app.services.admin_notifications import notify_waiting_content
 from app.services.food_warnings import patient_id, with_warnings
+from app.services.content_revision import ContentChanged, STALE_MESSAGE
 
 router = APIRouter(prefix="/api/recipes", tags=["Recipes"])
 
@@ -104,6 +105,8 @@ def edit_recipe(recipe_id: str, data: Dict[str, Any] = Body(...), current_user: 
     old_status = recipe.get("status")
     try:
         updated_recipe = update_recipe(recipe_id, data, dietitian_id=expert_id_if(current_user, "Dietitian"))
+    except ContentChanged:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=STALE_MESSAGE)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     if not updated_recipe:

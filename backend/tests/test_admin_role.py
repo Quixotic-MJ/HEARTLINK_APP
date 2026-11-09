@@ -106,8 +106,12 @@ def test_an_old_super_admin_session_is_refused():
     assert _get("/staff", "admin-1", role="super_admin").status_code == 403
 
 
-def test_admin_can_open_any_patient_record():
-    verify_user_access({"user_id": "admin-1", "role": "admin"}, "patient-1")
+def test_admin_cant_open_a_patients_health_records():
+    """HL-107/136: Admins manage accounts; health records are for the patient and the care team."""
+    with pytest.raises(HTTPException) as exc:
+        verify_user_access({"user_id": "admin-1", "role": "admin"}, "patient-1")
+    assert exc.value.status_code == 403
+    verify_user_access({"user_id": "admin-1", "role": "admin"}, "admin-1")  # their own account is fine
 
 
 @pytest.mark.parametrize("legacy_role", ["doctor", "clinician", "superadmin", "Super Admin", "super_admin"])

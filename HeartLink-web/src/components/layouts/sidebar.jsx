@@ -1,35 +1,18 @@
-import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { createPortal } from "react-dom";
 import {
-  Activity,
-  Bell,
-  ChartColumn,
-  CircleHelp,
-  CornerDownLeft,
-  Crown,
-  Database,
-  Dumbbell,
-  EllipsisVertical,
-  Gauge,
-  HeartPulse,
-  ListChecks,
-  LogOut,
-  Mail,
-  Megaphone,
-  PanelLeftClose,
-  Plus,
-  Search,
-  Settings,
-  UserPlus,
-  Users,
-  Utensils,
-  X,
-} from "lucide-react";
-import { useAuth } from "../../contexts/useAuth";
-import { canAccess } from "../../app/access";
-import { useApiQuery } from "../../hooks/useApiQuery";
-import { useDialogFocus } from "../../hooks/useDialogFocus";
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { motion, useReducedMotion } from "framer-motion";
+import { EllipsisVertical, LogOut, X } from "lucide-react";
+import { useAuth } from "../../contexts/useAuth.js";
+import { homeFor } from "../../app/access.js";
+import { portalNavigationFor } from "../../app/portalNavigation.js";
+import { useDialogFocus } from "../../hooks/useDialogFocus.js";
 
 // HL-083: the sidebar is a slide-in menu below the lg breakpoint (1024px) and always visible above it
 const DESKTOP = "(min-width: 1024px)";
@@ -39,8 +22,6 @@ const subscribeToWidth = (onChange) => {
   return () => query.removeEventListener("change", onChange);
 };
 const isDesktopWidth = () => window.matchMedia(DESKTOP).matches;
-
-const BELL_PATH = "/api/admin/notifications";
 
 // ─── Brand Logo Emblem (Exempted Brand Gradient Stops) ────────────────────────
 function HeartLogoIcon({ size = 20 }) {
@@ -58,7 +39,14 @@ function HeartLogoIcon({ size = 20 }) {
       className="shrink-0"
     >
       <defs>
-        <linearGradient id={`hl-tr-${uid}`} gradientUnits="userSpaceOnUse" x1="0" y1="-122" x2="0" y2="30">
+        <linearGradient
+          id={`hl-tr-${uid}`}
+          gradientUnits="userSpaceOnUse"
+          x1="0"
+          y1="-122"
+          x2="0"
+          y2="30"
+        >
           <stop offset="0" stopColor="#2B84FF" />
           <stop offset="0.30" stopColor="#2E8DF5" />
           <stop offset="0.52" stopColor="#38B3B5" />
@@ -67,14 +55,28 @@ function HeartLogoIcon({ size = 20 }) {
           <stop offset="0.91" stopColor="#F7A63C" />
           <stop offset="1" stopColor="#FF9A2E" />
         </linearGradient>
-        <linearGradient id={`hl-bl-${uid}`} gradientUnits="userSpaceOnUse" x1="0" y1="-30" x2="0" y2="122">
+        <linearGradient
+          id={`hl-bl-${uid}`}
+          gradientUnits="userSpaceOnUse"
+          x1="0"
+          y1="-30"
+          x2="0"
+          y2="122"
+        >
           <stop offset="0" stopColor="#2B87FF" />
           <stop offset="0.45" stopColor="#2A86F5" />
           <stop offset="0.62" stopColor="#2D9BE0" />
           <stop offset="0.78" stopColor="#30BE9C" />
           <stop offset="1" stopColor="#33CC82" />
         </linearGradient>
-        <linearGradient id={`hl-br-${uid}`} gradientUnits="userSpaceOnUse" x1="122" y1="0" x2="-32" y2="0">
+        <linearGradient
+          id={`hl-br-${uid}`}
+          gradientUnits="userSpaceOnUse"
+          x1="122"
+          y1="0"
+          x2="-32"
+          y2="0"
+        >
           <stop offset="0" stopColor="#3FC98A" />
           <stop offset="0.30" stopColor="#7ACD68" />
           <stop offset="0.50" stopColor="#B6D85A" />
@@ -83,11 +85,28 @@ function HeartLogoIcon({ size = 20 }) {
           <stop offset="1" stopColor="#FF9A2E" />
         </linearGradient>
       </defs>
-      <g fill="none" strokeWidth="30" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M -79.20,-25.46 L -96.17,-42.43 A 38 38 0 0 1 -42.43,-96.17 L 28.28,-25.46" stroke="#FF4B4B" />
-        <path d="M 25.46,-79.20 L 42.43,-96.17 A 38 38 0 0 1 96.17,-42.43 L 25.46,28.28" stroke={`url(#hl-tr-${uid})`} />
-        <path d="M -25.46,79.20 L -42.43,96.17 A 38 38 0 0 1 -96.17,42.43 L -25.46,-28.28" stroke={`url(#hl-bl-${uid})`} />
-        <path d="M 79.20,25.46 L 96.17,42.43 A 38 38 0 0 1 42.43,96.17 L -28.28,25.46" stroke={`url(#hl-br-${uid})`} />
+      <g
+        fill="none"
+        strokeWidth="30"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path
+          d="M -79.20,-25.46 L -96.17,-42.43 A 38 38 0 0 1 -42.43,-96.17 L 28.28,-25.46"
+          stroke="#FF4B4B"
+        />
+        <path
+          d="M 25.46,-79.20 L 42.43,-96.17 A 38 38 0 0 1 96.17,-42.43 L 25.46,28.28"
+          stroke={`url(#hl-tr-${uid})`}
+        />
+        <path
+          d="M -25.46,79.20 L -42.43,96.17 A 38 38 0 0 1 -96.17,42.43 L -25.46,-28.28"
+          stroke={`url(#hl-bl-${uid})`}
+        />
+        <path
+          d="M 79.20,25.46 L 96.17,42.43 A 38 38 0 0 1 42.43,96.17 L -28.28,25.46"
+          stroke={`url(#hl-br-${uid})`}
+        />
       </g>
     </svg>
   );
@@ -102,9 +121,11 @@ function getRoleLabel(role, expertType) {
 
 function getAvatarSurface(role, expertType) {
   if (role === "admin") return "bg-cal-badge-violet/15 text-cal-ink";
-  if (expertType === "Cardiologist") return "bg-cal-badge-orange/20 text-cal-ink";
+  if (expertType === "Cardiologist")
+    return "bg-cal-badge-orange/20 text-cal-ink";
   if (expertType === "Dietitian") return "bg-cal-badge-emerald/20 text-cal-ink";
-  if (expertType === "Physical Therapist") return "bg-cal-badge-pink/15 text-cal-ink";
+  if (expertType === "Physical Therapist")
+    return "bg-cal-badge-pink/15 text-cal-ink";
   return "bg-cal-surface-card text-cal-ink";
 }
 
@@ -114,7 +135,9 @@ function SectionLabel({ label, collapsed }) {
     <div className="relative">
       <div
         className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] ${
-          collapsed ? "max-h-0 opacity-0 my-0 py-0" : "max-h-12 opacity-100 px-2.5 pt-4 pb-1.5"
+          collapsed
+            ? "max-h-0 opacity-0 my-0 py-0"
+            : "max-h-12 opacity-100 px-2.5 pt-4 pb-1.5"
         }`}
       >
         <div className="text-[12px] font-medium text-cal-muted select-none truncate whitespace-nowrap">
@@ -122,7 +145,10 @@ function SectionLabel({ label, collapsed }) {
         </div>
       </div>
       {collapsed && (
-        <div className="mx-2 my-2 border-t border-cal-hairline transition-opacity duration-300" aria-hidden="true" />
+        <div
+          className="mx-2 my-2 border-t border-cal-hairline transition-opacity duration-300"
+          aria-hidden="true"
+        />
       )}
     </div>
   );
@@ -134,20 +160,24 @@ function NavItem({
   icon: Icon,
   label,
   collapsed,
-  badge = null,
   activeOverride = false,
   onNavigate,
 }) {
   const location = useLocation();
   const active = activeOverride || location.pathname === path;
+  const reduceMotion = useReducedMotion();
 
   return (
     <Link
       to={path}
+      aria-current={active ? "page" : undefined}
+      data-active={active}
       onClick={onNavigate}
       title={collapsed ? label : undefined}
-      className={`group relative flex items-center rounded-[8px] text-[13.5px] leading-[1.4] select-none transition-colors duration-150 ${
-        collapsed ? "mx-auto h-9 w-9 justify-center p-0" : "gap-2.5 px-2.5 py-[7px]"
+      className={`portal-nav-item group relative flex items-center rounded-[10px] text-[13.5px] leading-[1.4] select-none transition-colors duration-150 ${
+        collapsed
+          ? "mx-auto h-9 w-9 justify-center p-0"
+          : "gap-2.5 px-2.5 py-[7px]"
       } ${
         active
           ? "text-cal-ink font-semibold"
@@ -158,12 +188,12 @@ function NavItem({
       {active && (
         <motion.div
           layoutId="sidebar-active-pill"
-          className="absolute inset-0 rounded-[8px] bg-cal-canvas border border-cal-hairline shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
-          transition={{
-            type: "spring",
-            stiffness: 380,
-            damping: 32,
-          }}
+          className="portal-nav-active absolute inset-0 rounded-[10px]"
+          transition={
+            reduceMotion
+              ? { duration: 0 }
+              : { type: "spring", stiffness: 380, damping: 32 }
+          }
         />
       )}
 
@@ -171,20 +201,22 @@ function NavItem({
       {active && !collapsed && (
         <motion.div
           layoutId="sidebar-active-indicator"
-          className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-cal-primary"
-          transition={{
-            type: "spring",
-            stiffness: 380,
-            damping: 32,
-          }}
+          className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-[var(--shell-accent)]"
+          transition={
+            reduceMotion
+              ? { duration: 0 }
+              : { type: "spring", stiffness: 380, damping: 32 }
+          }
         />
       )}
 
       <Icon
         size={16}
         strokeWidth={active ? 2.1 : 1.85}
-        className={`relative z-10 shrink-0 transition-transform duration-200 group-hover:scale-110 ${
-          active ? "text-cal-primary" : "text-cal-muted group-hover:text-cal-ink"
+        className={`relative z-10 shrink-0 transition-transform duration-200  ${
+          active
+            ? "text-[var(--shell-accent)]"
+            : "text-cal-muted group-hover:text-cal-ink"
         }`}
       />
 
@@ -198,231 +230,64 @@ function NavItem({
         <span className="truncate whitespace-nowrap block">{label}</span>
       </div>
 
-      {badge !== null && badge > 0 && (
-        <div
-          className={`relative z-10 overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] ${
-            collapsed
-              ? "max-w-0 opacity-0 pointer-events-none"
-              : "ml-auto max-w-[50px] opacity-100"
-          }`}
-        >
-          <span className="inline-flex items-center justify-center rounded-full bg-cal-surface-card px-2 py-0.5 font-cal-mono text-[11px] font-medium text-cal-ink whitespace-nowrap">
-            {badge}
-          </span>
-        </div>
-      )}
     </Link>
   );
 }
 
-// ─── Quick Search / Command Dialog ────────────────────────────────────────────
-function QuickSearchModal({ isOpen, onClose, items, userRole, onSelectPath, onSubmitRecordSearch }) {
-  const dialogRef = useRef(null);
-  const inputRef = useRef(null);
-  const [query, setQuery] = useState("");
-  const [selectedIndex, setSelectedIndex] = useState(0);
-
-  useDialogFocus(isOpen, dialogRef, onClose);
-
-  useEffect(() => {
-    if (isOpen) {
-      const id = requestAnimationFrame(() => inputRef.current?.focus());
-      return () => cancelAnimationFrame(id);
-    }
-  }, [isOpen]);
-
-  const filteredItems = useMemo(() => {
-    const trimmed = query.trim().toLowerCase();
-    if (!trimmed) return items;
-    return items.filter(
-      (item) =>
-        item.label.toLowerCase().includes(trimmed) ||
-        item.section.toLowerCase().includes(trimmed) ||
-        item.path.toLowerCase().includes(trimmed)
-    );
-  }, [items, query]);
-
-  if (!isOpen) return null;
-
-  const trimmedQuery = query.trim();
-  const safeIndex = Math.min(selectedIndex, Math.max(filteredItems.length - 1, 0));
-
-  const recordSearchHint =
-    userRole === "medical_expert"
-      ? `Search patient or case reference for "${trimmedQuery}"`
-      : `Search user profiles for "${trimmedQuery}"`;
-
-  const handleKeyDown = (e) => {
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      if (filteredItems.length > 0) {
-        setSelectedIndex((prev) => (prev + 1) % filteredItems.length);
-      }
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      if (filteredItems.length > 0) {
-        setSelectedIndex((prev) => (prev - 1 + filteredItems.length) % filteredItems.length);
-      }
-    } else if (e.key === "Enter") {
-      e.preventDefault();
-      if (filteredItems[safeIndex]) {
-        onSelectPath(filteredItems[safeIndex].path);
-      } else if (trimmedQuery) {
-        onSubmitRecordSearch(trimmedQuery);
-      }
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-[90] flex items-start justify-center p-4 pt-[12vh] font-cal-sans">
-      <div
-        className="fixed inset-0 bg-cal-ink/40 transition-opacity"
-        onClick={onClose}
-      />
-
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Quick search"
-        tabIndex={-1}
-        className="relative z-10 w-full max-w-md overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas text-cal-ink shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
-      >
-        {/* Search Input Header */}
-        <div className="flex h-12 items-center gap-2.5 border-b border-cal-hairline px-3.5">
-          <Search size={16} className="shrink-0 text-cal-muted" />
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setSelectedIndex(0);
-            }}
-            onKeyDown={handleKeyDown}
-            placeholder={
-              userRole === "medical_expert"
-                ? "Jump to page or search USR-… / CASE-…"
-                : "Jump to page or search profiles…"
-            }
-            className="h-full w-full bg-transparent text-[14px] text-cal-ink placeholder:text-cal-muted outline-none"
-          />
-          <button
-            type="button"
-            onClick={onClose}
-            className="shrink-0 rounded-[6px] border border-cal-hairline bg-cal-surface-soft px-1.5 py-0.5 font-cal-mono text-[11px] text-cal-muted hover:text-cal-ink cursor-pointer"
-          >
-            ESC
-          </button>
-        </div>
-
-        {/* Filtered Navigation & Record Search */}
-        <div className="max-h-[320px] overflow-y-auto p-1.5">
-          {filteredItems.length > 0 && (
-            <div className="px-2.5 pt-1.5 pb-1 text-[11.5px] font-medium text-cal-muted">
-              Pages
-            </div>
-          )}
-
-          {filteredItems.map((item, idx) => {
-            const Icon = item.icon;
-            const isHighlighted = idx === safeIndex;
-            return (
-              <button
-                key={item.path}
-                type="button"
-                onMouseEnter={() => setSelectedIndex(idx)}
-                onClick={() => onSelectPath(item.path)}
-                className={`flex w-full items-center gap-2.5 rounded-[8px] px-2.5 py-2 text-left text-[13.5px] transition-colors cursor-pointer ${
-                  isHighlighted
-                    ? "bg-cal-surface-card text-cal-ink font-medium"
-                    : "text-cal-body hover:bg-cal-surface-soft"
-                }`}
-              >
-                <Icon size={15} className="shrink-0 text-cal-muted" />
-                <span className="flex-1 truncate">{item.label}</span>
-                <span className="text-[11.5px] text-cal-muted">{item.section}</span>
-              </button>
-            );
-          })}
-
-          {trimmedQuery && (
-            <div className="mt-1 border-t border-cal-hairline pt-1">
-              <button
-                type="button"
-                onClick={() => onSubmitRecordSearch(trimmedQuery)}
-                className="flex w-full items-center gap-2.5 rounded-[8px] px-2.5 py-2 text-left text-[13px] font-medium text-cal-ink hover:bg-cal-surface-card transition-colors cursor-pointer"
-              >
-                <CornerDownLeft size={14} className="shrink-0 text-cal-muted" />
-                <span className="flex-1 truncate">{recordSearchHint}</span>
-              </button>
-            </div>
-          )}
-
-          {filteredItems.length === 0 && !trimmedQuery && (
-            <div className="py-8 text-center text-[13px] text-cal-muted">
-              No matching pages found.
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── Main Sidebar Component ───────────────────────────────────────────────────
-const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogoutClick }) => {
+const Sidebar = ({
+  sidebarOpen,
+  setSidebarOpen,
+  collapsed: collapsedProp,
+  onLogoutClick,
+}) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const asideRef = useRef(null);
-  const quickCreateRef = useRef(null);
   const userMenuRef = useRef(null);
+  const userMenuButtonRef = useRef(null);
 
-  const [quickCreateState, setQuickCreateState] = useState({ open: false, path: "" });
   const [userMenuState, setUserMenuState] = useState({ open: false, path: "" });
-  const [searchOpen, setSearchOpen] = useState(false);
 
   const isDesktop = useSyncExternalStore(subscribeToWidth, isDesktopWidth);
   const isMobileMenu = !isDesktop;
+  const collapsed = isDesktop && collapsedProp;
+  const pages = portalNavigationFor(user);
 
   // HL-083: as a slide-in menu, Escape closes it, Tab stays inside, and focus returns to the menu button
-  useDialogFocus(isMobileMenu && sidebarOpen && !searchOpen, asideRef, () => setSidebarOpen(false));
+  useDialogFocus(isMobileMenu && sidebarOpen, asideRef, () =>
+    setSidebarOpen(false),
+  );
 
-  // Shares cache with AdminNotificationDropdown so unread badge stays live with zero duplicate fetches
-  const notificationsQuery = useApiQuery(BELL_PATH);
-  const unreadCount = notificationsQuery.data?.unread_count || 0;
+  const userMenuOpen =
+    userMenuState.open && userMenuState.path === location.pathname;
 
-  const quickCreateOpen = quickCreateState.open && quickCreateState.path === location.pathname;
-  const userMenuOpen = userMenuState.open && userMenuState.path === location.pathname;
-
-  const role = user?.role || "admin";
+  const role = user?.role;
   const expertType = user?.expert_type;
-  const canOpen = (path) => canAccess(user, path);
 
   const userName =
     user?.first_name || user?.last_name
       ? `${user.first_name || ""} ${user.last_name || ""}`.trim()
       : user?.name || user?.email || "Staff User";
-  const userInitials = userName
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase() || "HL";
+  const userInitials =
+    userName
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase() || "HL";
   const roleLabel = getRoleLabel(role, expertType);
   const userSubline = user?.email || roleLabel;
   const avatarSurface = getAvatarSurface(role, expertType);
 
   // Close popovers on outside click or Escape
   useEffect(() => {
-    if (!quickCreateOpen && !userMenuOpen) return;
+    if (!userMenuOpen) return;
+    userMenuRef.current?.querySelector('[role="menuitem"]')?.focus();
 
     function handlePointerDown(event) {
-      if (quickCreateRef.current && !quickCreateRef.current.contains(event.target)) {
-        setQuickCreateState({ open: false, path: "" });
-      }
       if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
         setUserMenuState({ open: false, path: "" });
       }
@@ -430,8 +295,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
 
     function handleKeyDown(event) {
       if (event.key === "Escape") {
-        setQuickCreateState({ open: false, path: "" });
         setUserMenuState({ open: false, path: "" });
+        userMenuButtonRef.current?.focus();
       }
     }
 
@@ -441,44 +306,10 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
       document.removeEventListener("mousedown", handlePointerDown);
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [quickCreateOpen, userMenuOpen]);
-
-  // Global Ctrl+K / Cmd+K shortcut for Sidebar Search
-  useEffect(() => {
-    function handleGlobalShortcut(event) {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        setQuickCreateState({ open: false, path: "" });
-        setUserMenuState({ open: false, path: "" });
-        setSearchOpen((prev) => !prev);
-      }
-    }
-    window.addEventListener("keydown", handleGlobalShortcut);
-    return () => window.removeEventListener("keydown", handleGlobalShortcut);
-  }, []);
+  }, [userMenuOpen]);
 
   const closeMobileIfNeeded = () => {
     if (isMobileMenu) setSidebarOpen(false);
-  };
-
-  const handleNavigate = (path) => {
-    setQuickCreateState({ open: false, path: "" });
-    setUserMenuState({ open: false, path: "" });
-    setSearchOpen(false);
-    closeMobileIfNeeded();
-    navigate(path);
-  };
-
-  const handleRecordSearch = (trimmedQuery) => {
-    setSearchOpen(false);
-    closeMobileIfNeeded();
-    if (role === "medical_expert") {
-      // HL-081: experts see patients by reference only, and cases by their code
-      const target = /^case/i.test(trimmedQuery) ? "/cases" : "/patients";
-      navigate(`${target}?search=${encodeURIComponent(trimmedQuery)}`);
-    } else {
-      navigate(`/users?search=${encodeURIComponent(trimmedQuery)}`);
-    }
   };
 
   const handleLogout = () => {
@@ -492,56 +323,14 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
     }
   };
 
-  // Role-aware Quick Create actions
-  const quickActions = [
-    role === "admin" && { label: "Provision staff account", path: "/users", icon: UserPlus },
-    role === "admin" && { label: "Send announcement", path: "/broadcasts", icon: Megaphone },
-    canOpen("/foods") && { label: "Add food or recipe", path: "/foods", icon: Utensils },
-    canOpen("/exercises") && { label: "Add exercise", path: "/exercises", icon: Dumbbell },
-    role === "medical_expert" && canOpen("/patients") && {
-      label: expertType === "Cardiologist" ? "Open cardiologist roster" : "Open patient roster",
-      path: "/patients",
-      icon: HeartPulse,
-    },
-    canOpen("/cases") && { label: "Review HSS cases", path: "/cases", icon: ListChecks },
-    role === "medical_expert" && canOpen("/calibration") && {
-      label: "Run model check",
-      path: "/calibration",
-      icon: Database,
-    },
-  ].filter(Boolean);
-
-  // Permitted pages for Quick Search dialog
-  const searchablePages = [
-    canOpen("/dashboard") && { label: "Dashboard", path: "/dashboard", section: "Overview", icon: Gauge },
-    canOpen("/cases") && { label: "Case Review", path: "/cases", section: "HSS Evaluation", icon: ListChecks },
-    canOpen("/analytics") && { label: "Analytics", path: "/analytics", section: "Overview", icon: ChartColumn },
-    canOpen("/patients") && {
-      label: expertType === "Cardiologist" ? "Cardiologist dashboard" : "Patients",
-      path: "/patients",
-      section: "Care Team",
-      icon: HeartPulse,
-    },
-    canOpen("/users") && { label: "Users", path: "/users", section: "Administration", icon: Users },
-    canOpen("/foods") && { label: "Food & Recipes", path: "/foods", section: "Clinical & Library", icon: Utensils },
-    canOpen("/exercises") && { label: "Exercise Library", path: "/exercises", section: "Clinical & Library", icon: Dumbbell },
-    canOpen("/calibration") && { label: "Model Check", path: "/calibration", section: "Clinical & Library", icon: Database },
-    canOpen("/premium") && { label: "Premium", path: "/premium", section: "Governance", icon: Crown },
-    canOpen("/broadcasts") && { label: "Announcements", path: "/broadcasts", section: "Governance", icon: Megaphone },
-    canOpen("/activity-log") && { label: "Activity Log", path: "/activity-log", section: "Governance", icon: Activity },
-    canOpen("/feedbacks") && { label: "Feedback & Reports", path: "/feedbacks", section: "Support", icon: CircleHelp },
-    canOpen("/notifications") && { label: "Notifications", path: "/notifications", section: "Inbox", icon: Bell },
-    canOpen("/settings") && { label: "Settings", path: "/settings", section: "System", icon: Settings },
-  ].filter(Boolean);
-
-  const isNotificationsActive = location.pathname === "/notifications";
-
-  return (
+  const menu = (
     <>
       {/* Mobile overlay with smooth fade + blur */}
       <div
-        className={`fixed inset-0 z-40 bg-cal-ink/40 backdrop-blur-[2px] transition-opacity duration-300 ease-out lg:hidden ${
-          sidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        className={`fixed inset-0 z-50 bg-cal-ink/40 backdrop-blur-[2px] transition-opacity duration-300 ease-out lg:hidden ${
+          sidebarOpen
+            ? "opacity-100 pointer-events-auto"
+            : "opacity-0 pointer-events-none"
         }`}
         onClick={() => setSidebarOpen(false)}
       />
@@ -549,354 +338,93 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
       {/* Sidebar container (Cal.com Surface Soft + 1px Hairline) */}
       <aside
         ref={asideRef}
+        id="portal-sidebar"
+        data-workspace={
+          location.pathname === "/foods"
+            ? "recipes"
+            : location.pathname === "/exercises"
+              ? "exercises"
+              : "operations"
+        }
+        data-collapsed={collapsed}
         aria-label="Main menu"
         role={isMobileMenu && sidebarOpen ? "dialog" : undefined}
         aria-modal={isMobileMenu && sidebarOpen ? "true" : undefined}
         // Off screen on a phone-sized window: keep its links out of Tab and screen readers until it's opened
         inert={isMobileMenu && !sidebarOpen}
-        className={`fixed lg:sticky top-0 left-0 z-50 flex h-screen shrink-0 flex-col border-r border-cal-hairline bg-cal-surface-soft font-cal-sans text-cal-ink transition-[width,transform] duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] will-change-[width,transform] select-none ${
+        className={`fixed lg:sticky top-0 left-0 z-50 flex h-screen shrink-0 flex-col border-r border-cal-hairline bg-cal-canvas font-cal-sans text-cal-ink portal-sidebar transition-[width,transform] duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] will-change-[width,transform] select-none ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
         style={{
-          width: collapsed ? 68 : 256,
+          width: collapsed ? 72 : 240,
         }}
       >
-        {/* ─── 1. Brand / Workspace Switcher Header ─────────────────────────── */}
-        <div className="flex items-center gap-1.5 px-3 pt-3 pb-2">
-          <button
-            type="button"
-            onClick={() => {
-              if (isMobileMenu) {
-                setSidebarOpen(false);
-              } else {
-                setCollapsed((prev) => !prev);
-              }
-            }}
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className={`group flex h-10 items-center rounded-[8px] border border-cal-hairline/80 bg-cal-surface-card/70 hover:bg-cal-surface-card active:scale-[0.98] transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] cursor-pointer ${
-              collapsed ? "mx-auto w-10 justify-center px-0" : "w-full gap-2.5 px-2.5 text-left"
-            }`}
+        <div className="portal-brand-row">
+          <Link
+            to={homeFor(user)}
+            aria-label="HeartLink home"
+            className="portal-brand"
+            onClick={closeMobileIfNeeded}
           >
-            <div className="shrink-0 transition-transform duration-200 group-hover:scale-105">
-              <HeartLogoIcon size={20} />
-            </div>
-            <div
-              className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] ${
-                collapsed ? "max-w-0 opacity-0 pointer-events-none" : "flex flex-1 items-center justify-between max-w-[180px] opacity-100"
-              }`}
-            >
-              <span className="font-cal-display text-[15.5px] font-semibold tracking-[-0.5px] text-cal-ink leading-none truncate whitespace-nowrap">
-                HeartLink
+            <HeartLogoIcon size={25} />
+            {!collapsed && (
+              <span>
+                HeartLink<small>Staff portal</small>
               </span>
-              <PanelLeftClose
-                size={15}
-                className="ml-auto hidden shrink-0 text-cal-muted opacity-0 group-hover:opacity-100 transition-opacity lg:block"
-              />
-            </div>
-          </button>
-
-          {isMobileMenu && !collapsed && (
+            )}
+          </Link>
+          {isMobileMenu && (
             <button
               type="button"
-              onClick={() => setSidebarOpen(false)}
+              className="portal-icon-button"
               aria-label="Close sidebar"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] border border-cal-hairline bg-cal-canvas text-cal-muted hover:text-cal-ink active:scale-95 transition-all lg:hidden cursor-pointer"
+              onClick={() => setSidebarOpen(false)}
             >
-              <X size={16} />
+              <X size={18} aria-hidden="true" />
             </button>
           )}
         </div>
 
-        {/* ─── 2. Quick Create CTA + Inbox Action Row ───────────────────────── */}
-        <div className="relative px-3 pb-2.5" ref={quickCreateRef}>
-          <div className={`flex items-center transition-all duration-300 ${collapsed ? "flex-col gap-1.5" : "gap-2"}`}>
-            <button
-              type="button"
-              onClick={() =>
-                setQuickCreateState((prev) => ({
-                  open: !(prev.open && prev.path === location.pathname),
-                  path: location.pathname,
-                }))
-              }
-              aria-expanded={quickCreateOpen}
-              aria-haspopup="menu"
-              title={collapsed ? "Quick Create" : undefined}
-              className={`group flex h-9 items-center rounded-[8px] bg-cal-primary active:bg-cal-primary-active active:scale-[0.98] text-cal-on-primary text-[13.5px] font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] cursor-pointer ${
-                collapsed ? "w-9 justify-center px-0" : "flex-1 gap-2 px-3 text-left"
-              }`}
-            >
-              <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-cal-on-primary text-cal-primary transition-transform duration-200 group-hover:rotate-90">
-                <Plus size={11} strokeWidth={3} />
-              </span>
-              <div
-                className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] ${
-                  collapsed ? "max-w-0 opacity-0 pointer-events-none" : "max-w-[120px] opacity-100"
-                }`}
-              >
-                <span className="truncate whitespace-nowrap block">Quick Create</span>
+        <nav aria-label="Main navigation" className="portal-navigation">
+          {["Workspace", "Expert workspace", "Content", "Operations"].map((section) => {
+            const items = pages.filter((page) => page.section === section);
+            return items.length ? (
+              <div key={section}>
+                <SectionLabel label={section} collapsed={collapsed} />
+                {items.map((page) => (
+                  <NavItem
+                    key={page.path}
+                    {...page}
+                    collapsed={collapsed}
+                    activeOverride={
+                      page.path === "/users" &&
+                      location.pathname.startsWith("/users/")
+                    }
+                    onNavigate={closeMobileIfNeeded}
+                  />
+                ))}
               </div>
-            </button>
-
-            {canOpen("/notifications") && (
-              <Link
-                to="/notifications"
-                onClick={closeMobileIfNeeded}
-                aria-label="Notifications inbox"
-                title={
-                  unreadCount > 0
-                    ? `Notifications (${unreadCount} unread)`
-                    : "Notifications"
-                }
-                className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] border bg-cal-canvas active:scale-[0.96] transition-all duration-200 ${
-                  isNotificationsActive
-                    ? "border-cal-ink text-cal-ink shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
-                    : "border-cal-hairline text-cal-body hover:bg-cal-surface-card hover:text-cal-ink"
-                }`}
-              >
-                <Mail size={15} strokeWidth={1.9} className="transition-transform duration-200 hover:scale-105" />
-                {unreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-cal-primary ring-2 ring-cal-canvas animate-pulse" />
-                )}
-              </Link>
-            )}
-          </div>
-
-          {/* Quick Create Popover */}
-          {quickCreateOpen && (
-            <div
-              role="menu"
-              aria-label="Quick create actions"
-              className={`absolute z-50 rounded-[12px] border border-cal-hairline bg-cal-canvas p-1.5 shadow-[0_4px_12px_rgba(0,0,0,0.08)] animate-cal-popover ${
-                collapsed ? "left-[calc(100%+8px)] top-0 w-[232px]" : "left-3 right-3 top-[calc(100%+2px)]"
-              }`}
-            >
-              <div className="px-2.5 py-1.5 text-[11.5px] font-medium text-cal-muted">
-                Quick Create
-              </div>
-              <div className="space-y-0.5">
-                {quickActions.map((action) => {
-                  const ActionIcon = action.icon;
-                  return (
-                    <button
-                      key={action.path + action.label}
-                      type="button"
-                      role="menuitem"
-                      onClick={() => handleNavigate(action.path)}
-                      className="flex w-full items-center gap-2.5 rounded-[6px] px-2.5 py-2 text-left text-[13px] font-medium text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer"
-                    >
-                      <ActionIcon size={15} className="shrink-0 text-cal-muted" />
-                      <span className="truncate">{action.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* ─── 3. Scrollable Navigation Sections ────────────────────────────── */}
-        <nav className="flex flex-1 flex-col overflow-y-auto overflow-x-hidden px-3 py-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          {/* HL-034: each link shows only to people who can open it (app/access.js) */}
-          {/* Primary Top-Level Navigation */}
-          <div className="space-y-0.5">
-            {canOpen("/dashboard") && (
-              <NavItem
-                path="/dashboard"
-                icon={Gauge}
-                label="Dashboard"
-                collapsed={collapsed}
-                onNavigate={closeMobileIfNeeded}
-              />
-            )}
-
-            {canOpen("/cases") && (
-              <NavItem
-                path="/cases"
-                icon={ListChecks}
-                label="Case Review"
-                collapsed={collapsed}
-                activeOverride={location.pathname.startsWith("/cases/")}
-                onNavigate={closeMobileIfNeeded}
-              />
-            )}
-
-            {canOpen("/analytics") && (
-              <NavItem
-                path="/analytics"
-                icon={ChartColumn}
-                label="Analytics"
-                collapsed={collapsed}
-                onNavigate={closeMobileIfNeeded}
-              />
-            )}
-
-            {canOpen("/patients") && (
-              <NavItem
-                path="/patients"
-                icon={HeartPulse}
-                label={expertType === "Cardiologist" ? "Cardiologist dashboard" : "Patients"}
-                collapsed={collapsed}
-                activeOverride={location.pathname.startsWith("/patients/")}
-                onNavigate={closeMobileIfNeeded}
-              />
-            )}
-
-            {canOpen("/users") && (
-              <NavItem
-                path="/users"
-                icon={Users}
-                label="Users"
-                collapsed={collapsed}
-                activeOverride={location.pathname.startsWith("/users/")}
-                onNavigate={closeMobileIfNeeded}
-              />
-            )}
-          </div>
-
-          {/* Secondary Section: Clinical & Library ("Documents" equivalent) */}
-          {(canOpen("/foods") || canOpen("/exercises") || canOpen("/calibration") || role === "admin") && (
-            <div className="space-y-0.5">
-              <SectionLabel label="Clinical & Library" collapsed={collapsed} />
-
-              {canOpen("/foods") && (
-                <NavItem
-                  path="/foods"
-                  icon={Utensils}
-                  label="Food & Recipes"
-                  collapsed={collapsed}
-                  onNavigate={closeMobileIfNeeded}
-                />
-              )}
-
-              {canOpen("/exercises") && (
-                <NavItem
-                  path="/exercises"
-                  icon={Dumbbell}
-                  label="Exercise Library"
-                  collapsed={collapsed}
-                  onNavigate={closeMobileIfNeeded}
-                />
-              )}
-
-              {canOpen("/calibration") && (
-                <NavItem
-                  path="/calibration"
-                  icon={Database}
-                  label="Model Check"
-                  collapsed={collapsed}
-                  onNavigate={closeMobileIfNeeded}
-                />
-              )}
-
-              {canOpen("/premium") && (
-                <NavItem
-                  path="/premium"
-                  icon={Crown}
-                  label="Premium"
-                  collapsed={collapsed}
-                  onNavigate={closeMobileIfNeeded}
-                />
-              )}
-
-              {canOpen("/broadcasts") && (
-                <NavItem
-                  path="/broadcasts"
-                  icon={Megaphone}
-                  label="Announcements"
-                  collapsed={collapsed}
-                  onNavigate={closeMobileIfNeeded}
-                />
-              )}
-
-              {canOpen("/activity-log") && (
-                <NavItem
-                  path="/activity-log"
-                  icon={Activity}
-                  label="Activity Log"
-                  collapsed={collapsed}
-                  onNavigate={closeMobileIfNeeded}
-                />
-              )}
-            </div>
-          )}
-
-          {/* Bottom Utility Group (Settings / Help & Feedback / Search) */}
-          <div className="mt-auto pt-6 pb-1 space-y-0.5">
-            {canOpen("/settings") && (
-              <NavItem
-                path="/settings"
-                icon={Settings}
-                label="Settings"
-                collapsed={collapsed}
-                onNavigate={closeMobileIfNeeded}
-              />
-            )}
-
-            {canOpen("/feedbacks") ? (
-              <NavItem
-                path="/feedbacks"
-                icon={CircleHelp}
-                label="Feedback & Reports"
-                collapsed={collapsed}
-                onNavigate={closeMobileIfNeeded}
-              />
-            ) : (
-              canOpen("/notifications") && (
-                <NavItem
-                  path="/notifications"
-                  icon={CircleHelp}
-                  label="Help & Alerts"
-                  collapsed={collapsed}
-                  badge={unreadCount}
-                  onNavigate={closeMobileIfNeeded}
-                />
-              )
-            )}
-
-            <button
-              type="button"
-              onClick={() => {
-                setQuickCreateState({ open: false, path: "" });
-                setUserMenuState({ open: false, path: "" });
-                setSearchOpen(true);
-              }}
-              title={collapsed ? "Search (Ctrl+K)" : undefined}
-              className={`group flex items-center rounded-[8px] border border-transparent text-[13.5px] font-medium text-cal-body hover:bg-cal-surface-card hover:text-cal-ink active:scale-[0.98] transition-all duration-200 cursor-pointer ${
-                collapsed ? "mx-auto h-9 w-9 justify-center p-0" : "w-full gap-2.5 px-2.5 py-[7px] text-left"
-              }`}
-            >
-              <Search
-                size={16}
-                strokeWidth={1.85}
-                className="shrink-0 text-cal-muted group-hover:text-cal-ink transition-all duration-200 group-hover:scale-110"
-              />
-              <div
-                className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] ${
-                  collapsed ? "max-w-0 opacity-0 pointer-events-none" : "flex flex-1 items-center justify-between max-w-[180px] opacity-100"
-                }`}
-              >
-                <span className="truncate whitespace-nowrap">Search</span>
-                <span className="font-cal-mono text-[11px] text-cal-muted whitespace-nowrap">Ctrl K</span>
-              </div>
-            </button>
-          </div>
+            ) : null;
+          })}
         </nav>
 
         {/* ─── 4. Bottom User Profile Footer (NavUser + Account Menu) ──────── */}
-        <div className="relative border-t border-cal-hairline bg-cal-surface-soft p-2.5" ref={userMenuRef}>
-          <button
-            type="button"
-            onClick={() =>
-              setUserMenuState((prev) => ({
-                open: !(prev.open && prev.path === location.pathname),
-                path: location.pathname,
-              }))
-            }
-            aria-expanded={userMenuOpen}
-            aria-haspopup="menu"
-            title={collapsed ? `${userName} (${userSubline})` : undefined}
+        <div
+          className={`relative flex items-center gap-1 border-t border-cal-hairline bg-cal-surface-soft p-2.5 ${collapsed ? "flex-col" : ""}`}
+          ref={userMenuRef}
+        >
+          <Link
+            to="/settings"
+            onClick={() => {
+              setUserMenuState({ open: false, path: "" });
+              closeMobileIfNeeded();
+            }}
+            aria-label="Account settings"
+            title={collapsed ? `${userName} — Account settings` : "Account settings"}
             className={`group flex items-center rounded-[8px] transition-all duration-200 hover:bg-cal-surface-card active:scale-[0.98] cursor-pointer ${
-              collapsed ? "mx-auto h-10 w-10 justify-center p-0" : "w-full gap-2.5 p-1.5 text-left"
+              collapsed
+                ? "mx-auto h-10 w-10 justify-center p-0"
+                : "min-w-0 flex-1 gap-2.5 p-1.5 text-left"
             }`}
           >
             {/* Cal.com 36px Circular Avatar */}
@@ -908,7 +436,9 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
 
             <div
               className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] ${
-                collapsed ? "max-w-0 opacity-0 pointer-events-none" : "flex flex-1 min-w-0 items-center justify-between max-w-[180px] opacity-100"
+                collapsed
+                  ? "max-w-0 opacity-0 pointer-events-none"
+                  : "flex flex-1 min-w-0 items-center justify-between max-w-[180px] opacity-100"
               }`}
             >
               <div className="min-w-0 flex-1">
@@ -919,11 +449,24 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
                   {userSubline}
                 </div>
               </div>
-              <EllipsisVertical
-                size={16}
-                className="shrink-0 text-cal-muted group-hover:text-cal-ink transition-colors ml-1"
-              />
             </div>
+          </Link>
+          <button
+            ref={userMenuButtonRef}
+            type="button"
+            onClick={() =>
+              setUserMenuState((prev) => ({
+                open: !(prev.open && prev.path === location.pathname),
+                path: location.pathname,
+              }))
+            }
+            aria-label="Account menu"
+            aria-expanded={userMenuOpen}
+            aria-haspopup="menu"
+            title="Account menu"
+            className="portal-icon-button"
+          >
+            <EllipsisVertical size={16} aria-hidden="true" />
           </button>
 
           {/* User Account Popover Menu */}
@@ -937,59 +480,6 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
                   : "bottom-[calc(100%+6px)] left-2.5 right-2.5"
               }`}
             >
-              {/* Signed-in Identity Summary */}
-              <div className="flex items-start gap-2.5 border-b border-cal-hairline px-2.5 py-2.5 mb-1">
-                <div
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-cal-hairline text-[12.5px] font-semibold ${avatarSurface}`}
-                >
-                  {userInitials}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-semibold text-cal-ink leading-tight">
-                    {userName}
-                  </p>
-                  {user?.email && (
-                    <p className="mt-0.5 truncate text-[11.5px] text-cal-muted">
-                      {user.email}
-                    </p>
-                  )}
-                  <span className="mt-1.5 inline-flex items-center rounded-full bg-cal-surface-card px-2.5 py-0.5 text-[11px] font-medium text-cal-ink">
-                    {roleLabel}
-                  </span>
-                </div>
-              </div>
-
-              {canOpen("/notifications") && (
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => handleNavigate("/notifications")}
-                  className="flex w-full items-center gap-2.5 rounded-[6px] px-2.5 py-2 text-left text-[13px] font-medium text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer"
-                >
-                  <Bell size={15} className="shrink-0 text-cal-muted" />
-                  <span className="flex-1 truncate">Notifications</span>
-                  {unreadCount > 0 && (
-                    <span className="rounded-full bg-cal-surface-card px-2 py-0.5 font-cal-mono text-[11px] font-medium text-cal-ink">
-                      {unreadCount}
-                    </span>
-                  )}
-                </button>
-              )}
-
-              {canOpen("/settings") && (
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => handleNavigate("/settings")}
-                  className="flex w-full items-center gap-2.5 rounded-[6px] px-2.5 py-2 text-left text-[13px] font-medium text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer"
-                >
-                  <Settings size={15} className="shrink-0 text-cal-muted" />
-                  <span className="truncate">Settings</span>
-                </button>
-              )}
-
-              <div className="my-1 border-t border-cal-hairline" />
-
               <button
                 type="button"
                 role="menuitem"
@@ -1003,18 +493,10 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
           )}
         </div>
       </aside>
-
-      {/* Quick Search Modal (Ctrl+K / Sidebar Search button) */}
-      <QuickSearchModal
-        isOpen={searchOpen}
-        onClose={() => setSearchOpen(false)}
-        items={searchablePages}
-        userRole={role}
-        onSelectPath={handleNavigate}
-        onSubmitRecordSearch={handleRecordSearch}
-      />
     </>
   );
+
+  return <>{isMobileMenu ? createPortal(menu, document.body) : menu}</>;
 };
 
 export default Sidebar;

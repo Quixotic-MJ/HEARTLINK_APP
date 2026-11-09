@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Body, Depends, HTTPException
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Literal
 from datetime import datetime, timedelta, timezone
+from pydantic import BaseModel, ConfigDict, Field
 import os
-import random
 import hashlib
 import secrets
 import string
 from app.utils.security import get_current_admin_only
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
-from app.utils.activity_helper import record_admin_activity
+from app.utils.activity_helper import record_admin_activity, portal_activity, PORTAL_ACTIVITY_TYPES
 from app.db.client import get_supabase_client
 from app.db.repositories import (
     get_profile_repo,
@@ -20,7 +20,7 @@ from app.db.repositories import (
     get_content_repo,
     get_notification_repo,
     get_admin_repo,
-    get_case_review_repo
+    get_case_review_repo,
 )
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
@@ -54,53 +54,46 @@ def _resolve_expert_type(target_role: str, raw: Any) -> Optional[str]:
 def _parse_dt(dt):
     return parse_utc(dt)
 
+
 @router.get("/dashboard", response_model=Dict[str, Any])
 def get_admin_dashboard(current_user: dict = Depends(get_current_admin_only)):
     try:
-        supabase_client = get_supabase_client()
-        # Call the PostgreSQL function for fast native aggregation (HL-003)
-        res = supabase_client.rpc("get_admin_dashboard_stats", {"days_cutoff": 7}).execute()
-        if not res.data:
-            raise HTTPException(status_code=500, detail="Dashboard RPC returned empty data")
-        
-        dashboard_data = res.data
+        accounts = dict.fromkeys(
+            ("consumers", "staff", "unknown_role", "active", "disabled", "archived", "unknown_status"), 0
+        )
+        for profile in get_profile_repo().list_portal_account_statuses():
+            role = profile.get("role")
+            group = "consumers" if role == "patient" else "staff" if role in {"admin", "medical_expert"} else "unknown_role"
+            accounts[group] += 1
+            status = profile.get("account_status")
+            accounts[status if status in {"active", "disabled", "archived"} else "unknown_status"] += 1
 
-        # Keep the response contract the web dashboard reads (kpi block, content_library.exercises)
-        dashboard_data["kpi"] = {
-            "total_users": dashboard_data.get("total_users", 0),
-            "active_users": dashboard_data.get("active_users", 0),
-            "avg_hss": dashboard_data.get("avg_hss", 0),
-            "open_alerts": (dashboard_data.get("users_needing_review") or {}).get("open_alerts", 0),
-        }
-        content_library = dashboard_data.get("content_library") or {}
-        content_library.setdefault("exercises", content_library.get("routines", 0))
-        dashboard_data["content_library"] = content_library
+        content = {}
+        repo = get_content_repo()
+        for kind in ("recipes", "exercises"):
+            counts = dict.fromkeys(
+                ("total", "draft", "published", "archived", "unknown_status", "approval_recorded",
+                 "awaiting_review", "changes_requested", "published_without_review"), 0
+            )
+            for row in repo.list_portal_content_statuses(kind):
+                counts["total"] += 1
+                status = row.get("status")
+                counts[status if status in {"draft", "published", "archived"} else "unknown_status"] += 1
+                approved = bool(row.get("expert_validated") and row.get("reviewed_by") and row.get("reviewed_at"))
+                if status != "archived" and approved:
+                    counts["approval_recorded"] += 1
+                elif status == "draft":
+                    counts["changes_requested" if row.get("review_note") else "awaiting_review"] += 1
+                if status == "published" and not approved:
+                    counts["published_without_review"] += 1
+            content[kind] = counts
+        return {"accounts": accounts, "content": content, "generated_at": utc_now().isoformat()}
+    except Exception as error:
+        logger.warning("Operational overview unavailable (%s)", type(error).__name__)
+        raise HTTPException(status_code=500, detail="Operational overview unavailable")
 
-        # Recent Admin Activity still loaded via Python (small payload)
-        admin_activity = get_admin_repo().list_activity(limit=10)
-        recent_activity = []
-        for act in admin_activity:
-            recent_activity.append({
-                "id": act.get("id"),
-                "admin_user_id": act.get("admin_user_id"),
-                "admin_name": act.get("admin_name"),
-                "action": act.get("action"),
-                "target_type": act.get("target_type"),
-                "target_id": act.get("target_id"),
-                "target_name": act.get("target_name"),
-                "created_at": act.get("created_at")
-            })
-            
-        dashboard_data["recent_activity"] = recent_activity
-        return dashboard_data
-        
-    except Exception as e:
-        if isinstance(e, HTTPException):
-            raise
-        logger.error(f"[Dashboard Error] {e}")
-        # The database's own error text stays in the server log, not in the response.
-        raise HTTPException(status_code=500, detail="Internal Server Error")
 
+# HL-136: totals and averages only, never one patient's records (Admins can't open health records)
 @router.get("/analytics", response_model=Dict[str, Any])
 def get_admin_analytics(period: str = "6months", current_user: dict = Depends(get_current_admin_only)):
     now = utc_now()
@@ -401,16 +394,25 @@ def get_admin_analytics(period: str = "6months", current_user: dict = Depends(ge
 
 @router.get("/staff")
 def get_system_staff(current_user: dict = Depends(get_current_admin_only)):
-    all_profiles = get_profile_repo().list_all(exclude_archived=False)
+    try:
+        all_profiles = get_profile_repo().list_portal_staff()
+    except Exception as error:
+        logger.warning("Staff directory unavailable (%s)", type(error).__name__)
+        raise HTTPException(status_code=500, detail="Staff directory unavailable")
     staff = [p for p in all_profiles if p.get("role") in ["medical_expert", "admin"]]
     result = []
     for s in staff:
         if s.get("role") == "admin":
             role_label = "System Admin"
-            perms = ["All Administrative Permissions"]
+            perms = ["Write recipes and exercises", "Manage accounts and operations"]
         else:
+            # HL-136: what each expert does in the portal (backend EXPERT_PERMISSIONS)
             role_label = "Authorized Medical Expert"
-            perms = ["Validate Recipes", "Verify Exercises", "Evaluate Cases"]
+            perms = {
+                "Dietitian": ["Write and approve recipes", "Patient records and care-team notes", "Case review"],
+                "Physical Therapist": ["Write and approve exercises", "Patient records and care-team notes", "Case review"],
+                "Cardiologist": ["Patient records and guidance", "Case review"],
+            }.get(normalize_expert_type(s.get("expert_type")), ["No specialty assigned"])
             
         result.append({
             "id": s.get("id"),
@@ -422,8 +424,8 @@ def get_system_staff(current_user: dict = Depends(get_current_admin_only)):
             "is_verified_clinician": bool(s.get("is_verified_clinician")),
             "clinician_verified_at": s.get("clinician_verified_at"),
             "permissions": perms,
-            "account_status": s.get("account_status", "active"),
-            "status": s.get("account_status", "active").capitalize(),
+            "account_status": s.get("account_status"),
+            "status": str(s.get("account_status") or "unknown").capitalize(),
             "created_at": s.get("created_at")
         })
     return result
@@ -676,7 +678,9 @@ def toggle_user_status(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
         
-    current_status = user.get("account_status", "active")
+    current_status = user.get("account_status")
+    if current_status not in {"active", "disabled"}:
+        raise HTTPException(status_code=400, detail="Access changes are unavailable for this account state")
     user_role = user.get("role", "patient")
     
     is_staff = user_role in ["admin", "medical_expert"]
@@ -696,7 +700,9 @@ def toggle_user_status(
     reason = str((payload or {}).get("reason") or "").strip()[:DEACTIVATION_REASON_MAX] or None
     if new_status == "active":
         reason = None
-    profile_repo.update_profile(user_id, {"account_status": new_status, "deactivation_reason": reason})
+    updated = profile_repo.update_profile(user_id, {"account_status": new_status, "deactivation_reason": reason})
+    if not updated:
+        raise HTTPException(status_code=500, detail="Account status could not be updated")
     
     admin_id = current_user.get("user_id") if current_user else "admin"
     user_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip() or user.get("email") or user_id
@@ -707,8 +713,6 @@ def toggle_user_status(
     else:
         role_desc = "medical expert" if user_role == "medical_expert" else "admin"
         action_desc = f"{'Disabled' if new_status == 'disabled' else 'Enabled'} {role_desc} account"
-    if reason:
-        action_desc += f" (reason: {reason})"
         
     record_admin_activity(
         admin_user_id=admin_id,
@@ -809,121 +813,20 @@ def delete_user_or_staff(user_id: str, current_user: dict = Depends(get_current_
 
     return {"status": "success", "message": f"Account {user_name} deleted successfully"}
 
-@router.get("/users/{user_id}/timeline")
-def get_user_timeline(user_id: str, current_user: dict = Depends(get_current_admin_only)):
-    logs = []
-    
-    from app.services.health_logs import get_health_logs
-    daily_health_logs = get_health_logs(user_id)
-    for log in daily_health_logs:
-        logs.append({
-            "type": "Vitals",
-            "timestamp": log.get("logged_at"),
-            "data": {
-                "systolic": log.get("systolic_bp"),
-                "diastolic": log.get("diastolic_bp"),
-                "heart_rate": log.get("heart_rate_bpm"),
-                "weight_kg": log.get("weight_kg"),
-                "blood_sugar": log.get("blood_sugar")
-            }
-        })
-        if log.get("symptoms"):
-            logs.append({
-                "type": "Symptoms",
-                "timestamp": log.get("logged_at"),
-                "data": {
-                    "symptoms": log.get("symptoms"),
-                    "severity_map": log.get("severity_map"),
-                    "context": log.get("context")
-                }
-            })
-            
-    meal_logs = get_meals_repo().list_user_meals(user_id)
-    for m in meal_logs:
-        logs.append({
-            "type": "Meal",
-            "timestamp": m.get("logged_at"),
-            "data": {
-                "meal_name": m.get("meal_name"),
-                "calories": m.get("calories"),
-                "sodium_mg": m.get("sodium_mg")
-            }
-        })
-        
-    exercise_logs = get_exercises_repo().list_user_logs(user_id)
-    for e in exercise_logs:
-        logs.append({
-            "type": "Exercise",
-            "timestamp": e.get("logged_at"),
-            "data": {
-                "routine_name": e.get("routine_name"),
-                "duration_minutes": e.get("duration_minutes"),
-                "status": e.get("status")
-            }
-        })
-        
-    sleep_logs = get_sleep_repo().list_user_logs(user_id)
-    for s in sleep_logs:
-        logs.append({
-            "type": "Sleep",
-            "timestamp": s.get("logged_at"),
-            "data": {
-                "duration_hours": s.get("duration_hours"),
-                "quality": s.get("quality")
-            }
-        })
-        
-    hss_logs = get_hss_repo().list_hss_history(user_id)
-    for h in hss_logs:
-        logs.append({
-            "type": "HSS",
-            "timestamp": h.get("computed_at"),
-            "data": {
-                "score": h.get("score"),
-                "tier": h.get("tier")
-            }
-        })
-        
-    def parse_dt(x):
-        dt = _parse_dt(x.get("timestamp"))
-        return dt if dt else UTC_MIN
-        
-    logs.sort(key=parse_dt, reverse=True)
-    return logs
-
 @router.get("/broadcasts", response_model=list)
 def get_broadcasts(current_user: dict = Depends(get_current_admin_only)):
     return get_notification_repo().list_broadcasts()
 
-VALID_BROADCAST_TYPES = {"Maintenance", "App Update", "Safety Reminder", "General"}
-VALID_BROADCAST_AUDIENCES = {"All Registered Accounts"}
+class BroadcastCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    title: str = Field(strict=True, min_length=1, max_length=80)
+    message: str = Field(strict=True, min_length=1, max_length=255)
+    type: Literal["Maintenance", "App Update", "Safety Reminder", "General"]
+    targetAudience: Literal["All Registered Accounts"] = "All Registered Accounts"
+
 
 @router.post("/broadcasts")
-def create_broadcast(payload: dict, current_user: dict = Depends(get_current_admin_only)):
-    title = (payload.get("title") or "").strip()
-    if not title:
-        raise HTTPException(status_code=422, detail="Announcement title is required.")
-    if len(title) > 80:
-        raise HTTPException(status_code=422, detail="Announcement title must be 80 characters or fewer.")
-
-    broadcast_type = payload.get("type", "")
-    if broadcast_type not in VALID_BROADCAST_TYPES:
-        raise HTTPException(
-            status_code=422,
-            detail=f"Invalid category. Must be one of: {', '.join(sorted(VALID_BROADCAST_TYPES))}"
-        )
-
-    target_audience = payload.get("targetAudience", "All Registered Accounts")
-    if target_audience not in VALID_BROADCAST_AUDIENCES:
-        raise HTTPException(
-            status_code=422,
-            detail=f"Invalid audience. Must be one of: {', '.join(sorted(VALID_BROADCAST_AUDIENCES))}"
-        )
-
-    message = (payload.get("message") or "").strip()
-    if not message:
-        raise HTTPException(status_code=422, detail="Announcement message is required.")
-
+def create_broadcast(payload: BroadcastCreate, current_user: dict = Depends(get_current_admin_only)):
     admin_id = current_user.get('user_id', 'SYS')
     admin_prof = get_profile_repo().get_by_id(admin_id)
     publisher_name = "Admin"
@@ -931,17 +834,19 @@ def create_broadcast(payload: dict, current_user: dict = Depends(get_current_adm
         publisher_name = f"{admin_prof.get('first_name', '')} {admin_prof.get('last_name', '')}".strip() or "Admin"
 
     broadcast_data = {
-        "title": title,
-        "message": message,
-        "type": broadcast_type,
-        "target_audience": target_audience,
+        "title": payload.title,
+        "message": payload.message,
+        "type": payload.type,
+        "target_audience": payload.targetAudience,
         "publisher": f"{admin_id} ({publisher_name})",
         "display_publisher": publisher_name,
         "publisher_id": admin_id
     }
 
     new_broadcast = get_notification_repo().create_broadcast(broadcast_data)
-    broadcast_id = new_broadcast.get("id")
+    broadcast_id = new_broadcast.get("id") if isinstance(new_broadcast, dict) else None
+    if not broadcast_id:
+        raise HTTPException(status_code=500, detail="Announcement publication was not confirmed.")
 
     # Record admin activity
     record_admin_activity(
@@ -949,27 +854,22 @@ def create_broadcast(payload: dict, current_user: dict = Depends(get_current_adm
         action="published",
         target_type="broadcast",
         target_id=str(broadcast_id),
-        target_name=title
+        target_name=payload.title
     )
     return {"status": "success", "data": new_broadcast}
 
 @router.delete("/broadcasts/{broadcast_id}")
 def delete_broadcast(broadcast_id: str, current_user: dict = Depends(get_current_admin_only)):
-    success = get_notification_repo().delete_broadcast(broadcast_id)
-    if not success:
-        raise HTTPException(status_code=404, detail="Broadcast not found")
-
-    admin_id = current_user.get("user_id") if current_user else "admin"
-    record_admin_activity(
-        admin_user_id=admin_id,
-        action="deleted",
-        target_type="broadcast",
-        target_id=str(broadcast_id),
-        target_name="Broadcast"
-    )
-    return {"status": "success", "message": "Broadcast deleted"}
+    raise HTTPException(status_code=410, detail="Announcement deletion is unavailable pending retention review. Notifications already shown on devices cannot be recalled.")
 
 EXPORT_FIELDS = ("created_at", "admin_name", "action", "target_type", "target_name", "target_id")
+
+
+def _portal_logs(**filters):
+    if filters.get("target_type") and filters["target_type"] not in PORTAL_ACTIVITY_TYPES:
+        raise HTTPException(status_code=400, detail="Unsupported operational activity category")
+    rows = get_admin_repo().list_activity(**filters)
+    return [item for row in rows if (item := portal_activity(row))]
 
 
 @router.get("/activity/export")
@@ -979,16 +879,15 @@ def export_activity_log(
     current_user: dict = Depends(get_current_admin_only),
 ):
     """HL-080: every log entry matching the page's filters, for the portal's "Export audit CSV"."""
-    logs = get_admin_repo().list_activity(target_type=target_type, search=search)
+    logs = _portal_logs(target_type=target_type, search=search)
     items = [{field: entry.get(field) for field in EXPORT_FIELDS} for entry in logs]
-    filters = ", ".join(f for f in [f"type {target_type}" if target_type else "", f'search "{search}"' if search else ""] if f)
     record_admin_activity(
         admin_user_id=current_user.get("user_id"),
-        action=f"exported the activity log ({len(items)} entries{', ' + filters if filters else ''})",
+        action=f"exported the activity log ({len(items)} entries)",
         target_type="system",
         target_name="Activity log",
     )
-    return {"generated_at": utc_now().isoformat(), "count": len(items), "items": items}
+    return {"generated_at": utc_now().isoformat(), "count": len(items), "items": items, "scope": "Known operational metadata only; historical clinical/unknown events are excluded", "timezone": "Asia/Manila"}
 
 
 @router.get("/activity")
@@ -1006,7 +905,7 @@ def get_activity_log(
     if page_size < 1 or page_size > 100:
         raise HTTPException(status_code=400, detail="Page size must be between 1 and 100.")
 
-    logs = get_admin_repo().list_activity(
+    logs = _portal_logs(
         action=action,
         target_type=target_type,
         admin_user_id=admin_user_id,
@@ -1038,5 +937,8 @@ def get_activity_log(
         "total": total,
         "page": page,
         "page_size": page_size,
-        "total_pages": total_pages
+        "total_pages": total_pages,
+        "scope": "Known operational metadata only; historical clinical/unknown events are excluded",
+        "generated_at": utc_now().isoformat(),
+        "timezone": "Asia/Manila",
     }

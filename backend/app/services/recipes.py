@@ -2,6 +2,7 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 import uuid
 from app.db.repositories import get_content_repo
+from app.services.content_revision import check_revision, mark_review
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 
 def normalize_recipe_fields(recipe: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
@@ -59,23 +60,6 @@ def is_visible_to_patients(recipe: Dict[str, Any]) -> bool:
     """HL-037: patients only get recipes that are published AND approved by a Dietitian."""
     return recipe.get("status") == "published" and bool(recipe.get("expert_validated"))
 
-
-def _mark_review(payload: Dict[str, Any], data: Dict[str, Any], dietitian_id: Optional[str]) -> None:
-    """HL-037: only a Dietitian approves. A Dietitian's save keeps the switch as sent, records who and
-    when, and may leave a note when sending it back; anyone else's save sends the recipe back to
-    waiting, so a Dietitian checks the version patients see. A note stays until a Dietitian changes it."""
-    if not dietitian_id:
-        payload.update(expert_validated=False, reviewed_by=None, reviewed_at=None)
-        return
-    if "reviewNote" in data or "review_note" in data:
-        note = str(data.get("reviewNote", data.get("review_note")) or "").strip()[:500]
-        payload["review_note"] = note or None
-    if "expert_validated" not in payload:
-        return
-    if payload["expert_validated"]:
-        payload.update(reviewed_by=dietitian_id, reviewed_at=utc_now().isoformat(), review_note=None)
-    else:
-        payload.update(reviewed_by=None, reviewed_at=None)
 
 def get_recipe(recipe_id: str) -> Optional[Dict[str, Any]]:
     r = get_content_repo().get_recipe(recipe_id)
@@ -199,12 +183,14 @@ def create_recipe(data: Dict[str, Any], created_by: Optional[str] = None, dietit
         new_recipe_payload["created_by"] = created_by
     if data.get("id"):
         new_recipe_payload["id"] = data["id"]
-    _mark_review(new_recipe_payload, data, dietitian_id)
+    mark_review(new_recipe_payload, data, dietitian_id, None)
 
     res = get_content_repo().create_recipe(new_recipe_payload)
     return normalize_recipe_fields(res)
 
 def update_recipe(recipe_id: str, data: Dict[str, Any], dietitian_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    current = get_content_repo().get_recipe(recipe_id)
+    check_revision(current, data)
     update_data = {}
     if "name" in data: update_data["name"] = data["name"]
     if "subtitle" in data: update_data["subtitle"] = data["subtitle"]
@@ -305,7 +291,7 @@ def update_recipe(recipe_id: str, data: Dict[str, Any], dietitian_id: Optional[s
                 })
         update_data["ingredients"] = ingredients_list
 
-    _mark_review(update_data, data, dietitian_id)
+    mark_review(update_data, data, dietitian_id, current)
     res = get_content_repo().update_recipe(recipe_id, update_data)
     return normalize_recipe_fields(res) if res else None
 

@@ -1,0 +1,8 @@
+Ingredient illustrations by OpenMoji, the open-source emoji and icon project.
+Creators: HfG Schwabisch Gmund and the OpenMoji contributors.
+Source: https://github.com/hfg-gmuend/openmoji/tree/16.0.0/color/svg
+Unmodified SVG artwork from release 16.0.0; descriptive filenames only.
+Graphics license: Creative Commons Attribution-ShareAlike 4.0 International.
+License text: https://creativecommons.org/licenses/by-sa/4.0/legalcode
+This artwork license applies to these illustrations, not to HeartLink source code.
+Artwork is decorative; ingredient names and quantities are authoritative.

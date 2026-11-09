@@ -1,0 +1,567 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Activity,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Loader2,
+  RefreshCw,
+  RotateCcw,
+  Search,
+  Shield,
+  X,
+} from "lucide-react";
+import { toast } from "sonner";
+import AdminLayout from "../../components/layouts/adminLayout.jsx";
+import LoadError from "../../components/ui/loadError.jsx";
+import { Skeleton } from "../../components/ui/skeleton.jsx";
+import { QueryProgress } from "../../components/ui/queryProgress.jsx";
+import { apiFetch } from "../../lib/api.js";
+import { useApiQuery } from "../../hooks/useApiQuery.js";
+import { downloadCsv, toCsv } from "../../utils/csv.js";
+
+import { WorkspaceHeader } from "../../components/ui/workspaceHeader.jsx";
+
+const CATEGORY_OPTIONS = [
+  { value: "all", label: "All categories" },
+  { value: "user", label: "App accounts" },
+  { value: "account", label: "Account security" },
+  { value: "system", label: "System" },
+  { value: "staff", label: "Staff" },
+  { value: "recipe", label: "Recipes" },
+  { value: "exercise", label: "Exercises" },
+  { value: "broadcast", label: "Announcements" },
+  { value: "feedback", label: "Feedback" },
+  { value: "premium", label: "Premium settings" },
+];
+
+const CATEGORY_LABELS = Object.fromEntries(
+  CATEGORY_OPTIONS.map((opt) => [opt.value, opt.label]),
+);
+
+function formatTimestamp(isoString) {
+  if (!isoString) return "—";
+  try {
+    const d = new Date(isoString);
+    if (Number.isNaN(d.getTime())) return "Not recorded";
+    return d.toLocaleString("en-US", {
+      timeZone: "Asia/Manila",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  } catch {
+    return "Not recorded";
+  }
+}
+
+function formatDetails(log) {
+  const actionStr = log.action
+    ? log.action.charAt(0).toUpperCase() + log.action.slice(1)
+    : "";
+  const typeStr = log.target_type || "";
+  const nameStr = log.target_name || log.target_id || "";
+  if (nameStr) {
+    return `${actionStr} ${typeStr}: ${nameStr}`.trim();
+  }
+  return `${actionStr} ${typeStr}`.trim() || "Recorded administrative event";
+}
+
+const ActivityLog = () => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [eventTypeFilter, setEventTypeFilter] = useState("all");
+  const [exporting, setExporting] = useState(false);
+  const exportPending = useRef(false);
+
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(20);
+
+  // Debounce search query to reduce API hits
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    setPage(1);
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    setDebouncedSearch("");
+    setPage(1);
+  };
+
+  const handleFilterChange = (e) => {
+    setEventTypeFilter(e.target.value);
+    setPage(1);
+  };
+
+  const handleClearFilters = () => {
+    setSearchQuery("");
+    setDebouncedSearch("");
+    setEventTypeFilter("all");
+    setPage(1);
+  };
+
+  // Log events for this page, search and filter; the last page stays on screen while the next one loads
+  let activityUrl = `/api/admin/activity?page=${page}&page_size=${pageSize}`;
+  if (debouncedSearch && debouncedSearch.trim()) {
+    activityUrl += `&search=${encodeURIComponent(debouncedSearch.trim())}`;
+  }
+  if (eventTypeFilter && eventTypeFilter !== "all") {
+    activityUrl += `&target_type=${eventTypeFilter}`;
+  }
+
+  const {
+    data,
+    isFetching: loading,
+    isPending,
+    isError,
+    error,
+    refetch,
+  } = useApiQuery(activityUrl);
+
+  const logs = useMemo(() => data?.items ?? [], [data]);
+  const total = data?.total || 0;
+  const totalPages = data?.total_pages || 0;
+  const accessDenied = isError && error?.status === 403;
+  const fetchError = isError && !accessDenied;
+
+  // HL-080: every entry matching the current search and type, as a spreadsheet file
+  const exportCsv = async () => {
+    if (
+      exportPending.current ||
+      loading ||
+      isError ||
+      searchQuery.trim() !== debouncedSearch.trim()
+    )
+      return;
+    exportPending.current = true;
+    setExporting(true);
+    try {
+      const params = new URLSearchParams();
+      if (debouncedSearch.trim()) params.set("search", debouncedSearch.trim());
+      if (eventTypeFilter !== "all") params.set("target_type", eventTypeFilter);
+      const query = params.toString();
+      const file = await apiFetch(
+        `/api/admin/activity/export${query ? `?${query}` : ""}`,
+      );
+      if (
+        !Array.isArray(file.items) ||
+        file.count !== file.items.length ||
+        !file.generated_at ||
+        Number.isNaN(new Date(file.generated_at).getTime())
+      ) {
+        throw new Error("Export response was not confirmed.");
+      }
+      const csv = toCsv(file.items || [], [
+        {
+          label: "When (Asia/Manila)",
+          value: (r) => formatTimestamp(r.created_at),
+        },
+        { label: "Actor", value: (r) => r.admin_name },
+        { label: "Action", value: (r) => r.action },
+        { label: "Type", value: (r) => r.target_type },
+        { label: "Target", value: (r) => r.target_name },
+        { label: "Target ID", value: (r) => r.target_id },
+      ]);
+      downloadCsv(
+        `heartlink-operational-activity-${eventTypeFilter}-${file.generated_at.slice(0, 10)}.csv`,
+        csv,
+      );
+      toast.success(
+        `Exported ${file.count} log ${file.count === 1 ? "entry" : "entries"}.`,
+      );
+    } catch (e) {
+      toast.error(
+        e?.data?.detail || e?.message || "Couldn't export the activity log.",
+      );
+    } finally {
+      exportPending.current = false;
+      setExporting(false);
+    }
+  };
+
+  if (accessDenied) {
+    return (
+      <AdminLayout>
+        <div className="mx-auto flex w-full max-w-[1440px] items-center justify-center py-16 font-cal-sans text-cal-ink">
+          <div className="flex max-w-md flex-col items-center rounded-[12px] border border-cal-hairline bg-cal-canvas px-8 py-12 text-center shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-cal-error/25 bg-cal-error/10 text-cal-error">
+              <Shield size={22} aria-hidden="true" />
+            </div>
+            <h2 className="font-cal-display text-[22px] font-semibold tracking-[-0.5px] text-cal-ink">
+              Access restricted
+            </h2>
+            <p className="mt-2 text-[13.5px] leading-relaxed text-cal-muted">
+              You do not have permission to view the system activity audit log.
+              Only authorized system administrators can inspect audit records.
+            </p>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  const showSkeleton =
+    (isPending || loading) && logs.length === 0 && !fetchError;
+  const isEmpty = !loading && !fetchError && logs.length === 0;
+  const isSearchOrFilterApplied =
+    debouncedSearch.trim() !== "" || eventTypeFilter !== "all";
+
+  const rangeStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const rangeEnd = Math.min(page * pageSize, total);
+
+  return (
+    <AdminLayout>
+      <div className="workspace workspace--operations activity-workspace mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
+        <WorkspaceHeader
+          icon={Activity}
+          title="Activity log"
+          description="Content, account and security events in Asia/Manila. This operational view excludes clinical and unknown history without deleting it; it is not a complete or immutable audit archive."
+        >
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => refetch()}
+              disabled={loading}
+              className="inline-flex h-10 items-center gap-2 rounded-[8px] border border-cal-hairline bg-cal-canvas px-4 text-[13.5px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <RefreshCw
+                size={14.5}
+                className={
+                  loading ? "animate-spin text-cal-muted" : "text-cal-muted"
+                }
+                aria-hidden="true"
+              />
+              <span>Refresh</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={exportCsv}
+              disabled={
+                exporting ||
+                loading ||
+                isError ||
+                total === 0 ||
+                searchQuery.trim() !== debouncedSearch.trim()
+              }
+              className="inline-flex h-10 items-center gap-2 rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-5 text-[13.5px] font-semibold text-cal-on-primary transition-colors cursor-pointer disabled:bg-cal-primary-disabled disabled:text-cal-muted disabled:cursor-not-allowed"
+            >
+              {exporting ? (
+                <Loader2
+                  size={15}
+                  className="animate-spin"
+                  aria-hidden="true"
+                />
+              ) : (
+                <Download size={15} aria-hidden="true" />
+              )}
+              <span>{exporting ? "Exporting…" : "Export audit CSV"}</span>
+            </button>
+          </div>
+        </WorkspaceHeader>
+
+        {/* ─── 3. MAIN AUDIT LOG CARD ───────────────────────────────────────── */}
+        <section className="overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          {/* Search & Category Filter Toolbar */}
+          <div className="workspace-search-row border-b border-cal-hairline bg-cal-canvas px-4 py-4 sm:px-5">
+            <div className="workspace-search">
+              <Search size={15} aria-hidden="true" />
+              <input
+                type="text"
+                aria-label="Search audit log"
+                disabled={exporting}
+                placeholder="Search by actor name or target…"
+                value={searchQuery}
+                onChange={handleSearchChange}
+                className="pr-7"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  disabled={exporting}
+                  onClick={handleClearSearch}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-cal-muted hover:text-cal-ink cursor-pointer"
+                >
+                  <X size={13.5} />
+                </button>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <div className="relative">
+                <select
+                  aria-label="Filter by event category"
+                  disabled={exporting}
+                  value={eventTypeFilter}
+                  onChange={handleFilterChange}
+                  className="h-9 appearance-none rounded-[8px] border border-cal-hairline bg-cal-canvas pl-3.5 pr-9 text-[13px] font-medium text-cal-ink hover:bg-cal-surface-soft focus:border-cal-ink focus:outline-none transition-colors cursor-pointer"
+                >
+                  {CATEGORY_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  size={14}
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cal-muted"
+                />
+              </div>
+
+              {isSearchOrFilterApplied && (
+                <button
+                  type="button"
+                  onClick={handleClearFilters}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-[8px] border border-cal-hairline bg-cal-surface-soft px-3 text-[12.5px] font-semibold text-cal-ink hover:bg-cal-surface-card transition-colors cursor-pointer"
+                >
+                  <RotateCcw size={13} className="text-cal-muted" />
+                  <span>Reset</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="workspace-context-row">
+            <span>{showSkeleton || isError ? "Event count unavailable" : `${total.toLocaleString()} ${isSearchOrFilterApplied ? "matching" : "operational"} events`}</span>
+            <QueryProgress active={loading} label={showSkeleton ? "Loading activity…" : "Updating activity…"} />
+          </div>
+
+          {/* Table */}
+          <div
+            role="region"
+            aria-label="Operational activity table"
+            aria-busy={loading}
+            tabIndex={0}
+            className="w-full overflow-x-auto"
+          >
+            <table className="workspace-table w-full min-w-[820px] border-collapse text-left">
+              <thead>
+                <tr className="border-b border-cal-hairline bg-cal-surface-soft/70">
+                  <th
+                    scope="col"
+                    className="px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted"
+                  >
+                    Timestamp
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted"
+                  >
+                    Category
+                  </th>
+                  <th
+                    scope="col"
+                    className="w-[42%] px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted"
+                  >
+                    Activity details
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted"
+                  >
+                    Actor
+                  </th>
+                </tr>
+              </thead>
+
+              {showSkeleton ? (
+                <tbody className="divide-y divide-cal-hairline">
+                  {[1, 2, 3, 4, 5, 6].map((idx) => (
+                    <tr key={idx}>
+                      <td className="px-4 py-3.5 sm:px-5 align-middle">
+                        <Skeleton className="h-4 w-36 rounded bg-cal-surface-card" />
+                      </td>
+                      <td className="px-4 py-3.5 sm:px-5 align-middle">
+                        <Skeleton className="h-5 w-24 rounded-full bg-cal-surface-card" />
+                      </td>
+                      <td className="px-4 py-3.5 sm:px-5 align-middle">
+                        <Skeleton className="mb-1.5 h-4 w-64 rounded bg-cal-surface-card" />
+                        <Skeleton className="h-3 w-36 rounded bg-cal-surface-card" />
+                      </td>
+                      <td className="px-4 py-3.5 sm:px-5 align-middle">
+                        <Skeleton className="h-6 w-28 rounded-full bg-cal-surface-card" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              ) : logs.length > 0 ? (
+                <tbody className="divide-y divide-cal-hairline">
+                  {logs.map((log) => {
+                    const showTargetId =
+                      Boolean(log.target_id) &&
+                      log.target_id !== log.target_name;
+
+                    return (
+                      <tr key={log.id} className="activity-row">
+                        <td className="px-4 py-3.5 sm:px-5 align-middle whitespace-nowrap">
+                          <time
+                            dateTime={log.created_at || undefined}
+                            className="text-[13px] leading-relaxed tabular-nums text-cal-muted"
+                          >
+                            {formatTimestamp(log.created_at)}
+                          </time>
+                        </td>
+
+                        <td className="px-4 py-3.5 sm:px-5 align-middle">
+                          <span className="text-[13px] text-cal-muted">
+                            {CATEGORY_LABELS[log.target_type] || "System"}
+                          </span>
+                        </td>
+
+                        <td className="px-4 py-3.5 sm:px-5 align-middle">
+                          <div className="max-w-[460px]">
+                            <p className="text-[13.5px] font-semibold leading-snug text-cal-ink">
+                              {formatDetails(log)}
+                            </p>
+                            {showTargetId && (
+                              <details className="activity-reference">
+                                <summary>View reference</summary>
+                                <p>{log.target_id}</p>
+                              </details>
+                            )}
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3.5 sm:px-5 align-middle">
+                          <span className="block max-w-[220px] break-words text-[13px] leading-relaxed text-cal-ink">
+                            {log.admin_name || log.admin_user_id || "System"}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              ) : null}
+            </table>
+
+            {/* Error & Empty States */}
+            {fetchError && logs.length === 0 && (
+              <div className="border-t border-cal-hairline px-6 py-10">
+                <LoadError
+                  what="activity logs"
+                  onRetry={refetch}
+                  className="py-2"
+                />
+              </div>
+            )}
+
+            {fetchError && logs.length > 0 && (
+              <div className="border-t border-cal-hairline bg-cal-error/5 px-5 py-3">
+                <LoadError
+                  what="the latest activity page"
+                  onRetry={refetch}
+                  className="py-1"
+                />
+              </div>
+            )}
+
+            {isEmpty && (
+              <div className="flex flex-col items-center justify-center gap-2.5 border-t border-cal-hairline px-6 py-14 text-center">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-soft text-cal-muted">
+                  <Activity size={18} aria-hidden="true" />
+                </div>
+                {isSearchOrFilterApplied ? (
+                  <>
+                    <p className="text-[14px] font-semibold text-cal-ink">
+                      No audit events match your filters
+                    </p>
+                    <p className="max-w-sm text-[13px] text-cal-muted">
+                      Try clearing your search keyword or switching back to all
+                      categories.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleClearFilters}
+                      className="mt-1 inline-flex h-9 items-center gap-1.5 rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-4 text-[13px] font-semibold text-cal-on-primary transition-colors cursor-pointer"
+                    >
+                      <RotateCcw size={13.5} />
+                      <span>Reset filters</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-[14px] font-semibold text-cal-ink">
+                      No administrative activity recorded yet
+                    </p>
+                    <p className="max-w-sm text-[13px] text-cal-muted">
+                      Recorded content, staff and account events will appear
+                      here. Excluded historical events remain stored separately.
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Pagination Footer */}
+          <div className="flex flex-col justify-between gap-3 border-t border-cal-hairline bg-cal-canvas px-4 py-3.5 sm:flex-row sm:items-center sm:px-5">
+            <p className="text-[12.5px] text-cal-muted">
+              {isError ? (
+                "Activity counts unavailable"
+              ) : total === 0 ? (
+                "Showing 0 of 0 events"
+              ) : (
+                <>
+                  Showing{" "}
+                  <span className="font-semibold tabular-nums text-cal-ink">
+                    {rangeStart}–{rangeEnd}
+                  </span>{" "}
+                  of{" "}
+                  <span className="font-semibold tabular-nums text-cal-ink">
+                    {total.toLocaleString()}
+                  </span>{" "}
+                  events
+                </>
+              )}
+            </p>
+
+            <div className="flex items-center gap-2">
+              {totalPages > 0 && (
+                <span className="mr-1 text-[12px] tabular-nums text-cal-muted">
+                  Page {page} / {totalPages}
+                </span>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                disabled={page <= 1 || loading}
+                className="inline-flex h-8 items-center gap-1 rounded-[8px] border border-cal-hairline bg-cal-canvas px-3 text-[12.5px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <ChevronLeft size={14} aria-hidden="true" />
+                <span>Previous</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setPage((prev) => Math.min(totalPages, prev + 1))
+                }
+                disabled={page >= totalPages || loading}
+                className="inline-flex h-8 items-center gap-1 rounded-[8px] border border-cal-hairline bg-cal-canvas px-3 text-[12.5px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <span>Next</span>
+                <ChevronRight size={14} aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </AdminLayout>
+  );
+};
+
+export default ActivityLog;

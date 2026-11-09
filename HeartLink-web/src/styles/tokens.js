@@ -8,7 +8,7 @@
 
 // ─── 1. Color Palette Tokens ──────────────────────────────────────────────────
 // The HeartLink design system (documentation/design-system/HEARTLINK.md). The same values are
-// the ds-* Tailwind colours in App.css; use these only where a class can't (charts, inline SVG).
+// the ds-* Tailwind colours in app.css; use these only where a class can't (charts, inline SVG).
 export const COLORS = {
   ink: "#1a1a1a",        // Headings & main text
   inkSoft: "#5d5b54",    // Secondary text (ds-slate)
@@ -36,8 +36,8 @@ export const COLORS = {
 // ─── 2. Typography Declarations ───────────────────────────────────────────────
 // The design system uses one sans family for headings and body, so `serif` points at it too.
 export const FONTS = {
-  serif: "'Inter', sans-serif",
-  sans: "'Inter', sans-serif",
+  serif: "'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  sans: "'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   mono: "monospace",
 };
 
@@ -59,23 +59,23 @@ export const UI = {
     card: "bg-ds-canvas p-4 rounded-xl border border-ds-hairline flex items-center justify-between",
     label: "text-[11px] font-semibold text-ds-steel uppercase tracking-wider mb-1",
     value: "text-[22px] font-semibold text-ds-ink leading-none",
-    iconBox: "w-8 h-8 rounded-[8px] flex items-center justify-center shrink-0 border",
+    iconBox: "w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0 border",
   },
 
   // Interactive Buttons
   button: {
     primary:
-      "flex items-center justify-center gap-1.5 px-4 h-10 text-[14px] font-medium text-white bg-ds-primary hover:bg-ds-primary-pressed rounded-[8px] transition-colors cursor-pointer disabled:bg-ds-hairline disabled:text-ds-steel disabled:cursor-not-allowed",
+      "flex items-center justify-center gap-1.5 px-4 h-10 text-[14px] font-medium text-white bg-ds-primary hover:bg-ds-primary-pressed rounded-[10px] transition-colors cursor-pointer disabled:bg-ds-hairline disabled:text-ds-steel disabled:cursor-not-allowed",
     secondary:
-      "flex items-center justify-center gap-1.5 px-4 h-10 text-[14px] font-medium text-ds-ink bg-ds-canvas hover:bg-ds-surface border border-ds-hairline-strong rounded-[8px] transition-colors cursor-pointer disabled:opacity-50",
+      "flex items-center justify-center gap-1.5 px-4 h-10 text-[14px] font-medium text-ds-ink bg-ds-canvas hover:bg-ds-surface border border-ds-hairline-strong rounded-[10px] transition-colors cursor-pointer disabled:opacity-50",
     danger:
-      "flex items-center justify-center gap-1.5 px-4 h-10 text-[14px] font-medium text-white bg-ds-danger hover:bg-ds-danger/90 rounded-[8px] transition-colors cursor-pointer disabled:opacity-50",
+      "flex items-center justify-center gap-1.5 px-4 h-10 text-[14px] font-medium text-white bg-ds-danger hover:bg-ds-danger/90 rounded-[10px] transition-colors cursor-pointer disabled:opacity-50",
     dangerSoft:
-      "flex items-center justify-center gap-1.5 px-3.5 h-9 text-[13px] font-medium text-ds-ink bg-ds-rose hover:bg-ds-rose/80 rounded-[8px] transition-colors cursor-pointer",
+      "flex items-center justify-center gap-1.5 px-3.5 h-10 text-[13px] font-medium text-ds-ink bg-ds-rose hover:bg-ds-rose/80 rounded-[10px] transition-colors cursor-pointer",
     ghost:
-      "flex items-center justify-center gap-1.5 px-3 h-9 text-[13px] font-medium text-ds-slate hover:text-ds-ink hover:bg-ds-surface rounded-[6px] transition-colors cursor-pointer",
+      "flex items-center justify-center gap-1.5 px-3 h-10 text-[13px] font-medium text-ds-slate hover:text-ds-ink hover:bg-ds-surface rounded-[6px] transition-colors cursor-pointer",
     icon:
-      "p-2 rounded-[8px] text-ds-slate hover:text-ds-ink hover:bg-ds-surface transition-colors cursor-pointer",
+      "min-h-10 min-w-10 p-2 rounded-[10px] text-ds-slate hover:text-ds-ink hover:bg-ds-surface transition-colors cursor-pointer",
   },
 
   // Surface Cards & Containers
@@ -100,19 +100,19 @@ export const UI = {
 
   // Form Controls
   input: {
-    text: "w-full px-3.5 h-11 text-[14px] bg-ds-canvas border border-ds-hairline-strong text-ds-ink rounded-[8px] focus:outline-none focus:border-ds-line focus:ring-1 focus:ring-ds-line transition-colors placeholder:text-ds-steel",
-    select: "px-3 h-10 text-[14px] font-medium bg-ds-canvas border border-ds-hairline-strong text-ds-ink rounded-[8px] focus:outline-none focus:border-ds-line focus:ring-1 focus:ring-ds-line transition-colors cursor-pointer",
-    textarea: "w-full px-3.5 py-2.5 text-[14px] bg-ds-canvas border border-ds-hairline-strong text-ds-ink rounded-[8px] focus:outline-none focus:border-ds-line focus:ring-1 focus:ring-ds-line transition-colors resize-none leading-relaxed placeholder:text-ds-steel",
+    text: "w-full px-3.5 h-11 text-[14px] bg-ds-canvas border border-ds-hairline-strong text-ds-ink rounded-[10px] focus:outline-none focus:border-ds-line focus:ring-1 focus:ring-ds-line transition-colors placeholder:text-ds-steel",
+    select: "px-3 h-10 text-[14px] font-medium bg-ds-canvas border border-ds-hairline-strong text-ds-ink rounded-[10px] focus:outline-none focus:border-ds-line focus:ring-1 focus:ring-ds-line transition-colors cursor-pointer",
+    textarea: "w-full px-3.5 py-2.5 text-[14px] bg-ds-canvas border border-ds-hairline-strong text-ds-ink rounded-[10px] focus:outline-none focus:border-ds-line focus:ring-1 focus:ring-ds-line transition-colors resize-none leading-relaxed placeholder:text-ds-steel",
     label: "block text-[13px] font-medium text-ds-ink mb-1.5",
     error: "text-[12px] font-medium text-ds-danger mt-1 flex items-center gap-1",
-    search: "w-full pl-9 pr-4 h-10 text-[14px] border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-line focus:ring-1 focus:ring-ds-line transition-colors bg-ds-surface text-ds-ink placeholder:text-ds-steel",
+    search: "workspace-search-input w-full pl-9 pr-4 h-10 text-[14px] border border-ds-hairline rounded-[10px] focus:border-ds-slate transition-colors bg-ds-surface text-ds-ink placeholder:text-ds-steel",
   },
 
   // Modals & Dialogs
   modal: {
     backdrop: "fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/55",
     overlay: "absolute inset-0 bg-black/55 transition-opacity cursor-pointer",
-    container: "relative w-full max-w-lg bg-ds-canvas max-h-full rounded-2xl shadow-[0_16px_48px_-8px_rgba(15,15,15,0.16)] border border-ds-hairline flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden text-ds-ink",
+    container: "relative w-full max-w-lg bg-ds-canvas max-h-full rounded-2xl shadow-[0_16px_48px_-8px_rgba(15,15,15,0.16)] border border-ds-hairline flex flex-col animate-cal-popover overflow-hidden text-ds-ink",
     header: "flex items-center justify-between px-6 py-4.5 border-b border-ds-hairline bg-ds-canvas z-10",
     title: "text-[18px] font-semibold text-ds-ink leading-tight",
     body: "flex-1 overflow-y-auto p-6 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden space-y-4",
@@ -124,7 +124,7 @@ export const UI = {
     bar: "p-3.5 border-t border-ds-hairline bg-ds-canvas flex flex-col sm:flex-row sm:items-center justify-between gap-3",
     text: "text-[12px] text-ds-slate font-medium",
     buttonGroup: "flex items-center gap-2",
-    button: "flex items-center gap-1 px-3 h-9 text-[13px] font-medium rounded-[8px] border border-ds-hairline-strong bg-ds-canvas transition-colors cursor-pointer text-ds-ink hover:bg-ds-surface disabled:text-ds-steel disabled:cursor-not-allowed disabled:opacity-40",
+    button: "flex items-center gap-1 px-3 h-10 text-[13px] font-medium rounded-[10px] border border-ds-hairline-strong bg-ds-canvas transition-colors cursor-pointer text-ds-ink hover:bg-ds-surface disabled:text-ds-steel disabled:cursor-not-allowed disabled:opacity-40",
   },
 };
 

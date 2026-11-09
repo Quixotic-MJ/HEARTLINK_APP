@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useState, useEffect, useRef, useId } from "react";
 import {
   Eye,
@@ -7,18 +8,20 @@ import {
   AlertCircle,
   Loader2,
   CheckCircle2,
-  Check,
-  ShieldCheck,
   X,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../../contexts/useAuth";
-import { apiFetch } from "../../api";
+import { useAuth } from "../../contexts/useAuth.js";
+import { apiFetch } from "../../lib/api.js";
+import { homeFor } from "../../app/access.js";
+import { useDialogFocus } from "../../hooks/useDialogFocus.js";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { toast } from "sonner";
+import LoginArtwork from "./loginArtwork.jsx";
+import "./login.css";
 import {
   focusRing,
   inputBase,
@@ -27,7 +30,7 @@ import {
   primaryButton,
   secondaryButton,
   textLink,
-} from "./authStyles";
+} from "./authStyles.js";
 
 // ─── Validation Schemas ───────────────────────────────────────────────────────
 const loginSchema = z.object({
@@ -64,9 +67,8 @@ function mapAuthError(error) {
     detail.toLowerCase().includes("portal is strictly")
   ) {
     return {
-      title: "This account can't use the admin portal",
-      message:
-        "The portal is for administrators and medical experts. Patients sign in through the HeartLink mobile app.",
+      title: "This account can't sign in here",
+      message: "Check your account details or contact the person who set up your access.",
     };
   }
   if (status === 429 || detail.toLowerCase().includes("rate limit") || detail.toLowerCase().includes("too many")) {
@@ -194,10 +196,16 @@ export function ErrorBanner({ error }) {
 
 // ─── Forgot Password Modal (Cal.com Dialog Spec) ─────────────────────────────
 function ForgotPasswordModal({ isOpen, onClose }) {
+  const dialogRef = useRef(null);
+  const errorRef = useRef(null);
+  const inFlight = useRef(false);
   const [identifier, setIdentifier] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  const [recoveryError, setRecoveryError] = useState("");
+  useDialogFocus(isOpen, dialogRef, isSubmitting ? null : onClose);
+  useEffect(() => { if (recoveryError) errorRef.current?.focus(); }, [recoveryError]);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -207,38 +215,35 @@ function ForgotPasswordModal({ isOpen, onClose }) {
     return () => clearInterval(timer);
   }, [cooldown]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
-
   if (!isOpen) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!identifier.trim() || isSubmitting || cooldown > 0) return;
+    if (!identifier.trim() || inFlight.current || cooldown > 0) return;
 
+    inFlight.current = true;
     setIsSubmitting(true);
+    setRecoveryError("");
     try {
       await apiFetch("/api/auth/forgot-password", {
         method: "POST",
         body: JSON.stringify({ identifier: identifier.trim() }),
       });
-    } catch {
-      // Same outcome either way so the form never reveals whether an account exists.
-    } finally {
+      // The backend uses the same reply for existing and unknown accounts.
       setSubmitted(true);
       setCooldown(60);
+    } catch {
+      setRecoveryError("Could not request reset instructions. Try again or ask your administrator.");
+    } finally {
+      inFlight.current = false;
       setIsSubmitting(false);
     }
   };
 
-  return (
+  return createPortal(
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       className="fixed inset-0 z-50 flex items-center justify-center bg-cal-ink/45 p-4"
       role="dialog"
       aria-modal="true"
@@ -248,11 +253,12 @@ function ForgotPasswordModal({ isOpen, onClose }) {
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.15, ease: "easeOut" }}
-        className="relative w-full max-w-[420px] rounded-[12px] border border-cal-hairline bg-cal-canvas p-6 font-cal-sans text-cal-ink shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
+        className="login-recovery-dialog relative w-full max-w-[420px] rounded-[12px] border border-cal-hairline bg-cal-canvas p-6 font-cal-sans text-cal-ink shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
       >
         <button
           type="button"
           onClick={onClose}
+          disabled={isSubmitting}
           aria-label="Close"
           className={`absolute top-4 right-4 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-cal-hairline bg-cal-canvas text-cal-muted active:bg-cal-surface-soft ${focusRing}`}
         >
@@ -268,8 +274,7 @@ function ForgotPasswordModal({ isOpen, onClose }) {
               Reset your password
             </h3>
             <p className="mt-1.5 mb-0 text-[14px] leading-[1.5] text-cal-muted">
-              Enter the email or username on your staff account and we&apos;ll send instructions to
-              reset your password.
+              Enter your email or username to request recovery instructions.
             </p>
 
             <label htmlFor="recovery-identifier" className={`${labelText} mt-5 mb-1.5`}>
@@ -280,14 +285,15 @@ function ForgotPasswordModal({ isOpen, onClose }) {
               type="text"
               required
               autoComplete="username"
-              placeholder="you@heartlink.ph"
+              placeholder="Enter your email or username"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
               className={`${inputBase} ${inputState(false)}`}
             />
+            {recoveryError && <p ref={errorRef} role="alert" tabIndex={-1} className="mt-3 text-[14px] text-cal-error">{recoveryError}</p>}
 
             <div className="mt-6 flex justify-end gap-2.5">
-              <button type="button" onClick={onClose} className={secondaryButton}>
+              <button type="button" onClick={onClose} disabled={isSubmitting} className={secondaryButton}>
                 Cancel
               </button>
               <button
@@ -317,11 +323,11 @@ function ForgotPasswordModal({ isOpen, onClose }) {
               id="forgot-password-title"
               className="mt-3.5 mb-0 font-cal-sans text-[18px] font-semibold leading-[1.4] text-cal-ink"
             >
-              Check your email
+              Request received
             </h3>
             <p className="mt-1.5 mb-0 text-[14px] leading-[1.5] text-cal-muted">
-              If that account exists, reset instructions are on their way. They can take a few
-              minutes to arrive.
+              If the account matches and recovery is available, follow the instructions sent to its
+              registered contact. If nothing arrives, ask your administrator for help.
             </p>
             <div className="mt-6 flex justify-end gap-2.5">
               <button
@@ -342,36 +348,10 @@ function ForgotPasswordModal({ isOpen, onClose }) {
           </div>
         )}
       </motion.div>
-    </div>
+    </div>,
+    document.body,
   );
 }
-
-const PORTAL_ROLES = [
-  {
-    initials: "CA",
-    fill: "bg-cal-badge-orange",
-    role: "Cardiologist",
-    task: "Risk level, check-up flag & weekly case review",
-  },
-  {
-    initials: "RD",
-    fill: "bg-cal-badge-emerald",
-    role: "Dietitian",
-    task: "Low-sodium & allergy-safe recipe verification",
-  },
-  {
-    initials: "PT",
-    fill: "bg-cal-badge-violet",
-    role: "Physical Therapist",
-    task: "Exercise intensity & seated movement safety",
-  },
-  {
-    initials: "AD",
-    fill: "bg-cal-badge-pink",
-    role: "Administrator",
-    task: "Catalog publishing, staff accounts & broadcasts",
-  },
-];
 
 // ─── Main Web Login Component (Cal.com Design System) ────────────────────────
 export default function HeartLinkAdminLogin() {
@@ -381,7 +361,6 @@ export default function HeartLinkAdminLogin() {
   const [remember, setRemember] = useState(false);
   const [structuredError, setStructuredError] = useState(null);
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
-  const [resendCooldown, setResendCooldown] = useState(0);
   const [capsLockOn, setCapsLockOn] = useState(false);
 
   const navigate = useNavigate();
@@ -395,10 +374,8 @@ export default function HeartLinkAdminLogin() {
     if (!loading && isAuthenticated && user) {
       if (user.mustChangePassword) {
         navigate("/set-password", { replace: true });
-      } else if (user.role === "medical_expert") {
-        navigate("/cases", { replace: true });
       } else {
-        navigate("/dashboard", { replace: true });
+        navigate(homeFor(user), { replace: true });
       }
     }
   }, [isAuthenticated, user, loading, navigate]);
@@ -412,15 +389,6 @@ export default function HeartLinkAdminLogin() {
       return () => clearTimeout(timer);
     }
   }, [step]);
-
-  // ─── 3. Resend Cooldown Countdown ─────────────────────────────────────────
-  useEffect(() => {
-    if (resendCooldown <= 0) return;
-    const timer = setInterval(() => {
-      setResendCooldown((prev) => prev - 1);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [resendCooldown]);
 
   // Forms
   const {
@@ -476,8 +444,8 @@ export default function HeartLinkAdminLogin() {
       if (response.requires_2fa || response.token_2fa) {
         setTemp2faToken(response.token_2fa);
         setStep("2fa");
-        toast.info("Verification code sent", {
-          description: "Enter the 6-digit code to finish signing in.",
+        toast.info("Additional verification required", {
+          description: "Use the verification method configured for this account.",
         });
       } else if (response.success !== false && (response.user_id || response.success)) {
         toast.success("Signed in");
@@ -494,10 +462,8 @@ export default function HeartLinkAdminLogin() {
 
         if (response.must_change_password) {
           navigate("/set-password");
-        } else if (response.role === "medical_expert") {
-          navigate("/cases");
         } else {
-          navigate("/dashboard");
+          navigate(homeFor(response), { replace: true });
         }
       }
     } catch (error) {
@@ -534,10 +500,8 @@ export default function HeartLinkAdminLogin() {
 
         if (response.must_change_password) {
           navigate("/set-password");
-        } else if (response.role === "medical_expert") {
-          navigate("/cases");
         } else {
-          navigate("/dashboard");
+          navigate(homeFor(response), { replace: true });
         }
       }
     } catch (error) {
@@ -559,11 +523,19 @@ export default function HeartLinkAdminLogin() {
   const isLoginStep = step === "login";
 
   return (
-    <div className="flex min-h-screen w-full bg-cal-canvas font-cal-sans text-cal-ink selection:bg-cal-ink selection:text-cal-on-primary">
-      {/* ─── Left Column: Sign-In Form on White Canvas ─── */}
-      <main className="flex min-w-0 flex-1 flex-col justify-between gap-12 px-6 py-8 sm:px-12 xl:px-20">
+    <div className="login-page font-cal-sans text-cal-ink">
+      <div className="login-shell">
+      <aside className="login-visual" aria-labelledby="login-visual-title">
+        <div className="login-visual-copy">
+          <h2 id="login-visual-title">Small habits.<br />Meaningful connections.</h2>
+          <p>A thoughtful space for the work behind everyday wellness.</p>
+        </div>
+        <LoginArtwork />
+        <p className="login-visual-caption">Everyday wellness, thoughtfully connected.</p>
+      </aside>
+      <main className="login-main">
         {/* Top bar */}
-        <div className="flex items-center justify-between gap-4">
+        <div className="login-brand">
           <Link
             to="/"
             className={`flex items-center gap-2.5 rounded-[6px] text-cal-ink no-underline ${focusRing}`}
@@ -573,22 +545,18 @@ export default function HeartLinkAdminLogin() {
               HeartLink
             </span>
           </Link>
-
-          <span className="rounded-full bg-cal-surface-card px-3 py-1 text-[13px] font-medium text-cal-ink">
-            Staff portal
-          </span>
         </div>
 
         {/* Centered form block */}
-        <div className="mx-auto w-full max-w-[380px]">
+        <div className="login-form-block">
           <AnimatePresence mode="wait" initial={false}>
             {isLoginStep ? (
-              <motion.div key="login-step" {...stepTransition}>
-                <h1 className="m-0 font-cal-display text-[28px] font-semibold leading-[1.15] tracking-[-0.75px] text-cal-ink sm:text-[32px]">
-                  Sign in to the staff portal
+              <motion.div key="login-step" {...(reduceMotion ? { initial: false } : stepTransition)}>
+                <h1 className="login-heading">
+                  Welcome back.
                 </h1>
                 <p className="mt-2 mb-0 text-[15px] leading-[1.5] text-cal-muted">
-                  For HeartLink administrators and medical experts.
+                  Sign in to continue to HeartLink.
                 </p>
 
                 <form onSubmit={handleLoginSubmit(onLogin)} className="mt-8 space-y-5" noValidate>
@@ -602,7 +570,7 @@ export default function HeartLinkAdminLogin() {
                     <input
                       id="identifier"
                       type="text"
-                      placeholder="you@heartlink.ph"
+                      placeholder="Enter your email or username"
                       autoComplete="username"
                       aria-invalid={!!loginErrors.identifier}
                       aria-describedby={loginErrors.identifier ? "identifier-error" : undefined}
@@ -652,7 +620,7 @@ export default function HeartLinkAdminLogin() {
                       <button
                         type="button"
                         onClick={() => setShowPassword((prev) => !prev)}
-                        className={`absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 cursor-pointer items-center justify-center rounded-[6px] border-0 bg-transparent text-cal-muted active:bg-cal-surface-soft ${focusRing}`}
+                        className={`login-password-toggle absolute right-1 top-1/2 flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-[6px] border-0 bg-transparent text-cal-muted active:bg-cal-surface-soft ${focusRing}`}
                         aria-label={showPassword ? "Hide password" : "Show password"}
                       >
                         {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -691,19 +659,19 @@ export default function HeartLinkAdminLogin() {
                 </form>
 
                 <p className="mt-6 mb-0 text-[13px] text-cal-muted">
-                  Need an account? Ask your system administrator for a one-time staff invite.
+                  Need access? Contact the person who set up your account.
                 </p>
               </motion.div>
             ) : (
-              <motion.div key="2fa-step" {...stepTransition}>
+              <motion.div key="2fa-step" {...(reduceMotion ? { initial: false } : stepTransition)}>
                 <span className="mb-3 inline-block rounded-full bg-cal-surface-card px-3 py-1 text-[13px] font-medium text-cal-ink">
                   Two-factor verification
                 </span>
-                <h1 className="m-0 font-cal-display text-[28px] font-semibold leading-[1.15] tracking-[-0.75px] text-cal-ink sm:text-[32px]">
+                <h1 className="login-heading">
                   Enter your verification code
                 </h1>
                 <p className="mt-2 mb-0 text-[15px] leading-[1.5] text-cal-muted">
-                  We sent a 6-digit code to your registered device.
+                  Enter the code from the verification method configured for your account.
                 </p>
 
                 <form onSubmit={handle2FASubmit(onVerify2FA)} className="mt-8 space-y-5" noValidate>
@@ -722,6 +690,7 @@ export default function HeartLinkAdminLogin() {
                       placeholder="000000"
                       autoComplete="one-time-code"
                       aria-invalid={!!errors2FA.code}
+                      aria-describedby={errors2FA.code ? "otp-error" : undefined}
                       className={`${inputBase} ${inputState(!!errors2FA.code)} h-13 text-center font-cal-mono text-[24px] font-medium tracking-[0.45em] tabular-nums placeholder:text-cal-surface-strong`}
                       {...otpField}
                       ref={(e) => {
@@ -729,10 +698,7 @@ export default function HeartLinkAdminLogin() {
                         otpInputRef.current = e;
                       }}
                     />
-                    <FieldError message={errors2FA.code?.message} />
-                    <p className="mt-2 mb-0 text-[13px] text-cal-muted">
-                      The code expires in 5 minutes.
-                    </p>
+                    <FieldError id="otp-error" message={errors2FA.code?.message} />
                   </div>
 
                   <button type="submit" disabled={isSubmitting2FA} className={primaryButton}>
@@ -758,20 +724,6 @@ export default function HeartLinkAdminLogin() {
                       <ArrowLeft size={15} />
                       Back
                     </button>
-                    <button
-                      type="button"
-                      disabled={resendCooldown > 0}
-                      onClick={() => {
-                        if (resendCooldown > 0) return;
-                        setResendCooldown(60);
-                        toast.info("New code sent", {
-                          description: "Check your registered device.",
-                        });
-                      }}
-                      className={`border-0 bg-transparent p-0 text-[13px] ${textLink}`}
-                    >
-                      {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend code"}
-                    </button>
                   </div>
                 </form>
               </motion.div>
@@ -780,80 +732,13 @@ export default function HeartLinkAdminLogin() {
         </div>
 
         {/* Bottom footer line */}
-        <div className="flex flex-wrap items-center justify-between gap-3 text-[13px] text-cal-muted-soft">
-          <span>Patients sign in through the HeartLink mobile app.</span>
+        <div className="login-footer">
           <Link to="/" className={`text-[13px] ${textLink}`}>
             Back to home
           </Link>
         </div>
       </main>
-
-      {/* ─── Right Column: Cal.com Product-UI Showcase on `#f8f9fa` Soft Surface ─── */}
-      <aside
-        aria-label="About the staff portal"
-        className="hidden min-w-0 flex-[1.08] items-center justify-center border-l border-cal-hairline bg-cal-surface-soft px-12 py-16 lg:flex"
-      >
-        <motion.div
-          initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, ease: "easeOut" }}
-          className="flex w-full max-w-[460px] flex-col gap-6"
-        >
-          <div>
-            <span className="inline-flex items-center gap-2 rounded-full border border-cal-hairline bg-cal-canvas px-3 py-1 text-[13px] font-medium text-cal-ink shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-              <span className="h-2 w-2 rounded-full bg-cal-success" />
-              Clinical &amp; administrative workspace
-            </span>
-            <h2 className="mt-4 mb-0 font-cal-display text-[28px] font-semibold leading-[1.2] tracking-[-0.5px] text-cal-ink">
-              One workspace for clinical audits, approved routines, and patient safety.
-            </h2>
-            <p className="mt-2.5 mb-0 text-[15px] leading-[1.5] text-cal-body">
-              Coordinate weekly anonymized case reviews and keep recipes, exercises, and clinic
-              directories calibrated across specialties.
-            </p>
-          </div>
-
-          {/* Embedded `product-mockup-card` showing real portal roles & workflow */}
-          <div className="rounded-[16px] border border-cal-hairline bg-cal-canvas p-5 shadow-[0_4px_12px_rgba(0,0,0,0.08)]">
-            <div className="flex items-center justify-between border-b border-cal-hairline-soft pb-3.5">
-              <div className="flex items-center gap-2">
-                <HeartLogoIcon size={20} />
-                <span className="text-[14px] font-semibold text-cal-ink">Portal role permissions</span>
-              </div>
-              <span className="rounded-full bg-cal-surface-card px-2.5 py-0.5 font-cal-mono text-[11px] font-medium text-cal-muted">
-                4 roles
-              </span>
-            </div>
-
-            <div className="mt-3.5 flex flex-col gap-2.5">
-              {PORTAL_ROLES.map((item) => (
-                <div
-                  key={item.role}
-                  className="flex items-center gap-3 rounded-[10px] bg-cal-surface-card px-3.5 py-2.5"
-                >
-                  <span
-                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold text-cal-ink ${item.fill}`}
-                  >
-                    {item.initials}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[14px] font-semibold text-cal-ink">{item.role}</div>
-                    <div className="truncate text-[13px] text-cal-muted">{item.task}</div>
-                  </div>
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-cal-canvas text-cal-success">
-                    <Check size={14} aria-hidden="true" />
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 text-[13px] text-cal-muted">
-            <ShieldCheck size={16} className="shrink-0 text-cal-ink" aria-hidden="true" />
-            <span>Protected by role-based access, 2FA, and mandatory first-login password setup.</span>
-          </div>
-        </motion.div>
-      </aside>
+      </div>
 
       {/* Forgot Password Modal Dialog */}
       <ForgotPasswordModal

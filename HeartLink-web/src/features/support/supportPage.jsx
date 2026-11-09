@@ -1,0 +1,580 @@
+import { useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import {
+  Activity,
+  AlertCircle,
+  CheckCircle2,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Inbox,
+  MessageSquare,
+  RotateCcw,
+  Search,
+  X,
+} from "lucide-react";
+import { toast } from "sonner";
+import AdminLayout from "../../components/layouts/adminLayout.jsx";
+import TicketModal from "./components/ticketModal.jsx";
+import FeedbackCategoryBadge from "./components/feedbackCategoryBadge.jsx";
+import LoadError from "../../components/ui/loadError.jsx";
+import { Skeleton } from "../../components/ui/skeleton.jsx";
+import { QueryProgress } from "../../components/ui/queryProgress.jsx";
+import { apiFetch } from "../../lib/api.js";
+import { useApiQuery } from "../../hooks/useApiQuery.js";
+
+import { WorkspaceHeader } from "../../components/ui/workspaceHeader.jsx";
+
+const NO_TICKETS = [];
+
+const PILL =
+  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11.5px] font-semibold leading-none whitespace-nowrap";
+
+const STATUS_TABS = [
+  { key: "active", label: "Active" },
+  { key: "all", label: "All tickets" },
+  { key: "Open", label: "Open" },
+  { key: "In Progress", label: "In progress" },
+  { key: "Resolved", label: "Resolved" },
+  { key: "Archived", label: "Archived" },
+];
+
+function StatusBadge({ status }) {
+  switch (status) {
+    case "Resolved":
+      return (
+        <span
+          className={`${PILL} border-cal-success/25 bg-cal-success/10 text-cal-ink`}
+        >
+          <CheckCircle2
+            size={11}
+            className="text-cal-success"
+            aria-hidden="true"
+          />
+          <span>Resolved</span>
+        </span>
+      );
+    case "In Progress":
+      return (
+        <span
+          className={`${PILL} border-cal-warning/35 bg-cal-warning/15 text-cal-ink`}
+        >
+          <Activity
+            size={11}
+            className="text-cal-warning animate-pulse"
+            aria-hidden="true"
+          />
+          <span>In progress</span>
+        </span>
+      );
+    case "Archived":
+      return (
+        <span
+          className={`${PILL} border-cal-hairline bg-cal-surface-soft text-cal-muted`}
+        >
+          <Inbox size={11} className="text-cal-muted" aria-hidden="true" />
+          <span>Archived</span>
+        </span>
+      );
+    case "Open":
+      return (
+        <span
+          className={`${PILL} border-cal-error/25 bg-cal-error/10 text-cal-ink`}
+        >
+          <AlertCircle
+            size={11}
+            className="text-cal-error"
+            aria-hidden="true"
+          />
+          <span>Open</span>
+        </span>
+      );
+    default:
+      return (
+        <span
+          className={`${PILL} border-cal-hairline bg-cal-surface-soft text-cal-muted`}
+        >
+          {status || "Unknown"}
+        </span>
+      );
+  }
+}
+
+const Feedback = () => {
+  const reduceMotion = useReducedMotion();
+  // Checks for new tickets every 30 seconds while the tab is open
+  const ticketsQuery = useApiQuery("/api/feedback/", {
+    select: (d) => (Array.isArray(d) ? d : NO_TICKETS),
+    refetchInterval: 30 * 1000,
+  });
+  const accessDenied = ticketsQuery.isError && ticketsQuery.error?.status === 403;
+  const tickets = accessDenied ? NO_TICKETS : ticketsQuery.data ?? NO_TICKETS;
+  const loading = ticketsQuery.isPending;
+  const fetchError = ticketsQuery.isError;
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterCategory, setFilterCategory] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("active");
+  const [sortOrder, setSortOrder] = useState("newest");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeTicket, setActiveTicket] = useState(null);
+
+  const openModal = (ticket) => {
+    setActiveTicket(ticket);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setActiveTicket(null);
+  };
+
+  const handleUpdateTicket = async (
+    id,
+    newStatus,
+    newNotes,
+    expectedUpdatedAt,
+  ) => {
+    try {
+      await apiFetch(`/api/feedback/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          status: newStatus,
+          adminNotes: newNotes,
+          expectedUpdatedAt,
+        }),
+      });
+      toast.success("Ticket updated", {
+        description: `Ticket ${id} marked as ${newStatus}.`,
+      });
+      closeModal();
+    } catch (err) {
+      toast.error("Failed to update ticket", {
+        description: err?.data?.detail || "Could not update ticket.",
+      });
+      if (err.status === 409) ticketsQuery.refetch();
+      throw err;
+    }
+  };
+
+  const handleArchiveTicket = async (id, notes, expectedUpdatedAt) => {
+    try {
+      await apiFetch(`/api/feedback/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          status: "Archived",
+          adminNotes: notes,
+          expectedUpdatedAt,
+        }),
+      });
+      toast.success("Ticket archived", {
+        description: `Ticket ${id} moved to archive.`,
+      });
+      closeModal();
+    } catch (err) {
+      toast.error("Failed to archive ticket", {
+        description: err?.data?.detail || "Could not archive ticket.",
+      });
+      if (err.status === 409) ticketsQuery.refetch();
+      throw err;
+    }
+  };
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setFilterCategory("all");
+    setFilterStatus("active");
+    setSortOrder("newest");
+  };
+
+  // Filter Logic
+  const filteredTickets = tickets.filter((t) => {
+    const q = searchQuery.toLowerCase().trim();
+    const matchesSearch =
+      !q ||
+      (t.ticketId || "").toLowerCase().includes(q) ||
+      (t.fullMessage || "").toLowerCase().includes(q) ||
+      (t.userId || "").toLowerCase().includes(q);
+    const matchesCategory =
+      filterCategory === "all" || t.category === filterCategory;
+
+    let matchesStatus;
+    if (filterStatus === "all") {
+      matchesStatus = true;
+    } else if (filterStatus === "active") {
+      matchesStatus = t.status !== "Archived";
+    } else {
+      matchesStatus =
+        (t.status || "").toLowerCase() === filterStatus.toLowerCase();
+    }
+    return matchesSearch && matchesCategory && matchesStatus;
+  });
+
+  // Sort Logic
+  filteredTickets.sort((a, b) => {
+    const dateA = Date.parse(a.created_at || a.date) || 0;
+    const dateB = Date.parse(b.created_at || b.date) || 0;
+    if (dateA === dateB) {
+      return String(a.id).localeCompare(String(b.id));
+    }
+    return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
+  });
+
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredTickets.length / itemsPerPage) || 1;
+  if (currentPage > totalPages) setCurrentPage(totalPages);
+  const paginatedTickets = filteredTickets.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
+
+  // Reset page when filters change (render-derived, no effect)
+  const filterKey = [searchQuery, filterCategory, filterStatus, sortOrder].join(
+    "|",
+  );
+  const [pageFilterKey, setPageFilterKey] = useState(filterKey);
+  if (filterKey !== pageFilterKey) {
+    setPageFilterKey(filterKey);
+    setCurrentPage(1);
+  }
+
+  const hasActiveFilters =
+    Boolean(searchQuery) ||
+    filterCategory !== "all" ||
+    filterStatus !== "active" ||
+    sortOrder !== "newest";
+
+  const rangeStart =
+    filteredTickets.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  const rangeEnd = Math.min(currentPage * itemsPerPage, filteredTickets.length);
+
+  return (
+    <AdminLayout>
+      <div className="workspace workspace--operations mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
+        <WorkspaceHeader
+          icon={MessageSquare}
+          title="Feedback & reports"
+          description="A focused inbox for app issues, account questions and content feedback. Admin notes stay internal; saving a ticket does not send a reply or provide medical advice."
+        />
+
+        {/* ─── 3. FEEDBACK INBOX CARD ────────────────────────────────────────── */}
+        <section className="overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <div className="library-toolbar">
+            <div className="workspace-search-row">
+              <div className="workspace-search">
+                <Search size={15} aria-hidden="true" />
+                <input
+                  type="text"
+                  aria-label="Search feedback tickets"
+                  placeholder="Search ticket ID, account, message…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pr-7"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    aria-label="Clear search"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-cal-muted hover:text-cal-ink cursor-pointer"
+                  >
+                    <X size={13.5} />
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <div className="relative">
+                  <select
+                    aria-label="Filter by category"
+                    value={filterCategory}
+                    onChange={(e) => setFilterCategory(e.target.value)}
+                    className="h-8 appearance-none rounded-[6px] border border-cal-hairline bg-cal-canvas pl-3 pr-8 text-[12.5px] font-medium text-cal-ink focus:border-cal-ink focus:outline-none transition-colors cursor-pointer"
+                  >
+                    <option value="all">All categories</option>
+                    <option value="Bug Report">Bug Report</option>
+                    <option value="UI/UX Suggestion">UI/UX Suggestion</option>
+                    <option value="Account Issue">Account Issue</option>
+                    <option value="Question">Question</option>
+                  </select>
+                  <ChevronDown
+                    size={13}
+                    className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-cal-muted"
+                  />
+                </div>
+
+                <div className="relative">
+                  <select
+                    aria-label="Sort order"
+                    value={sortOrder}
+                    onChange={(e) => setSortOrder(e.target.value)}
+                    className="h-8 appearance-none rounded-[6px] border border-cal-hairline bg-cal-canvas pl-3 pr-8 text-[12.5px] font-medium text-cal-ink focus:border-cal-ink focus:outline-none transition-colors cursor-pointer"
+                  >
+                    <option value="newest">Newest first</option>
+                    <option value="oldest">Oldest first</option>
+                  </select>
+                  <ChevronDown
+                    size={13}
+                    className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-cal-muted"
+                  />
+                </div>
+
+                {hasActiveFilters && (
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="inline-flex h-8 items-center gap-1.5 rounded-[6px] border border-cal-hairline bg-cal-canvas px-2.5 text-[12px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer"
+                  >
+                    <RotateCcw size={12} className="text-cal-muted" />
+                    <span>Reset filters</span>
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="library-workflow-row">
+              <div
+                role="group"
+                aria-label="Filter tickets by status"
+                className="library-workflow-tabs"
+              >
+                {STATUS_TABS.map((tab) => {
+                  const active = filterStatus === tab.key;
+                  return (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setFilterStatus(tab.key)}
+                    >
+                      {active && (
+                        <motion.div
+                          layoutId="feedback-status-filter-tab"
+                          className="library-workflow-active"
+                          transition={
+                            reduceMotion
+                              ? { duration: 0 }
+                              : {
+                                  type: "spring",
+                                  stiffness: 420,
+                                  damping: 34,
+                                }
+                          }
+                        />
+                      )}
+                      <span className="relative z-10">{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-4 text-[12px] tabular-nums text-cal-muted">
+                <span>{loading || fetchError ? "Ticket count unavailable" : `${filteredTickets.length} ${filteredTickets.length === 1 ? "ticket" : "tickets"}`}</span>
+                <QueryProgress active={ticketsQuery.isFetching} label={loading ? "Loading feedback…" : "Updating feedback…"} />
+              </div>
+            </div>
+          </div>
+
+          {/* Error Banner */}
+          {fetchError && (
+            <div className="border-b border-cal-hairline px-6 py-4">
+              <LoadError
+                what="feedback tickets"
+                onRetry={ticketsQuery.refetch}
+                className="py-1"
+              />
+            </div>
+          )}
+
+          {/* Inbox Table */}
+          <div
+            className="w-full overflow-x-auto"
+            role="region"
+            aria-label="Support tickets table"
+            aria-busy={ticketsQuery.isFetching}
+            tabIndex={0}
+          >
+            <table className="workspace-table w-full min-w-[880px] border-collapse text-left">
+              <thead>
+                <tr className="border-b border-cal-hairline bg-cal-surface-soft/70">
+                  <th className="px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted">
+                    Ticket ID &amp; Date
+                  </th>
+                  <th className="px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted">
+                    Category
+                  </th>
+                  <th className="px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted">
+                    Account ID
+                  </th>
+                  <th className="w-[42%] px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted">
+                    User Message
+                  </th>
+                  <th className="px-4 py-3 sm:px-5 text-right text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted">
+                    Status
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-cal-hairline">
+                {loading ? (
+                  [1, 2, 3, 4, 5].map((idx) => (
+                    <tr key={`skeleton-${idx}`}>
+                      <td className="px-4 py-3.5 sm:px-5">
+                        <Skeleton className="h-4 w-28 rounded bg-cal-surface-card" />
+                      </td>
+                      <td className="px-4 py-3.5 sm:px-5">
+                        <Skeleton className="h-5 w-24 rounded-full bg-cal-surface-card" />
+                      </td>
+                      <td className="px-4 py-3.5 sm:px-5">
+                        <Skeleton className="h-4 w-24 rounded bg-cal-surface-card" />
+                      </td>
+                      <td className="px-4 py-3.5 sm:px-5">
+                        <Skeleton className="h-4 w-64 rounded bg-cal-surface-card" />
+                      </td>
+                      <td className="px-4 py-3.5 sm:px-5 text-right">
+                        <Skeleton className="ml-auto h-5 w-20 rounded-full bg-cal-surface-card" />
+                      </td>
+                    </tr>
+                  ))
+                ) : paginatedTickets.length > 0 ? (
+                  paginatedTickets.map((ticket) => (
+                    <tr
+                      key={ticket.id}
+                      onClick={() => openModal(ticket)}
+                      className="group cursor-pointer transition-colors hover:bg-cal-surface-soft/70"
+                    >
+                      <td className="px-4 py-3.5 sm:px-5 align-middle whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openModal(ticket);
+                          }}
+                          className="font-cal-mono text-[13px] font-semibold tabular-nums text-cal-ink hover:underline"
+                        >
+                          {ticket.ticketId}
+                        </button>
+                        <p className="mt-0.5 flex items-center gap-1 text-[11.5px] tabular-nums text-cal-muted">
+                          <Clock size={11} aria-hidden="true" />
+                          <span>{ticket.date}</span>
+                        </p>
+                      </td>
+
+                      <td className="px-4 py-3.5 sm:px-5 align-middle">
+                        <FeedbackCategoryBadge category={ticket.category} />
+                      </td>
+
+                      <td className="px-4 py-3.5 sm:px-5 align-middle whitespace-nowrap">
+                        <span className="font-cal-mono text-[12.5px] tabular-nums text-cal-muted">
+                          {ticket.userId || "—"}
+                        </span>
+                      </td>
+
+                      <td className="px-4 py-3.5 sm:px-5 align-middle">
+                        <p className="max-w-[420px] truncate text-[13.5px] text-cal-ink">
+                          {ticket.fullMessage || "No message provided"}
+                        </p>
+                      </td>
+
+                      <td className="px-4 py-3.5 sm:px-5 text-right align-middle whitespace-nowrap">
+                        <StatusBadge status={ticket.status} />
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="5" className="py-14 text-center">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-soft text-cal-muted">
+                          <Inbox size={18} aria-hidden="true" />
+                        </div>
+                        <p className="text-[14px] font-semibold text-cal-ink">
+                          No feedback tickets found
+                        </p>
+                        <p className="max-w-sm text-[13px] text-cal-muted">
+                          {hasActiveFilters
+                            ? "Try adjusting your search query, status tabs, or category filter."
+                            : "App feedback submissions will appear here automatically."}
+                        </p>
+                        {hasActiveFilters && (
+                          <button
+                            type="button"
+                            onClick={clearFilters}
+                            className="mt-1 inline-flex h-9 items-center gap-1.5 rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-4 text-[13px] font-semibold text-cal-on-primary transition-colors cursor-pointer"
+                          >
+                            <RotateCcw size={13.5} />
+                            <span>Reset filters</span>
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination Controls */}
+          {filteredTickets.length > 0 && (
+            <div className="flex flex-col justify-between gap-3 border-t border-cal-hairline bg-cal-canvas px-4 py-3 sm:flex-row sm:items-center sm:px-5">
+              <span className="text-[12.5px] text-cal-muted">
+                Showing{" "}
+                <span className="font-semibold tabular-nums text-cal-ink">
+                  {rangeStart}–{rangeEnd}
+                </span>{" "}
+                of{" "}
+                <span className="font-semibold tabular-nums text-cal-ink">
+                  {filteredTickets.length}
+                </span>{" "}
+                entries
+              </span>
+
+              <div className="flex items-center gap-2">
+                <span className="text-[12px] tabular-nums text-cal-muted">
+                  Page {currentPage} / {totalPages}
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="inline-flex h-8 items-center gap-1 rounded-[8px] border border-cal-hairline bg-cal-canvas px-3 text-[12.5px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <ChevronLeft size={14} aria-hidden="true" />
+                  <span>Previous</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                  className="inline-flex h-8 items-center gap-1 rounded-[8px] border border-cal-hairline bg-cal-canvas px-3 text-[12.5px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <span>Next</span>
+                  <ChevronRight size={14} aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* Modal: Ticket Resolution Workspace */}
+        <TicketModal
+          key={activeTicket?.id || "no-ticket"}
+          isOpen={isModalOpen && !accessDenied}
+          onClose={closeModal}
+          ticket={activeTicket}
+          onUpdate={handleUpdateTicket}
+          onArchive={handleArchiveTicket}
+        />
+      </div>
+    </AdminLayout>
+  );
+};
+
+export default Feedback;

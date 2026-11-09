@@ -36,12 +36,14 @@ class SupabasePremiumRepository(PremiumRepository):
 
     def get_config(self) -> Dict[str, Any]:
         try:
-            res = self.client.table(CONFIG_TABLE).select("*").eq("id", 1).execute()
+            res = self.client.table(CONFIG_TABLE).select("monthly_price_php,yearly_price_php,trial_days,checkout_enabled").eq("id", 1).execute()
+            if getattr(res, "error", None) or not isinstance(res.data, list):
+                raise RuntimeError("Premium configuration unavailable")
             if res.data:
-                return res.data[0]
+                return {**res.data[0], "_basis": "stored"}
         except Exception as e:
             handle_db_error(e)
-        return dict(DEFAULT_CONFIG)
+        return {**DEFAULT_CONFIG, "_basis": "default"}
 
     def update_config(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         try:
@@ -59,9 +61,18 @@ class SupabasePremiumRepository(PremiumRepository):
 
     def list_events(self, limit: int = 50) -> List[Dict[str, Any]]:
         try:
-            res = (self.client.table(EVENTS_TABLE).select("*")
-                   .order("created_at", desc=True).limit(limit).execute())
-            return res.data or []
+            rows = []
+            while len(rows) < limit:
+                res = (self.client.table(EVENTS_TABLE)
+                       .select("id,user_id,kind,period,amount_php,method,premium_until,actor_id,created_at")
+                       .order("created_at", desc=True).order("id")
+                       .range(len(rows), min(len(rows) + 500, limit) - 1).execute())
+                if getattr(res, "error", None) or not isinstance(res.data, list):
+                    raise RuntimeError("Premium history unavailable")
+                rows.extend(res.data)
+                if len(res.data) < 500:
+                    break
+            return rows[:limit]
         except Exception as e:
             handle_db_error(e)
             return []

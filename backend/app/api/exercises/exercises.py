@@ -2,6 +2,7 @@ from fastapi import APIRouter, Request, HTTPException, Query, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import List, Dict, Any, Optional
 from app.services.exercises import get_routines, get_exercise_logs, create_exercise_log, delete_exercise_log, create_routine, update_routine, delete_routine, is_visible_to_patients, get_saved_exercises, save_exercise_for_user, unsave_exercise_for_user
+from app.services.content_revision import ContentChanged, STALE_MESSAGE
 from app.services.heart_score import recalculate_score
 from app.utils.security import expert_id_if, require_permission, check_expert_permission, get_current_user, verify_token, get_optional_token, verify_user_access
 from app.utils.activity_helper import record_admin_activity
@@ -103,6 +104,8 @@ def edit_routine(routine_id: str, data: Dict[str, Any], current_user: dict = Dep
         )
         notify_waiting_content("exercise", updated_routine, expert_id_if(current_user, "Physical Therapist"), admin_id)
         return updated_routine
+    except ContentChanged:
+        raise HTTPException(status_code=409, detail=STALE_MESSAGE)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
