@@ -410,7 +410,7 @@ export function DsTextField({ label, optional, unit, hasError = false, large = f
   const target = hasError ? c.danger : c.line;
   const box = useAnimatedStyle(() => ({
     borderColor: interpolateColor(p.value, [0, 1], [c.hairlineStrong, target]),
-    backgroundColor: interpolateColor(p.value, [0, 1], ["#F8FAFC", c.canvas]),
+    backgroundColor: interpolateColor(p.value, [0, 1], [c.surface, c.canvas]),
   }));
   return (
     <View style={{ gap: 6 }}>

@@ -63,8 +63,9 @@ function RootLayoutNav() {
     if (isSplash) return;
 
     // 2. Screens after the score is saved: onboarding is already "complete" by then, but
-    //    these finish the set-up (score, first reading, reminders, day one) and navigate on.
-    const AFTER_SCORE = ["score", "first-reading", "reminders", "day-one"];
+    //    these finish the set-up (score, the exercise safety check, first reading, reminders, day one) and navigate on.
+    //    A screen missing here is skipped: the user lands on the dashboard (HL-122: the safety check was missing).
+    const AFTER_SCORE = ["score", "exercise-check", "first-reading", "reminders", "day-one"];
     const isAfterScore =
       firstSegment === "(baseline)" && !!secondSegment && AFTER_SCORE.includes(secondSegment);
     if (isAfterScore) return;

@@ -109,12 +109,12 @@ function readAnswers(d: BaselineData): { helping: string[]; grow: string[] } {
   return { helping: helping.slice(0, 2), grow: grow.slice(0, 2) };
 }
 
-function bandStyle(key: ScoreBand): { bg: string; fg: string; border: string } {
+function bandStyle(key: ScoreBand, c: DsColors): { bg: string; fg: string; border: string } {
   switch (key) {
-    case "good": return { bg: "#ECFDF5", fg: "#059669", border: "#A7F3D0" };
-    case "moderate": return { bg: "#FEFCE8", fg: "#B45309", border: "#FEF08A" };
-    case "elevated": return { bg: "#FFF7ED", fg: "#C2410C", border: "#FED7AA" };
-    case "critical": return { bg: "#FEF2F2", fg: "#DC2626", border: "#FECACA" };
+    case "good": return { bg: c.mint, fg: c.success, border: c.hairline };
+    case "moderate": return { bg: c.yellow, fg: c.warmText, border: c.hairline };
+    case "elevated": return { bg: c.peach, fg: c.warmText, border: c.hairline };
+    case "critical": return { bg: c.rose, fg: c.charcoal, border: c.hairline };
   }
 }
 
@@ -188,15 +188,15 @@ export default function ScoreScreen() {
               width: 72,
               height: 72,
               borderRadius: 20,
-              backgroundColor: "#EFF6FF",
+              backgroundColor: c.tint,
               borderWidth: 1.5,
-              borderColor: "#DBEAFE",
+              borderColor: c.hairline,
               alignItems: "center",
               justifyContent: "center",
               marginBottom: 24,
             }}
           >
-            <ActivityIndicator size="large" color="#2563EB" accessibilityLabel="Working out your score" />
+            <ActivityIndicator size="large" color={c.line} accessibilityLabel="Working out your score" />
           </View>
           <Text style={{ fontSize: 24, fontWeight: "700", letterSpacing: -0.5, color: c.ink, textAlign: "center" }}>
             Working out your starting score
@@ -229,15 +229,15 @@ export default function ScoreScreen() {
             width: 58,
             height: 58,
             borderRadius: 16,
-            backgroundColor: "#FEF2F2",
+            backgroundColor: c.rose,
             borderWidth: 1.5,
-            borderColor: "#FECACA",
+            borderColor: c.hairline,
             alignItems: "center",
             justifyContent: "center",
             marginBottom: 20,
           }}
         >
-          <Feather name="wifi-off" size={26} color="#DC2626" />
+          <Feather name="wifi-off" size={26} color={c.danger} />
         </View>
         <Text accessibilityRole="header" style={{ fontSize: 26, fontWeight: "700", letterSpacing: -0.5, color: c.ink }}>
           We couldn&apos;t get your score
@@ -250,7 +250,7 @@ export default function ScoreScreen() {
   }
 
   const band = scoreBand(state.score, light);
-  const bs = bandStyle(band.key);
+  const bs = bandStyle(band.key, c);
   const R = 80;
   const circ = 2 * Math.PI * R;
   const filled = (Math.max(0, Math.min(100, state.score)) / 100) * circ;
@@ -271,21 +271,21 @@ export default function ScoreScreen() {
             paddingHorizontal: 10,
             paddingVertical: 3,
             borderRadius: 6,
-            backgroundColor: "#EFF6FF",
+            backgroundColor: c.tint,
             borderWidth: 1,
-            borderColor: "#DBEAFE",
+            borderColor: c.hairline,
             marginBottom: 18,
           }}
         >
-          <Text style={{ fontSize: 11.5, fontWeight: "700", letterSpacing: 0.8, textTransform: "uppercase", color: "#1D4ED8" }}>
+          <Text style={{ fontSize: 11.5, fontWeight: "700", letterSpacing: 0.8, textTransform: "uppercase", color: c.onTint }}>
             Your Starting Score
           </Text>
         </View>
 
         <View style={{ width: 196, height: 196 }} accessible accessibilityLabel={`Heart Health Stability Score ${state.score} out of 100, ${band.label}`}>
           <Svg width={196} height={196} viewBox="0 0 188 188">
-            <Circle cx={94} cy={94} r={R} fill="none" stroke="#F1F5F9" strokeWidth={12} />
-            <RingFill r={R} circ={circ} filled={filled} color="#3B82F6" />
+            <Circle cx={94} cy={94} r={R} fill="none" stroke={c.surfaceAlt} strokeWidth={12} />
+            <RingFill r={R} circ={circ} filled={filled} color={c.line} />
           </Svg>
           <Animated.View
             entering={ZoomIn.delay(200).springify().damping(14)}
@@ -324,19 +324,19 @@ export default function ScoreScreen() {
                 flex: 1,
                 padding: 16,
                 borderRadius: 14,
-                backgroundColor: "#F0FDF4",
+                backgroundColor: c.mint,
                 borderWidth: 1.5,
-                borderColor: "#BBF7D0",
+                borderColor: c.hairline,
               }}
             >
               <View className="flex-row items-center" style={{ gap: 6, marginBottom: 10 }}>
-                <Feather name="trending-up" size={14} color="#16A34A" />
-                <Text style={{ fontSize: 11.5, fontWeight: "700", letterSpacing: 0.4, textTransform: "uppercase", color: "#15803D" }}>
+                <Feather name="trending-up" size={14} color={c.success} />
+                <Text style={{ fontSize: 11.5, fontWeight: "700", letterSpacing: 0.4, textTransform: "uppercase", color: c.charcoal }}>
                   Helping you
                 </Text>
               </View>
               {state.helping.map((t) => (
-                <Text key={t} style={{ fontSize: 14, fontWeight: "600", lineHeight: 21, color: "#166534" }}>
+                <Text key={t} style={{ fontSize: 14, fontWeight: "600", lineHeight: 21, color: c.charcoal }}>
                   • {t}
                 </Text>
               ))}
@@ -348,19 +348,19 @@ export default function ScoreScreen() {
                 flex: 1,
                 padding: 16,
                 borderRadius: 14,
-                backgroundColor: "#EFF6FF",
+                backgroundColor: c.tint,
                 borderWidth: 1.5,
-                borderColor: "#BFDBFE",
+                borderColor: c.hairline,
               }}
             >
               <View className="flex-row items-center" style={{ gap: 6, marginBottom: 10 }}>
-                <Feather name="arrow-up-right" size={14} color="#2563EB" />
-                <Text style={{ fontSize: 11.5, fontWeight: "700", letterSpacing: 0.4, textTransform: "uppercase", color: "#1D4ED8" }}>
+                <Feather name="arrow-up-right" size={14} color={c.line} />
+                <Text style={{ fontSize: 11.5, fontWeight: "700", letterSpacing: 0.4, textTransform: "uppercase", color: c.onTint }}>
                   Room to grow
                 </Text>
               </View>
               {state.grow.map((t) => (
-                <Text key={t} style={{ fontSize: 14, fontWeight: "600", lineHeight: 21, color: "#1E40AF" }}>
+                <Text key={t} style={{ fontSize: 14, fontWeight: "600", lineHeight: 21, color: c.onTint }}>
                   • {t}
                 </Text>
               ))}

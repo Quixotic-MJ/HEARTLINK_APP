@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Platform, StatusBar as RNStatusBar } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { useColorScheme } from "nativewind";
+import { useColorScheme } from "../../hooks/useAppColorScheme";
 import { Stack } from "expo-router";
 import "../../global.css";
 

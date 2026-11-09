@@ -62,7 +62,7 @@ export default function SetupHeader({ part, partName, progress = 0, fromProgress
             onPress={onFinishLater}
             accessibilityRole="button"
             accessibilityLabel="Finish later"
-            style={{ height: 38, paddingHorizontal: 12, justifyContent: "center", borderRadius: 8, backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: c.hairline }}
+            style={{ height: 38, paddingHorizontal: 12, justifyContent: "center", borderRadius: 8, backgroundColor: c.surface, borderWidth: 1, borderColor: c.hairline }}
           >
             <Text style={{ fontSize: 13, fontWeight: "600", color: c.ink }}>Finish later</Text>
           </AnimatedButton>

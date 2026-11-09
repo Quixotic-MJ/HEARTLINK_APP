@@ -126,7 +126,7 @@ export default function QuestionScreen() {
     } else if (q.part < 4) {
       router.push({ pathname: "/(baseline)/part-done", params: { part: String(q.part) } });
     } else {
-      router.push("/(baseline)/score");
+      router.push("/(baseline)/exercise-check");
     }
   };
 
@@ -163,7 +163,7 @@ export default function QuestionScreen() {
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 12,
-                backgroundColor: data.date_of_birth ? c.tint : "#F8FAFC",
+                backgroundColor: data.date_of_birth ? c.tint : c.surface,
               }}
             >
               <View
@@ -171,7 +171,7 @@ export default function QuestionScreen() {
                   width: 32,
                   height: 32,
                   borderRadius: 8,
-                  backgroundColor: data.date_of_birth ? "#DBEAFE" : "#EDF2F7",
+                  backgroundColor: data.date_of_birth ? c.hairline : c.surfaceAlt,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
@@ -353,13 +353,13 @@ export default function QuestionScreen() {
               paddingHorizontal: 14,
               paddingVertical: 12,
               borderRadius: 10,
-              backgroundColor: "#FEF2F2",
+              backgroundColor: c.rose,
               borderWidth: 1,
-              borderColor: "#FECACA",
+              borderColor: c.hairline,
             }}
           >
-            <Feather name="alert-circle" size={17} color="#DC2626" />
-            <Text style={{ flex: 1, fontSize: 13.5, fontWeight: "500", color: "#991B1B" }}>
+            <Feather name="alert-circle" size={17} color={c.danger} />
+            <Text style={{ flex: 1, fontSize: 13.5, fontWeight: "500", color: c.ink }}>
               {errorFor(q)}
             </Text>
           </Animated.View>

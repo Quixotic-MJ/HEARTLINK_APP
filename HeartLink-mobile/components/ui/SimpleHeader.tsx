@@ -2,7 +2,7 @@ import React from "react";
 import { View, TouchableOpacity, Text, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
-import { useColorScheme } from "nativewind";
+import { useColorScheme } from "../../hooks/useAppColorScheme";
 import { Colors } from "../../constants/theme";
 
 export function SimpleHeader({ title = "", showBack = true }: { title?: string, showBack?: boolean }) {

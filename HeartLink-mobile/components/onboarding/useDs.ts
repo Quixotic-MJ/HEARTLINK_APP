@@ -1,4 +1,4 @@
-import { useColorScheme } from "nativewind";
+import { useColorScheme } from "../../hooks/useAppColorScheme";
 import { ds, DsColors } from "../../constants/theme";
 
 /** Design-system colours for the current theme (for inline, animated and SVG styles). */

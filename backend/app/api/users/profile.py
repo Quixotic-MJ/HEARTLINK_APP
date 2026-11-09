@@ -424,7 +424,11 @@ async def save_exercise_screening(
     _own_account(current_user, user_id)
     from app.services import exercise_screening
 
-    return exercise_screening.save_answers(user_id, payload.answers)
+    if payload.parq_result is None and payload.answers is not None:
+        return exercise_screening.save_old_answers(user_id, payload.answers)
+    return exercise_screening.save_answers(
+        user_id, payload.parq_result or "", payload.extra_check_yes, payload.pregnant, payload.unwell, payload.declared
+    )
 
 
 @router.post("/{user_id}/exercise-screening/clear")

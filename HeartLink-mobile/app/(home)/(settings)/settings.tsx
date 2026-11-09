@@ -238,8 +238,8 @@ export default function SettingsScreen() {
           {familyOnly ? null : (
             <SettingsRow
               icon="clipboard"
-              label="Exercise safety check"
-              subtitle="Answer again if your health changes"
+              label="Exercise safety check (PAR-Q+)"
+              subtitle="Do it again if your health changes"
               iconBg={c.surface}
               iconColor={c.slate}
               onPress={() => router.push("/(home)/(health)/exercise-screening")}

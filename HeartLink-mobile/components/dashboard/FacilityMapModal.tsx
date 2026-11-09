@@ -12,7 +12,7 @@ import {
   Dimensions,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { useColorScheme } from "nativewind";
+import { useColorScheme } from "../../hooks/useAppColorScheme";
 import * as Haptics from "expo-haptics";
 import { theme } from "../../constants/theme";
 import { ClinicMap } from "../clinics/ClinicMap";

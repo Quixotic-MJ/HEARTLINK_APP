@@ -387,18 +387,47 @@ export type Readiness = {
   hss_score?: number | null;
   hss_tier?: string | null;
   has_recent_severe_symptom?: boolean | null;
-  /** HL-093: the safety check; older servers leave it out. */
-  exercise_screening?: { answered: boolean; paused: boolean } | null;
+  /** HL-123: an emergency-level reading pauses workouts until a later reading isn't one; older servers leave it out. */
+  emergency_reading_pause?: boolean | null;
+  /** HL-093 and HL-122: the safety check; older servers leave out `state`. */
+  exercise_screening?: { answered: boolean; paused: boolean; state?: string; reason?: string | null } | null;
 };
 
+export type PauseReason = "symptom" | "emergency_reading" | "locked" | "delayed" | "beginner_only" | "score";
+
 /**
- * Active workouts pause when the score is critical (under 50), a severe symptom was logged recently,
- * or the safety check asks for a professional's OK. Breathing exercises stay open.
+ * HL-123: why an active workout is paused, or null. The safety check decides, never the score: a recent severe symptom,
+ * an emergency-level reading, a Locked or Delayed result, or a non-beginner exercise for "Eligible with caution".
+ * Breathing stays open. A check that's needed isn't a pause: starting the workout opens the check (needsScreening).
  */
-export function isWorkoutPaused(d: Readiness | undefined, kind: ExerciseKind) {
-  if (!d || kind === "breathing") return false;
-  const score = typeof d.hss_score === "number" ? d.hss_score : 0;
-  return d.hss_tier === "Critical" || (score > 0 && score < 50) || !!d.has_recent_severe_symptom || !!d.exercise_screening?.paused;
+export function pauseReason(d: Readiness | undefined, kind: ExerciseKind, level?: string | null): PauseReason | null {
+  if (!d || kind === "breathing") return null;
+  if (d.has_recent_severe_symptom) return "symptom";
+  const screening = d.exercise_screening;
+  if (!screening?.state) {
+    // An older server: the earlier rule, with the score
+    const score = typeof d.hss_score === "number" ? d.hss_score : 0;
+    if (d.hss_tier === "Critical" || (score > 0 && score < 50)) return "score";
+    return screening?.paused ? "locked" : null;
+  }
+  if (d.emergency_reading_pause) return "emergency_reading";
+  if (screening.state === "locked") return "locked";
+  if (screening.state === "delayed") return "delayed";
+  if (screening.state === "caution" && (level ?? "") !== "Beginner") return "beginner_only";
+  return null;
+}
+
+export function isWorkoutPaused(d: Readiness | undefined, kind: ExerciseKind, level?: string | null) {
+  return pauseReason(d, kind, level) !== null;
+}
+
+/** HL-123: whether the safety check result allows this exercise, for lists. Breathing is always allowed. */
+export function exerciseAllowed(screening: Readiness["exercise_screening"] | undefined, exercise: { type: string; level?: string | null }) {
+  if (exercise.type.toLowerCase().includes("breath")) return true;
+  if (!screening?.state) return !screening?.paused;
+  if (screening.state === "eligible") return true;
+  if (screening.state === "caution") return (exercise.level ?? "") === "Beginner";
+  return false;
 }
 
 /** HL-095: the words for an effort rating, 0 to 10. */
@@ -411,9 +440,10 @@ export function effortLabel(n: number) {
   return "Very hard";
 }
 
-/** HL-093: the safety check comes first if it hasn't been answered. Breathing doesn't need it. */
+/** HL-093 and HL-124: the safety check comes first if it's not done or out of date. Breathing doesn't need it. */
 export function needsScreening(d: Readiness | undefined, kind: ExerciseKind) {
-  return kind !== "breathing" && !!d?.exercise_screening && !d.exercise_screening.answered;
+  if (kind === "breathing" || !d?.exercise_screening) return false;
+  return d.exercise_screening.state ? d.exercise_screening.state === "needed" : !d.exercise_screening.answered;
 }
 
 /** 252 → "4:12", 5 → "0:05" */

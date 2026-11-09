@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, TextInputProps } from "react-native";
 import { useController, Control, FieldValues, Path } from "react-hook-form";
 import { Feather } from "@expo/vector-icons";
-import { useColorScheme } from "nativewind";
+import { useColorScheme } from "../../hooks/useAppColorScheme";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,

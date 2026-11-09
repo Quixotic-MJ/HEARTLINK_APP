@@ -8,19 +8,49 @@ import { useDs } from "../onboarding/useDs";
 import { SquareIconButton, Tag } from "./ExerciseBits";
 import { SaveButton } from "../explore/ExploreBits";
 import { ExerciseVideo, PictureThumb } from "./ExerciseMedia";
-import { ExerciseKind, Routine, SECTION_NAME, describePart, routineSeconds } from "../../services/exerciseSession";
+import { ExerciseKind, PauseReason, Routine, SECTION_NAME, describePart, routineSeconds } from "../../services/exerciseSession";
 
 // Screen 1: what the exercise is and how to do it, then Start. When workouts are paused for
 // safety (screen 1b) a rose card explains why and Start is turned off.
+
+/** HL-123: what the paused card says for each reason. Breathing exercises are open in every case. */
+const PAUSE_TEXT: Record<PauseReason, { title: string; body: string }> = {
+  symptom: {
+    title: "Workouts are paused for now",
+    body: "You logged a serious symptom, so take it easy today. Breathing exercises are still open. If something feels wrong, get checked in person.",
+  },
+  emergency_reading: {
+    title: "Workouts are paused after your last reading",
+    body: "Your latest blood pressure reading was at an emergency level. Workouts open again after a reading that isn't. Breathing exercises are still open. If you feel unwell, call 911.",
+  },
+  locked: {
+    title: "Please get a professional's OK first",
+    body: "Based on your safety check, talk to a doctor or a qualified exercise professional before active workouts. Breathing exercises are still open.",
+  },
+  delayed: {
+    title: "Wait until you're well",
+    body: "Your safety check says to wait while you're pregnant or ill. Breathing exercises are still open. Do the check again when you're well.",
+  },
+  beginner_only: {
+    title: "Beginner exercises for now",
+    body: "Your safety check says to start with beginner exercises. Choose one marked Beginner, or a breathing exercise.",
+  },
+  score: {
+    title: "Workouts are paused for now",
+    body: "Your latest readings or symptoms suggest resting today. Breathing exercises are still open. If something feels wrong, get checked in person.",
+  },
+};
 
 export interface ExerciseOverviewProps {
   routine: Routine;
   kind: ExerciseKind;
   paused: boolean;
-  /** The pause comes from a recent severe symptom or the safety check, which a doctor can clear. */
+  /** The pause comes from a recent severe symptom or a Locked safety check, which a doctor can clear. */
   canClearPause: boolean;
-  /** HL-093: the pause comes from the safety check's answers. */
-  screeningPaused?: boolean;
+  /** HL-123: why active workouts are paused. */
+  pauseReason?: PauseReason | null;
+  /** Opens the safety check again, for a Delayed result. */
+  onRescreen?: () => void;
   /** Still checking today's score and symptoms. */
   checking: boolean;
   onStart: () => void;
@@ -69,7 +99,7 @@ function PartList({ title, items }: { title: string; items: { text: string; deta
   );
 }
 
-export function ExerciseOverview({ routine, kind, paused, canClearPause, screeningPaused = false, checking, onStart, onBack, onClearPause, onFindBreathing, saved = false, onToggleSave }: ExerciseOverviewProps) {
+export function ExerciseOverview({ routine, kind, paused, canClearPause, pauseReason = null, onRescreen, checking, onStart, onBack, onClearPause, onFindBreathing, saved = false, onToggleSave }: ExerciseOverviewProps) {
   const { c } = useDs();
   const insets = useSafeAreaInsets();
   const kindLabel = { breathing: "Breathing", cardio: "Light cardio", steps: "Move by move", guide: "Guided" }[kind];
@@ -100,16 +130,17 @@ export function ExerciseOverview({ routine, kind, paused, canClearPause, screeni
                 <Feather name="alert-triangle" size={22} color={c.danger} style={{ marginTop: 1 }} />
                 <View style={{ flex: 1, gap: 6 }}>
                   <Text accessibilityRole="header" style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>
-                    {screeningPaused ? "Please get a professional's OK first" : "Workouts are paused for now"}
+                    {PAUSE_TEXT[pauseReason ?? "score"].title}
                   </Text>
                   <Text style={{ fontSize: 14, lineHeight: 20, color: c.charcoal }}>
-                    {screeningPaused
-                      ? "Based on your safety check, talk to a doctor or physical therapist before active workouts. Breathing exercises are still open."
-                      : "Your latest readings or symptoms suggest resting today. Breathing exercises are still open. If something feels wrong, get checked in person."}
+                    {PAUSE_TEXT[pauseReason ?? "score"].body}
                   </Text>
                 </View>
               </View>
               {canClearPause ? <DsButton label="A doctor cleared me to exercise" variant="secondary" onPress={onClearPause} style={{ backgroundColor: c.canvas }} /> : null}
+              {pauseReason === "delayed" && onRescreen ? (
+                <DsButton label="I'm well now: do the check again" variant="secondary" onPress={onRescreen} style={{ backgroundColor: c.canvas }} />
+              ) : null}
             </View>
           ) : null}
 

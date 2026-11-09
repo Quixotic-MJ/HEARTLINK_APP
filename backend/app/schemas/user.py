@@ -39,7 +39,14 @@ class ProfileUpdate(BaseModel):
 
 # HL-093: the pre-exercise safety check
 class ExerciseScreeningRequest(BaseModel):
-    answers: dict[str, bool]
+    # HL-122: what the person's PAR-Q+ showed, HeartLink's extra check, and the delay check
+    parq_result: Optional[Literal["all_no", "cleared_by_follow_ups", "follow_up_yes"]] = None
+    extra_check_yes: Optional[bool] = None
+    pregnant: bool = False
+    unwell: bool = False
+    declared: bool = False
+    # Older app builds send the 5-question check
+    answers: Optional[dict[str, bool]] = None
 
 
 # HL-114: the Heart score answers that can change after setup

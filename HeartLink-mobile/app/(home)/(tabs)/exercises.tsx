@@ -1,4 +1,3 @@
-import { bandName } from "../../../constants/theme";
 import React, { useState } from "react";
 import { FlatList, RefreshControl, ScrollView, Text, View, Platform } from "react-native";
 import { StatusBar } from "expo-status-bar";
@@ -13,10 +12,9 @@ import DsButton from "../../../components/onboarding/DsButton";
 import { useDs } from "../../../components/onboarding/useDs";
 import { ExerciseHistoryLink, SquareIconButton } from "../../../components/exercise/ExerciseBits";
 import { apiFetch } from "../../../lib/api";
-import { Routine, exerciseKind, toRoutines } from "../../../services/exerciseSession";
+import { Routine, exerciseAllowed, exerciseKind, toRoutines } from "../../../services/exerciseSession";
 import { useRefetchOnFocus } from "../../../hooks/useRefetchOnFocus";
 import { useExploreScore } from "../../../hooks/useExploreData";
-import { suitsTier } from "../../../services/explore";
 
 // Every exercise a physical therapist approved (the server sends no others, HL-026), filtered by type.
 
@@ -61,9 +59,9 @@ export default function ExercisesScreen({ isEmbedded = false }: { isEmbedded?: b
   // An exercise a PT approves shows when the patient comes back to this tab (HL-026).
   useRefetchOnFocus(query.refetch);
   const all = query.data ?? [];
-  // Every approved exercise shows here; the ones for the patient's score level get a tag.
-  const patientTier = useExploreScore().data?.tier ?? null;
-  const knowsTier = !!patientTier && patientTier !== "Unknown";
+  // HL-123: every approved exercise shows here. When the safety check limits what's open, the open ones get a tag.
+  const screening = useExploreScore().data?.screening ?? null;
+  const limited = !!screening?.state && screening.state !== "eligible";
   // HL-094: level and category filters appear once exercises have them; "All" keeps those without one in view.
   const [level, setLevel] = useState("All");
   const [category, setCategory] = useState("All");
@@ -85,7 +83,7 @@ export default function ExercisesScreen({ isEmbedded = false }: { isEmbedded?: b
       ? isDark ? "#60A5FA" : "#2563EB"
       : isDark ? "#34D399" : "#059669";
 
-    const suits = knowsTier && item.tier && suitsTier(item.tier, patientTier);
+    const suits = limited && exerciseAllowed(screening, item);
 
     return (
       <AnimatedButton
@@ -162,7 +160,7 @@ export default function ExercisesScreen({ isEmbedded = false }: { isEmbedded?: b
                 }}
               >
                 <Text style={{ fontSize: 11, fontWeight: "600", color: isDark ? "#34D399" : "#059669" }}>
-                  Suits your score
+                  Open for you
                 </Text>
               </View>
             ) : null}
@@ -347,11 +345,11 @@ export default function ExercisesScreen({ isEmbedded = false }: { isEmbedded?: b
                 <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                   <Text style={{ fontSize: 13, fontWeight: "500", color: c.slate }}>
                     {shown.length} {shown.length === 1 ? "exercise" : "exercises"}
-                    {knowsTier
-                      ? ` • ${shown.filter((r) => r.tier && suitsTier(r.tier, patientTier)).length} suit your score`
+                    {limited
+                      ? ` • ${shown.filter((r) => exerciseAllowed(screening, r)).length} open for you`
                       : ""}
                   </Text>
-                  {knowsTier ? (
+                  {limited ? (
                     <View
                       style={{
                         paddingHorizontal: 8,
@@ -363,7 +361,7 @@ export default function ExercisesScreen({ isEmbedded = false }: { isEmbedded?: b
                       }}
                     >
                       <Text style={{ fontSize: 11.5, fontWeight: "600", color: isDark ? "#34D399" : "#059669" }}>
-                        {bandName(patientTier)}
+                        {screening?.state === "caution" ? "Beginner for now" : "Breathing for now"}
                       </Text>
                     </View>
                   ) : null}

@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import Reanimated, { FadeInDown, LinearTransition, Easing as ReanimatedEasing } from "react-native-reanimated";
 import { useRouter, useFocusEffect } from "expo-router";
-import { useColorScheme } from "nativewind";
+import { useColorScheme } from "../../../hooks/useAppColorScheme";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useUser } from "../../../contexts/UserContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";

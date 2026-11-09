@@ -75,3 +75,20 @@ and the only way out of a safety check pause is the existing clearing step.
 3. [WHO guidelines at a glance](https://apps.who.int/iris/bitstream/handle/10665/337001/9789240014886-eng.pdf).
 4. Pescatello LS et al. Exercise for hypertension. [PMC4589552](https://pmc.ncbi.nlm.nih.gov/articles/PMC4589552);
    [ACSM summary](https://acsm.org/exercise-hypertension). This is a 2015 review: check for newer ACSM guidance.
+
+## Who may do which exercises (HL-122 to HL-124, built)
+
+The PAR-Q+ screening decides this, never the Heart score. The app opens the official PAR-Q+ unchanged and the person records
+its result; the code is `backend/app/services/exercise_screening.py`.
+
+| Result | When | Exercises |
+|---|---|---|
+| Eligible | All NO on page 1 | Every approved exercise |
+| Eligible with caution | YES on page 1, all NO in the follow-ups, and no YES to HeartLink's extra check | Beginner exercises and breathing **[Proposal]** |
+| Delayed | Pregnant, or ill right now | Breathing only, until they do the check again |
+| Locked | A follow-up YES, or HeartLink's extra check: chest pain, dizziness or fainting, or supervised activity only **[Proposal]** | Breathing only. "A doctor cleared me" moves them to Eligible with caution |
+| Needed | Not done, the old check, over 12 months old, or a severe symptom since | Breathing only, and starting a workout opens the check |
+
+On top of any result, active workouts pause during the 24 hours after a severe symptom, and after an emergency-level reading
+until a later reading isn't one.
+

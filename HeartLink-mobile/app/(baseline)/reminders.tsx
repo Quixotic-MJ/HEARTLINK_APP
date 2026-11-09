@@ -94,8 +94,8 @@ export default function RemindersScreen() {
                 padding: 14,
                 borderRadius: 14,
                 borderWidth: 1.5,
-                borderColor: item.enabled ? "#BFDBFE" : c.hairline,
-                backgroundColor: item.enabled ? "#F8FAFC" : c.canvas,
+                borderColor: item.enabled ? c.hairline : c.hairline,
+                backgroundColor: item.enabled ? c.surface : c.canvas,
               }}
             >
               <IconBadge icon={r.icon} tint={r.tint} size={42} />
@@ -116,15 +116,15 @@ export default function RemindersScreen() {
                     paddingHorizontal: 10,
                     borderRadius: 8,
                     borderWidth: 1,
-                    borderColor: item.enabled ? "#DBEAFE" : c.hairline,
-                    backgroundColor: item.enabled ? "#EFF6FF" : "#F8FAFC",
+                    borderColor: item.enabled ? c.hairline : c.hairline,
+                    backgroundColor: item.enabled ? c.tint : c.surface,
                     flexDirection: "row",
                     alignItems: "center",
                     gap: 5,
                   }}
                 >
-                  <Feather name="clock" size={12} color={item.enabled ? "#2563EB" : c.slate} />
-                  <Text style={{ fontSize: 13, fontWeight: "600", color: item.enabled ? "#1D4ED8" : c.ink }}>
+                  <Feather name="clock" size={12} color={item.enabled ? c.line : c.slate} />
+                  <Text style={{ fontSize: 13, fontWeight: "600", color: item.enabled ? c.onTint : c.ink }}>
                     {formatTime(item.time)}
                   </Text>
                 </AnimatedButton>
@@ -132,9 +132,9 @@ export default function RemindersScreen() {
               <Switch
                 value={item.enabled}
                 onValueChange={(v) => setReminders((prev) => ({ ...prev, [r.key]: { ...prev[r.key], enabled: v } }))}
-                trackColor={{ false: "#CBD5E1", true: "#3B82F6" }}
+                trackColor={{ false: c.hairlineStrong, true: c.line }}
                 thumbColor="#ffffff"
-                ios_backgroundColor="#CBD5E1"
+                ios_backgroundColor={c.hairlineStrong}
                 accessibilityLabel={`${r.when} reminder`}
               />
             </View>

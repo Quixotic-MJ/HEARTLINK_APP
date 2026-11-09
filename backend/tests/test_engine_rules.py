@@ -50,27 +50,28 @@ def test_a_vegetarian_dish_passes_vegetarian():
     assert _recipe_is_safe(recipe("Ginisang monggo", "mung beans", "malunggay", "garlic"), "Vegetarian", [])
 
 
-# --- which exercises are offered ------------------------------------------------------------------------------
+# --- which exercises are offered: the screening decides, not the score (HL-123) --------------------------------------
 
-WALK = {"name": "20-Minute Neighborhood Walk", "hss_tier": "Stable", "type": "Light Cardio"}
-STRETCH = {"name": "Seated stretches", "hss_tier": "Elevated Risk", "type": "Stretching"}
+WALK = {"name": "20-Minute Neighborhood Walk", "hss_tier": "Stable", "type": "Light Cardio", "difficulty_level": "Intermediate"}
+STRETCH = {"name": "Seated stretches", "hss_tier": "Elevated Risk", "type": "Stretching", "difficulty_level": "Beginner"}
 BREATHE = {"name": "4-7-8 breathing", "hss_tier": "Critical", "type": "Breathing"}
+ELIGIBLE = {"state": "eligible"}
+CAUTION = {"state": "caution"}
 
 
-def test_a_stable_patient_can_get_any_exercise():
-    assert all(exercise_suits(e, "Stable", False) for e in (WALK, STRETCH, BREATHE))
+def test_an_eligible_patient_can_get_any_exercise():
+    assert all(exercise_suits(e, ELIGIBLE, False) for e in (WALK, STRETCH, BREATHE))
 
 
-@pytest.mark.parametrize("tier", ["Moderate", "Elevated Risk", "Critical"])
-def test_a_less_healthy_patient_never_gets_a_more_active_exercise(tier):
-    """Before, everyone was also offered the Stable band's exercises, the most active ones."""
-    assert exercise_suits(WALK, tier, False) is False
-    assert exercise_suits(BREATHE, tier, False) is True
+def test_caution_gets_beginner_exercises_and_breathing():
+    assert exercise_suits(WALK, CAUTION, False) is False
+    assert exercise_suits(STRETCH, CAUTION, False) is True
+    assert exercise_suits(BREATHE, CAUTION, False) is True
 
 
 def test_during_the_rest_after_a_severe_symptom_only_breathing():
-    assert exercise_suits(STRETCH, "Stable", True) is False
-    assert exercise_suits(BREATHE, "Stable", True) is True
+    assert exercise_suits(STRETCH, ELIGIBLE, True) is False
+    assert exercise_suits(BREATHE, ELIGIBLE, True) is True
 
 
 # --- the score: meals against the day's sodium limit, and sleep ranges ------------------------------------------

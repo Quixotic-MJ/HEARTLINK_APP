@@ -29,7 +29,7 @@ export default function FirstReadingScreen() {
   const { name } = useLocalSearchParams<{ name?: string }>();
   const [reading, setReading] = useState<Reading | null>(null);
 
-  const next = () => router.replace({ pathname: "/(baseline)/exercise-check", params: { name: name ?? "" } });
+  const next = () => router.replace({ pathname: "/(baseline)/reminders", params: { name: name ?? "" } });
 
   // When coming back from the log screen, look for a reading saved in the last few minutes.
   useFocusEffect(
@@ -88,7 +88,7 @@ export default function FirstReadingScreen() {
               height: 32,
               paddingHorizontal: 12,
               borderRadius: 8,
-              backgroundColor: "#F8FAFC",
+              backgroundColor: c.surface,
               borderWidth: 1,
               borderColor: c.hairline,
               justifyContent: "center",
@@ -113,20 +113,20 @@ export default function FirstReadingScreen() {
           style={{
             borderRadius: 16,
             borderWidth: 1.5,
-            borderColor: "#A7F3D0",
-            backgroundColor: "#ECFDF5",
+            borderColor: c.hairline,
+            backgroundColor: c.mint,
             padding: 24,
             alignItems: "center",
             marginBottom: 16,
           }}
         >
-          <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: "#D1FAE5", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
-            <Feather name="check" size={24} color="#059669" />
+          <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: c.mint, alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
+            <Feather name="check" size={24} color={c.success} />
           </View>
-          <Text style={{ fontSize: 44, fontWeight: "800", letterSpacing: -1, color: "#065F46" }}>
+          <Text style={{ fontSize: 44, fontWeight: "800", letterSpacing: -1, color: c.charcoal }}>
             {reading.systolic}/{reading.diastolic}
           </Text>
-          <Text style={{ fontSize: 13, fontWeight: "600", color: "#047857", marginTop: 2 }}>mmHg</Text>
+          <Text style={{ fontSize: 13, fontWeight: "600", color: c.charcoal, marginTop: 2 }}>mmHg</Text>
         </View>
       ) : (
         <View style={{ marginTop: 4 }}>
@@ -141,16 +141,16 @@ export default function FirstReadingScreen() {
                   flex: 1,
                   padding: 14,
                   borderRadius: 14,
-                  backgroundColor: "#EFF6FF",
+                  backgroundColor: c.tint,
                   borderWidth: 1.5,
-                  borderColor: "#BFDBFE",
+                  borderColor: c.hairline,
                   alignItems: "center",
                 }}
               >
-                <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: "#DBEAFE", alignItems: "center", justifyContent: "center", marginBottom: 8 }}>
-                  <MaterialCommunityIcons name={t.icon} size={20} color="#1D4ED8" />
+                <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: c.hairline, alignItems: "center", justifyContent: "center", marginBottom: 8 }}>
+                  <MaterialCommunityIcons name={t.icon} size={20} color={c.onTint} />
                 </View>
-                <Text style={{ fontSize: 12, fontWeight: "600", lineHeight: 16, color: "#1E40AF", textAlign: "center" }}>
+                <Text style={{ fontSize: 12, fontWeight: "600", lineHeight: 16, color: c.onTint, textAlign: "center" }}>
                   {t.text}
                 </Text>
               </View>

@@ -3,7 +3,7 @@ import { View, ViewProps, Platform } from "react-native";
 import { SafeAreaView, Edge } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { useColorScheme } from "nativewind";
+import { useColorScheme } from "../../hooks/useAppColorScheme";
 
 interface ScreenWrapperProps extends ViewProps {
   children: React.ReactNode;

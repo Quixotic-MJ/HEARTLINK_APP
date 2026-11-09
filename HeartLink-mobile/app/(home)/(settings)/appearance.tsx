@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
-import { useColorScheme } from "nativewind";
+import { useColorScheme } from "../../../hooks/useAppColorScheme";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { DARK_MODE_ENABLED } from "../../../constants/theme";
 import { useDs } from "../../../components/onboarding/useDs";

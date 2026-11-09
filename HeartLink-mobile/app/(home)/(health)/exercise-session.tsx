@@ -26,7 +26,7 @@ import { StretchingExerciseActive } from "../../../components/exercise/Stretchin
 import { ExerciseResult } from "../../../components/exercise/ExerciseResult";
 import { CheckInSheet, EffortSheet, ShortSessionSheet, StopSheet } from "../../../components/exercise/SessionSheets";
 import { SessionScreenProps, WORKOUT } from "../../../components/exercise/ExerciseBits";
-import { RoutineApi, exerciseKind, isWorkoutPaused, needsScreening, toRoutine } from "../../../services/exerciseSession";
+import { RoutineApi, exerciseKind, needsScreening, pauseReason, toRoutine } from "../../../services/exerciseSession";
 import { useExerciseScreening } from "../../../hooks/useExerciseScreening";
 import { useSavedExercises } from "../../../hooks/useExploreData";
 
@@ -83,8 +83,9 @@ export default function ExerciseSessionScreen() {
   // Breathing and relaxation (type Breathing) are calm: they stay open when workouts are paused and
   // skip the standing-up safety check, even when a relaxation plays step by step.
   const calm = kind === "breathing" || (routine?.type ?? "").toLowerCase().includes("breath");
-  const paused = isWorkoutPaused(readiness, calm ? "breathing" : kind);
-  const screeningPaused = !!readiness?.exercise_screening?.paused;
+  const reason = pauseReason(readiness, calm ? "breathing" : kind, routine?.level);
+  const paused = reason !== null;
+  const screeningPaused = reason === "locked";
   const screening = useExerciseScreening();
 
   const save = (status: "completed" | "incomplete_due_to_symptoms", seconds: number, effort?: number) => {
@@ -162,7 +163,7 @@ export default function ExerciseSessionScreen() {
     if (!userId) return;
     try {
       // Each reason for the pause is cleared on its own; a critical score can't be cleared here
-      if (readiness?.has_recent_severe_symptom) {
+      if (reason === "symptom") {
         const res = await apiFetch(`/api/health-logs/${userId}/clear-symptom-lock`, { method: "POST" });
         if (!res.ok) throw new Error(String(res.status));
       }
@@ -255,14 +256,15 @@ export default function ExerciseSessionScreen() {
           routine={routine}
           kind={kind}
           paused={paused}
-          canClearPause={!!readiness?.has_recent_severe_symptom || screeningPaused}
-          screeningPaused={screeningPaused}
+          canClearPause={reason === "symptom" || reason === "locked"}
+          pauseReason={reason}
+          onRescreen={() => router.push("/(home)/(health)/exercise-screening")}
           checking={checking}
           onStart={() => {
             // Breathing is done sitting down, so it skips the safety check.
             if (paused || checking) return;
             if (needsScreening(readiness, calm ? "breathing" : kind)) {
-              router.push("/(home)/(health)/exercise-screening");
+              router.push({ pathname: "/(home)/(health)/exercise-screening", params: { reason: readiness?.exercise_screening?.reason ?? "not_done" } });
               return;
             }
             setPhase(calm ? "ready" : "check");

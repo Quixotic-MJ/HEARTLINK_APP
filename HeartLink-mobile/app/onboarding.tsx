@@ -22,6 +22,7 @@ import "../global.css";
 import HeartLogo from "../components/ui/HeartLogo";
 import DsButton from "../components/onboarding/DsButton";
 import { useDs } from "../components/onboarding/useDs";
+import type { DsColors } from "../constants/theme";
 
 // ─── A day with HeartLink ─────────────────────────────────────────────────────
 // The features are told as one example day, ending at the heart (the score).
@@ -37,33 +38,34 @@ interface DayMoment {
   iconColor: string;
 }
 
-const DAY: DayMoment[] = [
+// Colours are design-system tokens, so the cards follow light and dark mode
+const DAY = (c: DsColors): DayMoment[] => [
   {
     when: "Morning",
     title: "Log your blood pressure",
     body: "Unusual readings are flagged right away.",
     icon: "activity",
-    badgeBg: "#EFF6FF", // Primary blue tint
-    borderColor: "#BFDBFE",
-    iconColor: "#3B82F6", // Primary blue
+    badgeBg: c.tint, // Primary blue tint
+    borderColor: c.hairline,
+    iconColor: c.line, // Primary blue
   },
   {
     when: "Midday",
     title: "Pick a heart-friendly lunch",
     body: "Every recipe shows its sodium and heart impact.",
     icon: "sun",
-    badgeBg: "#ECFDF5", // Emerald tint
-    borderColor: "#A7F3D0",
-    iconColor: "#10B981",
+    badgeBg: c.mint, // Emerald tint
+    borderColor: c.hairline,
+    iconColor: c.success,
   },
   {
     when: "Evening",
     title: "Move at your own pace",
     body: "Workouts match your current stamina.",
     icon: "zap",
-    badgeBg: "#F5F3FF", // Violet tint
-    borderColor: "#DDD6FE",
-    iconColor: "#8B5CF6",
+    badgeBg: c.lavender, // Violet tint
+    borderColor: c.hairline,
+    iconColor: c.charcoal,
   },
 ];
 
@@ -71,7 +73,7 @@ const DAY: DayMoment[] = [
 // the line growing between them, ending with the heart starting to beat.
 const START_MS = 450;
 const STEP_MS = 420;
-const FINAL_MS = START_MS + DAY.length * STEP_MS;
+const FINAL_MS = START_MS + 3 * STEP_MS;
 
 // Below this height the supporting lines are dropped so nothing needs scrolling.
 const COMPACT_HEIGHT = 700;
@@ -205,7 +207,7 @@ export default function OnboardingScreen() {
 
         {/* ── Example day: stretches to fill the remaining height ── */}
         <View className="flex-1">
-          {DAY.map((moment, i) => {
+          {DAY(c).map((moment, i) => {
             const at = START_MS + i * STEP_MS;
             return (
               <View key={moment.when} className="flex-row flex-grow">
@@ -268,7 +270,7 @@ export default function OnboardingScreen() {
                   borderRadius: 9,
                   backgroundColor: c.tint,
                   borderWidth: 1,
-                  borderColor: "#BFDBFE",
+                  borderColor: c.hairline,
                   alignItems: "center",
                   justifyContent: "center",
                   marginTop: -2,

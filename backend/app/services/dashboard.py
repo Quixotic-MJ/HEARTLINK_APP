@@ -85,14 +85,43 @@ def allergy_words(allergies: List[str]) -> List[str]:
 
 
 # How careful each band is: an exercise suits a patient when its band is theirs or more careful.
-TIER_LEVEL: Dict[str, int] = {"Stable": 0, "Moderate": 1, "Elevated Risk": 2, "Critical": 3}
 
 
-def exercise_suits(exercise: dict, patient_tier: str, resting: bool) -> bool:
-    """An exercise approved for the patient's band or a more careful one; only breathing during the 24-hour rest."""
-    if resting and exercise.get("type") != "Breathing":
-        return False
-    return TIER_LEVEL.get(exercise.get("hss_tier") or "Stable", 0) >= TIER_LEVEL.get(patient_tier, 0)
+def exercise_suits(exercise: dict, screening: dict, resting: bool) -> bool:
+    """HL-123: the screening result decides, never the score. Only breathing during a rest or a pause."""
+    if resting:
+        return exercise_screening.is_breathing(exercise)
+    return exercise_screening.allows(screening, exercise)
+
+
+def is_severe_symptom(log: dict) -> bool:
+    """The symptoms that start the 24-hour rest, and that need the screening done again: unchanged from before."""
+    symptoms = log.get("symptoms") or []
+    severity_map = log.get("severity_map") or {}
+    is_chest_pain = "Chest Discomfort / Tightness" in symptoms and severity_map.get("Chest Discomfort / Tightness", 1) >= 7
+    is_sob_rest = "Shortness of Breath" in symptoms and log.get("context") == "resting"
+    return is_chest_pain or is_sob_rest or FAINTED_SYMPTOM in symptoms
+
+
+def latest_severe_symptom_at(logs: list):
+    """When the newest severe symptom was logged, or None. Logs are newest first."""
+    for log in logs:
+        if not log.get("deleted_at") and is_severe_symptom(log):
+            return parse_utc(log.get("logged_at"))
+    return None
+
+
+def emergency_reading_pause(logs: list) -> bool:
+    """HL-123: active workouts pause after an emergency-level reading, until a later reading isn't one. Newest first."""
+    from app.services.hss_service import is_emergency_reading
+
+    for log in logs:
+        sys_bp, dia_bp = log.get("systolic_bp"), log.get("diastolic_bp")
+        if log.get("deleted_at") or not sys_bp or not dia_bp:
+            continue
+        return is_emergency_reading(float(sys_bp), float(dia_bp))
+    return False
+
 
 
 def recipe_warnings(recipe: dict, dietary_practice: str, allergies: List[str]) -> List[str]:
@@ -607,13 +636,7 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
                 # User manually cleared the lock after their most recent severe symptom!
                 break
             
-            symptoms = log.get("symptoms", [])
-            severity_map = log.get("severity_map", {})
-            context_val = log.get("context")
-            is_chest_pain = "Chest Discomfort / Tightness" in symptoms and severity_map.get("Chest Discomfort / Tightness", 1) >= 7
-            is_sob_rest = "Shortness of Breath" in symptoms and context_val == "resting"
-            
-            if is_chest_pain or is_sob_rest or FAINTED_SYMPTOM in symptoms:
+            if is_severe_symptom(log):
                 has_recent_severe_symptom = True
                 break
         except Exception:
@@ -665,15 +688,15 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
     else:
         reco_recipes.sort(key=lambda r: not bool(r.get("expert_validated", False)))
 
-    # An exercise is tagged with the band it was approved for (Stable = the most active, Critical = the gentlest).
-    # A patient gets their own band's or gentler ones, never more active ones; during the 24-hour rest after a severe
-    # symptom, breathing exercises only (the exercise screen says the same).
-    # HL-093: while the safety check asks for a professional's OK, only breathing is suggested (as during a rest day)
-    screening = exercise_screening.status_for(canonical_id)
+    # HL-123: the screening result decides which exercises are suggested, never the score. During the 24-hour rest after
+    # a severe symptom, or after an emergency-level reading, breathing only (the exercise screen says the same).
+    screening = exercise_screening.status_for(canonical_id, latest_severe_symptom_at(user_logs))
+    reading_pause = emergency_reading_pause(user_logs)
+    resting = has_recent_severe_symptom or reading_pause
     reco_exercises = [
         e
         for e in exercise_routines
-        if exercise_suits(e, tier, has_recent_severe_symptom or screening["paused"])
+        if exercise_suits(e, screening, resting)
         and is_visible_to_patients(e)
         and e.get("id") not in today_exercise_ids
         and ("exercise", str(e.get("id"))) not in hidden
@@ -738,7 +761,7 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
             sleep_hours=today_activity.get("total_sleep_hours") or 0,
             sodium_limit=sodium_limit,
             movement_goal=(threshold or {}).get("active_minutes_goal") or 30,
-            exercise_paused=bool(has_recent_severe_symptom or screening["paused"] or tier == "Critical"),
+            exercise_paused=bool(resting or screening["state"] not in exercise_screening.OPEN_STATES),
         )
     except Exception as e:  # the plain note still works without the extra facts
         logger.warning(f"Today's note facts failed: {e}")
@@ -819,6 +842,7 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
         "streak": today_activity["streak_data"],
         "has_recent_severe_symptom": has_recent_severe_symptom,
         "exercise_screening": screening,
+        "emergency_reading_pause": reading_pause,
     }
 
 

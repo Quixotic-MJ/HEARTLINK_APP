@@ -70,7 +70,7 @@ export default function PartDoneScreen() {
 
   const goNext = () => {
     if (!next) {
-      router.push("/(baseline)/score");
+      router.push("/(baseline)/exercise-check");
       return;
     }
     const first = visibleQuestions(data, next.n)[0];
@@ -98,15 +98,15 @@ export default function PartDoneScreen() {
             width: 58,
             height: 58,
             borderRadius: 16,
-            backgroundColor: "#ECFDF5",
+            backgroundColor: c.mint,
             borderWidth: 1.5,
-            borderColor: "#A7F3D0",
+            borderColor: c.hairline,
             alignItems: "center",
             justifyContent: "center",
             marginBottom: 20,
           }}
         >
-          <Feather name="check" size={28} color="#059669" />
+          <Feather name="check" size={28} color={c.success} />
         </Animated.View>
         <Text accessibilityRole="header" style={{ fontSize: 28, lineHeight: 34, fontWeight: "700", letterSpacing: -0.5, color: c.ink }}>
           {part.name}, done.
@@ -160,13 +160,13 @@ export default function PartDoneScreen() {
                   height: 34,
                   paddingHorizontal: 12,
                   borderRadius: 8,
-                  backgroundColor: "#EFF6FF",
+                  backgroundColor: c.tint,
                   borderWidth: 1,
-                  borderColor: "#DBEAFE",
+                  borderColor: c.hairline,
                 }}
               >
-                <Feather name="edit-2" size={13} color="#2563EB" />
-                <Text style={{ fontSize: 13, fontWeight: "600", color: "#2563EB" }}>Edit</Text>
+                <Feather name="edit-2" size={13} color={c.line} />
+                <Text style={{ fontSize: 13, fontWeight: "600", color: c.line }}>Edit</Text>
               </AnimatedButton>
             </View>
           ))}
@@ -182,8 +182,8 @@ export default function PartDoneScreen() {
               padding: 16,
               borderRadius: 14,
               borderWidth: 1.5,
-              borderColor: "#BFDBFE",
-              backgroundColor: "#EFF6FF",
+              borderColor: c.hairline,
+              backgroundColor: c.tint,
             }}
           >
             <View
@@ -193,7 +193,7 @@ export default function PartDoneScreen() {
                 borderRadius: 12,
                 backgroundColor: "#FFFFFF",
                 borderWidth: 1,
-                borderColor: "#DBEAFE",
+                borderColor: c.hairline,
                 alignItems: "center",
                 justifyContent: "center",
               }}
@@ -201,12 +201,12 @@ export default function PartDoneScreen() {
               <IconBadge icon={next.icon} tint={next.tint} size={30} />
             </View>
             <View className="flex-1">
-              <View style={{ alignSelf: "flex-start", paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5, backgroundColor: "#DBEAFE", marginBottom: 3 }}>
-                <Text style={{ fontSize: 11, fontWeight: "700", color: "#1D4ED8", letterSpacing: 0.4 }}>
+              <View style={{ alignSelf: "flex-start", paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5, backgroundColor: c.hairline, marginBottom: 3 }}>
+                <Text style={{ fontSize: 11, fontWeight: "700", color: c.onTint, letterSpacing: 0.4 }}>
                   {next.n === 4 ? "LAST PART" : "UP NEXT"} · ~1 MIN
                 </Text>
               </View>
-              <Text style={{ fontSize: 16, fontWeight: "700", color: "#0F172A" }}>{next.name}</Text>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: c.ink }}>{next.name}</Text>
             </View>
           </View>
         ) : null}

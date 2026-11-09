@@ -42,7 +42,7 @@ export const TOUR_STEPS: TourStep[] = [
   {
     target: "summary",
     title: "Picked for you",
-    body: "Meals and exercises that suit your score and what's left of today. Tap one to log it or start it.",
+    body: "Meals that suit your score and what's left of today, and exercises your safety check allows. Tap one to log it or start it.",
   },
   {
     target: "care",

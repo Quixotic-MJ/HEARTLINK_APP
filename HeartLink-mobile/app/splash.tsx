@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { View, Text, Animated, Easing, AccessibilityInfo, ActivityIndicator } from "react-native";
-import { useColorScheme } from "nativewind";
+import { useColorScheme } from "../hooks/useAppColorScheme";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";

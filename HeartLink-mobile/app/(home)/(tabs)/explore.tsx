@@ -40,6 +40,7 @@ import {
   pickReason,
   picksForScore,
 } from "../../../services/explore";
+import { exerciseAllowed } from "../../../services/exerciseSession";
 
 // Explore: picks for the patient's score, browse by need, and saved items.
 
@@ -120,7 +121,7 @@ export default function ExploreTabScreen() {
           tier,
           2,
           scoreQuery.data?.hidden,
-          scoreQuery.data?.exercisesPaused
+          (e) => exerciseAllowed(scoreQuery.data?.screening, e)
         )
       ),
     [scoreQuery.data, recipes, exercises, tier]

@@ -7,7 +7,7 @@ import {
   View,
   AccessibilityInfo,
 } from "react-native";
-import { useColorScheme } from "nativewind";
+import { useColorScheme } from "../../hooks/useAppColorScheme";
 import Reanimated, { FadeInDown, FadeOutUp } from "react-native-reanimated";
 import Svg, {
   Defs,

@@ -87,16 +87,16 @@ export default function StartScreen() {
                   borderRadius: 8,
                   alignItems: "center",
                   justifyContent: "center",
-                  backgroundColor: p.yes ? "#ECFDF5" : "#F1F5F9",
+                  backgroundColor: p.yes ? c.mint : c.surfaceAlt,
                   borderWidth: 1,
-                  borderColor: p.yes ? "#A7F3D0" : "#E2E8F0",
+                  borderColor: p.yes ? c.hairline : c.hairline,
                   marginTop: 1,
                 }}
               >
                 <Feather
                   name={p.yes ? "check" : "x"}
                   size={16}
-                  color={p.yes ? "#059669" : "#64748B"}
+                  color={p.yes ? c.success : c.steel}
                 />
               </View>
               <View className="flex-1">
@@ -117,7 +117,7 @@ export default function StartScreen() {
             borderRadius: 14,
             backgroundColor: c.rose,
             borderWidth: 1,
-            borderColor: "#FECACA",
+            borderColor: c.hairline,
           }}
         >
           <View
@@ -125,7 +125,7 @@ export default function StartScreen() {
               width: 32,
               height: 32,
               borderRadius: 16,
-              backgroundColor: "#FEE2E2",
+              backgroundColor: c.canvas,
               alignItems: "center",
               justifyContent: "center",
             }}
@@ -133,10 +133,10 @@ export default function StartScreen() {
             <Feather name="alert-triangle" size={16} color={c.danger} />
           </View>
           <View className="flex-1">
-            <Text style={{ fontSize: 14.5, fontWeight: "700", color: "#991B1B" }}>
+            <Text style={{ fontSize: 14.5, fontWeight: "700", color: c.ink }}>
               When to get help right away
             </Text>
-            <Text style={{ fontSize: 13.5, lineHeight: 20, color: "#7F1D1D", marginTop: 4 }}>
+            <Text style={{ fontSize: 13.5, lineHeight: 20, color: c.charcoal, marginTop: 4 }}>
               A reading of 180/120 or higher, chest pain, trouble breathing, fainting or sudden weakness. Call 911 or go to the nearest hospital.
             </Text>
           </View>

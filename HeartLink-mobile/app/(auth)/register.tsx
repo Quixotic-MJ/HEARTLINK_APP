@@ -324,7 +324,7 @@ export default function RegisterScreen() {
                 borderRadius: 12,
                 backgroundColor: c.rose,
                 borderWidth: 1,
-                borderColor: "#FECACA",
+                borderColor: c.hairline,
               },
             ]}
             accessible={true}
@@ -335,14 +335,14 @@ export default function RegisterScreen() {
                 width: 28,
                 height: 28,
                 borderRadius: 14,
-                backgroundColor: "#FEE2E2",
+                backgroundColor: c.canvas,
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
               <Feather name="alert-triangle" size={15} color={c.danger} />
             </View>
-            <Text style={{ flex: 1, fontSize: 13.5, lineHeight: 19, color: "#991B1B", fontWeight: "500" }}>{generalError}</Text>
+            <Text style={{ flex: 1, fontSize: 13.5, lineHeight: 19, color: c.ink, fontWeight: "500" }}>{generalError}</Text>
           </Animated.View>
         )}
 
@@ -476,15 +476,15 @@ export default function RegisterScreen() {
                     borderRadius: 8,
                     backgroundColor: met ? c.mint : c.surfaceAlt,
                     borderWidth: 1,
-                    borderColor: met ? "#A7F3D0" : c.hairline,
+                    borderColor: met ? c.hairline : c.hairline,
                   }}
                 >
                   {met ? (
-                    <Feather name="check-circle" size={12} color="#059669" />
+                    <Feather name="check-circle" size={12} color={c.success} />
                   ) : (
                     <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: c.steel, marginHorizontal: 3 }} />
                   )}
-                  <Text style={{ fontSize: 12.5, fontWeight: "600", color: met ? "#065F46" : c.slate }}>{rule.label}</Text>
+                  <Text style={{ fontSize: 12.5, fontWeight: "600", color: met ? c.charcoal : c.slate }}>{rule.label}</Text>
                 </View>
               );
             })}

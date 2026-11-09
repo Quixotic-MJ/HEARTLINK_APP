@@ -61,15 +61,15 @@ export default function VerificationSuccessScreen() {
           width: 60,
           height: 60,
           borderRadius: 16,
-          backgroundColor: "#ECFDF5",
+          backgroundColor: c.mint,
           borderWidth: 1,
-          borderColor: "#A7F3D0",
+          borderColor: c.hairline,
           alignItems: "center",
           justifyContent: "center",
           marginBottom: 24,
         }}
       >
-        <Feather name="check" size={30} color="#059669" />
+        <Feather name="check" size={30} color={c.success} />
       </Animated.View>
 
       <Animated.View entering={FadeIn.delay(120).duration(400)}>

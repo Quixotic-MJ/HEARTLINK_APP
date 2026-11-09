@@ -24,6 +24,8 @@ export type ExploreExercise = {
   intensity: string;
   position: string | null;
   tier: string;
+  /** HL-094: Beginner, Intermediate or Advanced; empty when not set. */
+  level: string;
   image?: string;
 };
 
@@ -59,6 +61,7 @@ export function toExploreExercise(r: RawRow): ExploreExercise {
     intensity: text(r.intensity, "Low"),
     position: text(r.position) || null,
     tier: text(r.hss_tier, "Stable"),
+    level: text(r.difficulty_level),
     image: text(r.media_url, text(r.image_url)),
   };
 }
@@ -139,10 +142,10 @@ export function picksForScore(
   count = 2,
   /** HL-057: "recipe:<id>" / "exercise:<id>" a clinician marked not suitable for this patient. */
   hidden: string[] = [],
-  /** HL-093: the safety check asks for a professional's OK, so only breathing is suggested. */
-  exercisesPaused = false
+  /** HL-123: which exercises the safety check allows. The score never decides this. */
+  exerciseOk: (e: ExploreExercise) => boolean = () => true
 ): { recipes: ExploreRecipe[]; exercises: ExploreExercise[] } {
-  if (exercisesPaused) exercises = exercises.filter((e) => e.type === "Breathing");
+  exercises = exercises.filter(exerciseOk);
   if (hidden.length) {
     recipes = recipes.filter((r) => !hidden.includes(`recipe:${r.id}`));
     exercises = exercises.filter((e) => !hidden.includes(`exercise:${e.id}`));
@@ -159,7 +162,7 @@ export function picksForScore(
   return {
     // Never pick a meal that clashes with the patient's allergies or diet
     recipes: recipesForNeed("low-sodium", recipes, tier).filter((r) => !r.warnings.length).slice(0, count),
-    exercises: exercises.filter((e) => suitsTier(e.tier, tier)).slice(0, count),
+    exercises: exercises.slice(0, count),
   };
 }
 

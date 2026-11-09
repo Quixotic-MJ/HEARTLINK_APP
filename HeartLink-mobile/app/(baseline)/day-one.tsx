@@ -32,9 +32,9 @@ export default function DayOneScreen() {
       <View
         style={{
           borderRadius: 16,
-          backgroundColor: "#EFF6FF",
+          backgroundColor: c.tint,
           borderWidth: 1.5,
-          borderColor: "#BFDBFE",
+          borderColor: c.hairline,
           padding: 20,
           marginBottom: 24,
         }}
@@ -48,22 +48,22 @@ export default function DayOneScreen() {
             paddingHorizontal: 10,
             paddingVertical: 4,
             borderRadius: 9999,
-            backgroundColor: "#ECFDF5",
+            backgroundColor: c.mint,
             borderWidth: 1,
-            borderColor: "#A7F3D0",
+            borderColor: c.hairline,
             marginBottom: 12,
           }}
         >
-          <Feather name="check-circle" size={14} color="#059669" />
-          <Text style={{ fontSize: 11.5, fontWeight: "700", color: "#065F46", letterSpacing: 0.4 }}>
+          <Feather name="check-circle" size={14} color={c.success} />
+          <Text style={{ fontSize: 11.5, fontWeight: "700", color: c.charcoal, letterSpacing: 0.4 }}>
             SET-UP COMPLETE
           </Text>
         </View>
 
-        <Text accessibilityRole="header" style={{ fontSize: 26, lineHeight: 33, fontWeight: "700", letterSpacing: -0.5, color: "#0F172A" }}>
+        <Text accessibilityRole="header" style={{ fontSize: 26, lineHeight: 33, fontWeight: "700", letterSpacing: -0.5, color: c.ink }}>
           {name ? `You're set, ${name}.` : "You're all set."} Here&apos;s day one.
         </Text>
-        <Text style={{ fontSize: 15, lineHeight: 22, color: "#475569", marginTop: 6 }}>
+        <Text style={{ fontSize: 15, lineHeight: 22, color: c.slate, marginTop: 6 }}>
           Three simple habits to build. Each one keeps your heart steady.
         </Text>
       </View>
@@ -78,15 +78,15 @@ export default function DayOneScreen() {
                   height: 24,
                   borderRadius: 8,
                   borderWidth: 1.5,
-                  borderColor: "#3B82F6",
+                  borderColor: c.line,
                   backgroundColor: "#FFFFFF",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <Text style={{ fontSize: 12, fontWeight: "700", color: "#1D4ED8" }}>{i + 1}</Text>
+                <Text style={{ fontSize: 12, fontWeight: "700", color: c.onTint }}>{i + 1}</Text>
               </View>
-              <View style={{ flex: 1, width: 2, marginVertical: 4, backgroundColor: "#E2E8F0" }} />
+              <View style={{ flex: 1, width: 2, marginVertical: 4, backgroundColor: c.hairline }} />
             </View>
             <View style={{ flex: 1, paddingLeft: 14, paddingBottom: 16 }}>
               <Text style={{ fontSize: 11.5, fontWeight: "700", color: c.steel, textTransform: "uppercase", letterSpacing: 0.4 }}>
@@ -105,9 +105,9 @@ export default function DayOneScreen() {
                 width: 28,
                 height: 28,
                 borderRadius: 14,
-                backgroundColor: "#EFF6FF",
+                backgroundColor: c.tint,
                 borderWidth: 1.5,
-                borderColor: "#BFDBFE",
+                borderColor: c.hairline,
                 alignItems: "center",
                 justifyContent: "center",
               }}

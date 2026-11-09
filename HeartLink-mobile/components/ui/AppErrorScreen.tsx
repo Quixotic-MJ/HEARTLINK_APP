@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { useColorScheme } from "nativewind";
+import { useColorScheme } from "../../hooks/useAppColorScheme";
 import { StatusBar } from "expo-status-bar";
 import type { ErrorBoundaryProps } from "expo-router";
 import { Colors } from "../../constants/theme";

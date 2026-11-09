@@ -64,7 +64,7 @@ export default function PlanScreen() {
             <DsButton
               label={cta}
               disabled={!loaded}
-              onPress={() => (nextPart ? openPart(nextPart.n) : router.push("/(baseline)/score"))}
+              onPress={() => (nextPart ? openPart(nextPart.n) : router.push("/(baseline)/exercise-check"))}
               icon={<Feather name="arrow-right" size={16} color="#FFFFFF" />}
             />
           </Animated.View>
@@ -146,14 +146,14 @@ export default function PlanScreen() {
                             width: 26,
                             height: 26,
                             borderRadius: 13,
-                            backgroundColor: "#ECFDF5",
+                            backgroundColor: c.mint,
                             borderWidth: 1,
-                            borderColor: "#A7F3D0",
+                            borderColor: c.hairline,
                             alignItems: "center",
                             justifyContent: "center",
                           }}
                         >
-                          <Feather name="check" size={15} color="#059669" />
+                          <Feather name="check" size={15} color={c.success} />
                         </View>
                       ) : isNext ? (
                         <View
@@ -163,7 +163,7 @@ export default function PlanScreen() {
                             borderRadius: 999,
                             backgroundColor: c.tint,
                             borderWidth: 1,
-                            borderColor: "#DBEAFE",
+                            borderColor: c.hairline,
                           }}
                         >
                           <Text style={{ fontSize: 12, fontWeight: "700", color: c.primary }}>

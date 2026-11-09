@@ -276,7 +276,7 @@ export default function AuthScreen() {
                   borderRadius: 12,
                   backgroundColor: c.rose,
                   borderWidth: 1,
-                  borderColor: "#FECACA",
+                  borderColor: c.hairline,
                 },
               ]}
               accessible={true}
@@ -287,14 +287,14 @@ export default function AuthScreen() {
                   width: 28,
                   height: 28,
                   borderRadius: 14,
-                  backgroundColor: "#FEE2E2",
+                  backgroundColor: c.canvas,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
                 <Feather name="alert-triangle" size={15} color={c.danger} />
               </View>
-              <Text style={{ flex: 1, fontSize: 13.5, lineHeight: 19, color: "#991B1B", fontWeight: "500" }}>{globalError}</Text>
+              <Text style={{ flex: 1, fontSize: 13.5, lineHeight: 19, color: c.ink, fontWeight: "500" }}>{globalError}</Text>
             </Animated.View>
           )}
         </Animated.View>

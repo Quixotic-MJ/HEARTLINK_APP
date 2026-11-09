@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, Animated } from 'react-native';
 import { useNetInfo } from '@react-native-community/netinfo';
-import { useColorScheme } from 'nativewind';
+import { useColorScheme } from '../hooks/useAppColorScheme';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { syncOfflineAll } from '../services/SyncService';

@@ -1,11 +1,10 @@
 import React from "react";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { ExerciseScreening } from "../../components/exercise/ExerciseScreening";
 
-// HL-093: the safety check during setup. "Answer later" is fine: it's asked again before the first workout.
+// HL-122: the PAR-Q+ comes right after the score questions, then the starting score is worked out. It decides which
+// exercises are offered, never the score.
 export default function ExerciseCheckScreen() {
   const router = useRouter();
-  const { name } = useLocalSearchParams<{ name?: string }>();
-  const next = () => router.replace({ pathname: "/(baseline)/reminders", params: { name: name ?? "" } });
-  return <ExerciseScreening doneLabel="Continue" onDone={next} onSkip={next} />;
+  return <ExerciseScreening doneLabel="See my starting score" onDone={() => router.replace("/(baseline)/score")} />;
 }
