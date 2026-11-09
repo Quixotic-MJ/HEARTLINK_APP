@@ -4,9 +4,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Clock,
   Download,
-  FileSpreadsheet,
   Loader2,
   RefreshCw,
   RotateCcw,
@@ -18,6 +16,7 @@ import { toast } from "sonner";
 import AdminLayout from "../../components/layouts/adminLayout.jsx";
 import LoadError from "../../components/ui/loadError.jsx";
 import { Skeleton } from "../../components/ui/skeleton.jsx";
+import { QueryProgress } from "../../components/ui/queryProgress.jsx";
 import { apiFetch } from "../../lib/api.js";
 import { useApiQuery } from "../../hooks/useApiQuery.js";
 import { downloadCsv, toCsv } from "../../utils/csv.js";
@@ -57,21 +56,6 @@ function formatTimestamp(isoString) {
     });
   } catch {
     return "Not recorded";
-  }
-}
-
-function formatShortDate(isoString) {
-  if (!isoString) return "—";
-  try {
-    const d = new Date(isoString);
-    if (Number.isNaN(d.getTime())) return "—";
-    return d.toLocaleDateString("en-US", {
-      timeZone: "Asia/Manila",
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return "—";
   }
 }
 
@@ -236,7 +220,6 @@ const ActivityLog = () => {
 
   const rangeStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const rangeEnd = Math.min(page * pageSize, total);
-  const latestEntry = logs[0] || null;
 
   return (
     <AdminLayout>
@@ -288,95 +271,6 @@ const ActivityLog = () => {
             </button>
           </div>
         </WorkspaceHeader>
-
-        {/* ─── 2. KPI SUMMARY STRIP ─────────────────────────────────────────── */}
-        <div className="workspace-metrics">
-          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[12.5px] font-medium text-cal-muted">
-                {isSearchOrFilterApplied
-                  ? "Matching operational events"
-                  : "Visible operational events"}
-              </span>
-              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-soft text-cal-ink">
-                <Activity size={14.5} aria-hidden="true" />
-              </span>
-            </div>
-            <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
-              {showSkeleton || isError ? "—" : total.toLocaleString()}
-            </div>
-            <div className="mt-2 text-[12px] text-cal-muted">
-              {isSearchOrFilterApplied
-                ? "Matching the current operational filters"
-                : "Known operational metadata only"}
-            </div>
-          </div>
-
-          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[12.5px] font-medium text-cal-muted">
-                Viewing window
-              </span>
-              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-soft text-cal-ink">
-                <FileSpreadsheet size={14.5} aria-hidden="true" />
-              </span>
-            </div>
-            <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
-              {showSkeleton
-                ? "—"
-                : total === 0
-                  ? "0"
-                  : `${rangeStart}–${rangeEnd}`}
-            </div>
-            <div className="mt-2 text-[12px] text-cal-muted">
-              {totalPages > 0
-                ? `Page ${page} of ${totalPages} (${pageSize} per page)`
-                : `${pageSize} entries per page`}
-            </div>
-          </div>
-
-          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[12.5px] font-medium text-cal-muted">
-                Category scope
-              </span>
-              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-badge-violet/30 bg-cal-badge-violet/15 text-cal-ink">
-                <Shield size={14.5} aria-hidden="true" />
-              </span>
-            </div>
-            <div className="mt-2 truncate font-cal-display text-[24px] sm:text-[26px] font-semibold tracking-[-0.5px] leading-none text-cal-ink">
-              {CATEGORY_LABELS[eventTypeFilter] || "All categories"}
-            </div>
-            <div className="mt-2 truncate text-[12px] text-cal-muted">
-              {debouncedSearch.trim()
-                ? `Keyword: "${debouncedSearch.trim()}"`
-                : "All keywords included"}
-            </div>
-          </div>
-
-          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[12.5px] font-medium text-cal-muted">
-                Latest visible entry
-              </span>
-              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-success/25 bg-cal-success/10 text-cal-success">
-                <Clock size={14.5} aria-hidden="true" />
-              </span>
-            </div>
-            <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
-              {showSkeleton
-                ? "—"
-                : latestEntry
-                  ? formatShortDate(latestEntry.created_at)
-                  : "—"}
-            </div>
-            <div className="mt-2 truncate text-[12px] text-cal-muted">
-              {latestEntry
-                ? `By ${latestEntry.admin_name || latestEntry.admin_user_id || "System"}`
-                : "No operational entry available"}
-            </div>
-          </div>
-        </div>
 
         {/* ─── 3. MAIN AUDIT LOG CARD ───────────────────────────────────────── */}
         <section className="overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
@@ -440,10 +334,16 @@ const ActivityLog = () => {
             </div>
           </div>
 
+          <div className="workspace-context-row">
+            <span>{showSkeleton || isError ? "Event count unavailable" : `${total.toLocaleString()} ${isSearchOrFilterApplied ? "matching" : "operational"} events`}</span>
+            <QueryProgress active={loading} label={showSkeleton ? "Loading activity…" : "Updating activity…"} />
+          </div>
+
           {/* Table */}
           <div
             role="region"
             aria-label="Operational activity table"
+            aria-busy={loading}
             tabIndex={0}
             className="w-full overflow-x-auto"
           >
@@ -498,11 +398,7 @@ const ActivityLog = () => {
                   ))}
                 </tbody>
               ) : logs.length > 0 ? (
-                <tbody
-                  className={`divide-y divide-cal-hairline transition-opacity ${
-                    loading ? "opacity-60" : "opacity-100"
-                  }`}
-                >
+                <tbody className="divide-y divide-cal-hairline">
                   {logs.map((log) => {
                     const showTargetId =
                       Boolean(log.target_id) &&

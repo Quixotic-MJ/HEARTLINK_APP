@@ -2,6 +2,23 @@
 @import "./workspaces.css";
 @import "./portal.css";
 
+@font-face {
+  font-family: 'Instrument Sans';
+  src: url('/fonts/instrument-sans/InstrumentSans-Variable.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400 700;
+  font-stretch: 75% 100%;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Instrument Sans';
+  src: url('/fonts/instrument-sans/InstrumentSans-Italic-Variable.woff2') format('woff2');
+  font-style: italic;
+  font-weight: 400 700;
+  font-stretch: 75% 100%;
+  font-display: swap;
+}
+
 /* HeartLink UI tokens */
 :root {
   --color-background: 242 246 250;
@@ -164,8 +181,8 @@
   --color-warning-solid: rgb(var(--color-warning-solid));
   --color-on-warning: rgb(var(--color-on-warning));
   
-  --font-serif: 'Inter', sans-serif; /* design system: one sans family for headings and body */
-  --font-sans: 'Inter', sans-serif;
+  --font-serif: 'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-sans: 'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
   /* Design system (documentation/design-system/HEARTLINK.md), the same values as the
      mobile app's ds-* tokens. Light only: the portal has no dark mode. */
@@ -200,9 +217,9 @@
   --color-ds-navy: #0a1530;
 
   /* Shared website tokens; blue actions and warm surfaces follow the wellness visual brief. */
-  --font-cal-display: 'Cal Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-cal-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-cal-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-cal-display: 'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-cal-sans: 'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-cal-mono: ui-monospace, 'Cascadia Code', 'Segoe UI Mono', monospace;
 
   --color-cal-primary: #1478b8;
   --color-cal-primary-active: #0f639a;
@@ -249,7 +266,7 @@ input:-webkit-autofill:active {
   -webkit-box-shadow: 0 0 0 1000px var(--color-ds-canvas) inset !important;
   -webkit-text-fill-color: var(--color-ds-ink) !important;
   caret-color: var(--color-ds-ink) !important;
-  font-family: 'Inter', sans-serif !important;
+  font-family: var(--font-cal-sans) !important;
   font-size: 13.5px !important;
   transition: background-color 5000s ease-in-out 0s;
 }
@@ -356,19 +373,50 @@ input:focus:-webkit-autofill {
 @keyframes calPopoverIn {
   from {
     opacity: 0;
-    transform: scale(0.96) translateY(-4px);
   }
   to {
     opacity: 1;
-    transform: scale(1) translateY(0);
   }
 }
 
-.animate-cal-popover {
-  animation: calPopoverIn 160ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.animate-cal-popover,
+.portal-page-enter,
+.operation-modal,
+.content-editor,
+.portal-search-dialog {
+  animation: calPopoverIn 140ms ease-out;
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--color-cal-surface-strong);
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, #ffffff85, transparent);
+  animation: shimmer 1.8s linear infinite;
+}
+.query-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--color-cal-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.query-progress svg {
+  animation: spin 1.2s linear infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .portal-page-enter {
+    animation: none !important;
+  }
+
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;

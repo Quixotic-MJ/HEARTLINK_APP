@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   Ban,
   CheckCircle2,
@@ -22,6 +22,10 @@ import StaffFormModal from "./components/staffFormModal.jsx";
 import AccountActionModal from "./components/accountActionModal.jsx";
 import ConfirmActionModal from "../../components/modals/confirmActionModal.jsx";
 import TempPasswordModal from "./components/tempPasswordModal.jsx";
+import { WorkspaceHeader } from "../../components/ui/workspaceHeader.jsx";
+import { QueryProgress } from "../../components/ui/queryProgress.jsx";
+import { UI } from "../../styles/tokens.js";
+import "./accounts.css";
 
 // Only account-support fields are returned by the Admin-only directory.
 const NO_USERS = [];
@@ -60,6 +64,7 @@ const toPatients = (patientsData) => {
 };
 
 const Users = () => {
+  const reducedMotion = useReducedMotion();
   const { user, userId } = useAuth();
   const currentUserRole = user?.role;
   const [activeTab, setActiveTab] = useState("app_users");
@@ -389,33 +394,23 @@ const Users = () => {
 
   return (
     <AdminLayout>
-      <div className="mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
+      <div className="workspace workspace--operations accounts-workspace mx-auto w-full max-w-[1440px] space-y-5 font-cal-sans text-cal-ink">
         {/* ─── 1. EDITORIAL PAGE HEADER ─────────────────────────────────────── */}
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <div className="mb-2.5 inline-flex items-center gap-2 rounded-full border border-cal-hairline bg-cal-canvas px-3 py-1 text-[12px] font-medium text-cal-muted">
-              <ShieldCheck size={13.5} className="text-cal-ink" />
-              <span>User governance · Accounts &amp; permissions</span>
-            </div>
-            <h2 className="font-cal-display text-[28px] sm:text-[32px] font-semibold tracking-[-0.8px] leading-[1.15] text-cal-ink">
-              Accounts &amp; staff
-            </h2>
-            <p className="mt-1.5 max-w-[64ch] text-[14px] leading-[1.5] text-cal-muted">
-              Manage app account access and staff permissions. Consumer health
-              records are not part of this workspace.
-            </p>
-          </div>
-
+        <WorkspaceHeader
+          icon={ShieldCheck}
+          title="Accounts & staff"
+          description="Manage sign-in access, optional Premium and staff permissions. Consumer health records stay outside this workspace."
+        >
           <button
             type="button"
             onClick={fetchUsers}
             disabled={refreshing}
-            className="inline-flex h-10 items-center gap-2 rounded-[8px] border border-cal-hairline bg-cal-canvas px-4 text-[14px] font-semibold text-cal-ink hover:bg-cal-surface-card transition-colors cursor-pointer disabled:opacity-50"
+            className={UI.button.secondary}
           >
-            <RefreshCw size={15} className={refreshing ? "animate-spin" : ""} />
+            <RefreshCw size={15} aria-hidden="true" className={refreshing ? "animate-spin" : ""} />
             <span>Refresh directory</span>
           </button>
-        </div>
+        </WorkspaceHeader>
 
         {/* ─── 2. DIRECTORY MODE SWITCHER (CAL.COM NAV-PILL-GROUP) ──────────── */}
         <div
@@ -442,7 +437,7 @@ const Users = () => {
             tabs[next].focus();
             tabs[next].click();
           }}
-          className="relative inline-flex flex-wrap items-center gap-1 rounded-full border border-cal-hairline bg-cal-canvas p-1 shadow-[0_1px_2px_rgba(0,0,0,0.04)] select-none"
+          className="accounts-directory-tabs"
         >
           <button
             type="button"
@@ -458,18 +453,7 @@ const Users = () => {
                 : "text-cal-muted hover:text-cal-ink active:scale-[0.98]"
             }`}
           >
-            {activeTab === "app_users" && (
-              <motion.div
-                layoutId="user-dir-active-tab"
-                className="absolute inset-0 rounded-full bg-cal-primary shadow-[0_1px_3px_rgba(59,130,246,0.35)]"
-                transition={{
-                  type: "spring",
-                  stiffness: 420,
-                  damping: 34,
-                }}
-              />
-            )}
-            <User size={14.5} className="relative z-10 shrink-0" />
+            <User size={16} aria-hidden="true" className="relative z-10 shrink-0" />
             <span className="relative z-10">User accounts</span>
             <span
               className={`relative z-10 font-cal-mono text-[11.5px] tabular-nums rounded-full px-2 py-0.5 transition-colors ${
@@ -497,18 +481,7 @@ const Users = () => {
                   : "text-cal-muted hover:text-cal-ink active:scale-[0.98]"
               }`}
             >
-              {activeTab === "system_staff" && (
-                <motion.div
-                  layoutId="user-dir-active-tab"
-                  className="absolute inset-0 rounded-full bg-cal-primary shadow-[0_1px_3px_rgba(59,130,246,0.35)]"
-                  transition={{
-                    type: "spring",
-                    stiffness: 420,
-                    damping: 34,
-                  }}
-                />
-              )}
-              <ShieldCheck size={14.5} className="relative z-10 shrink-0" />
+              <ShieldCheck size={16} aria-hidden="true" className="relative z-10 shrink-0" />
               <span className="relative z-10">System staff</span>
               <span
                 className={`relative z-10 font-cal-mono text-[11.5px] tabular-nums rounded-full px-2 py-0.5 transition-colors ${
@@ -524,17 +497,18 @@ const Users = () => {
         </div>
 
         {/* ─── 3. TAB CONTENT ───────────────────────────────────────────────── */}
-        <AnimatePresence mode="wait">
+        <QueryProgress active={refreshing && !patientsQuery.isPending && !staffQuery.isPending} label="Updating directory…" />
+        <AnimatePresence>
           {activeTab === "app_users" && (
             <motion.div
               key="app_users"
               id="app-accounts-panel"
               role="tabpanel"
               aria-labelledby="app-accounts-tab"
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: reducedMotion ? 0 : 0.14 }}
             >
               <UserListView
                 users={filteredUsers}
@@ -558,10 +532,10 @@ const Users = () => {
               id="system-staff-panel"
               role="tabpanel"
               aria-labelledby="system-staff-tab"
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: reducedMotion ? 0 : 0.14 }}
             >
               <StaffListView
                 staffList={systemStaff}
@@ -576,14 +550,14 @@ const Users = () => {
         </AnimatePresence>
 
         {/* User Account Actions Modal */}
-        <AccountActionModal
+        {isModalOpen && modalMode === "view_app_user" && <AccountActionModal
           key={activeEntity?.id || "no-account"}
           isOpen={isModalOpen && modalMode === "view_app_user"}
           onClose={closeModal}
           user={activeEntity}
           onToggleStatus={handleToggleAppUserStatus}
           onChangePlan={handleChangePlan}
-        />
+        />}
 
         {/* Staff Detail View Modal */}
         <StaffDetailsModal
@@ -597,12 +571,12 @@ const Users = () => {
         />
 
         {/* Provision Staff Modal */}
-        <StaffFormModal
+        {isModalOpen && modalMode === "create_staff" && <StaffFormModal
           isOpen={isModalOpen && modalMode === "create_staff"}
           onClose={closeModal}
           staff={activeEntity}
           onSave={handleSaveStaff}
-        />
+        />}
 
         {/* One-time temporary password for a new staff account */}
         <TempPasswordModal

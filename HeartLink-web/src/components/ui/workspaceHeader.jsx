@@ -2,7 +2,7 @@ export function WorkspaceHeader({ title, description, icon: Icon, children }) {
   return (
     <header className="workspace-header">
       <div className="workspace-header-symbol">
-        <Icon size={25} strokeWidth={1.6} aria-hidden="true" />
+        <Icon size={22} strokeWidth={1.7} aria-hidden="true" />
       </div>
       <div className="min-w-0 flex-1">
         <h2>{title}</h2>

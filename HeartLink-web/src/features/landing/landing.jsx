@@ -14,12 +14,13 @@ import {
 } from "lucide-react";
 import { HeartLogoIcon } from "../auth/login.jsx";
 import { safeDownloadUrl } from "../../app/publicLinks.js";
+import "./landing.css";
 
 const APK_URL = safeDownloadUrl(import.meta.env.VITE_APK_URL);
 const focus =
   "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cal-primary";
-const primary = `inline-flex min-h-11 items-center justify-center gap-2 rounded-[12px] bg-cal-primary px-5 py-3 text-[14px] font-semibold text-cal-on-primary no-underline transition-colors hover:bg-cal-primary-active ${focus}`;
-const secondary = `inline-flex min-h-11 items-center justify-center gap-2 rounded-[12px] border border-cal-hairline bg-cal-canvas px-5 py-3 text-[14px] font-semibold text-cal-ink no-underline transition-colors hover:bg-cal-surface-soft ${focus}`;
+const primary = `landing-primary inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] bg-cal-primary px-5 py-3 text-[14px] font-semibold text-cal-on-primary no-underline transition-colors hover:bg-cal-primary-active ${focus}`;
+const secondary = `landing-secondary inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] px-5 py-3 text-[14px] font-semibold text-cal-ink no-underline transition-colors ${focus}`;
 const navigation = [
   ["#features", "The everyday essentials"],
   ["#how", "How it fits"],
@@ -79,22 +80,23 @@ function ProductPreview() {
   const [focusArea, setFocusArea] = useState("food");
   const food = focusArea === "food";
   return (
-    <figure className="relative m-0 rounded-[24px] border border-cal-hairline bg-cal-canvas p-5 shadow-[0_16px_60px_rgba(20,120,184,0.08)] sm:p-7">
-      <div className="flex items-center justify-between gap-4 border-b border-cal-hairline pb-5">
+    <figure className="landing-preview">
+      <div className="landing-preview-intro">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="flex items-center gap-2 font-semibold">
           <HeartLogoIcon size={23} /> Everyday, at your pace
         </span>
-        <span className="rounded-full bg-cal-surface-soft px-2.5 py-1 text-[12px] text-cal-muted">
-          Preview
+        <span className="rounded-full bg-cal-surface-soft px-2.5 py-1 text-[11px] text-cal-muted">
+          Design preview
         </span>
       </div>
-      <p className="mt-6 text-[13px] font-medium text-cal-muted">
+      <p className="mt-7 text-[13px] font-medium text-cal-muted">
         Choose a focus
       </p>
       <div
         role="group"
         aria-label="Preview wellness focus"
-        className="mt-3 flex flex-wrap gap-2"
+        className="landing-preview-options mt-3 flex flex-wrap gap-2"
       >
         {[
           ["food", "Eat with less sodium"],
@@ -111,8 +113,10 @@ function ProductPreview() {
           </button>
         ))}
       </div>
+      <p className="landing-preview-context">Clear ingredients. Practical instructions. A little more context for everyday choices.</p>
+      </div>
       <div
-        className="mt-5 rounded-[20px] bg-cal-surface-soft p-5 sm:p-6"
+        className="landing-preview-details rounded-[14px] bg-cal-surface-soft p-5 sm:p-6"
         aria-live="polite"
       >
         <div
@@ -124,7 +128,7 @@ function ProductPreview() {
             <Dumbbell size={23} aria-hidden="true" />
           )}
         </div>
-        <p className="mb-2 text-[12px] font-semibold uppercase tracking-[0.1em] text-cal-muted">
+        <p className="mb-2 text-[12px] font-medium text-cal-muted">
           {food ? "Recipe details" : "Routine details"}
         </p>
         <h3 className="text-[22px] font-semibold leading-snug tracking-[-0.4px]">
@@ -151,7 +155,7 @@ function ProductPreview() {
           ))}
         </div>
       </div>
-      <figcaption className="mt-4 text-[12px] leading-relaxed text-cal-muted">
+      <figcaption className="text-[11px] leading-relaxed text-cal-muted">
         Illustration of the planned experience, with no personal records. It is
         not a screenshot of a released mobile update.
       </figcaption>
@@ -174,14 +178,14 @@ export default function Landing() {
     return () => window.removeEventListener("keydown", escape);
   }, [menuOpen]);
   return (
-    <div className="min-h-screen bg-cal-surface-soft font-cal-sans text-cal-ink selection:bg-ds-sky">
+    <div className="landing-page min-h-screen font-cal-sans text-cal-ink selection:bg-ds-sky">
       <a
         href="#main-content"
         className={`sr-only z-50 rounded-[8px] bg-cal-canvas p-3 focus:not-sr-only focus:fixed focus:left-4 focus:top-4 ${focus}`}
       >
         Skip to content
       </a>
-      <header className="sticky top-0 z-30 border-b border-cal-hairline bg-cal-canvas">
+      <header className="landing-header sticky top-0 z-30">
         <div className="mx-auto flex min-h-[76px] max-w-[1200px] items-center justify-between gap-5 px-5 sm:px-8">
           <Link
             to="/"
@@ -211,7 +215,7 @@ export default function Landing() {
             >
               Staff sign in
             </Link>
-            <span className="hidden sm:block"><a href="#download" className={primary}>
+            <span className="hidden sm:block"><a href="#download" className={secondary}>
               Android availability <ArrowRight size={15} aria-hidden="true" />
             </a></span>
             <button
@@ -256,25 +260,25 @@ export default function Landing() {
         )}
       </header>
       <main id="main-content" tabIndex={-1}>
-        <section className="mx-auto grid max-w-[1200px] items-center gap-12 px-5 py-14 sm:px-8 sm:py-20 lg:grid-cols-[1.05fr_1fr] lg:gap-16 lg:py-24">
-          <div>
-            <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-cal-hairline bg-cal-canvas px-3.5 py-2 text-[12px] font-medium text-cal-body">
+        <section className="landing-hero">
+          <div className="landing-hero-copy">
+            <p className="landing-update inline-flex items-center gap-2 rounded-full border border-cal-hairline bg-cal-canvas px-3.5 py-2 text-[12px] font-medium text-cal-body">
               <span
                 className="h-1.5 w-1.5 rounded-full bg-cal-primary"
                 aria-hidden="true"
               />{" "}
               General Wellness update · In development
             </p>
-            <h1 className="max-w-[12ch] text-[42px] font-semibold leading-[1.08] tracking-[-1.8px] sm:text-[58px]">
+            <h1>
               Small habits.
               <br />A little more clarity.
             </h1>
-            <p className="mt-6 max-w-[48ch] text-[17px] leading-[1.7] text-cal-body">
+            <p className="landing-hero-description">
               Make food and movement easier to understand. HeartLink is being
               shaped around practical recipes, beginner routines and a personal
               record of your everyday habits.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="landing-hero-actions">
               <a href="#download" className={primary}>
                 Check Android availability{" "}
                 <ArrowRight size={16} aria-hidden="true" />
@@ -283,7 +287,7 @@ export default function Landing() {
                 Explore the direction
               </a>
             </div>
-            <p className="mt-5 max-w-[48ch] text-[13px] leading-relaxed text-cal-muted">
+            <p className="landing-hero-boundary">
               For general wellness. No disease-risk score, diagnosis or
               emergency monitoring.
             </p>

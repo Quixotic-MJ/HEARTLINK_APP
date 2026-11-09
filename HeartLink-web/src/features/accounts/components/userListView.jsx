@@ -1,7 +1,8 @@
 import { Search, X } from "lucide-react";
 import { formatUserRef } from "../../../utils/formatUserRef.js";
 import LoadError from "../../../components/ui/loadError.jsx";
-import { KpiCard, StatusBadge } from "../../../styles/designSystem.jsx";
+import { StatusBadge } from "../../../styles/designSystem.jsx";
+import { Skeleton } from "../../../components/ui/skeleton.jsx";
 import { UI } from "../../../styles/tokens.js";
 
 const FILTERS = [
@@ -28,33 +29,13 @@ export default function UserListView({
   const clearSearch = () =>
     onClearSearch ? onClearSearch() : onSearchChange("");
   if (error) return <LoadError what="app accounts" onRetry={onRetry} />;
-  if (loading)
-    return (
-      <p role="status" className="py-14 text-center text-cal-muted">
-        Loading app accounts…
-      </p>
-    );
   return (
-    <div className="space-y-5">
-      <div className="grid gap-3 sm:grid-cols-2">
-        <KpiCard label="App accounts" value={pool.length.toLocaleString()} />
-        <KpiCard
-          label="Active accounts"
-          value={pool
-            .filter((u) => u.status === "Active")
-            .length.toLocaleString()}
-        />
-      </div>
-      <p className="text-sm text-cal-muted">
-        Account access and support metadata only. Active means enabled access,
-        not recent app usage.
-      </p>
-      <section className={UI.card.root} aria-label="App account directory">
-        <div className={UI.card.header}>
+      <section className={UI.card.root} aria-label="App account directory" aria-busy={loading}>
+        <div className="accounts-toolbar">
           <div
             role="group"
             aria-label="Filter app accounts"
-            className="flex flex-wrap gap-1"
+            className="accounts-filter-group"
           >
             {FILTERS.map(([key, label]) => (
               <button
@@ -62,22 +43,19 @@ export default function UserListView({
                 type="button"
                 aria-pressed={filterStatus === key}
                 onClick={() => onFilterChange(key)}
-                className={
-                  filterStatus === key ? UI.button.primary : UI.button.ghost
-                }
+                className={filterStatus === key ? UI.button.primary : UI.button.ghost}
               >
                 {label}
               </button>
             ))}
           </div>
-          <div className="relative w-full sm:w-72">
+          <div className="workspace-search">
             <label htmlFor="user-directory-search" className="sr-only">
               Search app accounts
             </label>
             <Search
               size={15}
               aria-hidden="true"
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-cal-muted"
             />
             <input
               id="user-directory-search"
@@ -85,19 +63,22 @@ export default function UserListView({
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Search by ID, name or phone"
-              className={UI.input.search + " pr-10"}
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={clearSearch}
                 aria-label="Clear search"
-                className="absolute right-1 top-1 h-8 w-8 rounded-lg text-cal-muted"
+                className="rounded-lg text-cal-muted"
               >
                 <X size={15} aria-hidden="true" />
               </button>
             )}
           </div>
+        </div>
+        <div className="accounts-context">
+          <span>{loading ? "Loading app accounts…" : <><strong>{users.length.toLocaleString()}</strong> of {pool.length.toLocaleString()} accounts shown</>}</span>
+          <span>{!loading && <><strong>{pool.filter((u) => u.status === "Active").length.toLocaleString()}</strong> enabled · </>}Active means sign-in access, not recent usage.</span>
         </div>
         <div
           className="w-full overflow-x-auto"
@@ -105,7 +86,7 @@ export default function UserListView({
           aria-label="App accounts table"
           tabIndex={0}
         >
-          <table className="w-full min-w-[660px] border-collapse text-left text-sm">
+          <table className="accounts-table workspace-table w-full min-w-[660px] border-collapse text-left text-sm">
             <thead className="bg-cal-surface-soft text-cal-muted">
               <tr>
                 {[
@@ -123,7 +104,9 @@ export default function UserListView({
               </tr>
             </thead>
             <tbody className="divide-y divide-cal-hairline">
-              {users.length ? (
+              {loading ? (
+                [1, 2, 3].map((row) => <tr key={row}><td colSpan={6}><Skeleton className="h-10 w-full" /></td></tr>)
+              ) : users.length ? (
                 users.map((user) => (
                   <tr key={user.id}>
                     <td className="p-4">
@@ -188,6 +171,5 @@ export default function UserListView({
           </table>
         </div>
       </section>
-    </div>
   );
 }

@@ -1,0 +1,258 @@
+.accounts-workspace :is(button, select),
+.account-dialog :is(button, select),
+.staff-account-dialog :is(button, select) {
+  min-height: 44px;
+  min-width: 44px;
+  height: 44px;
+}
+.accounts-workspace .workspace-header-actions button {
+  min-height: 44px;
+}
+.accounts-directory-tabs,
+.accounts-filter-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.accounts-directory-tabs {
+  width: fit-content;
+  padding: 4px;
+  border: 1px solid var(--color-cal-hairline);
+  border-radius: 13px;
+  background: var(--color-cal-canvas);
+}
+.accounts-directory-tabs button,
+.accounts-filter-group button {
+  border-radius: 9px;
+  padding: 9px 13px;
+  font-size: 13px;
+  font-weight: 550;
+  transition: background-color 140ms, color 140ms;
+}
+.accounts-directory-tabs button[aria-selected="true"],
+.accounts-filter-group button[aria-pressed="true"] {
+  background: var(--workspace-accent);
+  color: white;
+}
+.accounts-directory-tabs button:active {
+  transform: none;
+}
+.accounts-directory-tabs button > span:last-child {
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+}
+.accounts-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-cal-hairline);
+}
+.accounts-toolbar .workspace-search {
+  flex: 1 1 240px;
+  max-width: 360px;
+  min-height: 44px;
+}
+.accounts-toolbar .workspace-search button {
+  display: grid;
+  min-width: 44px;
+  margin-right: -12px;
+  place-items: center;
+}
+.accounts-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 16px;
+  padding: 11px 20px;
+  border-bottom: 1px solid var(--color-cal-hairline);
+  color: var(--color-cal-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.accounts-context strong {
+  font-weight: 600;
+  color: var(--color-cal-ink);
+}
+.accounts-table th,
+.accounts-table td {
+  padding: 12px 20px;
+}
+.accounts-table th {
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-cal-muted);
+}
+.accounts-table td {
+  font-size: 13px;
+}
+.accounts-table td:first-child button {
+  padding-block: 10px;
+}
+.accounts-table td:last-child button {
+  display: inline-flex;
+}
+.account-dialog,
+.staff-account-dialog {
+  border-radius: 18px;
+  animation: calPopoverIn 140ms ease-out;
+}
+.account-dialog {
+  max-width: 600px;
+}
+.account-dialog-header,
+.account-dialog-footer {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-color: var(--color-cal-hairline);
+}
+.account-dialog-header {
+  border-bottom-width: 1px;
+}
+.account-dialog-header h2 {
+  font-size: 19px;
+  font-weight: 650;
+}
+.account-dialog-footer {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  border-top-width: 1px;
+}
+.account-dialog-body {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 20px;
+  scroll-padding-block: 16px;
+}
+.account-identity {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.account-identity h3 {
+  font-size: 18px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.account-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 20px;
+  padding-block: 16px;
+  font-size: 13px;
+}
+.account-facts dt,
+.premium-review-facts dt {
+  color: var(--color-cal-muted);
+  font-size: 12px;
+}
+.account-facts dd,
+.premium-review-facts dd {
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+.account-action-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  min-width: 0;
+  padding-block: 16px;
+  border-top: 1px solid var(--color-cal-hairline);
+}
+.account-action-section > div:first-child {
+  flex: 1 1 160px;
+}
+.account-action-section h3,
+.premium-review h3 {
+  font-size: 15px;
+  font-weight: 650;
+}
+.account-action-section p,
+.premium-review p {
+  margin-top: 5px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-cal-muted);
+}
+.account-premium-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  width: 100%;
+}
+.account-premium-controls > div {
+  flex: 1 1 130px;
+}
+.account-premium-controls select {
+  width: 100%;
+}
+.premium-review {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--color-cal-hairline);
+}
+.premium-review-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-block: 16px;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--color-cal-surface-soft);
+  font-size: 14px;
+}
+.account-dialog :is(button, select, textarea):focus-visible,
+.staff-account-dialog :is(button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--color-cal-muted);
+  outline-offset: 3px;
+}
+.account-dialog [role="alert"] {
+  margin-top: 16px;
+}
+.staff-account-dialog {
+  max-width: 560px;
+}
+.staff-account-dialog :is(.font-cal-display, .font-cal-mono) {
+  font-family: var(--font-cal-sans);
+}
+@media (max-width: 767px) {
+  .accounts-toolbar {
+    padding: 14px;
+  }
+  .accounts-toolbar .workspace-search {
+    max-width: none;
+  }
+  .accounts-context {
+    padding-inline: 14px;
+  }
+  .account-dialog-body {
+    padding: 16px;
+  }
+  .account-dialog-header,
+  .account-dialog-footer {
+    padding: 12px 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .account-dialog,
+  .staff-account-dialog {
+    animation: none;
+  }
+  .accounts-directory-tabs button,
+  .accounts-filter-group button {
+    transition: none;
+  }
+}

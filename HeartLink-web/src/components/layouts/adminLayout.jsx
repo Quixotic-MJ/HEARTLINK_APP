@@ -6,6 +6,8 @@ import LogoutConfirmModal from "../../features/auth/components/logoutConfirmModa
 import { useAuth } from "../../contexts/useAuth.js";
 import { canAccess, homeFor } from "../../app/access.js";
 import PortalSearchModal from "../../features/search/portalSearchModal.jsx";
+import WorkspaceCalendar from "../ui/workspaceCalendar.jsx";
+import "../../features/overview/home.css";
 
 const AdminLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -16,6 +18,7 @@ const AdminLayout = ({ children }) => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { user, userId, isAuthenticated } = useAuth();
+  const isExpertHome = user?.role === "medical_expert" && pathname === homeFor(user);
 
   React.useEffect(() => {
     const shortcut = (event) => {
@@ -92,7 +95,24 @@ const AdminLayout = ({ children }) => {
             FIX: Removed max-w-[1180px] to allow child components (like the Dashboard)
             to utilize fluid, wide-screen grid layouts.
           */}
-          <div className="mx-auto w-full pb-10">{children}</div>
+          <div key={pathname} className={`portal-page-enter mx-auto w-full pb-10 ${isExpertHome ? "expert-home" : ""}`}>
+            {isExpertHome && (
+              <div className="expert-home-intro">
+                <section className="expert-home-welcome" aria-labelledby="expert-welcome-heading">
+                  <span>{user.expert_type} workspace</span>
+                  <h1 id="expert-welcome-heading">Welcome back{user.first_name ? `, ${user.first_name}` : ""}.</h1>
+                  <p>{user.expert_type === "Dietitian"
+                    ? "Review recipe details and nutrition information in the saved revision. Your content review helps keep the library clear and useful."
+                    : user.expert_type === "Physical Therapist"
+                      ? "Review movement instructions and the complete routine timeline. Keep feedback connected to the saved revision."
+                      : "Keep up with content, account and security notices assigned to your workspace."}</p>
+                  <p className="expert-home-purpose">{user.expert_type === "Cardiologist" ? "Your notices are below." : "Your review library is below."}</p>
+                </section>
+                <WorkspaceCalendar />
+              </div>
+            )}
+            {children}
+          </div>
         </main>
       </div>
 

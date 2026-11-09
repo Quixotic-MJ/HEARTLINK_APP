@@ -3,7 +3,6 @@ import { motion, useReducedMotion } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
-  AlertCircle,
   Bell,
   Check,
   CheckCheck,
@@ -30,6 +29,8 @@ import { useApiQuery } from "../../hooks/useApiQuery.js";
 import { markNotificationsRead } from "../../utils/notificationCache.js";
 import LoadError from "../../components/ui/loadError.jsx";
 import { Skeleton } from "../../components/ui/skeleton.jsx";
+import { WorkspaceHeader } from "../../components/ui/workspaceHeader.jsx";
+import { QueryProgress } from "../../components/ui/queryProgress.jsx";
 import { safeNotificationRoute } from "../../app/access.js";
 
 const NOTIFICATIONS_PATH = "/api/admin/notifications?include_archived=true";
@@ -172,7 +173,8 @@ const Notifications = () => {
 
   const queryClient = useQueryClient();
   const notificationsQuery = useApiQuery(NOTIFICATIONS_PATH);
-  const notifications = notificationsQuery.data?.items ?? NO_NOTIFICATIONS;
+  const accessDenied = notificationsQuery.isError && notificationsQuery.error?.status === 403;
+  const notifications = accessDenied ? NO_NOTIFICATIONS : notificationsQuery.data?.items ?? NO_NOTIFICATIONS;
   const loading = notificationsQuery.isPending;
   const refreshing = notificationsQuery.isFetching;
   const fetchError = notificationsQuery.isError;
@@ -258,20 +260,13 @@ const Notifications = () => {
     return true;
   });
 
-  // KPI Metrics Calculation
+  // Counts describe the status filters and exclude archived alerts from the active inbox.
   const activeNotifications = notifications.filter((n) => !n.archived);
   const archivedCount = notifications.length - activeNotifications.length;
   const totalCount = activeNotifications.length;
   const unreadItemsCount = activeNotifications.filter(
     (n) => !n.read_by?.includes(userId)
   ).length;
-  const feedbackTicketsCount = activeNotifications.filter(
-    (n) => n.type === "feedback"
-  ).length;
-  const approvalsCount = activeNotifications.filter(
-    (n) => n.type === "content"
-  ).length;
-
   // Pagination logic
   const totalPages = Math.ceil(filteredNotifications.length / pageSize) || 1;
   const paginatedNotifications = filteredNotifications.slice(
@@ -297,24 +292,14 @@ const Notifications = () => {
 
   return (
     <AdminLayout>
-      <div className="mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
-        {/* ─── 1. EDITORIAL PAGE HEADER ─────────────────────────────────────── */}
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <div className="mb-2.5 inline-flex items-center gap-2 rounded-full border border-cal-hairline bg-cal-canvas px-3 py-1 text-[12px] font-medium text-cal-muted">
-              <Bell size={13.5} className="text-cal-ink" />
-              <span>System alerts · Real-time activity inbox</span>
-            </div>
-            <h2 className="font-cal-display text-[28px] sm:text-[32px] font-semibold tracking-[-0.8px] leading-[1.15] text-cal-ink">
-              Notifications &amp; alerts
-            </h2>
-            <p className="mt-1.5 max-w-[64ch] text-[14px] leading-[1.5] text-cal-muted">
-              {isExpert
-                ? "Content review updates and account notices for your workspace."
-                : "Content reviews, support requests, staff events, and account security updates."}
-            </p>
-          </div>
-
+      <div className="workspace workspace--operations notifications-workspace mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
+        <WorkspaceHeader
+          icon={Bell}
+          title="Notifications & alerts"
+          description={isExpert
+            ? "Content review updates and account notices for your workspace."
+            : "Content reviews, support requests, staff events, and account security updates."}
+        >
           <div className="flex flex-wrap items-center gap-2.5">
             <button
               type="button"
@@ -342,58 +327,7 @@ const Notifications = () => {
               </button>
             )}
           </div>
-        </div>
-
-        {/* ─── 2. KPI SUMMARY STRIP ─────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[12.5px] font-medium text-cal-muted">
-                Total alerts
-              </span>
-              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-soft text-cal-ink">
-                <Bell size={14.5} aria-hidden="true" />
-              </span>
-            </div>
-            <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
-              {loading ? "—" : totalCount}
-            </div>
-            <div className="mt-2 text-[12px] text-cal-muted">
-              Active inbox entries
-            </div>
-          </div>
-
-          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[12.5px] font-medium text-cal-muted">
-                Unread alerts
-              </span>
-              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-brand-accent/25 bg-cal-brand-accent/10 text-cal-brand-accent">
-                <AlertCircle size={14.5} aria-hidden="true" />
-              </span>
-            </div>
-            <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
-              {loading ? "—" : unreadItemsCount}
-            </div>
-            <div className="mt-2 text-[12px] text-cal-muted">
-              Not yet read
-            </div>
-          </div>
-
-          {[
-            { label: "Content review", count: approvalsCount, description: "Active content notices", icon: ClipboardCheck },
-            { label: "Feedback & support", count: feedbackTicketsCount, description: "Active support notices", icon: MessageSquare },
-          ].map(({ label, count, description, icon: Icon }) => (
-            <div key={label} className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[12.5px] font-medium text-cal-muted">{label}</span>
-                <Icon size={16} className="text-cal-brand-accent" aria-hidden="true" />
-              </div>
-              <div className="mt-2 font-cal-display text-[28px] font-semibold tabular-nums">{loading ? "—" : count}</div>
-              <div className="mt-2 text-[12px] text-cal-muted">{description}</div>
-            </div>
-          ))}
-        </div>
+        </WorkspaceHeader>
 
         {/* ─── 3. MAIN INBOX CARD: FILTERS & FEED ───────────────────────────── */}
         <section className="overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
@@ -444,7 +378,7 @@ const Notifications = () => {
                     <span className="relative z-10">{tab.label}</span>
                     {tab.count !== undefined && (
                       <span
-                        className={`relative z-10 font-cal-mono text-[11.5px] tabular-nums ${
+                        className={`relative z-10 text-[11.5px] tabular-nums ${
                           active ? "text-white/90 font-medium" : "text-cal-muted-soft"
                         }`}
                       >
@@ -456,10 +390,11 @@ const Notifications = () => {
               })}
             </div>
 
-            <div className="relative w-full sm:w-72">
+            <div className="workspace-search w-full sm:max-w-80">
               <Search
                 size={15}
-                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-cal-muted-soft"
+                className="shrink-0 text-cal-muted-soft"
+                aria-hidden="true"
               />
               <input
                 type="text"
@@ -470,7 +405,7 @@ const Notifications = () => {
                   setSearchQuery(e.target.value);
                   setPage(1);
                 }}
-                className="h-9 w-full rounded-[8px] border border-cal-hairline bg-cal-canvas pl-9 pr-8 text-[13.5px] text-cal-ink placeholder:text-cal-muted-soft focus:border-cal-ink focus:outline-none transition-colors"
+                className="pr-7"
               />
               {searchQuery && (
                 <button
@@ -533,9 +468,9 @@ const Notifications = () => {
               )}
             </div>
 
-            <div className="font-cal-mono text-[12px] tabular-nums text-cal-muted">
-              {filteredNotifications.length}{" "}
-              {filteredNotifications.length === 1 ? "alert" : "alerts"}
+            <div className="flex flex-wrap items-center gap-4 text-[12px] tabular-nums text-cal-muted">
+              <span>{loading || fetchError ? "Alert count unavailable" : `${filteredNotifications.length} ${filteredNotifications.length === 1 ? "alert" : "alerts"}`}</span>
+              <QueryProgress active={refreshing} label={loading ? "Loading notifications…" : "Updating notifications…"} />
             </div>
           </div>
 
@@ -551,17 +486,17 @@ const Notifications = () => {
           )}
 
           {/* ── NOTIFICATIONS FEED ── */}
-          <div className="divide-y divide-cal-hairline">
+          <div className="divide-y divide-cal-hairline" aria-busy={refreshing}>
             {loading ? (
               <div className="p-6 space-y-4">
                 {[1, 2, 3, 4, 5].map((idx) => (
                   <div key={idx} className="flex items-start gap-3.5">
                     <Skeleton className="h-9 w-9 rounded-full bg-cal-surface-card shrink-0" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-4 w-48 rounded bg-cal-surface-card" />
-                      <Skeleton className="h-3 w-80 rounded bg-cal-surface-card" />
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <Skeleton className="h-4 w-48 max-w-full rounded bg-cal-surface-card" />
+                      <Skeleton className="h-3 w-80 max-w-full rounded bg-cal-surface-card" />
                     </div>
-                    <Skeleton className="h-8 w-20 rounded-[8px] bg-cal-surface-card ml-auto" />
+                    <Skeleton className="hidden h-8 w-20 shrink-0 rounded-[8px] bg-cal-surface-card ml-auto sm:block" />
                   </div>
                 ))}
               </div>
@@ -616,7 +551,7 @@ const Notifications = () => {
                           {n.message}
                         </p>
 
-                        <div className="mt-1.5 flex items-center gap-2.5 font-cal-mono text-[11.5px] tabular-nums text-cal-muted">
+                        <div className="mt-1.5 flex items-center gap-2.5 text-[11.5px] tabular-nums text-cal-muted">
                           <span className="flex items-center gap-1">
                             <Clock size={11} aria-hidden="true" />
                             <span>{formatRelativeTime(n.created_at)}</span>
@@ -695,18 +630,18 @@ const Notifications = () => {
             <div className="flex flex-col justify-between gap-3 border-t border-cal-hairline bg-cal-canvas px-4 py-3 sm:flex-row sm:items-center sm:px-5">
               <span className="text-[12.5px] text-cal-muted">
                 Showing{" "}
-                <span className="font-cal-mono font-semibold tabular-nums text-cal-ink">
+                <span className="font-semibold tabular-nums text-cal-ink">
                   {rangeStart}–{rangeEnd}
                 </span>{" "}
                 of{" "}
-                <span className="font-cal-mono font-semibold tabular-nums text-cal-ink">
+                <span className="font-semibold tabular-nums text-cal-ink">
                   {filteredNotifications.length}
                 </span>{" "}
                 alerts
               </span>
 
               <div className="flex items-center gap-2">
-                <span className="font-cal-mono text-[12px] tabular-nums text-cal-muted">
+                <span className="text-[12px] tabular-nums text-cal-muted">
                   Page {page} / {totalPages}
                 </span>
 

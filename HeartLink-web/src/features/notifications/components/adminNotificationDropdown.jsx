@@ -22,6 +22,8 @@ import { useLiveNotifications } from "../../../hooks/useLiveNotifications.js";
 import { markNotificationsRead } from "../../../utils/notificationCache.js";
 import { useAuth } from "../../../contexts/useAuth.js";
 import { safeNotificationRoute } from "../../../app/access.js";
+import { Skeleton } from "../../../components/ui/skeleton.jsx";
+import { QueryProgress } from "../../../components/ui/queryProgress.jsx";
 
 const BELL_PATH = "/api/admin/notifications";
 const BELL_KEY = ["api", BELL_PATH];
@@ -33,39 +35,43 @@ export default function AdminNotificationDropdown({ userId }) {
   const [isOpen, setIsOpen] = useState(false);
   const [actionError, setActionError] = useState(null);
   const dropdownRef = useRef(null);
+  const bellRef = useRef(null);
+  const panelRef = useRef(null);
 
   // HL-041: refreshes the moment notifications change (a live stream from the server), plus when the tab gets
   // focus, when the bell is opened and after any save; no more checking every 60 seconds
   const queryClient = useQueryClient();
   const notificationsQuery = useApiQuery(BELL_PATH);
   useLiveNotifications();
-  const notifications = notificationsQuery.data?.items ?? NO_NOTIFICATIONS;
-  const unreadCount = notificationsQuery.data?.unread_count || 0;
+  const accessDenied = notificationsQuery.isError && notificationsQuery.error?.status === 403;
+  const notifications = accessDenied ? NO_NOTIFICATIONS : notificationsQuery.data?.items ?? NO_NOTIFICATIONS;
+  const unreadCount = accessDenied ? 0 : notificationsQuery.data?.unread_count || 0;
   const isLoading = notificationsQuery.isPending;
   const fetchError = notificationsQuery.isError ? "Unable to load notifications." : null;
 
-  // Close dropdown on click outside
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // Keyboard accessibility: Escape to close dropdown
   useEffect(() => {
     if (!isOpen) return;
+    panelRef.current?.focus();
 
-    function handleKeyDown(event) {
-      if (event.key === "Escape") {
-        setIsOpen(false);
-      }
-    }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    const closeOutside = (event) => {
+      if (!dropdownRef.current?.contains(event.target)) setIsOpen(false);
+    };
+    const closeOnEscape = (event) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      setIsOpen(false);
+      bellRef.current?.focus();
+    };
+    document.addEventListener("pointerdown", closeOutside);
+    document.addEventListener("focusin", closeOutside);
+    dropdownRef.current?.addEventListener("keydown", closeOnEscape);
+    const dropdown = dropdownRef.current;
+    return () => {
+      document.removeEventListener("pointerdown", closeOutside);
+      document.removeEventListener("focusin", closeOutside);
+      dropdown?.removeEventListener("keydown", closeOnEscape);
+    };
   }, [isOpen]);
 
   const handleToggle = () => {
@@ -160,9 +166,11 @@ export default function AdminNotificationDropdown({ userId }) {
       <button
         type="button"
         onClick={handleToggle}
+        ref={bellRef}
         aria-label="Notifications"
         aria-expanded={isOpen}
-        aria-haspopup="true"
+        aria-haspopup="dialog"
+        aria-controls={isOpen ? "notification-popover" : undefined}
         title={unreadCount > 0 ? `Notifications (${unreadCount} unread)` : "Notifications"}
         className={`relative flex h-9 w-9 items-center justify-center rounded-[8px] border bg-cal-canvas transition-colors cursor-pointer ${
           isOpen
@@ -182,16 +190,20 @@ export default function AdminNotificationDropdown({ userId }) {
 
       {isOpen && (
         <div
-          className="absolute right-0 mt-2 z-50 flex w-[calc(100vw-2rem)] max-w-[356px] sm:w-[356px] flex-col overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas text-cal-ink shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
-          style={{ maxHeight: 480 }}
+          ref={panelRef}
+          id="notification-popover"
+          role="dialog"
+          aria-labelledby="notification-popover-title"
+          tabIndex={-1}
+          className="notification-panel"
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-cal-hairline bg-cal-canvas px-4 py-3">
+          <div className="notification-panel-header">
             <div className="flex items-center gap-2">
-              <h3 className="text-[14px] font-semibold text-cal-ink">Notifications</h3>
+              <h3 id="notification-popover-title" className="text-[15px] font-semibold text-cal-ink">Notifications</h3>
               {unreadCount > 0 && (
-                <span className="rounded-full bg-cal-surface-card px-2 py-0.5 font-cal-mono text-[11px] font-medium text-cal-ink">
-                  {unreadCount} new
+                <span className="notification-panel-count">
+                  {unreadCount} unread
                 </span>
               )}
             </div>
@@ -209,7 +221,7 @@ export default function AdminNotificationDropdown({ userId }) {
 
           {/* Action Error Banner */}
           {actionError && (
-            <div className="flex items-center justify-between border-b border-cal-error/20 bg-cal-error/5 px-3.5 py-2 text-[12px] font-medium text-cal-ink">
+            <div role="alert" className="flex items-center justify-between border-b border-cal-error/20 bg-cal-error/5 px-3.5 py-2 text-[12px] font-medium text-cal-ink">
               <div className="flex items-center gap-1.5">
                 <AlertCircle size={13} className="shrink-0 text-cal-error" />
                 <span>{actionError}</span>
@@ -242,15 +254,30 @@ export default function AdminNotificationDropdown({ userId }) {
             </div>
           )}
 
+          {notificationsQuery.isFetching && !isLoading && (
+            <div className="border-b border-cal-hairline px-4 py-2">
+              <QueryProgress active label="Updating notifications…" />
+            </div>
+          )}
+
           {/* List */}
           <div
-            className="flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-            style={{ maxHeight: 376 }}
+            className="notification-panel-list"
+            aria-busy={notificationsQuery.isFetching}
           >
             {isLoading && notifications.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-11">
-                <div className="mb-3 h-5 w-5 animate-spin rounded-full border-2 border-cal-hairline border-t-cal-ink" />
-                <p className="text-[12.5px] font-medium text-cal-muted">Loading notifications…</p>
+              <div className="space-y-5 p-4">
+                <span role="status" className="sr-only">Loading notifications…</span>
+                {[1, 2, 3].map((row) => (
+                  <div key={row} className="flex gap-3">
+                    <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <Skeleton className="h-4 w-36 max-w-full" />
+                      <Skeleton className="h-3 w-full" />
+                      <Skeleton className="h-3 w-2/3" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : fetchError && notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center px-5 py-11 text-center">
@@ -291,20 +318,15 @@ export default function AdminNotificationDropdown({ userId }) {
                       key={n.id}
                       type="button"
                       onClick={() => markAsRead(n.id, n.route)}
-                      className={`relative flex w-full items-start gap-3 px-4 py-3 text-left transition-colors cursor-pointer ${
-                        isRead
-                          ? "bg-cal-canvas hover:bg-cal-surface-soft"
-                          : "bg-cal-surface-soft hover:bg-cal-surface-card"
-                      }`}
+                      className="notification-panel-item"
+                      data-unread={!isRead}
                     >
-                      {!isRead && (
-                        <div className="absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full bg-cal-primary" />
-                      )}
+                      {!isRead && <span className="sr-only">Unread: </span>}
                       <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-cal-hairline bg-cal-canvas">
                         {getIcon(n.type, n.severity)}
                       </div>
                       <div className="min-w-0 flex-1 pr-1">
-                        <div className="flex items-baseline justify-between gap-2">
+                        <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
                           <p
                             className={`truncate text-[13px] leading-snug ${
                               isRead ? "font-medium text-cal-body" : "font-semibold text-cal-ink"
@@ -312,7 +334,7 @@ export default function AdminNotificationDropdown({ userId }) {
                           >
                             {n.title}
                           </p>
-                          <span className="shrink-0 font-cal-mono text-[11px] text-cal-muted">
+                          <span className="shrink-0 text-[11px] tabular-nums text-cal-muted">
                             {formatTime(n.created_at)}
                           </span>
                         </div>
@@ -328,8 +350,8 @@ export default function AdminNotificationDropdown({ userId }) {
           </div>
 
           {/* Footer Action: Jump to full inbox */}
-          <div className="flex items-center justify-between border-t border-cal-hairline bg-cal-surface-soft px-4 py-2.5 text-[12px]">
-            <span className="font-medium text-cal-muted">Real-time alerts</span>
+          <div className="notification-panel-footer">
+            <span className="font-medium text-cal-muted">Workspace inbox</span>
             <button
               type="button"
               onClick={() => {

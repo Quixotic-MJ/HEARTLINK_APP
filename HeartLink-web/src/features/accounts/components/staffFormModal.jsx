@@ -136,7 +136,7 @@ const StaffFormModal = ({ isOpen, onClose, onSave }) => {
             : "staff-provision-title"
         }
         tabIndex={-1}
-        className="relative z-10 flex max-h-full w-full max-w-lg flex-col overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas text-cal-ink shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
+        className="staff-account-dialog relative z-10 flex max-h-full w-full max-w-lg flex-col overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas text-cal-ink shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
       >
         {draftExit.discarding && (
           <DiscardDraft

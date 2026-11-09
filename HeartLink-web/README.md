@@ -82,6 +82,14 @@ with synthetic fixtures and API/external interception before navigation. Use an
 already authorized Playwright function runner; do not point these tests at a live
 backend or reuse signed-in staff data.
 
+Prepare integration work in a separate local copy when the running backend watches
+the main checkout. Do not copy `.env` files or start that backend. If reusing an
+installed `node_modules` junction, use Vite's `--configLoader native` and a
+copy-local `cacheDir` so development/build caches do not modify the source checkout.
+Run the function runner from the integration-copy root: screenshots use relative
+`.tmp/` paths. Generated evidence is not application source; lint `src` and
+`tests/browser` rather than generated build output.
+
 Start only the frontend in a dedicated terminal with this deliberately unreachable
 proxy target, then run the exported test functions against port 5180:
 
@@ -106,6 +114,10 @@ npm run dev -- --host 127.0.0.1 --port 5180 --strictPort
 | `operationalVisuals.js` | Operational layouts/dialogs, readable Activity typography, row hover and keyboard-accessible references |
 | `navigationAndMedia.js` | Four-role global/local search handoff, account Settings shortcut and Sign out menu, responsive shell, photo/video/fallback routine media, keyboard/player controls and no autoplay |
 | `libraryRefresh.js` | One-item archive, delayed/failed refetch with retained recipe/routine grid and list content, stale-action locks, explicit retry and initial-load failure |
+| `exerciseMetadata.js` | Teammate level/category/body-area/tempo fields round-trip through the current editor and read-only specialist review without changing the movement dose |
+| `sharedRefinement.js` | Local font, neutral search focus, loading/refetch indicators, compact operational pages, notification keyboard behavior and denied-cache hiding |
+| `premiumConfirmation.js` | Premium add/extend/remove review, zero-write cancellation, pending locks, failure/retry and responsive account dialogs |
+| `homeRefinement.js` | Centered landing, date-only Manila calendar on four role-scoped homes, real operational counts and explicitly synthetic analytics previews without health queries |
 
 Stop that dedicated frontend process when finished. Browser fixtures prove UI
 behavior, not actual API/database integration, device delivery or release readiness.

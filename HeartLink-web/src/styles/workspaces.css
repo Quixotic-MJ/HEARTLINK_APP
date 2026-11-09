@@ -62,7 +62,7 @@
 .library-panel {
   overflow: hidden;
   border: 1px solid var(--color-cal-hairline);
-  border-radius: 18px;
+  border-radius: 16px;
   background: var(--color-cal-canvas);
 }
 .library-toolbar {
@@ -100,11 +100,13 @@
   outline: none;
 }
 .workspace-search:focus-within {
-  outline: 2px solid var(--workspace-accent);
+  outline: 2px solid var(--color-cal-muted);
   outline-offset: 2px;
 }
+.workspace .workspace-search input:focus-visible,
 .workspace-search input:focus-visible {
   outline: none;
+  box-shadow: none;
 }
 .workspace-toolbar-button {
   display: inline-flex;
@@ -318,32 +320,33 @@
 .workspace-header {
   display: flex;
   align-items: flex-start;
-  gap: 18px;
-  padding: 6px 0;
+  gap: 14px;
+  padding: 0;
 }
 .workspace-header-symbol {
   display: grid;
-  width: 54px;
-  height: 54px;
+  width: 44px;
+  height: 44px;
   flex-shrink: 0;
   place-items: center;
   background: var(--workspace-tint);
   color: var(--workspace-accent);
   border: 1px solid var(--workspace-line);
-  border-radius: 17px;
+  border-radius: 13px;
 }
 .workspace-header h2 {
   font-family: var(--font-cal-display);
-  font-size: clamp(27px, 2.5vw, 34px);
-  line-height: 1.15;
+  font-size: clamp(24px, 2.2vw, 28px);
+  font-weight: 650;
+  line-height: 1.2;
   letter-spacing: -0.6px;
 }
 .workspace-header p {
-  margin-top: 10px;
-  max-width: 75ch;
+  margin-top: 6px;
+  max-width: 78ch;
   color: var(--color-cal-muted);
   font-size: 14px;
-  line-height: 1.65;
+  line-height: 1.5;
 }
 .workspace-header-actions {
   display: flex;
@@ -351,7 +354,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
-  padding-top: 5px;
+  padding-top: 2px;
 }
 .workspace-metrics {
   display: grid;
@@ -372,19 +375,36 @@
   border-left: 1px solid var(--color-cal-hairline);
 }
 .workspace--operations > section {
-  border-radius: 18px;
+  border-radius: 16px;
   box-shadow: none;
 }
 .workspace--operations table th {
-  padding-top: 17px;
-  padding-bottom: 17px;
+  padding-top: 12px;
+  padding-bottom: 12px;
   font-size: 12px;
   text-transform: none;
   letter-spacing: normal;
 }
 .workspace--operations table td {
-  padding-top: 18px;
-  padding-bottom: 18px;
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+.workspace-context-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--color-cal-hairline);
+  color: var(--color-cal-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.workspace--operations :is(.workspace-header-actions, .workspace-search-row, .library-toolbar) :is(button:not(.workspace-search button), select),
+.workspace--operations section > div:last-child button {
+  min-height: 40px;
+  border-radius: 10px;
 }
 .settings-grid {
   display: grid;
@@ -478,7 +498,7 @@
   }
   .workspace-header-actions {
     width: 100%;
-    padding-left: 72px;
+    padding-left: 58px;
   }
   .settings-grid {
     grid-template-columns: minmax(0, 1fr);

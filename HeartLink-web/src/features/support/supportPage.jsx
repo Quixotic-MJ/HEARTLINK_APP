@@ -3,7 +3,6 @@ import { motion, useReducedMotion } from "framer-motion";
 import {
   Activity,
   AlertCircle,
-  Bug,
   CheckCircle2,
   ChevronDown,
   ChevronLeft,
@@ -21,6 +20,7 @@ import TicketModal from "./components/ticketModal.jsx";
 import FeedbackCategoryBadge from "./components/feedbackCategoryBadge.jsx";
 import LoadError from "../../components/ui/loadError.jsx";
 import { Skeleton } from "../../components/ui/skeleton.jsx";
+import { QueryProgress } from "../../components/ui/queryProgress.jsx";
 import { apiFetch } from "../../lib/api.js";
 import { useApiQuery } from "../../hooks/useApiQuery.js";
 
@@ -108,7 +108,8 @@ const Feedback = () => {
     select: (d) => (Array.isArray(d) ? d : NO_TICKETS),
     refetchInterval: 30 * 1000,
   });
-  const tickets = ticketsQuery.data ?? NO_TICKETS;
+  const accessDenied = ticketsQuery.isError && ticketsQuery.error?.status === 403;
+  const tickets = accessDenied ? NO_TICKETS : ticketsQuery.data ?? NO_TICKETS;
   const loading = ticketsQuery.isPending;
   const fetchError = ticketsQuery.isError;
 
@@ -232,18 +233,6 @@ const Feedback = () => {
     currentPage * itemsPerPage,
   );
 
-  // Metrics Logic
-  const totalTickets = tickets.length;
-  const openTicketsCount = tickets.filter(
-    (t) => t.status === "Open" || t.status === "In Progress",
-  ).length;
-  const resolvedTicketsCount = tickets.filter(
-    (t) => t.status === "Resolved",
-  ).length;
-  const bugReportsCount = tickets.filter(
-    (t) => t.category === "Bug Report",
-  ).length;
-
   // Reset page when filters change (render-derived, no effect)
   const filterKey = [searchQuery, filterCategory, filterStatus, sortOrder].join(
     "|",
@@ -272,77 +261,6 @@ const Feedback = () => {
           title="Feedback & reports"
           description="A focused inbox for app issues, account questions and content feedback. Admin notes stay internal; saving a ticket does not send a reply or provide medical advice."
         />
-
-        {/* ─── 2. KPI SUMMARY STRIP ─────────────────────────────────────────── */}
-        <div className="workspace-metrics">
-          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[12.5px] font-medium text-cal-muted">
-                Total tickets
-              </span>
-              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-soft text-cal-ink">
-                <Inbox size={14.5} aria-hidden="true" />
-              </span>
-            </div>
-            <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
-              {loading || fetchError ? "—" : totalTickets}
-            </div>
-            <div className="mt-2 text-[12px] text-cal-muted">
-              All submitted user inquiries
-            </div>
-          </div>
-
-          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[12.5px] font-medium text-cal-muted">
-                Open &amp; in progress
-              </span>
-              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-warning/35 bg-cal-warning/15 text-cal-ink">
-                <Activity size={14.5} aria-hidden="true" />
-              </span>
-            </div>
-            <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
-              {loading || fetchError ? "—" : openTicketsCount}
-            </div>
-            <div className="mt-2 text-[12px] text-cal-muted">
-              Awaiting admin resolution
-            </div>
-          </div>
-
-          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[12.5px] font-medium text-cal-muted">
-                Resolved
-              </span>
-              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-success/25 bg-cal-success/10 text-cal-success">
-                <CheckCircle2 size={14.5} aria-hidden="true" />
-              </span>
-            </div>
-            <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
-              {loading || fetchError ? "—" : resolvedTicketsCount}
-            </div>
-            <div className="mt-2 text-[12px] text-cal-muted">
-              Addressed &amp; closed tickets
-            </div>
-          </div>
-
-          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[12.5px] font-medium text-cal-muted">
-                Bug reports
-              </span>
-              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-error/25 bg-cal-error/10 text-cal-error">
-                <Bug size={14.5} aria-hidden="true" />
-              </span>
-            </div>
-            <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
-              {loading || fetchError ? "—" : bugReportsCount}
-            </div>
-            <div className="mt-2 text-[12px] text-cal-muted">
-              Technical issues reported
-            </div>
-          </div>
-        </div>
 
         {/* ─── 3. FEEDBACK INBOX CARD ────────────────────────────────────────── */}
         <section className="overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
@@ -453,9 +371,9 @@ const Feedback = () => {
                 })}
               </div>
 
-              <div className="text-[12px] tabular-nums text-cal-muted">
-                {filteredTickets.length}{" "}
-                {filteredTickets.length === 1 ? "ticket" : "tickets"}
+              <div className="flex flex-wrap items-center gap-4 text-[12px] tabular-nums text-cal-muted">
+                <span>{loading || fetchError ? "Ticket count unavailable" : `${filteredTickets.length} ${filteredTickets.length === 1 ? "ticket" : "tickets"}`}</span>
+                <QueryProgress active={ticketsQuery.isFetching} label={loading ? "Loading feedback…" : "Updating feedback…"} />
               </div>
             </div>
           </div>
@@ -476,6 +394,7 @@ const Feedback = () => {
             className="w-full overflow-x-auto"
             role="region"
             aria-label="Support tickets table"
+            aria-busy={ticketsQuery.isFetching}
             tabIndex={0}
           >
             <table className="workspace-table w-full min-w-[880px] border-collapse text-left">
@@ -538,7 +457,7 @@ const Feedback = () => {
                         >
                           {ticket.ticketId}
                         </button>
-                        <p className="mt-0.5 flex items-center gap-1 font-cal-mono text-[11.5px] tabular-nums text-cal-muted">
+                        <p className="mt-0.5 flex items-center gap-1 text-[11.5px] tabular-nums text-cal-muted">
                           <Clock size={11} aria-hidden="true" />
                           <span>{ticket.date}</span>
                         </p>
@@ -578,7 +497,7 @@ const Feedback = () => {
                         <p className="max-w-sm text-[13px] text-cal-muted">
                           {hasActiveFilters
                             ? "Try adjusting your search query, status tabs, or category filter."
-                            : "Patient feedback submissions will appear here automatically."}
+                            : "App feedback submissions will appear here automatically."}
                         </p>
                         {hasActiveFilters && (
                           <button
@@ -603,18 +522,18 @@ const Feedback = () => {
             <div className="flex flex-col justify-between gap-3 border-t border-cal-hairline bg-cal-canvas px-4 py-3 sm:flex-row sm:items-center sm:px-5">
               <span className="text-[12.5px] text-cal-muted">
                 Showing{" "}
-                <span className="font-cal-mono font-semibold tabular-nums text-cal-ink">
+                <span className="font-semibold tabular-nums text-cal-ink">
                   {rangeStart}–{rangeEnd}
                 </span>{" "}
                 of{" "}
-                <span className="font-cal-mono font-semibold tabular-nums text-cal-ink">
+                <span className="font-semibold tabular-nums text-cal-ink">
                   {filteredTickets.length}
                 </span>{" "}
                 entries
               </span>
 
               <div className="flex items-center gap-2">
-                <span className="font-cal-mono text-[12px] tabular-nums text-cal-muted">
+                <span className="text-[12px] tabular-nums text-cal-muted">
                   Page {currentPage} / {totalPages}
                 </span>
 
@@ -647,7 +566,7 @@ const Feedback = () => {
         {/* Modal: Ticket Resolution Workspace */}
         <TicketModal
           key={activeTicket?.id || "no-ticket"}
-          isOpen={isModalOpen}
+          isOpen={isModalOpen && !accessDenied}
           onClose={closeModal}
           ticket={activeTicket}
           onUpdate={handleUpdateTicket}

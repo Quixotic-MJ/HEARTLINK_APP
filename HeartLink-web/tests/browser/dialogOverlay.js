@@ -171,7 +171,7 @@ export default async function dialogOverlay(page) {
     await opener.click();
     await dialog.waitFor();
     await local.screenshot({
-      path: "C:/Users/ivanl/HEARTLINK_APPF/.tmp/dialog-overlay-mobile.png",
+      path: ".tmp/dialog-overlay-mobile.png",
       fullPage: true,
     });
     if (errors.length) throw Error(errors.join("; "));
