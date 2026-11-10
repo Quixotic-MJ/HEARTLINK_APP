@@ -46,11 +46,14 @@ export function TodayCard({ pages }: { pages: TodayPage[] }) {
           showsHorizontalScrollIndicator={false}
           onMomentumScrollEnd={onSettle}
         >
-          {pages.map((p) => (
-            <View key={p.key} style={{ width: width || undefined, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 }}>
-              {p.content}
-            </View>
-          ))}
+          {/* Pages are laid out only once the card's width is known. Laid out before that, at their natural width,
+              long lines (the habits tip) were measured as one line, and Android kept that, so text ran past the card. */}
+          {width > 0 &&
+            pages.map((p) => (
+              <View key={p.key} style={{ width, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 }}>
+                {p.content}
+              </View>
+            ))}
         </ScrollView>
       </View>
       <View style={{ flexDirection: "row", justifyContent: "center" }}>
@@ -552,6 +555,8 @@ export function HabitsPage({ sodiumMg, sodiumLimitMg, movementMins, movementGoal
           numberOfLines={2}
           style={{
             flex: 1,
+            flexShrink: 1,
+            minWidth: 0,
             fontSize: 12.5,
             lineHeight: 17,
             color: c.charcoal,

@@ -46,6 +46,12 @@ const NAV_DARK = {
   colors: { ...DarkTheme.colors, background: ds.dark.canvas, card: ds.dark.canvas, border: ds.dark.hairline, text: ds.dark.ink },
 };
 
+// The light page behind screens: the design system's warm off-white (HEARTLINK.md ds-surface), not React Navigation's grey
+const NAV_LIGHT = {
+  ...DefaultTheme,
+  colors: { ...DefaultTheme.colors, background: ds.light.surface, card: ds.light.canvas, border: ds.light.hairline, text: ds.light.ink },
+};
+
 function RootLayoutNav() {
   const { colorScheme } = useColorScheme();
   const { userId, user, isLoading } = useUser();
@@ -116,7 +122,7 @@ function RootLayoutNav() {
   // Modern Expo Router natively bundles @expo/vector-icons.
   
   return (
-    <ThemeProvider value={colorScheme === "dark" ? NAV_DARK : DefaultTheme}>
+    <ThemeProvider value={colorScheme === "dark" ? NAV_DARK : NAV_LIGHT}>
 
       <Stack
         screenOptions={{
