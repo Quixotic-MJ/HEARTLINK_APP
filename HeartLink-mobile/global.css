@@ -87,7 +87,8 @@
     --color-ds-navy: 15 23 42;
   }
 
-  .dark {
+  /* HL-137: NativeWind on phones only reads dark variables written as .dark:root (a plain .dark is ignored there) */
+  .dark:root {
     --color-background: 15 23 32;
     --color-surface: 23 33 43;
     --color-surface-alt: 31 43 55;
@@ -139,35 +140,35 @@
     --color-warning-solid: 255 154 46;
     --color-on-warning: 21 33 49;
 
-    /* Design system (documentation/design-system/HEARTLINK.md) */
-    --color-ds-canvas: 25 25 25;
-    --color-ds-surface: 32 32 32;
-    --color-ds-surface-alt: 42 42 42;
-    --color-ds-hairline: 47 47 47;
-    --color-ds-hairline-soft: 38 38 38;
-    --color-ds-hairline-strong: 69 69 69;
-    --color-ds-ink: 242 241 238;
-    --color-ds-charcoal: 227 226 222;
-    --color-ds-slate: 181 179 173;
-    --color-ds-steel: 155 154 151;
-    --color-ds-muted: 107 106 103;
-    --color-ds-primary: 20 120 184;
-    --color-ds-primary-pressed: 15 99 154;
+    /* Design system: the same values as ds.dark in constants/theme.ts */
+    --color-ds-canvas: 15 23 42;
+    --color-ds-surface: 30 41 59;
+    --color-ds-surface-alt: 51 65 85;
+    --color-ds-hairline: 51 65 85;
+    --color-ds-hairline-soft: 30 41 59;
+    --color-ds-hairline-strong: 71 85 105;
+    --color-ds-ink: 248 250 252;
+    --color-ds-charcoal: 241 245 249;
+    --color-ds-slate: 203 213 225;
+    --color-ds-steel: 148 163 184;
+    --color-ds-muted: 100 116 139;
+    --color-ds-primary: 59 130 246;
+    --color-ds-primary-pressed: 37 99 235;
     --color-ds-on-primary: 255 255 255;
-    --color-ds-line: 79 182 230;
-    --color-ds-tint: 27 51 70;
-    --color-ds-on-tint: 220 236 250;
-    --color-ds-link: 77 163 255;
+    --color-ds-line: 96 165 250;
+    --color-ds-tint: 30 41 59;
+    --color-ds-on-tint: 239 246 255;
+    --color-ds-link: 96 165 250;
     --color-ds-peach: 61 42 30;
     --color-ds-rose: 59 35 48;
     --color-ds-mint: 31 53 39;
     --color-ds-lavender: 44 38 64;
-    --color-ds-sky: 27 51 70;
+    --color-ds-sky: 30 41 59;
     --color-ds-yellow: 58 52 32;
     --color-ds-yellow-bold: 74 64 32;
     --color-ds-warm-text: 255 179 122;
-    --color-ds-success: 60 203 90;
-    --color-ds-danger: 255 107 107;
-    --color-ds-navy: 10 21 48;
+    --color-ds-success: 16 185 129;
+    --color-ds-danger: 239 68 68;
+    --color-ds-navy: 15 23 42;
   }
 }

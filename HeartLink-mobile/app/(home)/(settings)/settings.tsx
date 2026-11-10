@@ -1,8 +1,9 @@
 import { useDs } from "../../../components/onboarding/useDs";
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import { View, Text, ScrollView, Linking, Switch, Platform } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { ScreenWrapper } from "../../../components/ui/ScreenWrapper";
 import AnimatedButton from "../../../components/ui/AnimatedButton";
@@ -161,6 +162,15 @@ function SettingsGroup({ children }: { children: React.ReactNode }) {
 export default function SettingsScreen() {
   const { c, isDark } = useDs();
   const router = useRouter();
+  // HL-137: the Appearance row shows the current choice; System is the default when nothing is saved
+  const [themeChoice, setThemeChoice] = useState("System default");
+  useFocusEffect(
+    useCallback(() => {
+      AsyncStorage.getItem("theme_preference")
+        .then((pref) => setThemeChoice(pref === "light" ? "Light" : pref === "dark" ? "Dark" : "System default"))
+        .catch(() => {});
+    }, [])
+  );
   const { logout, user } = useUser();
   const isPremium = isPremiumProfile(user);
   const [soundsOn, setSoundsOn] = useSoundsSetting();
@@ -382,7 +392,7 @@ export default function SettingsScreen() {
             <SettingsRow
               icon="moon"
               label="Appearance and theme"
-              subtitle="Light, dark or system default"
+              subtitle={themeChoice}
               iconBg={isDark ? c.surfaceAlt : "#F1F5F9"}
               iconColor={isDark ? c.steel : c.slate}
               onPress={() => router.push("/(home)/(settings)/appearance")}

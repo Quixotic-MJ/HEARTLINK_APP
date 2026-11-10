@@ -11,9 +11,11 @@ export function useExerciseScreening() {
 
   const save = useMutation({
     mutationFn: async (answers: ScreeningAnswers): Promise<ScreeningStatus> => {
+      // HL-122: the PAR-Q+ result goes at the top level. Wrapped in `answers` it reads as the old
+      // 5-question check (yes/no values only) and the server refuses it with 422.
       const res = await apiFetch(`/api/users/${userId}/exercise-screening`, {
         method: "PUT",
-        body: JSON.stringify({ answers }),
+        body: JSON.stringify(answers),
       });
       if (!res.ok) throw new Error(String(res.status));
       return res.json();

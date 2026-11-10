@@ -79,7 +79,7 @@ export default function DayOneScreen() {
                   borderRadius: 8,
                   borderWidth: 1.5,
                   borderColor: c.line,
-                  backgroundColor: "#FFFFFF",
+                  backgroundColor: c.canvas,
                   alignItems: "center",
                   justifyContent: "center",
                 }}

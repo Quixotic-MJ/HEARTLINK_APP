@@ -140,11 +140,10 @@ export type ThemeColors = typeof light;
 export const theme = light;
 
 /**
- * Dark mode is only partly built (about half the screens have dark styles), so a phone in
- * dark mode showed a dark splash and dark inputs over light screens. While this is false the
- * app always runs in light mode. Set it to true once every screen supports dark mode.
+ * HL-137: dark mode is on. People choose Light, Dark or System (the default) in Settings › Appearance.
+ * Setting this back to false forces light everywhere again (useAppColorScheme, the root layout and Appearance).
  */
-export const DARK_MODE_ENABLED = false;
+export const DARK_MODE_ENABLED = true;
 
 // Expo-template compatible keys
 export const Colors = {

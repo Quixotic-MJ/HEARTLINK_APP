@@ -35,9 +35,9 @@ export default function AppearanceScreen() {
   };
 
   const themes = [
-    { id: "light", title: "Light Mode", description: "Clean and bright medical aesthetic", icon: "sun" },
-    { id: "dark", title: "Dark Mode", description: "Reduced eye strain in low-light environments", icon: "moon" },
-    { id: "system", title: "System Default", description: "Automatically match device appearance", icon: "smartphone" },
+    { id: "system", title: "System default", description: "Matches your phone's light or dark setting", icon: "smartphone" },
+    { id: "light", title: "Light", description: "Bright and clear, best in daylight", icon: "sun" },
+    { id: "dark", title: "Dark", description: "Easier on the eyes in low light", icon: "moon" },
   ];
 
   return (
@@ -54,7 +54,7 @@ export default function AppearanceScreen() {
 
       <ScrollView contentContainerClassName="px-5 py-6 pb-20" showsVerticalScrollIndicator={false}>
         <Text className="text-[15px] text-ds-slate mb-6 leading-relaxed">
-          Choose how HeartLink appears on your device. The interface automatically adapts colors for comfortable reading.
+          Choose how HeartLink looks. System default follows your phone&apos;s setting.
         </Text>
 
         <View className="mb-6" style={{ gap: 8 }}>

@@ -708,8 +708,8 @@ export default function DashboardScreen() {
             "Your recent metrics suggest you should consider consulting a healthcare facility."
           }
           icon="alert-triangle"
-          iconBg="#FBEAE9"
-          iconColor="#8A1F1A"
+          iconBg={isDark ? "rgba(239, 68, 68, 0.15)" : "#FBEAE9"}
+          iconColor={isDark ? "#F87171" : "#8A1F1A"}
           actions={[
             {
               label: "Find a healthcare facility",

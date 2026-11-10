@@ -191,7 +191,7 @@ export default function PartDoneScreen() {
                 width: 44,
                 height: 44,
                 borderRadius: 12,
-                backgroundColor: "#FFFFFF",
+                backgroundColor: c.canvas,
                 borderWidth: 1,
                 borderColor: c.hairline,
                 alignItems: "center",

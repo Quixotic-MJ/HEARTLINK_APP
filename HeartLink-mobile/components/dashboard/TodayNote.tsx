@@ -84,7 +84,7 @@ function parseAiInsight(body: string): {
 }
 
 /** Sentiment/trend tone for the key insight card */
-function getTakeawayTone(text: string): {
+function getTakeawayTone(text: string, isDark: boolean): {
   icon: keyof typeof Feather.glyphMap;
   iconColor: string;
   badgeBg: string;
@@ -102,8 +102,8 @@ function getTakeawayTone(text: string): {
   ) {
     return {
       icon: "trending-up",
-      iconColor: "#059669",
-      badgeBg: "#ECFDF5",
+      iconColor: isDark ? "#34D399" : "#059669",
+      badgeBg: isDark ? "rgba(16, 185, 129, 0.15)" : "#ECFDF5",
     };
   }
   if (
@@ -116,14 +116,14 @@ function getTakeawayTone(text: string): {
   ) {
     return {
       icon: "alert-circle",
-      iconColor: "#D97706",
-      badgeBg: "#FEF3C7",
+      iconColor: isDark ? "#FBBF24" : "#D97706",
+      badgeBg: isDark ? "rgba(245, 158, 11, 0.15)" : "#FEF3C7",
     };
   }
   return {
     icon: "zap",
-    iconColor: "#2563EB",
-    badgeBg: "#EFF6FF",
+    iconColor: isDark ? "#60A5FA" : "#2563EB",
+    badgeBg: isDark ? "rgba(59, 130, 246, 0.15)" : "#EFF6FF",
   };
 }
 
@@ -176,7 +176,7 @@ export function TodayNote({
 
   // When purely AI generated without title, format into scannable takeaway + coach advice
   const aiParsed = !hasExplicitTitle && aiWritten ? parseAiInsight(insight.body) : null;
-  const tone = aiParsed ? getTakeawayTone(aiParsed.highlight) : null;
+  const tone = aiParsed ? getTakeawayTone(aiParsed.highlight, isDark) : null;
 
   const badgeIconName = emergency
     ? "alert-triangle"

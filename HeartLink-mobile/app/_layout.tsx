@@ -1,4 +1,4 @@
-import { Stack, useRouter, useSegments } from "expo-router";
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
 import { LogBox, Platform } from "react-native";
 import { useColorScheme } from "nativewind";
@@ -39,7 +39,15 @@ LogBox.ignoreLogs([
   "Can't perform a React state update on a component that hasn't mounted yet",
 ]);
 
+// HL-137: the navigator paints the page behind every screen. Without a theme it used React Navigation's light grey
+// (#F2F2F2) even in dark mode, so screens without their own background (the dashboard) stayed light.
+const NAV_DARK = {
+  ...DarkTheme,
+  colors: { ...DarkTheme.colors, background: ds.dark.canvas, card: ds.dark.canvas, border: ds.dark.hairline, text: ds.dark.ink },
+};
+
 function RootLayoutNav() {
+  const { colorScheme } = useColorScheme();
   const { userId, user, isLoading } = useUser();
   const segments = useSegments();
   const router = useRouter();
@@ -108,7 +116,7 @@ function RootLayoutNav() {
   // Modern Expo Router natively bundles @expo/vector-icons.
   
   return (
-    <>
+    <ThemeProvider value={colorScheme === "dark" ? NAV_DARK : DefaultTheme}>
 
       <Stack
         screenOptions={{
@@ -123,7 +131,7 @@ function RootLayoutNav() {
         <Stack.Screen name="(home)" options={{ headerShown: false }} />
         <Stack.Screen name="(family)" options={{ headerShown: false }} />
       </Stack>
-    </>
+    </ThemeProvider>
   );
 }
 
