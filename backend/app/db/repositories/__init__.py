@@ -21,6 +21,7 @@ from app.db.repositories.refresh_tokens import RefreshTokenRepository, SupabaseR
 from app.db.repositories.patient_notes import PatientNotesRepository, SupabasePatientNotesRepository
 from app.db.repositories.push_tokens import PushTokenRepository, SupabasePushTokenRepository
 from app.db.repositories.exercise_screening import ExerciseScreeningRepository, SupabaseExerciseScreeningRepository
+from app.db.repositories.lab_results import LabResultsRepository, SupabaseLabResultsRepository
 from app.db.repositories.premium import PremiumRepository, SupabasePremiumRepository
 from app.db.repositories.family import FamilyRepository, SupabaseFamilyRepository
 
@@ -40,6 +41,7 @@ _pending_registration_repo = None
 _refresh_token_repo = None
 _push_token_repo = None
 _exercise_screening_repo = None
+_lab_results_repo = None
 _patient_notes_repo = None
 _premium_repo = None
 _family_repo = None
@@ -139,6 +141,13 @@ def get_exercise_screening_repo() -> ExerciseScreeningRepository:
     if _exercise_screening_repo is None:
         _exercise_screening_repo = SupabaseExerciseScreeningRepository(get_supabase_client())
     return _exercise_screening_repo
+
+
+def get_lab_results_repo() -> LabResultsRepository:
+    global _lab_results_repo
+    if _lab_results_repo is None:
+        _lab_results_repo = SupabaseLabResultsRepository(get_supabase_client())
+    return _lab_results_repo
 
 def get_patient_notes_repo() -> PatientNotesRepository:
     global _patient_notes_repo

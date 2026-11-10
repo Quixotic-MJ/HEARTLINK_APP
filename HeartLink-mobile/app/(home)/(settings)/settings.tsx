@@ -326,6 +326,14 @@ export default function SettingsScreen() {
                 onPress={() => router.push("/(home)/(health)/goals-thresholds")}
               />
               <SettingsRow
+                icon="droplet"
+                label="Lab results (optional)"
+                subtitle="Cholesterol and blood sugar from a blood test"
+                iconBg={isDark ? c.surfaceAlt : c.rose}
+                iconColor={isDark ? c.steel : c.charcoal}
+                onPress={() => router.push("/(home)/(settings)/lab-results")}
+              />
+              <SettingsRow
                 icon="edit-3"
                 label="Smoking and diet answers"
                 subtitle="Keep your Heart score up to date"

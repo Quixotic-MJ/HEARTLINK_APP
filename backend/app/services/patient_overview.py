@@ -77,6 +77,14 @@ def list_patients() -> List[Dict[str, Any]]:
     return items
 
 
+def _lab_results(patient_id: str) -> Dict[str, Any]:
+    from app.services import lab_results
+    try:
+        return lab_results.results_for(patient_id)
+    except Exception:
+        return {"cholesterol": None, "blood_sugar": None}
+
+
 def patient_logs(patient_id: str, current_user: dict) -> Dict[str, Any]:
     patient = get_patient_or_404(patient_id)
     result: Dict[str, Any] = {
@@ -100,7 +108,9 @@ def patient_logs(patient_id: str, current_user: dict) -> Dict[str, Any]:
         result["sleep"] = [s for s in get_sleep_repo().list_user_logs(patient_id, limit=LOG_LIMIT) if not s.get("is_deleted")]
         result["scores"] = get_hss_repo().list_hss_history(patient_id, limit=LOG_LIMIT)
         result["alerts"] = health_repo.list_alerts(user_id=patient_id)
-        result["sections"] += ["health", "sleep", "scores", "alerts"]
+        # HL-138: the patient's own lab results, if they added any (experts can read them, not change them)
+        result["lab_results"] = _lab_results(patient_id)
+        result["sections"] += ["health", "sleep", "scores", "alerts", "lab_results"]
     if has_permission(current_user, "meal_logs:read"):
         result["meals"] = get_meals_repo().list_user_meals(patient_id, limit=LOG_LIMIT)
         result["sections"].append("meals")

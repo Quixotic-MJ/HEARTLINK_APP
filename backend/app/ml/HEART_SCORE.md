@@ -43,8 +43,17 @@ opens, because old logs drop out of the last 7 days.
 | Nicotine | Setup answers, editable in Settings | Never: 100. Quit 5+ years ago: 75. 1 to under 5 years: 50. Under 1 year: 25. Current use: 0 | Adapted: see below |
 | Body weight | BMI from profile height and weight | 18.5-22.9: 100. 23-24.9: 75. 25-29.9: 50. 30-34.9: 25. 35+: 0 | AHA, Asian and Pacific row |
 | Diet | Three habits, see below | 100, 80, 50, 25, 0 | HeartLink: the AHA's levels, our questions |
-| Blood sugar | Not scored | Needs fasting glucose or HbA1c | Left out for now |
-| Cholesterol | Not scored | Needs non-HDL cholesterol | Left out for now |
+| Cholesterol | Optional lab result the person adds (HL-138): total cholesterol and HDL, counted for 12 months from the test date | Non-HDL under 130: 100. 130-159: 60. 160-189: 40. 190-219: 20. 220+: 0. Minus 20 for cholesterol medicine | AHA, self-reported |
+| Blood sugar | Optional lab result (HL-138): fasting blood sugar or HbA1c, counted for 12 months | No diabetes: fasting under 100 or HbA1c under 5.7: 100, otherwise 60. Diabetes (HbA1c only): under 7: 40. 7-7.9: 30. 8-8.9: 20. 9-9.9: 10. 10+: 0 | AHA, self-reported |
+
+### Lab results (HL-138)
+
+Optional: most people won't have a recent blood test, and nothing changes for them. Results are entered by the patient in
+Settings > Lab results, in mg/dL or mmol/L (converted to mg/dL: cholesterol x 38.67, glucose x 18), and count for 12
+months from the test date. The tables were checked against the essential8 scoring package, built from the 2022 paper.
+With diabetes and only a fasting result, blood sugar isn't scored (the AHA uses HbA1c). The AHA's optional deduction for
+prediabetes on metformin isn't used. A gentle "share this result with your doctor" note shows for fasting 126+ or HbA1c
+6.5+ without a diabetes diagnosis, or non-HDL 190+; it's not an emergency and doesn't lock anything.
 
 ### Which minutes count (HeartLink)
 

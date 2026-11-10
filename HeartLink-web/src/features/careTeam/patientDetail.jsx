@@ -20,6 +20,8 @@ const SECTIONS = [
   ["sleep", "Sleep"],
   ["scores", "Score history"],
   ["alerts", "Alerts"],
+  // HL-138: lab results the patient added themselves (read-only here)
+  ["lab_results", "Lab results"],
 ];
 
 const EXERCISE_STATUS = {
@@ -83,7 +85,33 @@ const when = [
   ),
 ];
 
+const LAB_NAME = { cholesterol: "Cholesterol", blood_sugar: "Blood sugar" };
+
+const labResult = (r) => {
+  if (r.kind === "cholesterol") {
+    const nonHdl = Math.round(r.total_cholesterol - r.hdl);
+    return `Non-HDL ${nonHdl} mg/dL (total ${r.total_cholesterol}, HDL ${r.hdl})${r.cholesterol_medicine ? ", on cholesterol medicine" : ""}`;
+  }
+  const parts = [];
+  if (r.hba1c != null) parts.push(`HbA1c ${r.hba1c}%`);
+  if (r.fasting_glucose != null) parts.push(`fasting ${r.fasting_glucose} mg/dL`);
+  return `${parts.join(", ")}${r.has_diabetes ? ", has diabetes" : ""}`;
+};
+
 const TABLES = {
+  lab_results: {
+    empty: "This patient hasn't added any lab results.",
+    columns: [
+      ["test", "Test", (r) => <span className="font-semibold text-cal-ink">{LAB_NAME[r.kind] || r.kind}</span>],
+      ["date", "Test date", (r) => <span className="whitespace-nowrap font-cal-mono text-[12px] text-cal-muted">{r.test_date}</span>],
+      ["result", "Result (self-reported)", (r) => <span className="text-cal-ink">{labResult(r)}</span>],
+      [
+        "counts",
+        "In the Heart score",
+        (r) => (r.counts ? <span>Until {r.counts_until}</span> : <span className="text-cal-muted">Expired</span>),
+      ],
+    ],
+  },
   health: {
     empty: "No check-ins logged yet.",
     columns: [
@@ -573,7 +601,11 @@ export default function PatientDetail() {
                 ) : data.sections?.includes(tab) ? (
                   <LogTable
                     columns={TABLES[tab].columns}
-                    rows={data[tab]}
+                    rows={
+                      tab === "lab_results"
+                        ? Object.values(data.lab_results || {}).filter(Boolean)
+                        : data[tab]
+                    }
                     empty={TABLES[tab].empty}
                   />
                 ) : (

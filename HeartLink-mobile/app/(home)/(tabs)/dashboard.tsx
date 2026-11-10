@@ -1118,6 +1118,10 @@ export default function DashboardScreen() {
                 setScoreModalVisible(false);
                 setLogModal("vitals");
               }}
+              onAddLabResults={() => {
+                setScoreModalVisible(false);
+                router.push("/(home)/(settings)/lab-results");
+              }}
             />
 
             <MissionLogModal

@@ -49,6 +49,34 @@ class ExerciseScreeningRequest(BaseModel):
     answers: Optional[dict[str, bool]] = None
 
 
+# HL-138: optional lab results. Values in mg/dL (the app converts mmol/L), HbA1c in percent. The ranges only catch
+# impossible numbers; they don't judge the result.
+class CholesterolResult(BaseModel):
+    test_date: date
+    total_cholesterol: float = Field(ge=50, le=600)
+    hdl: float = Field(ge=5, le=200)
+    cholesterol_medicine: bool
+
+    @model_validator(mode="after")
+    def hdl_below_total(self):
+        if self.hdl >= self.total_cholesterol:
+            raise ValueError("HDL must be lower than total cholesterol.")
+        return self
+
+
+class BloodSugarResult(BaseModel):
+    test_date: date
+    fasting_glucose: Optional[float] = Field(default=None, ge=30, le=700)
+    hba1c: Optional[float] = Field(default=None, ge=3, le=20)
+    has_diabetes: bool
+
+    @model_validator(mode="after")
+    def one_result(self):
+        if self.fasting_glucose is None and self.hba1c is None:
+            raise ValueError("Enter fasting blood sugar, HbA1c, or both.")
+        return self
+
+
 # HL-114: the Heart score answers that can change after setup
 class HeartAnswersUpdate(BaseModel):
     ever_smoked: bool

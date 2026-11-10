@@ -33,10 +33,31 @@ describe("ScoreExplanationModal", () => {
     expect(screen.getByText("Your average blood pressure is 140/90 or higher, so your score can't go above 59.")).toBeOnTheScreen();
   });
 
-  it("says when an area has no data, and that lab areas aren't scored", async () => {
-    await show(FACTORS);
+  it("says when an area has no data, and offers the optional lab results (HL-138)", async () => {
+    const onAddLabResults = jest.fn();
+    await render(
+      <ScoreExplanationModal visible score={59} tierLabel="Elevated Risk" hasLoggedData factors={FACTORS} onClose={jest.fn()} onNavigateToLogging={jest.fn()} onAddLabResults={onAddLabResults} />,
+    );
     expect(screen.getByText("No sleep logged this week")).toBeOnTheScreen();
-    expect(screen.getByText("Blood sugar and Cholesterol aren't scored for now because they need lab results.")).toBeOnTheScreen();
+    expect(screen.getAllByText("Optional: add a lab result")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Add lab results" })).toBeOnTheScreen();
+  });
+
+  it("shows lab results that count, and stops offering them once both are added", async () => {
+    const withLabs: HeartFactors = {
+      ...FACTORS,
+      areas: {
+        ...FACTORS.areas,
+        cholesterol: { points: 60, non_hdl: 140, medicine: false, test_date: "2026-10-01" },
+        blood_sugar: { points: 30, hba1c: 7.4, fasting: null, diabetes: true, test_date: "2026-10-01" },
+      },
+    };
+    await render(
+      <ScoreExplanationModal visible score={59} tierLabel="Elevated Risk" hasLoggedData factors={withLabs} onClose={jest.fn()} onNavigateToLogging={jest.fn()} onAddLabResults={jest.fn()} />,
+    );
+    expect(screen.getByText(/^Non-HDL 140 mg\/dL, tested/)).toBeOnTheScreen();
+    expect(screen.getByText(/^HbA1c 7.4%, with diabetes, tested/)).toBeOnTheScreen();
+    expect(screen.queryByRole("button", { name: "Add lab results" })).not.toBeOnTheScreen();
   });
 
   it("says plainly what isn't reviewed or validated", async () => {

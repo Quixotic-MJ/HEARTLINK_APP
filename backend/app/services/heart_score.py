@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 METHOD_VERSION = "heart-score-le8-v1"
 SOURCE = "heart_score"
 AREAS_TOTAL = 8  # blood sugar and cholesterol need lab results, so usually 6 of these have data
+LAB_VALID_DAYS = 365  # HL-138: a lab result counts for 12 months from the test date
 
 WEEK_DAYS = 7
 READING_LIMIT_DAYS = 30
@@ -130,6 +131,44 @@ def bmi_points(bmi: float) -> Optional[int]:
     return 0
 
 
+def cholesterol_points(total: float, hdl: float, on_medicine: Any) -> int:
+    """HL-138: AHA points for non-HDL cholesterol (total minus HDL, mg/dL), minus 20 for cholesterol medicine."""
+    non_hdl = total - hdl
+    if non_hdl < 130:
+        points = 100
+    elif non_hdl < 160:
+        points = 60
+    elif non_hdl < 190:
+        points = 40
+    elif non_hdl < 220:
+        points = 20
+    else:
+        points = 0
+    return max(0, points - 20) if on_medicine else points
+
+
+def blood_sugar_points(fasting: Optional[float], hba1c: Optional[float], has_diabetes: Any) -> Optional[int]:
+    """HL-138: AHA points for blood sugar. Without diabetes: fasting under 100 or HbA1c under 5.7 is 100, otherwise 60.
+    With diabetes the AHA uses HbA1c only, so a fasting result alone isn't scored."""
+    if has_diabetes:
+        if hba1c is None:
+            return None
+        if hba1c < 7:
+            return 40
+        if hba1c < 8:
+            return 30
+        if hba1c < 9:
+            return 20
+        if hba1c < 10:
+            return 10
+        return 0
+    if hba1c is not None:
+        return 100 if hba1c < 5.7 else 60
+    if fasting is not None:
+        return 100 if fasting < 100 else 60
+    return None
+
+
 def _often_points(answer: Any) -> Optional[int]:
     return {"rarely": 2, "sometimes": 1, "often": 0, "daily": 0}.get(answer)
 
@@ -230,6 +269,7 @@ def score_from(
     meal_logs: List[Dict[str, Any]],
     routines: Optional[List[Dict[str, Any]]] = None,
     sodium_limit: float = 1500.0,
+    lab_results: Optional[List[Dict[str, Any]]] = None,
     now: Optional[datetime] = None,
 ) -> Optional[Dict[str, Any]]:
     """The score from a patient's data, or None if no area has data yet."""
@@ -336,6 +376,31 @@ def score_from(
             "sodium_from": "logs" if len(meal_totals) >= MIN_MEAL_DAYS else "setup",
         }
 
+    # HL-138: cholesterol and blood sugar, only when the person added a lab result from the last 12 months
+    for lab in lab_results or []:
+        tested = _day(lab.get("test_date"))
+        if not tested or (today - tested).days >= LAB_VALID_DAYS or tested > today:
+            continue
+        number = lambda key: float(lab[key]) if lab.get(key) is not None else None
+        if lab.get("kind") == "cholesterol" and lab.get("total_cholesterol") is not None and lab.get("hdl") is not None:
+            total, hdl = number("total_cholesterol"), number("hdl")
+            areas["cholesterol"] = {
+                "points": cholesterol_points(total, hdl, lab.get("cholesterol_medicine")),
+                "non_hdl": _round(total - hdl),
+                "medicine": bool(lab.get("cholesterol_medicine")),
+                "test_date": tested.isoformat(),
+            }
+        elif lab.get("kind") == "blood_sugar":
+            points = blood_sugar_points(number("fasting_glucose"), number("hba1c"), lab.get("has_diabetes"))
+            if points is not None:
+                areas["blood_sugar"] = {
+                    "points": points,
+                    "hba1c": number("hba1c"),
+                    "fasting": number("fasting_glucose"),
+                    "diabetes": bool(lab.get("has_diabetes")),
+                    "test_date": tested.isoformat(),
+                }
+
     if not areas:
         return None
     average = _round(sum(a["points"] for a in areas.values()) / len(areas))
@@ -352,10 +417,20 @@ def score_from(
     }
 
 
+def _lab_results(get_repo, user_id: str) -> List[Dict[str, Any]]:
+    """HL-138: optional lab results. If they can't be read, the score simply leaves those areas out."""
+    try:
+        return get_repo().list(user_id)
+    except Exception as e:
+        logger.warning("Lab results unavailable for the Heart score (%s)", type(e).__name__)
+        return []
+
+
 def score_for_user(user_id: str) -> Optional[Dict[str, Any]]:
     """Loads a patient's data and works out the score, without saving it."""
     from app.db.repositories import (
-        get_baseline_repo, get_content_repo, get_exercises_repo, get_meals_repo, get_profile_repo, get_sleep_repo,
+        get_baseline_repo, get_content_repo, get_exercises_repo, get_lab_results_repo, get_meals_repo, get_profile_repo,
+        get_sleep_repo,
     )
     from app.services.health_logs import get_health_logs
 
@@ -371,6 +446,7 @@ def score_for_user(user_id: str) -> Optional[Dict[str, Any]]:
         meal_logs=get_meals_repo().list_user_meals(user_id),
         routines=routines,
         sodium_limit=_sodium_limit(user_id),
+        lab_results=_lab_results(get_lab_results_repo, user_id),
     )
 
 

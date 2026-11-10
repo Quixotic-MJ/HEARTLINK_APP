@@ -7,7 +7,7 @@ import DsButton from "../onboarding/DsButton";
 import { useDs } from "../onboarding/useDs";
 import { DsColors } from "../../constants/theme";
 import { bandTag } from "./ScoreCard";
-import { AHA_PAPER_URL, AREA_ROWS, areaDetail, HeartFactors, LAB_AREAS, ruleText } from "../../services/heartScore";
+import { AHA_PAPER_URL, AREA_ROWS, areaDetail, HeartFactors, LAB_AREA_KEYS, ruleText } from "../../services/heartScore";
 
 interface ScoreExplanationModalProps {
   visible: boolean;
@@ -17,6 +17,8 @@ interface ScoreExplanationModalProps {
   factors?: HeartFactors | null;
   onClose: () => void;
   onNavigateToLogging: () => void;
+  /** HL-138: opens the optional lab results screen */
+  onAddLabResults?: () => void;
 }
 
 // One short line per band; same advice as the earlier sheet, fewer words.
@@ -43,6 +45,7 @@ export function ScoreExplanationModal({
   factors,
   onClose,
   onNavigateToLogging,
+  onAddLabResults,
 }: ScoreExplanationModalProps) {
   const { c } = useDs();
   const insets = useSafeAreaInsets();
@@ -98,6 +101,8 @@ export function ScoreExplanationModal({
   const tag = bandTag(tierLabel, hasScore, c);
   const close = () => animateOut(onClose);
   const logBloodPressure = () => animateOut(onNavigateToLogging);
+  // HL-138: opens the optional lab results screen
+  const addLabResults = () => animateOut(() => onAddLabResults?.());
 
   const areas = factors?.areas ?? null;
   const rule = ruleText(factors?.rule);
@@ -243,9 +248,14 @@ export function ScoreExplanationModal({
                   </Text>
                 )}
 
-                <Text style={{ fontSize: 13, lineHeight: 19, color: c.slate }}>
-                  {`${LAB_AREAS.join(" and ")} aren't scored for now because they need lab results.`}
-                </Text>
+                {onAddLabResults && !(areas && LAB_AREA_KEYS.every((k) => areas[k])) ? (
+                  <View style={{ gap: 8 }}>
+                    <Text style={{ fontSize: 13, lineHeight: 19, color: c.slate }}>
+                      {"Cholesterol and blood sugar need a blood test. If you've had one, you can add the results (optional)."}
+                    </Text>
+                    <DsButton label="Add lab results" variant="secondary" block={false} onPress={addLabResults} style={{ alignSelf: "flex-start", height: 44 }} />
+                  </View>
+                ) : null}
 
                 {needsCheck ? (
                   <DsButton label="Log blood pressure" variant="secondary" block={false} onPress={logBloodPressure} style={{ alignSelf: "flex-start", height: 44 }} />
@@ -259,7 +269,7 @@ export function ScoreExplanationModal({
                   Where the points come from
                 </Text>
                 <Text style={{ fontSize: 14, lineHeight: 20, color: c.charcoal }}>
-                  {"The points for blood pressure, activity, sleep, nicotine and body weight come from the American Heart Association's Life's Essential 8. The diet points and the limits on your score are HeartLink's own, and they're waiting for expert review."}
+                  {"The points for blood pressure, activity, sleep, nicotine, body weight, cholesterol and blood sugar come from the American Heart Association's Life's Essential 8. The diet points and the limits on your score are HeartLink's own, and they're waiting for expert review. Lab results are what you entered, not checked by HeartLink."}
                 </Text>
                 <Text style={{ fontSize: 14, lineHeight: 20, color: c.charcoal }}>
                   {"Your first score, before any logs, is a machine learning model's estimate of a Life's Essential 8 score. It was trained on a US health survey of 3,703 adults (NHANES 2017-2018)."}

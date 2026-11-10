@@ -22,6 +22,13 @@ export type HeartArea = {
   sodium_days_over?: number;
   meal_days?: number;
   sodium_from?: "setup" | "logs";
+  // HL-138: lab results
+  non_hdl?: number;
+  medicine?: boolean;
+  hba1c?: number | null;
+  fasting?: number | null;
+  diabetes?: boolean;
+  test_date?: string;
 };
 
 export type HeartFactors = {
@@ -44,10 +51,16 @@ export const AREA_ROWS: { key: string; label: string; icon: keyof typeof Feather
   { key: "nicotine", label: "Nicotine", icon: "wind", tint: "sky", missing: "Answer in Settings" },
   { key: "body_weight", label: "Body weight", icon: "bar-chart-2", tint: "sky", missing: "Not scored yet" },
   { key: "diet", label: "Diet", icon: "coffee", tint: "peach", missing: "Answer in Settings" },
+  // HL-138: the AHA's two lab areas, scored only when the person adds a result from the last 12 months
+  { key: "cholesterol", label: "Cholesterol", icon: "droplet", tint: "rose", missing: "Optional: add a lab result" },
+  { key: "blood_sugar", label: "Blood sugar", icon: "activity", tint: "lavender", missing: "Optional: add a lab result" },
 ];
 
-// The AHA's other two areas: they need lab results, so the app doesn't score them for now
-export const LAB_AREAS = ["Blood sugar", "Cholesterol"];
+/** The lab areas, which only count when the person added a result. */
+export const LAB_AREA_KEYS = ["cholesterol", "blood_sugar"];
+
+const testedOn = (d?: string) =>
+  d ? `, tested ${new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}` : "";
 
 const times = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
@@ -82,6 +95,12 @@ export function areaDetail(key: string, a: HeartArea): string {
       return a.sodium_from === "logs"
         ? `Sodium over your limit on ${a.sodium_days_over ?? 0} of the last 7 days`
         : "From your setup answers for now";
+    case "cholesterol":
+      return `Non-HDL ${a.non_hdl} mg/dL${a.medicine ? ", on medicine (minus 20)" : ""}${testedOn(a.test_date)}`;
+    case "blood_sugar": {
+      const value = a.hba1c !== null && a.hba1c !== undefined ? `HbA1c ${a.hba1c}%` : `Fasting ${a.fasting} mg/dL`;
+      return `${value}${a.diabetes ? ", with diabetes" : ""}${testedOn(a.test_date)}`;
+    }
     default:
       return "";
   }

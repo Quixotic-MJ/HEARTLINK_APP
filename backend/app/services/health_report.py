@@ -125,6 +125,15 @@ def _sodium(meals: List[Dict[str, Any]], limit_mg: Optional[float]) -> Dict[str,
     }
 
 
+def _labs(user_id: str) -> Dict[str, Any]:
+    from app.services import lab_results
+    try:
+        found = lab_results.results_for(user_id)
+    except Exception:
+        return {}
+    return {kind: row for kind, row in found.items() if row and row.get("counts")}
+
+
 def build_report(user_id: str, days: int) -> Dict[str, Any]:
     from app.db.repositories import get_baseline_repo, get_exercises_repo, get_health_logs_repo, get_hss_repo, get_meals_repo, get_sleep_repo
     from app.services.health_logs import get_health_logs
@@ -170,6 +179,8 @@ def build_report(user_id: str, days: int) -> Dict[str, Any]:
         "exercise": {"sessions": len(exercise), "minutes": round(minutes), "minutes_per_week": round(minutes * 7 / days)},
         "sleep": {"average_hours": _avg(hours, 1), "nights": len(hours)},
         "symptoms": [{"name": name, "times": n} for name, n in symptoms.most_common()],
+        # HL-138: lab results the patient added, with their test dates (only those that still count)
+        "lab_results": _labs(user_id),
         "alerts": [
             {"date": (_day(a.get("created_at")) or now.date()).isoformat(), "type": a.get("alert_type") or "Health alert"}
             for a in sorted(alerts, key=lambda a: parse_utc(a.get("created_at")) or start)

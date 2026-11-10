@@ -178,6 +178,7 @@ export function scoresOfDay(history: ScoreRow[], day: TrendDay): DayScore[] {
       } else if (f.source === "lifestyle_composite" || f.source === "heart_score") {
         const what = trigger === "meal_log" ? "meal" : trigger === "exercise_log" ? "exercise" : trigger === "sleep_log" ? "sleep" : null;
         why = what ? `${what.charAt(0).toUpperCase()}${what.slice(1)} logged` : f.source === "heart_score" ? "Score updated" : "Habits updated";
+        if (trigger === "lab_results") why = "Lab results updated"; // HL-138
         after = what === "exercise" ? "exercise" : what ? `logging ${what === "meal" ? "a meal" : "sleep"}` : null;
       }
       return { at: new Date(h.computed_at || h.logged_at || 0), score: Math.round(num(h.score)), why, after };

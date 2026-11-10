@@ -59,6 +59,7 @@ def data(monkeypatch):
     monkeypatch.setattr(repos, "get_exercises_repo", lambda: Rows(list_user_logs=EXERCISE))
     monkeypatch.setattr(repos, "get_sleep_repo", lambda: Rows(list_user_logs=SLEEP))
     monkeypatch.setattr(repos, "get_hss_repo", lambda: Rows(list_hss_history=SCORES))
+    monkeypatch.setattr(repos, "get_lab_results_repo", lambda: Rows(list=[{"kind": "cholesterol", "test_date": "2026-10-01", "total_cholesterol": 200, "hdl": 50, "cholesterol_medicine": False}]))
     monkeypatch.setattr(repos, "get_health_logs_repo", lambda: Rows(list_alerts=ALERTS))
     monkeypatch.setattr(repos, "get_baseline_repo", lambda: Rows(get_thresholds={}))
     monkeypatch.setattr("app.services.nutrition_targets.targets_for_user", lambda uid, t: {"sodium_mg": {"value": 1500}})
@@ -181,3 +182,14 @@ def test_meals_are_read_past_1000_rows():
     repo._resolve_user_uuid = lambda uid: "uuid"
     assert len(repo.list_user_meals("pat", cutoff="2026-01-01T00:00:00Z")) == 1204
     assert log == [(0, 999), (1000, 1999)]
+
+
+def test_the_report_lists_lab_results_that_still_count(data, monkeypatch):
+    """HL-138: lab results the patient added appear with their test date; expired ones are left out."""
+    import app.services.lab_results as labs
+    from datetime import date
+    monkeypatch.setattr(labs, "_today", lambda: date(2026, 11, 9))
+    r = build_report("pat", 30)
+    assert r["lab_results"]["cholesterol"]["total_cholesterol"] == 200 and r["lab_results"]["cholesterol"]["counts"]
+    monkeypatch.setattr(labs, "_today", lambda: date(2027, 11, 9))
+    assert build_report("pat", 30)["lab_results"] == {}

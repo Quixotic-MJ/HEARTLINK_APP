@@ -372,7 +372,7 @@ def repos(monkeypatch):
     monkeypatch.setattr(r, "get_hss_repo", lambda: repo)
     monkeypatch.setattr(r, "get_baseline_repo", lambda: Rows(one=ANSWERS))
     monkeypatch.setattr(r, "get_profile_repo", lambda: Rows(one=PROFILE))
-    for name in ("get_meals_repo", "get_exercises_repo", "get_sleep_repo", "get_content_repo"):
+    for name in ("get_meals_repo", "get_exercises_repo", "get_sleep_repo", "get_content_repo", "get_lab_results_repo"):
         monkeypatch.setattr(r, name, lambda: Rows())
     monkeypatch.setattr("app.services.health_logs.get_health_logs", lambda uid, cutoff=None: [])
     monkeypatch.setattr(hs, "_sodium_limit", lambda uid: 1500.0)

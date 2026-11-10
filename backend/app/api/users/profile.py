@@ -11,6 +11,8 @@ from app.schemas.user import (
     CareTeamContactRequest,
     BaselineOnboardingRequest,
     HeartAnswersUpdate,
+    CholesterolResult,
+    BloodSugarResult,
     ExerciseScreeningRequest,
 )
 from app.services.users import (
@@ -369,6 +371,38 @@ async def update_heart_answers(
     saved = repo.save_baseline(user_id, payload.model_dump())
     new_hss = recalculate_score(user_id, "answers_update")
     return {"success": True, "message": "Answers updated", "data": saved, "hss": new_hss}
+
+
+# HL-138: optional lab results for the Heart score (own account only; experts see them on the patient page)
+@router.get("/{user_id}/lab-results")
+async def get_lab_results(user_id: str, current_user: dict = Depends(get_current_user)):
+    _own_account(current_user, user_id)
+    from app.services import lab_results
+    return lab_results.results_for(user_id)
+
+
+@router.put("/{user_id}/lab-results/cholesterol")
+async def save_cholesterol(user_id: str, payload: CholesterolResult, current_user: dict = Depends(get_current_user)):
+    _own_account(current_user, user_id)
+    from app.services import lab_results
+    saved = lab_results.save(user_id, "cholesterol", payload.model_dump())
+    return {"result": saved, "hss": recalculate_score(user_id, "lab_results")}
+
+
+@router.put("/{user_id}/lab-results/blood_sugar")
+async def save_blood_sugar(user_id: str, payload: BloodSugarResult, current_user: dict = Depends(get_current_user)):
+    _own_account(current_user, user_id)
+    from app.services import lab_results
+    saved = lab_results.save(user_id, "blood_sugar", payload.model_dump())
+    return {"result": saved, "hss": recalculate_score(user_id, "lab_results")}
+
+
+@router.delete("/{user_id}/lab-results/{kind}")
+async def remove_lab_result(user_id: str, kind: str, current_user: dict = Depends(get_current_user)):
+    _own_account(current_user, user_id)
+    from app.services import lab_results
+    lab_results.remove(user_id, kind)
+    return {"success": True, "hss": recalculate_score(user_id, "lab_results")}
 
 
 @router.post("/{user_id}/care-team", status_code=status.HTTP_201_CREATED)

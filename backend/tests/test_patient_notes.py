@@ -110,6 +110,7 @@ class FakeLogsRepo:
 @pytest.fixture(autouse=True)
 def notes_repo(monkeypatch):
     revoked_token_hashes.clear()
+    monkeypatch.setattr("app.services.patient_overview._lab_results", lambda pid: {"cholesterol": None, "blood_sugar": None})
     fake = FakeNotesRepo()
     profiles = FakeProfileRepo()
     monkeypatch.setattr("app.utils.security.get_profile_repo", lambda: profiles)
@@ -281,9 +282,9 @@ def test_patient_list_is_closed_to_patients():
 
 
 @pytest.mark.parametrize("user_id, sections", [
-    ("cardio-1", {"health", "sleep", "scores", "alerts", "meals", "exercise"}),
-    ("diet-1", {"health", "sleep", "scores", "alerts", "meals"}),
-    ("pt-1", {"health", "sleep", "scores", "alerts", "exercise"}),
+    ("cardio-1", {"health", "sleep", "scores", "alerts", "lab_results", "meals", "exercise"}),
+    ("diet-1", {"health", "sleep", "scores", "alerts", "lab_results", "meals"}),
+    ("pt-1", {"health", "sleep", "scores", "alerts", "lab_results", "exercise"}),
 ])
 def test_patient_logs_follow_the_expert_type(user_id, sections):
     res = _call("GET", f"/api/admin/patients/{PATIENT_ID}/logs", user_id)
