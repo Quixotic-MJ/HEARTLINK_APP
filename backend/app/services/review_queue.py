@@ -82,8 +82,11 @@ def current_app_status(user_id: str) -> Dict[str, Any]:
             scorer = "bp_rules"
         else:
             scorer = "unknown"
-        return {"score": latest.get("score"), "tier": latest.get("tier"), "scorer": scorer}
-    return {"score": None, "tier": None, "scorer": "unknown"}
+        # HL-139: the Heart risk saved with the same record, shown to the expert as extra information
+        risk = factors.get("risk") if isinstance(factors.get("risk"), dict) else None
+        return {"score": latest.get("score"), "tier": latest.get("tier"), "scorer": scorer,
+                "heart_risk": risk if risk and risk.get("available") else None}
+    return {"score": None, "tier": None, "scorer": "unknown", "heart_risk": None}
 
 
 def urgent_reason(user_id: str, status: Dict[str, Any], now=None) -> Optional[str]:
@@ -91,6 +94,11 @@ def urgent_reason(user_id: str, status: Dict[str, Any], now=None) -> Optional[st
     now = now or utc_now()
     if status.get("tier") in rules.URGENT_TIERS:
         return f"App level is {status['tier']}"
+    # HL-139: a High Heart risk (10% or more over 10 years) also asks for an expert's look. Never an emergency.
+    risk = status.get("heart_risk") or {}
+    if risk.get("urgent"):
+        kind = "estimated " if risk.get("kind") == "estimated" else ""
+        return f"High {kind}heart risk: {risk.get('ascvd_10')}% over 10 years"
 
     cutoff = (now - timedelta(days=rules.SYMPTOM_WINDOW_DAYS)).isoformat()
     for log in get_health_logs_repo().list_user_logs(user_id, cutoff=cutoff):
@@ -171,6 +179,9 @@ def open_round(profile: Dict[str, Any], lane: str, reason: str, status: Dict[str
         "created_by": created_by,
         **build_snapshot(profile),
     }
+    if status.get("heart_risk"):
+        # HL-139: the expert sees the Heart risk next to the habits score; it doesn't change what they're asked
+        record["input_snapshot"] = {**record["input_snapshot"], "heart_risk": _json_safe(status["heart_risk"])}
     return repo.create_review_case(record)
 
 

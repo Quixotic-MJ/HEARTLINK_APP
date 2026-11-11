@@ -32,6 +32,10 @@ export type BaselineData = {
   drink_frequency?: string;
   drinks_per_occasion?: string;
   binge_drinking_freq?: string;
+  // HL-140: for the Heart risk
+  bp_medicine: boolean;
+  has_diabetes: boolean;
+  cholesterol_medicine: boolean;
 
   // Part 4: Food & goals
   diet_level: string;
@@ -43,7 +47,11 @@ export type BaselineData = {
   dietary_practice: string;
 
   // Yes/No questions default to false, so this records which ones were actually answered.
-  answered: Partial<Record<'vigorous_activity' | 'moderate_activity' | 'walk_bike_transport' | 'ever_smoked' | 'ever_drank', boolean>>;
+  answered: Partial<Record<
+    'vigorous_activity' | 'moderate_activity' | 'walk_bike_transport' | 'ever_smoked' | 'ever_drank'
+    | 'bp_medicine' | 'has_diabetes' | 'cholesterol_medicine',
+    boolean
+  >>;
 };
 
 const defaultData: BaselineData = {
@@ -51,6 +59,7 @@ const defaultData: BaselineData = {
   vigorous_activity: false, moderate_activity: false, walk_bike_transport: false, sedentary_hours: '',
   sleep_hours: '', ever_smoked: false,
   ever_drank: false,
+  bp_medicine: false, has_diabetes: false, cholesterol_medicine: false,
   diet_level: '', fried_food_freq: '', salty_food_freq: '', fruit_veg_servings: '',
   health_goals: [], allergies: [], dietary_practice: '',
   answered: {},

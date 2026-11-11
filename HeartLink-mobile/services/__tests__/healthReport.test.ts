@@ -1,4 +1,4 @@
-import { HealthReport, medicinesLine, periodLabel, reportHtml, scoreLine } from "../healthReport";
+import { HealthReport, medicinesLine, periodLabel, reportHtml, reportSections, scoreLine } from "../healthReport";
 
 // HL-085: the health report's wording and its PDF.
 
@@ -64,5 +64,52 @@ describe("reportHtml", () => {
     const html = reportHtml({ ...REPORT, blood_pressure: { readings: 0 }, symptoms: [], alerts: [] }, "Ana");
     expect(html).toContain("No blood pressure logged in this period");
     expect(html).toContain("None reported");
+  });
+});
+
+describe("reportSections (HL-096)", () => {
+  it("uses the same order as the portal: BP, heart rate, medicine, sleep, symptoms, food, exercise", () => {
+    expect(reportSections(REPORT).map((s) => s.title)).toEqual([
+      "Heart risk",
+      "Blood pressure",
+      "Heart rate",
+      "Medicine",
+      "Sleep",
+      "Symptoms",
+      "Food",
+      "Exercise",
+      "Heart health habits",
+      "Lab results",
+      "Health alerts",
+    ]);
+  });
+
+  it("lists lab results that still count, and says so when there are none (HL-138)", () => {
+    const labs = (r: HealthReport) => reportSections(r).find((s) => s.title === "Lab results")!.rows;
+    expect(labs(REPORT)).toEqual([{ label: "Lab results", value: "None added" }]);
+    const withLabs = labs({
+      ...REPORT,
+      lab_results: {
+        cholesterol: { test_date: "2026-09-01", total_cholesterol: 200, hdl: 50, cholesterol_medicine: true },
+        blood_sugar: { test_date: "2026-09-02", hba1c: 5.4 },
+      },
+    });
+    expect(withLabs[0].value).toBe("Non-HDL 150 mg/dL (total 200, HDL 50), on medicine, Sep 1, 2026");
+    expect(withLabs[1].value).toBe("HbA1c 5.4%, Sep 2, 2026");
+    expect(reportHtml({ ...REPORT, lab_results: { blood_sugar: { test_date: "2026-09-02", fasting_glucose: 92 } } }, "Ana")).toContain(
+      "Fasting 92 mg/dL, Sep 2, 2026",
+    );
+  });
+});
+
+
+describe("Heart risk in the report (HL-145)", () => {
+  it("shows the latest risk, its band and whether it's estimated", () => {
+    const rows = (r: HealthReport) => reportSections(r)[0].rows;
+    expect(rows(REPORT)).toEqual([{ label: "10-year heart risk", value: "Not worked out yet" }]);
+    expect(rows({ ...REPORT, heart_risk: { start: 6.1, end: 4.2, band: "borderline", kind: "estimated" } })).toEqual([
+      { label: "10-year heart risk", value: "4.2%, Borderline (estimated)" },
+      { label: "At the start of the period", value: "6.1%" },
+    ]);
   });
 });

@@ -107,7 +107,7 @@ def test_scorer_mapping(world, row, scorer):
 
 
 def test_no_score_yet(world):
-    assert review_queue.current_app_status("p1") == {"score": None, "tier": None, "scorer": "unknown"}
+    assert review_queue.current_app_status("p1") == {"score": None, "tier": None, "scorer": "unknown", "heart_risk": None}
 
 
 # --- urgent triggers (proposed values, pending the cardiologist) ------------------------------------
@@ -142,6 +142,28 @@ def test_not_urgent(world, entry):
 
 def test_critical_level_is_urgent(world):
     assert review_queue.urgent_reason("p1", {"tier": "Critical"}, NOW) == "App level is Critical"
+
+
+# --- HL-139: a High Heart risk is urgent, and the expert sees the risk ----------------------------------
+
+RISK = {"available": True, "kind": "calculated", "ascvd_10": 12.4, "band": "high", "urgent": True}
+
+
+def test_high_heart_risk_is_urgent(world):
+    assert review_queue.urgent_reason("p1", {"tier": "Moderate", "heart_risk": RISK}, NOW) == "High heart risk: 12.4% over 10 years"
+    estimated = {**RISK, "kind": "estimated"}
+    assert review_queue.urgent_reason("p1", {"tier": "Moderate", "heart_risk": estimated}, NOW).startswith("High estimated heart risk")
+    lower = {**RISK, "ascvd_10": 7.0, "band": "intermediate", "urgent": False}
+    assert review_queue.urgent_reason("p1", {"tier": "Moderate", "heart_risk": lower}, NOW) is None
+
+
+def test_the_expert_sees_the_heart_risk(world):
+    world["hss"] = Hss({"p1": {"source": "telemetry", "score": 61, "tier": "Moderate",
+                              "contributing_factors": {"source": "heart_score", "risk": RISK}}})
+    status = review_queue.current_app_status("p1")
+    assert status["heart_risk"] == RISK
+    created = review_queue.open_round(patient("p1"), "urgent", "test", status)
+    assert created["input_snapshot"]["heart_risk"] == RISK
 
 
 # --- refresh: urgent and re-review rounds ------------------------------------------------------------

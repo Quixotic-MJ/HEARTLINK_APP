@@ -3,13 +3,13 @@ import { Text, View } from "react-native";
 import { render, screen, userEvent } from "@testing-library/react-native";
 import { TourSpot, TourTarget, useDashboardTour } from "../DashboardTour";
 
-const TARGETS: TourTarget[] = ["score", "missions", "note", "vitals", "summary", "care"];
+const TARGETS: TourTarget[] = ["risk", "score", "missions", "note", "vitals", "summary", "care"];
 
-// A stand-in dashboard: six sections, and the tour starts straight away. A critical score hides the picks, as
+// A stand-in dashboard: seven sections, and the tour starts straight away. A critical score hides the picks, as
 // the real dashboard does; care tools stay.
 function Dashboard({ critical = false, hasNote = true, onFinish = jest.fn() }: { critical?: boolean; hasNote?: boolean; onFinish?: () => void }) {
   const { tour, start } = useDashboardTour({
-    shown: { score: true, note: hasNote, missions: true, vitals: true, summary: !critical, care: true },
+    shown: { risk: true, score: true, note: hasNote, missions: true, vitals: true, summary: !critical, care: true },
     onFinish,
     onShown: jest.fn(),
   });
@@ -31,13 +31,17 @@ describe("Dashboard tour", () => {
     const onFinish = jest.fn();
     await render(<Dashboard critical hasNote={false} onFinish={onFinish} />);
 
-    expect(screen.getByText("Your heart score")).toBeOnTheScreen();
-    expect(screen.getByText("1 of 4")).toBeOnTheScreen();
+    // HL-144: the Heart risk comes first, then the habits score
+    expect(screen.getByText("Your heart risk")).toBeOnTheScreen();
+    expect(screen.getByText("1 of 5")).toBeOnTheScreen();
+
+    await user.press(screen.getByRole("button", { name: "Next" }));
+    expect(screen.getByText("Your heart health habits")).toBeOnTheScreen();
 
     await user.press(screen.getByRole("button", { name: "Next" }));
     expect(screen.getByText("Today's check-ins")).toBeOnTheScreen();
     // Only one tip at a time: the score tip is gone.
-    expect(screen.queryByText("Your heart score")).not.toBeOnTheScreen();
+    expect(screen.queryByText("Your heart health habits")).not.toBeOnTheScreen();
 
     await user.press(screen.getByRole("button", { name: "Next" }));
     expect(screen.getByText("Blood pressure this week")).toBeOnTheScreen();
@@ -60,8 +64,8 @@ describe("Dashboard tour", () => {
 
     await user.press(screen.getByRole("button", { name: "Next" }));
     await user.press(screen.getByRole("button", { name: "Back" }));
-    expect(screen.getByText("Your heart score")).toBeOnTheScreen();
-    expect(screen.getByText("1 of 6")).toBeOnTheScreen();
+    expect(screen.getByText("Your heart risk")).toBeOnTheScreen();
+    expect(screen.getByText("1 of 7")).toBeOnTheScreen();
 
     await user.press(screen.getByRole("button", { name: "Skip the tour" }));
     expect(onFinish).toHaveBeenCalledTimes(1);

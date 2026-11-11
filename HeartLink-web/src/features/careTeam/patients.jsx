@@ -16,11 +16,11 @@ import LoadError from "../../components/ui/loadError.jsx";
 import { useApiQuery } from "../../hooks/useApiQuery.js";
 import { useAuth } from "../../contexts/useAuth.js";
 import { formatUserRef } from "../../utils/formatUserRef.js";
-import { TAG, bpBand, tierClass, tierDotClass } from "./vitals.js";
+import { TAG, bpBand, riskBand, riskPercent, tierClass, tierDotClass } from "./vitals.js";
 import { formatNoteTime } from "./noteTime.js";
 import { WorkspaceHeader } from "../../components/ui/workspaceHeader.jsx";
 
-// HL-039: every patient's latest blood pressure, score and open alerts. Cardiologists land here;
+// HL-039: every patient's latest blood pressure, Heart risk (HL-146), habits score and open alerts. Cardiologists land here;
 // Dietitians and PTs use it to reach a patient's care-team notes.
 const FILTERS = [
   ["all", "All"],
@@ -98,7 +98,7 @@ export default function Patients() {
           title={isCardiologist ? "Cardiologist dashboard" : "Patients"}
           description={
             isCardiologist
-              ? "Every patient's latest blood pressure, score and open alerts. Open a patient to read their logs and leave guidance for the dietitians and physical therapists."
+              ? "Every patient's latest blood pressure, heart risk, habits score and open alerts. Open a patient to read their logs and leave guidance for the dietitians and physical therapists."
               : "Open a patient to read the cardiologist's guidance and coordinate in the shared care-team thread."
           }
         />
@@ -109,7 +109,7 @@ export default function Patients() {
             <Stethoscope size={16} strokeWidth={1.9} />
           </div>
           <p className="text-[13.5px] font-medium text-cal-body">
-            Names, phone numbers, and emails are hidden. HeartLink supports healthy habits; its score is not a diagnosis.
+            Names, phone numbers, and emails are hidden. HeartLink supports healthy habits; its heart risk is an estimate (AHA PREVENT) and its habits score is not a diagnosis.
           </p>
         </div>
 
@@ -236,7 +236,7 @@ export default function Patients() {
 
           {/* Data Table */}
           <div className="w-full overflow-x-auto">
-            <table className="w-full min-w-[780px] border-collapse text-left">
+            <table className="w-full min-w-[920px] border-collapse text-left">
               <thead className="border-b border-cal-hairline bg-cal-surface-soft">
                 <tr>
                   <th scope="col" className="px-5 py-3 text-[12px] font-medium text-cal-muted">
@@ -246,7 +246,10 @@ export default function Patients() {
                     Latest blood pressure
                   </th>
                   <th scope="col" className="px-5 py-3 text-[12px] font-medium text-cal-muted">
-                    Score
+                    Heart risk
+                  </th>
+                  <th scope="col" className="px-5 py-3 text-[12px] font-medium text-cal-muted">
+                    Habits score
                   </th>
                   <th scope="col" className="px-5 py-3 text-[12px] font-medium text-cal-muted">
                     Open alerts
@@ -264,20 +267,20 @@ export default function Patients() {
                 {loading ? (
                   [0, 1, 2, 3].map((i) => (
                     <tr key={i}>
-                      <td colSpan={5} className="px-5 py-4">
+                      <td colSpan={6} className="px-5 py-4">
                         <Skeleton className="h-9 w-full rounded-[8px] bg-cal-surface-strong/60" />
                       </td>
                     </tr>
                   ))
                 ) : patients.isError ? (
                   <tr>
-                    <td colSpan={5}>
+                    <td colSpan={6}>
                       <LoadError what="patients" onRetry={patients.refetch} className="py-12" />
                     </td>
                   </tr>
                 ) : shown.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-5 py-14 text-center">
+                    <td colSpan={6} className="px-5 py-14 text-center">
                       <p className="text-[14px] font-semibold text-cal-ink">
                         {rows.length === 0
                           ? "No patients yet"
@@ -351,6 +354,25 @@ export default function Patients() {
                           </div>
                         ) : (
                           <span className="text-[13px] text-cal-muted">No reading yet</span>
+                        )}
+                      </td>
+
+                      <td className="px-5 py-3.5">
+                        {p.heart_risk?.percent != null ? (
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-cal-mono text-[14px] font-semibold tabular-nums text-cal-ink">
+                              {riskPercent(p.heart_risk.percent)}
+                            </span>
+                            <span className={`${TAG} ${riskBand(p.heart_risk.band).className}`}>
+                              <span className={`h-1.5 w-1.5 rounded-full ${riskBand(p.heart_risk.band).dotClass}`} />
+                              <span>{riskBand(p.heart_risk.band).label}</span>
+                            </span>
+                            {p.heart_risk.kind === "estimated" && (
+                              <span className="text-[11.5px] text-cal-muted">Estimated</span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-[13px] text-cal-muted">Not worked out</span>
                         )}
                       </td>
 

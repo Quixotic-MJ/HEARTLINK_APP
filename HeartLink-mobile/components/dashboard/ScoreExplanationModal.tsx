@@ -137,7 +137,7 @@ export function ScoreExplanationModal({
           <View style={{ alignSelf: "center", width: 36, height: 4, borderRadius: 2, backgroundColor: c.hairlineStrong }} />
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 6 }}>
             <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "600", color: c.ink }}>
-              How your score works
+              About your habits score
             </Text>
             <TouchableOpacity
               onPress={close}

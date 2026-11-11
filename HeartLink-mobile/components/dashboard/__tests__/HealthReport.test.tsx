@@ -57,7 +57,7 @@ describe("Health report", () => {
   it("shows a Premium patient's report and offers the PDF", async () => {
     (apiFetch as jest.Mock).mockResolvedValue({ ok: true, status: 200, json: async () => REPORT });
     await renderScreen();
-    expect(await screen.findByText("133/85 mmHg")).toBeOnTheScreen();
+    expect(await screen.findByText("133/85 mmHg (3 readings)")).toBeOnTheScreen();
     expect(screen.getByText("64 → 71 (+7)")).toBeOnTheScreen();
     expect(screen.getByRole("button", { name: "Share PDF" })).toBeOnTheScreen();
     expect(screen.getByText(/not a diagnosis/)).toBeOnTheScreen();

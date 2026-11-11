@@ -1,5 +1,9 @@
 # Starting score: the machine learning model (HL-121)
 
+> **HL-143 (2026-11-11):** a second model, `heart_risk_model.json`, estimates the Heart risk at the end of setup and
+> until lab results are added. Its method and results are in `HEART_RISK.md`. This file is about the habits score's
+> starting estimate, which is unchanged.
+
 > **Status: not yet reviewed by any expert.** It's a starting estimate for a wellness guide. It isn't the official Life's
 > Essential 8 score, hasn't been validated outside NHANES, and doesn't diagnose or predict any condition.
 

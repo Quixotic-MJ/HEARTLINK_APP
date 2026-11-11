@@ -11,6 +11,9 @@ from app.schemas.user import (
     CareTeamContactRequest,
     BaselineOnboardingRequest,
     HeartAnswersUpdate,
+    KidneyResult,
+    RISK_ANSWERS,
+    RiskAnswersUpdate,
     CholesterolResult,
     BloodSugarResult,
     ExerciseScreeningRequest,
@@ -322,6 +325,9 @@ async def complete_baseline_onboarding(
     onboarding_data = payload.model_dump()
     if not onboarding_data.get("smoke_quit_when"):
         onboarding_data.pop("smoke_quit_when", None)
+    for key in RISK_ANSWERS:  # HL-140: an older app doesn't send them
+        if onboarding_data.get(key) is None:
+            onboarding_data.pop(key, None)
 
     # 1. The starting score from the machine learning model
     try:
@@ -337,15 +343,25 @@ async def complete_baseline_onboarding(
     from app.services.users import save_baseline_onboarding
     result = save_baseline_onboarding(user_id, onboarding_data, user_profile)
 
-    # 3. Save the starting score. The Heart score takes over at the first log (heart_score.py)
+    # 3. HL-139: the estimated Heart risk from the same answers (no lab results or readings yet)
+    from app.services.heart_risk import risk_for, risk_probability
+    try:
+        risk = risk_for(profile=user_profile, baseline=onboarding_data, health_logs=[], sleep_logs=[], lab_results=[])
+    except Exception as e:
+        logger.warning("Heart risk at setup couldn't be worked out (%s)", type(e).__name__)
+        risk = None
+
+    # 4. Save the starting score. The Heart score takes over at the first log (heart_score.py)
     now_utc = utc_now()
     hss_repo = get_hss_repo()
     new_hss = hss_repo.create_hss_record(user_id, {
         "score": hss_score,
         "tier": hss_tier,
+        "risk_probability": risk_probability(risk),
         "source": "baseline",
         "model_version": load_hss_model().get("version"),
-        "contributing_factors": {"source": "starting_model", "trigger": "setup", "model_estimate": round(model_estimate, 1), "rule": rule},
+        "contributing_factors": {"source": "starting_model", "trigger": "setup", "model_estimate": round(model_estimate, 1),
+                                 "rule": rule, "risk": risk},
         "computed_at": now_utc.isoformat()
     })
 
@@ -368,9 +384,26 @@ async def update_heart_answers(
     repo = get_baseline_repo()
     if not repo.get_baseline(user_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Finish setup first.")
-    saved = repo.save_baseline(user_id, payload.model_dump())
+    data = payload.model_dump()
+    for key in RISK_ANSWERS:  # HL-140: an older app doesn't send them, so keep what's saved
+        if data.get(key) is None:
+            data.pop(key, None)
+    saved = repo.save_baseline(user_id, data)
     new_hss = recalculate_score(user_id, "answers_update")
     return {"success": True, "message": "Answers updated", "data": saved, "hss": new_hss}
+
+
+@router.put("/{user_id}/baseline/risk-answers", status_code=status.HTTP_200_OK)
+async def update_risk_answers(user_id: str, payload: RiskAnswersUpdate, current_user: dict = Depends(get_current_user)):
+    """HL-140: BP medicine, diabetes and cholesterol medicine, which the Heart risk needs. Existing users answer them
+    once from the Dashboard; anyone can change them in Settings."""
+    _own_account(current_user, user_id)
+    from app.db.repositories import get_baseline_repo
+    repo = get_baseline_repo()
+    if not repo.get_baseline(user_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Finish setup first.")
+    saved = repo.save_baseline(user_id, payload.model_dump())
+    return {"success": True, "data": saved, "hss": recalculate_score(user_id, "risk_answers")}
 
 
 # HL-138: optional lab results for the Heart score (own account only; experts see them on the patient page)
@@ -394,6 +427,15 @@ async def save_blood_sugar(user_id: str, payload: BloodSugarResult, current_user
     _own_account(current_user, user_id)
     from app.services import lab_results
     saved = lab_results.save(user_id, "blood_sugar", payload.model_dump())
+    return {"result": saved, "hss": recalculate_score(user_id, "lab_results")}
+
+
+@router.put("/{user_id}/lab-results/kidney")
+async def save_kidney(user_id: str, payload: KidneyResult, current_user: dict = Depends(get_current_user)):
+    """HL-141: a kidney result for the Heart risk."""
+    _own_account(current_user, user_id)
+    from app.services import lab_results
+    saved = lab_results.save(user_id, "kidney", payload.model_dump())
     return {"result": saved, "hss": recalculate_score(user_id, "lab_results")}
 
 

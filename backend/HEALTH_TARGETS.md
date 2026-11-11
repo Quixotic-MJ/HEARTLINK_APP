@@ -17,7 +17,7 @@ follow weight changes straight away.
 | Target | Value | How it is worked out | Source |
 |---|---|---|---|
 | Sodium | 1,500 mg a day | Fixed. The WHO upper limit for all adults is 2,000 mg. | AHA ideal limit[^aha-sodium]; WHO[^who-sodium] |
-| Cholesterol (from food) | 200 mg a day | Fixed. | NCEP ATP III Therapeutic Lifestyle Changes (TLC) diet[^tlc] |
+| Cholesterol (from food) | 200 mg a day | Fixed (HL-147: a strict daily limit, as the Cardiologist asked). | NCEP ATP III Therapeutic Lifestyle Changes (TLC) diet[^tlc] |
 | Saturated fat | 6% of the calorie target ÷ 9 kcal/g, rounded to whole grams (13 g on 2,000 kcal) | Follows the calorie target. | AHA: 5–6% of calories for people who need to lower LDL cholesterol[^aha-satfat] |
 | Calories | Resting energy × activity factor, −500 kcal when BMI is 25 or more, never below 1,200 (women) / 1,500 (men), rounded to 10 kcal | See below. | Mifflin-St Jeor equation[^mifflin] |
 | BMI | weight (kg) ÷ height (m)² | Shown with its category. | WHO Asia-Pacific cut-offs[^bmi] |
@@ -76,11 +76,22 @@ follow weight changes straight away.
   https://heart.org/en/healthy-living/healthy-eating/eat-smart/sodium/how-much-sodium-should-i-eat-per-day
 [^who-sodium]: World Health Organization, *Reducing sodium intake to reduce blood pressure and risk of
   cardiovascular diseases in adults.* https://www.who.int/tools/elena/interventions/sodium-cvd-adults
-[^tlc]: Therapeutic Lifestyle Changes (TLC) diet, NCEP Adult Treatment Panel III.
-  https://en.wikipedia.org/wiki/Therapeutic_Lifestyle_Changes
+[^tlc]: National Cholesterol Education Program (NCEP) Expert Panel. *Third Report of the NCEP Expert Panel on Detection,
+  Evaluation, and Treatment of High Blood Cholesterol in Adults (Adult Treatment Panel III), final report.* Circulation
+  2002;106(25):3143–3421. https://doi.org/10.1161/circ.106.25.3143 (HL-147: replaces the earlier Wikipedia link; the
+  200 mg a day limit is the report's Therapeutic Lifestyle Changes diet. Open the link to confirm before the manuscript.)
 [^aha-satfat]: American Heart Association, *Saturated fat.*
   https://www.heart.org/en/healthy-living/healthy-eating/eat-smart/fats/saturated-fats
 [^mifflin]: Mifflin MD, St Jeor ST, et al. *A new predictive equation for resting energy expenditure in
   healthy individuals.* Am J Clin Nutr 1990;51(2):241–247.
 [^bmi]: World Obesity Federation, Philippines country profile (Asia-Pacific BMI cut-offs).
   https://data.worldobesity.org/country/philippines-172/
+
+## The Cardiologist's nutrition points (HL-147, 2026-11-11)
+
+- **Strict daily limits:** sodium 1,500 mg (AHA) and food cholesterol 200 mg (NCEP ATP III), both fixed values with sources.
+- **Personal calories:** the calorie target already uses age, weight, height and sex (Mifflin-St Jeor). Heart rate isn't
+  added: there's no standard formula for a whole day's calories from heart rate, only for exercise sessions. It's worked
+  out inside HeartLink, so no health data goes to an outside service (Data Privacy Act of 2012).
+- **Disclaimer:** the Heart risk, food and report screens say the information follows the latest American Heart
+  Association guidelines and isn't a diagnosis.

@@ -1,9 +1,8 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Easing,
   StyleSheet,
-  TouchableOpacity,
   View,
   AccessibilityInfo,
 } from "react-native";
@@ -24,8 +23,9 @@ import { bandName, theme } from "../../constants/theme";
 /**
  * ScoreRing — stroke-drawn beating heart gauge (ported template).
  * Kept in the same component slot/props as the old liquid heart so the
- * dashboard is untouched: score fill arc, BPM-paced heartbeat, tap-to-cycle
- * readout (score → BP → pulse → streak), celebration ripple on mission save.
+ * dashboard is untouched: score fill arc, BPM-paced heartbeat and a
+ * celebration ripple on mission save. HL-144: the centre shows the habits score
+ * only (the owner asked to drop the rotating BP, pulse and streak views).
  *
  * Porting notes vs the template:
  * - strokeDashoffset/shimmer run with useNativeDriver:false (SVG attributes
@@ -206,10 +206,8 @@ interface ScoreRingProps {
   refreshTrigger?: any;
   /** Rising count (e.g. completed missions) that fires a celebration burst. */
   celebrateTrigger?: number;
-  systolic?: number | null;
-  diastolic?: number | null;
+  /** Paces the heartbeat animation only; it isn't shown */
   bpm?: number | null;
-  streakDays?: number;
   trend?: string | null;
 }
 
@@ -221,17 +219,13 @@ export function ScoreRing({
   color,
   refreshTrigger,
   celebrateTrigger,
-  systolic,
-  diastolic,
   bpm,
-  streakDays = 0,
   trend,
 }: ScoreRingProps) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
   const [reduceMotion, setReduceMotion] = useState(false);
-  const [cycleIdx, setCycleIdx] = useState(0);
   const [fillScore, setFillScore] = useState(0);
   const [done, setDone] = useState(false);
 
@@ -402,60 +396,17 @@ export function ScoreRing({
     outputRange: [0, 0.55, 0],
   });
 
-  const hasBp =
-    typeof systolic === "number" &&
-    typeof diastolic === "number" &&
-    systolic > 0 &&
-    diastolic > 0;
-  const hasBpm = typeof bpm === "number" && bpm > 0;
-
-  const cycleStates = useMemo(() => {
-    const states: { label: string; value: string; unit: string; small?: boolean }[] = [
-      { label: "SCORE", value: hasScore ? String(fillScore) : "--", unit: bandName(tokens.label) },
-    ];
-
-    if (hasBp) {
-      states.push({ label: "BP", value: `${systolic}/${diastolic}`, unit: "mmHg" });
-    }
-
-    if (hasBpm) {
-      states.push({ label: "PULSE", value: String(bpm), unit: "BPM" });
-    }
-
-    states.push({
-      label: "STREAK",
-      value: `${streakDays} day${streakDays === 1 ? "" : "s"}`,
-      unit: "",
-      small: true,
-    });
-
-    return states;
-  }, [hasScore, fillScore, tokens.label, hasBp, systolic, diastolic, hasBpm, bpm, streakDays]);
-
-  // auto-cycle readout (restarts from any manual tap; parks on reduce motion or single state)
-  useEffect(() => {
-    if (reduceMotion || !hasScore || cycleStates.length <= 1) return;
-    const timer = setTimeout(() => {
-      setCycleIdx((i) => (i + 1) % cycleStates.length);
-    }, 4000);
-    return () => clearTimeout(timer);
-  }, [cycleIdx, reduceMotion, hasScore, cycleStates.length]);
-
-  const current = cycleStates[cycleIdx % cycleStates.length] || cycleStates[0];
+  // HL-144: one readout, the habits score (no rotating BP, pulse or streak views)
+  const current = { value: hasScore ? String(fillScore) : "--" };
 
   const scoreColor = isDark ? "#FFFFFF" : "#0f172a";
 
   return (
-    <TouchableOpacity
-      activeOpacity={0.9}
+    // HL-144: nothing to tap any more (the views no longer rotate), so a plain View
+    <View
       accessible={true}
-      accessibilityRole="button"
-      accessibilityLabel={`Heart score ${hasScore ? targetScore : "unavailable"} of 100, ${bandName(tokens.label)}. Showing ${current.label}.${cycleStates.length > 1 ? " Tap to cycle views." : ""}`}
-      onPress={() => {
-        if (cycleStates.length <= 1) return;
-        Haptics.selectionAsync();
-        setCycleIdx((i) => (i + 1) % cycleStates.length);
-      }}
+      accessibilityRole="image"
+      accessibilityLabel={`Habits score ${hasScore ? targetScore : "unavailable"} of 100, ${bandName(tokens.label)}`}
       style={{ width: size, height: size }}
     >
       <View style={{ width: size, height: size }}>
@@ -541,7 +492,7 @@ export function ScoreRing({
           <Particle key={i} {...p} color={heartColor} stageSize={size} />
         ))}
 
-        {/* Center readout (auto-cycles + tap-to-cycle, crossfades) */}
+        {/* Center readout: the habits score */}
         {/* Narrowed to the heart's interior so text can't spill past its edges */}
         <View
           style={[
@@ -555,7 +506,7 @@ export function ScoreRing({
           pointerEvents="none"
         >
           <Reanimated.View
-            key={`${cycleIdx}-${current.value}`}
+            key={current.value}
             entering={reduceMotion ? undefined : FadeInDown.duration(260)}
             exiting={FadeOutUp.duration(200)}
             style={{ alignItems: "center" }}
@@ -567,8 +518,9 @@ export function ScoreRing({
               style={[
                 styles.scoreText,
                 {
-                  fontSize: current.small ? Math.round(size * 0.08) : Math.round(size * 0.12),
-                  lineHeight: current.small ? Math.round(size * 0.09) : Math.round(size * 0.13),
+                  // HL-144: the score is the card's main number, so it's large; the card's title names it
+                  fontSize: Math.round(size * 0.21),
+                  lineHeight: Math.round(size * 0.24),
                   color: scoreColor,
                   opacity: scoreFade,
                   transform: [{ translateY: scoreSlide }],
@@ -589,13 +541,12 @@ export function ScoreRing({
                   opacity: labelFade,
                   width: "100%",
                   textAlign: "center",
-                  fontSize: Math.max(8, Math.round(size * 0.030))
+                  fontSize: Math.max(10, Math.round(size * 0.075))
                 }
               ]}
             >
-              {current.label === "SCORE" 
-                ? `Health Score${trend && trend !== "0" && trend !== "+0" ? ` ${trend.startsWith('-') ? '↓' : '↑'} ${Math.abs(parseInt(trend))}` : ''}`
-                : current.unit ? `${current.label} · ${current.unit}` : current.label}
+              {/* "Habits score" didn't fit inside the heart on a phone; the card's title already says it */}
+              {hasScore ? `of 100${trend && trend !== "0" && trend !== "+0" ? ` ${trend.startsWith('-') ? '↓' : '↑'} ${Math.abs(parseInt(trend))}` : ''}` : ""}
             </Animated.Text>
           </Reanimated.View>
         </View>
@@ -617,7 +568,7 @@ export function ScoreRing({
           }}
         />
       </View>
-    </TouchableOpacity>
+    </View>
   );
 }
 

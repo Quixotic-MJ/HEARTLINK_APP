@@ -14,17 +14,7 @@ import { SquareIconButton } from "../../../components/exercise/ExerciseBits";
 import { useUser } from "../../../contexts/UserContext";
 import { useToast } from "../../../contexts/ToastContext";
 import { PremiumRequiredError, useHealthReport } from "../../../hooks/useHealthReport";
-import {
-  HealthReport,
-  ReportDays,
-  bp,
-  dateLabel,
-  hasReadings,
-  medicinesLine,
-  periodLabel,
-  reportHtml,
-  scoreLine,
-} from "../../../services/healthReport";
+import { HealthReport, ReportDays, periodLabel, reportHtml, reportSections } from "../../../services/healthReport";
 
 // HL-085: the doctor-ready health report (Premium). A summary of the last 1 or 3 months to show at a checkup,
 // shared as a PDF. It only summarises what was logged; it never diagnoses.
@@ -69,62 +59,18 @@ function Row({ label, value, last = false }: { label: string; value: string; las
 }
 
 function ReportBody({ report }: { report: HealthReport }) {
-  const r = report;
+  // HL-096: the same sections, in the same order, as the PDF and the portal's patient page
   return (
     <>
-      <Section title="Blood pressure">
-        {hasReadings(r) ? (
-          <>
-            <Row label="Average" value={`${bp(r.blood_pressure.average)} mmHg`} />
-            <Row label="Highest" value={`${bp(r.blood_pressure.highest)} · ${dateLabel(r.blood_pressure.highest.date)}`} />
-            <Row label="Lowest" value={`${bp(r.blood_pressure.lowest)} · ${dateLabel(r.blood_pressure.lowest.date)}`} />
-            <Row label="Mornings" value={r.blood_pressure.morning ? bp(r.blood_pressure.morning) : "No readings"} />
-            <Row label="Evenings" value={r.blood_pressure.evening ? bp(r.blood_pressure.evening) : "No readings"} />
-            {r.blood_pressure.categories
-              .filter((cat) => cat.readings > 0)
-              .map((cat, i, list) => (
-                <Row key={cat.key} label={cat.label} value={`${cat.readings}×`} last={i === list.length - 1} />
-              ))}
-          </>
-        ) : (
-          <Row label="Readings" value="None logged" last />
-        )}
-      </Section>
-      <Section title="Heart and score">
-        <Row label="Average pulse" value={r.pulse.average === null ? "Not logged" : `${r.pulse.average} bpm`} />
-        <Row label="HeartLink score" value={scoreLine(r.score)} last />
-      </Section>
-      <Section title="Medicines">
-        <Row label="Taken" value={medicinesLine(r.medicines)} last />
-      </Section>
-      <Section title="Food">
-        <Row label="Sodium a day" value={r.sodium.average_mg === null ? "No meals logged" : `${r.sodium.average_mg.toLocaleString()} mg`} />
-        <Row
-          label="Days over your limit"
-          value={r.sodium.limit_mg ? `${r.sodium.days_over_limit} of ${r.sodium.days_with_meals}` : "–"}
-          last
-        />
-      </Section>
-      <Section title="Movement and sleep">
-        <Row label="Exercise" value={`${r.exercise.minutes_per_week} min a week`} />
-        <Row label="Average sleep" value={r.sleep.average_hours === null ? "Not logged" : `${r.sleep.average_hours} h`} last />
-      </Section>
-      <Section title="Symptoms">
-        {r.symptoms.length ? (
-          r.symptoms.map((s, i) => <Row key={s.name} label={s.name} value={`${s.times}×`} last={i === r.symptoms.length - 1} />)
-        ) : (
-          <Row label="Reported" value="None" last />
-        )}
-      </Section>
-      <Section title="Health alerts">
-        {r.alerts.length ? (
-          r.alerts.map((a, i) => <Row key={`${a.date}-${i}`} label={dateLabel(a.date)} value={a.type} last={i === r.alerts.length - 1} />)
-        ) : (
-          <Row label="Alerts" value="None" last />
-        )}
-      </Section>
+      {reportSections(report).map((section) => (
+        <Section key={section.title} title={section.title}>
+          {section.rows.map((r, i) => (
+            <Row key={`${r.label}-${i}`} label={r.label} value={r.value} last={i === section.rows.length - 1} />
+          ))}
+        </Section>
+      ))}
       <View style={{ marginTop: 18 }}>
-        <InfoNote icon="info" text={r.disclaimer} />
+        <InfoNote icon="info" text={report.disclaimer} />
       </View>
     </>
   );

@@ -1,3 +1,4 @@
+import { bandLabel, percentText, RiskBand } from "../../services/heartRisk";
 import React, { useState } from "react";
 import { Linking, Text, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
@@ -118,7 +119,13 @@ export default function FollowedPersonScreen() {
             unit={s.latest_pulse ? "bpm" : undefined}
             note={s.latest_pulse ? agoLine(s.latest_pulse.at) : "No readings yet"}
           />
-          <Tile label="Heart score" value={s.score ? String(s.score.value) : "--"} note={s.score ? agoLine(s.score.at) : "No score yet"} />
+          {/* HL-145: family followers see the Heart risk too (lower is better) */}
+          <Tile
+            label="Heart risk, 10 years"
+            value={s.heart_risk ? percentText(s.heart_risk.percent) : "--"}
+            note={s.heart_risk ? `${bandLabel(s.heart_risk.band as RiskBand)}${s.heart_risk.kind === "estimated" ? ", estimated" : ""}` : "Not worked out yet"}
+          />
+          <Tile label="Habits score" value={s.score ? String(s.score.value) : "--"} note={s.score ? agoLine(s.score.at) : "No score yet"} />
           <Tile label="Last check-in" value={agoLine(s.last_check_in)} note="Any check-in" />
         </View>
 
@@ -141,7 +148,7 @@ export default function FollowedPersonScreen() {
         </View>
 
         <View style={{ gap: 10 }}>
-          <Text accessibilityRole="header" style={{ fontSize: 18, fontWeight: "600", color: c.ink }}>Heart score, last 30 days</Text>
+          <Text accessibilityRole="header" style={{ fontSize: 18, fontWeight: "600", color: c.ink }}>Habits score, last 30 days</Text>
           {scores.length ? (
             <TrendChart
               kind="line"
@@ -150,7 +157,7 @@ export default function FollowedPersonScreen() {
               yMin={Math.max(0, Math.min(60, Math.floor((Math.min(...scores) - 5) / 10) * 10))}
               yMax={100}
               ticks={[60, 80, 100]}
-              accessibilityLabel={`${s.name}'s heart score over the last 30 days.`}
+              accessibilityLabel={`${s.name}'s habits score over the last 30 days.`}
             />
           ) : (
             <Text style={{ fontSize: 15, color: c.slate }}>No score in the last 30 days.</Text>

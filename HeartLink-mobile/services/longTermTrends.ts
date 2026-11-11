@@ -103,7 +103,7 @@ export function monthCompareRows(m: LongTermTrends["month_compare"]): CompareRow
   return [
     { key: "bp", label: "Blood pressure", now: bp(m.this), before: bp(m.last), change: change(m.this.systolic, m.last.systolic, " mmHg") },
     { key: "pulse", label: "Pulse", now: show(m.this.pulse), before: show(m.last.pulse), change: change(m.this.pulse, m.last.pulse, " bpm") },
-    { key: "score", label: "Heart score", now: show(m.this.score), before: show(m.last.score), change: change(m.this.score, m.last.score, "") },
+    { key: "score", label: "Habits score", now: show(m.this.score), before: show(m.last.score), change: change(m.this.score, m.last.score, "") },
     {
       key: "sodium",
       label: "Sodium a day",

@@ -9,6 +9,7 @@ import { Skeleton } from "../../components/ui/skeleton.jsx";
 import { apiFetch } from "../../lib/api.js";
 import { useApiQuery } from "../../hooks/useApiQuery.js";
 import LoadError from "../../components/ui/loadError.jsx";
+import { riskBand, riskPercent } from "../careTeam/vitals.js";
 import {
   AGREEMENT,
   CHECKUP,
@@ -423,6 +424,16 @@ function CardiologyResult({ section, app, canEdit, onEdit }) {
             ) : null}
             {SCORERS[app?.scorer] || ""}
           </div>
+          {/* HL-146: the Heart risk when the round opened (AHA PREVENT), extra information only */}
+          {app?.heart_risk?.percent != null && (
+            <div className="mt-2 border-t border-cal-hairline pt-2 text-[12px] text-cal-muted">
+              Heart risk{" "}
+              <span className="font-cal-mono font-semibold text-cal-ink">
+                {riskPercent(app.heart_risk.percent)}
+              </span>
+              {`, ${riskBand(app.heart_risk.band).label}${app.heart_risk.kind === "estimated" ? " (estimated)" : ""}`}
+            </div>
+          )}
         </div>
 
         <div

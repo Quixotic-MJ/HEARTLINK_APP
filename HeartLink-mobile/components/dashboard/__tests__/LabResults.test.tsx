@@ -44,7 +44,7 @@ describe("Lab results (HL-138)", () => {
 
   it("shows a saved result, until when it counts, and the doctor note", async () => {
     await show();
-    expect(await screen.findByText(/^Counts in your Heart score until/)).toBeOnTheScreen();
+    expect(await screen.findByText(/^Counts until/)).toBeOnTheScreen();
     expect(screen.getByText("Share this result with your doctor at your next checkup.")).toBeOnTheScreen();
     expect(screen.getByRole("button", { name: "Remove cholesterol result" })).toBeOnTheScreen();
   });
@@ -52,7 +52,7 @@ describe("Lab results (HL-138)", () => {
   it("shows numbers in mmol/L and saves them as mg/dL", async () => {
     const user = userEvent.setup();
     await show();
-    await screen.findByText(/^Counts in your Heart score until/);
+    await screen.findByText(/^Counts until/);
     await user.press(screen.getByRole("radio", { name: /mmol\/L/ }));
     expect(await screen.findByDisplayValue("5.2")).toBeOnTheScreen(); // 201 mg/dL
     await user.press(screen.getAllByRole("button", { name: "Save new result" })[0]);
@@ -64,7 +64,7 @@ describe("Lab results (HL-138)", () => {
   it("asks for HbA1c when someone has diabetes", async () => {
     const user = userEvent.setup();
     await show();
-    await screen.findByText(/^Counts in your Heart score until/);
+    await screen.findByText(/^Counts until/);
     const yes = screen.getAllByRole("radio", { name: "Yes" });
     await user.press(yes[yes.length - 1]); // "Have you been told you have diabetes?"
     expect(screen.getByText("With diabetes, the AHA scores HbA1c only, so add your HbA1c.")).toBeOnTheScreen();

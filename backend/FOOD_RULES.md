@@ -42,11 +42,13 @@ Calories and cholesterol are shown against daily limits but don't change the sco
 | Food | Source | Confirmed? |
 |---|---|---|
 | HeartLink recipes | Entered in the portal; a Dietitian approves each recipe before patients see it | The approval is recorded. **The source of each recipe's numbers isn't recorded** |
-| Barcode and packaged foods | Open Food Facts (a public, crowd-sourced database), values per 100 g, labelled "check the package" | Yes |
+| Barcode and packaged foods (scanned, or found by typing a name) | Open Food Facts (a public, crowd-sourced database), values per 100 g, labelled "check the package" (`barcode-scan.tsx`, `searchPackagedFoods` in `services/foodSearch.ts`) | Yes |
+| Recent meals | Copies of the patient's own earlier logs, so they carry whichever source above the first log used | Yes |
 | Foods the patient types in | The patient's own estimate | Yes, labelled as an estimate |
 | Quick Filipino dishes (sinigang, tinola, rice) | Three fixed values in `estimate-meal.tsx` | **No. No source is recorded, so these can't be confirmed from the code** |
 
-HeartLink has **no separate local food list**, and the app doesn't use FNRI or USDA data directly. The report's suggested
+Checked against the code on 2026-11-10: these are the only sources. The AI (Gemini) writes companion notes only and
+never supplies food values. HeartLink has **no separate local food list**, and the app doesn't use FNRI or USDA data directly. The report's suggested
 sources would be new work: FNRI's [Philippine Food Composition Tables](https://i.fnri.dost.gov.ph/fct/library) and
 [USDA FoodData Central](https://fdc.nal.usda.gov/).
 

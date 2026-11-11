@@ -21,6 +21,8 @@ export type FamilySummary =
       latest_bp: { systolic: number; diastolic: number; at: string } | null;
       latest_pulse: { bpm: number; at: string } | null;
       score: { value: number; at: string } | null;
+      // HL-139: the Heart risk (older servers leave it out)
+      heart_risk?: { percent: number; band: string; kind: "calculated" | "estimated"; at: string } | null;
       last_check_in: string | null;
       days: SummaryDay[];
       open_alerts: { type: string; severity: string | null; at: string }[];

@@ -1,3 +1,4 @@
+import { DISCLAIMER } from "../../../services/heartRisk";
 import React, { useState, useCallback } from "react";
 import {
   View,
@@ -297,6 +298,8 @@ export default function DailyDiaryScreen() {
                   ? `${formatMg(-sodiumLeft)} mg over your daily limit. Pick low-salt food for the rest of today.`
                   : `${formatMg(sodiumLeft)} mg left for today.`}
               </Text>
+              {/* HL-147: the Cardiologist asked for this note on the food screens */}
+              <Text style={{ fontSize: 12, lineHeight: 17, color: c.steel }}>{DISCLAIMER}</Text>
             </View>
             )}
 

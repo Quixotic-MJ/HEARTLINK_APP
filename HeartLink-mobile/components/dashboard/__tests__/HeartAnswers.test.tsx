@@ -17,6 +17,9 @@ const ANSWERS = {
   fruit_veg_servings: "2-3",
   fried_food_freq: "sometimes",
   salty_food_freq: "sometimes",
+  bp_medicine: true,
+  has_diabetes: false,
+  cholesterol_medicine: false,
 };
 
 async function show() {
@@ -28,7 +31,7 @@ async function show() {
   );
 }
 
-describe("Smoking and diet answers", () => {
+describe("Health answers", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (loadHeartAnswers as jest.Mock).mockResolvedValue(ANSWERS);
@@ -61,5 +64,19 @@ describe("Smoking and diet answers", () => {
     (loadHeartAnswers as jest.Mock).mockRejectedValue(new Error("offline"));
     await show();
     expect(await screen.findByText(/couldn't load your answers/)).toBeOnTheScreen();
+  });
+});
+
+
+describe("Health answers: the Heart risk questions (HL-140)", () => {
+  it("can't save until the three questions are answered", async () => {
+    jest.clearAllMocks();
+    (loadHeartAnswers as jest.Mock).mockResolvedValue({ ...ANSWERS, smoke_quit_when: "5_plus_years", bp_medicine: null, has_diabetes: null, cholesterol_medicine: null });
+    (saveHeartAnswers as jest.Mock).mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    await show();
+    expect(await screen.findByText("Do you take medicine for blood pressure?")).toBeOnTheScreen();
+    await user.press(screen.getByRole("button", { name: "Save answers" }));
+    expect(saveHeartAnswers).not.toHaveBeenCalled();
   });
 });

@@ -24,6 +24,7 @@ from app.db.repositories import (
     get_profile_repo,
 )
 from app.services.health_report import TZ, _day, _live, _local, _number
+from app.services.heart_risk import summary as risk_summary
 from app.services.premium import PREMIUM_REQUIRED, is_premium
 from app.services.review_rules import FAINTED_SYMPTOM
 from app.utils.time import parse_utc, to_local_date, utc_now
@@ -229,6 +230,8 @@ def summary(user_id: str, patient_id: str) -> Dict[str, Any]:
         "latest_pulse": {"bpm": round(_number(pulses[-1]["heart_rate_bpm"])), "at": pulses[-1].get("logged_at")} if pulses else None,
         "score": {"value": round(_number(latest_score["score"])), "at": latest_score.get("computed_at")}
         if latest_score and _number(latest_score.get("score")) else None,
+        # HL-139: the Heart risk, which family followers see too (decided 2026-11-11)
+        "heart_risk": risk_summary(latest_score),
         "last_check_in": latest_log.get("logged_at") if latest_log else None,
         "days": [{"date": d.isoformat(), "systolic": v.get("systolic"), "diastolic": v.get("diastolic"), "score": v.get("score")}
                  for d, v in by_day.items()],

@@ -17,6 +17,7 @@ import { QUIT_OPTIONS } from "../../../constants/setupQuestions";
 import { useToast } from "../../../contexts/ToastContext";
 import { useUser } from "../../../contexts/UserContext";
 import { loadHeartAnswers, saveHeartAnswers } from "../../../services/heartScore";
+import { RISK_QUESTIONS } from "../../../services/heartRisk";
 
 const OFTEN = [
   { value: "rarely", label: "Rarely" },
@@ -44,6 +45,10 @@ const schema = z
     fruit_veg_servings: z.string().min(1),
     fried_food_freq: z.string().min(1),
     salty_food_freq: z.string().min(1),
+    // HL-140: the Heart risk's three answers
+    bp_medicine: z.boolean(),
+    has_diabetes: z.boolean(),
+    cholesterol_medicine: z.boolean(),
   })
   .refine((a) => !a.ever_smoked || !!a.smoke_now, { path: ["smoke_now"] })
   .refine((a) => !a.ever_smoked || a.smoke_now !== "Not at all" || !!a.smoke_quit_when, { path: ["smoke_quit_when"] });
@@ -60,7 +65,7 @@ function Question({ title, children }: { title: string; children: React.ReactNod
   );
 }
 
-/** HL-114: the Heart score's smoking and diet answers can change after setup. */
+/** HL-114: the smoking and diet answers can change after setup. HL-140: so can the Heart risk's three answers. */
 export default function HeartAnswersScreen() {
   const { c, isDark } = useDs();
   const router = useRouter();
@@ -100,7 +105,7 @@ export default function HeartAnswersScreen() {
     try {
       await saveHeartAnswers(userId, values);
       await queryClient.invalidateQueries({ queryKey: ["dashboard", userId] });
-      showToast({ title: "Answers saved", message: "Your Heart score is up to date.", type: "success" });
+      showToast({ title: "Answers saved", message: "Your heart risk and habits score are up to date.", type: "success" });
       router.back();
     } catch {
       showToast({ title: "Not saved", message: "Check your connection and try again.", type: "error" });
@@ -116,7 +121,7 @@ export default function HeartAnswersScreen() {
       <View className="flex-row items-center px-5 pt-3 pb-3 border-b border-ds-hairline bg-ds-canvas" style={{ gap: 12 }}>
         <SquareIconButton icon="arrow-left" label="Go back" onPress={() => router.back()} />
         <Text accessibilityRole="header" className="text-[22px] font-semibold text-ds-ink flex-1" numberOfLines={1}>
-          Smoking and diet answers
+          Health answers
         </Text>
       </View>
 
@@ -134,7 +139,12 @@ export default function HeartAnswersScreen() {
         </View>
       ) : (
         <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 60, gap: 28 }} showsVerticalScrollIndicator={false}>
-          <InfoNote title="Why we ask" text="These answers set the nicotine and diet parts of your Heart score. Update them when your habits change." />
+          <InfoNote title="Why we ask" text="These answers go into your heart risk and the nicotine and diet parts of your habits score. Update them when anything changes." />
+          {RISK_QUESTIONS.map((q) => (
+            <Question key={q.key} title={q.text}>
+              <YesNo value={answers[q.key] ?? undefined} onChange={pick(q.key)} accessibilityLabel={q.text} />
+            </Question>
+          ))}
 
           <Question title="Have you ever smoked regularly?">
             <YesNo value={answers.ever_smoked} onChange={pick("ever_smoked")} accessibilityLabel="Have you ever smoked regularly?" />

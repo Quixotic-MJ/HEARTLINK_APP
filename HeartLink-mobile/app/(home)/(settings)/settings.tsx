@@ -335,8 +335,8 @@ export default function SettingsScreen() {
               />
               <SettingsRow
                 icon="edit-3"
-                label="Smoking and diet answers"
-                subtitle="Keep your Heart score up to date"
+                label="Health answers"
+                subtitle="Medicine, diabetes, smoking and diet"
                 iconBg={isDark ? "rgba(245, 158, 11, 0.16)" : "#FEF3C7"}
                 iconColor={isDark ? "#FBBF24" : "#D97706"}
                 onPress={() => router.push("/(home)/(settings)/heart-answers")}

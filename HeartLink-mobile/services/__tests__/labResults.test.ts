@@ -25,7 +25,16 @@ describe("whether a result still counts", () => {
   const base = { kind: "cholesterol" as const, test_date: "2026-10-01", note: null };
   it("says until when, or that it's too old", () => {
     expect(countsText(null)).toBe("Not added");
-    expect(countsText({ ...base, counts: true, counts_until: "2027-10-01" })).toMatch(/^Counts in your Heart score until/);
+    expect(countsText({ ...base, counts: true, counts_until: "2027-10-01" })).toMatch(/^Counts until/);
     expect(countsText({ ...base, counts: false, counts_until: "2026-10-01" })).toMatch(/no longer counts/);
+  });
+});
+
+describe("kidney units (HL-141)", () => {
+  it("converts creatinine from µmol/L to mg/dL and back", () => {
+    expect(toMgDl("88", "mmol", "creatinine")).toBe(1);
+    expect(toMgDl("0.85", "mgdl", "creatinine")).toBe(0.85);
+    expect(fromMgDl(1, "mmol", "creatinine")).toBe("88");
+    expect(fromMgDl(0.85, "mgdl", "creatinine")).toBe("0.85");
   });
 });

@@ -128,6 +128,10 @@ export type HeartAnswers = {
   fruit_veg_servings?: string;
   fried_food_freq?: string;
   salty_food_freq?: string;
+  // HL-140: for the Heart risk; null until answered
+  bp_medicine?: boolean | null;
+  has_diabetes?: boolean | null;
+  cholesterol_medicine?: boolean | null;
 };
 
 /** The smoking and diet answers from setup. */
@@ -143,6 +147,9 @@ export async function loadHeartAnswers(userId: string): Promise<HeartAnswers> {
     fruit_veg_servings: saved.fruit_veg_servings ?? "",
     fried_food_freq: saved.fried_food_freq ?? "",
     salty_food_freq: saved.salty_food_freq ?? "",
+    bp_medicine: saved.bp_medicine ?? null,
+    has_diabetes: saved.has_diabetes ?? null,
+    cholesterol_medicine: saved.cholesterol_medicine ?? null,
   };
 }
 

@@ -6,6 +6,7 @@ adds meals to the vitals, a Physical Therapist adds exercise.
 """
 from typing import Any, Dict, List
 
+from app.services.heart_risk import summary as risk_summary
 from app.db.repositories import (
     get_exercises_repo,
     get_health_logs_repo,
@@ -66,6 +67,7 @@ def list_patients() -> List[Dict[str, Any]]:
             "score": score.get("score") if score else None,
             "tier": score.get("tier") if score else None,
             "score_at": score.get("computed_at") if score else None,
+            "heart_risk": risk_summary(score),  # HL-139
             "open_alerts": open_alerts.get(pid, 0),
         })
 

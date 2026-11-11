@@ -416,13 +416,14 @@ def test_the_models_starting_score_stays_until_the_first_log(repos):
 
 def test_nothing_is_saved_when_todays_score_is_current(repos):
     today = datetime.now(timezone.utc).isoformat()
-    current = [{"score": 79, "computed_at": today, "contributing_factors": {"method": hs.METHOD_VERSION}}]
+    current = [{"score": 79, "computed_at": today, "contributing_factors": {"method": hs.METHOD_VERSION, "risk": None}}]
     assert hs.refresh_if_outdated("u1", current) == current and not repos.saved
 
 
 def test_a_new_day_saves_only_if_something_changed_and_checks_once(repos, monkeypatch):
     result = hs.score_for_user("u1")
-    same = [{"score": result["score"], "computed_at": at(3), "contributing_factors": {"method": hs.METHOD_VERSION, "areas": result["areas"]}}]
+    same = [{"score": result["score"], "computed_at": at(3),
+             "contributing_factors": {"method": hs.METHOD_VERSION, "areas": result["areas"], "risk": result.get("risk")}}]
     assert hs.refresh_if_outdated("u1", same) == same and not repos.saved
 
     calls = []
@@ -430,9 +431,19 @@ def test_a_new_day_saves_only_if_something_changed_and_checks_once(repos, monkey
     hs.refresh_if_outdated("u1", same)
     assert not calls  # already checked today
 
-    changed = [{"score": 90, "computed_at": at(3), "contributing_factors": {"method": hs.METHOD_VERSION, "areas": {}}}]
+    changed = [{"score": 90, "computed_at": at(3), "contributing_factors": {"method": hs.METHOD_VERSION, "areas": {}, "risk": None}}]
     history = hs.refresh_if_outdated("u2", changed)
     assert history[0]["contributing_factors"]["trigger"] == "daily_update" and len(history) == 2
+
+
+def test_a_record_from_before_the_heart_risk_is_refreshed_once(repos):
+    # HL-139: today's record was saved before the risk existed, so it's worked out again to add the risk
+    today = datetime.now(timezone.utc).isoformat()
+    before = [{"score": 79, "computed_at": today, "contributing_factors": {"method": hs.METHOD_VERSION}}]
+    history = hs.refresh_if_outdated("u1", before)
+    assert len(history) == 2 and "risk" in history[0]["contributing_factors"]
+    # HL-144: its note says the risk is new, not that the score's method changed
+    assert history[0]["contributing_factors"]["trigger"] == "risk_added"
 
 
 def test_a_refresh_failure_leaves_the_history_alone(monkeypatch):

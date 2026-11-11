@@ -132,3 +132,18 @@ describe("highlights", () => {
     expect(scoreChange(days, [null, null, 70, null, null, null, null], NOW)).toBeNull();
   });
 });
+
+
+describe("riskByDay (HL-145)", () => {
+  it("takes each day's latest Heart risk and skips records without one", () => {
+    const { riskByDay, periodDays } = jest.requireActual("../trends");
+    const days = periodDays(7, new Date("2026-10-30T10:00:00+08:00"));
+    const history = [
+      { computed_at: "2026-10-29T01:00:00Z", contributing_factors: { risk: { available: true, ascvd_10: 6.1 } } },
+      { computed_at: "2026-10-29T05:00:00Z", contributing_factors: { risk: { available: true, ascvd_10: 5.4 } } },
+      { computed_at: "2026-10-30T01:00:00Z", contributing_factors: { risk: { available: false, reason: "questions" } } },
+    ];
+    const risks = riskByDay(days, history);
+    expect(risks.filter((r: number | null) => r !== null)).toEqual([5.4]);
+  });
+});

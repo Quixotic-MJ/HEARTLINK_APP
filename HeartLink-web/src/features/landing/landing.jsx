@@ -54,15 +54,15 @@ const questions = [
   ],
   [
     "Does HeartLink diagnose or treat a condition?",
-    "No. It doesn't diagnose, treat or predict disease, and it isn't an emergency service. If a reading is very high or very low, the app tells you to get care in person.",
+    "No. It doesn't diagnose or treat disease, and it isn't an emergency service. Its heart risk is an estimate to discuss with your doctor. If a reading is very high or very low, the app tells you to get care in person.",
   ],
   [
     "Do I need a blood pressure monitor?",
     "It helps, because blood pressure is the main thing HeartLink tracks. You can still log meals, movement and sleep without one.",
   ],
   [
-    "How is the Heart score worked out?",
-    "It's based on the American Heart Association's Life's Essential 8. HeartLink uses the six parts you can track without lab tests: blood pressure, activity, sleep, nicotine, weight and diet. Your starting score comes from a model trained on a US national health survey (NHANES 2017–2018).",
+    "How are the heart risk and habits score worked out?",
+    "Your heart risk is the chance of a heart attack or stroke in the next 10 years, from the American Heart Association's PREVENT equations, for ages 30 to 79. Without cholesterol and kidney results, it's estimated from your setup answers. Your habits score is based on the AHA's Life's Essential 8: blood pressure, activity, sleep, nicotine, weight and diet, plus cholesterol and blood sugar if you add lab results. Both use a US national health survey (NHANES 2017–2018).",
   ],
   ["Who checks the recipes and exercises?", CONTENT_CHECK],
   ["What about Premium?", `${PREMIUM} This website doesn't take payment details.`],
@@ -276,8 +276,9 @@ export default function Landing() {
             </h1>
             <p className="landing-hero-description">
               HeartLink helps adults track blood pressure, meals, movement and
-              sleep, and turns them into a Heart score based on the American
-              Heart Association's Life's Essential 8.
+              sleep, and shows your heart risk (the American Heart
+              Association's PREVENT estimate) and a habits score based on its
+              Life's Essential 8.
             </p>
             <div className="landing-hero-actions">
               <a href="#download" className={primary}>
@@ -341,7 +342,7 @@ export default function Landing() {
               How it works
             </p>
             <h2 className="mt-3 text-[30px] font-semibold leading-tight tracking-[-0.7px] sm:text-[38px]">
-              Your score.
+              Your heart.
               <br />
               Your own pace.
             </h2>
@@ -354,15 +355,15 @@ export default function Landing() {
             {[
               [
                 "Answer a few setup questions",
-                "Height, weight, activity, sleep and smoking give you a starting score.",
+                "Height, weight, activity, sleep and smoking give you a starting heart risk and habits score.",
               ],
               [
                 "Log what you do",
-                "Each reading, meal, workout and night's sleep updates your Heart score, out of 100.",
+                "Each reading, meal, workout and night's sleep updates your habits score, out of 100.",
               ],
               [
                 "See what to work on",
-                "Trends show your week, and the score shows which habit would help most. It's a wellness indicator, not a diagnosis.",
+                "Trends show your week, and your habits score shows which habit would help most. Neither number is a diagnosis.",
               ],
             ].map(([title, text], index) => (
               <li key={title} className="flex gap-5">

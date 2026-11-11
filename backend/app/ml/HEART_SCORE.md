@@ -1,5 +1,9 @@
 # Heart score: the method and the evidence for every part (HL-111, HL-118)
 
+> **Since HL-139 (2026-11-11) the app calls this "Heart health habits".** The app's main number is now the Heart risk
+> (AHA PREVENT, `HEART_RISK.md`), as the Cardiologist advised. This score stays under it, unchanged, to show daily
+> progress. Case review, Model check and suggestions still use its levels.
+
 > **Status: not yet reviewed by any expert.** The review pack is
 > [HeartLink Heart Score: Expert Review Pack](https://claude.ai/artifact/5qTcaMpKMPo1VjYZo42e8v). Don't describe the
 > score as reviewed until a form is signed, and then only for the areas that reviewer covered.
@@ -134,12 +138,26 @@ details, and the portal labels them under their old names.
 
 - It's an adapted method, not the official LE8 score.
 - The score can jump at the first log, when the model's estimate gives way to the areas.
-- It usually uses 6 of 8 areas, and new users have setup answers only.
-- The data is self-reported.
+- It usually uses 6 of 8 areas. Cholesterol and blood sugar count only when the person adds a lab result, and new
+  users have setup answers only.
+- The data is self-reported, lab results included.
 - It hasn't been validated, so nothing can be claimed about predicting outcomes.
 
 ## Sources
 
 1. Lloyd-Jones DM, et al. Life's Essential 8: Updating and Enhancing the American Heart Association's Construct of
    Cardiovascular Health. Circulation, 2022. [Full paper](https://pmc.ncbi.nlm.nih.gov/articles/PMC10503546/).
+   Check for a newer AHA edition before the manuscript is final.
 2. Daily limits and their sources: `backend/HEALTH_TARGETS.md`. Food rules: `backend/FOOD_RULES.md`.
+3. The starting estimate: NHANES 2017-2018 and the model's method, in `STARTING_SCORE.md`.
+4. The lab result tables were checked against the essential8 scoring package, which is built from [1]. The unit
+   conversions (cholesterol mmol/L x 38.67, glucose mmol/L x 18) are the standard ones.
+
+## Every part, by label (HL-098)
+
+| Label | Parts |
+|---|---|
+| AHA | Sleep points, body weight points (Asian and Pacific row), cholesterol and blood sugar points |
+| Adapted | Blood pressure (which readings, no medicine deduction), activity (which minutes count), nicotine (one question for all products) |
+| HeartLink, needs expert review | Diet questions, the first-week setup answers, the blood pressure limits (79, 59, 49), the floor of 50, the 30-day no-reading limit, averaging only areas with data, BMI under 18.5, the four level bands |
+| Machine learning | The starting estimate before the first log (`STARTING_SCORE.md`) |

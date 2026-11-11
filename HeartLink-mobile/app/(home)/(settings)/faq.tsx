@@ -9,8 +9,12 @@ import { Feather } from "@expo/vector-icons";
 
 const faqs = [
   {
-    question: "How does the Heart score work?",
-    answer: "Your first Heart score is a machine learning model's estimate from your setup answers. Once you log something, it's a wellness guide based on the American Heart Association's Life's Essential 8. It averages the points for your blood pressure, activity, sleep, nicotine, body weight and diet, using your last 7 days and your answers. High blood pressure limits how high it can go, so good habits can't hide it. It isn't the official AHA score, it hasn't been validated, and it doesn't diagnose or predict any condition."
+    question: "What is my heart risk?",
+    answer: "Your chance of a heart attack or stroke in the next 10 years, from the American Heart Association's PREVENT equations, for ages 30 to 79. Lower is better. It uses your age, sex, cholesterol and HDL, kidney function, daytime blood pressure, smoking, diabetes, and blood pressure or cholesterol medicine. Until you add cholesterol and kidney lab results, HeartLink estimates them from your answers and shows Estimated. It's an estimate to discuss with your doctor, not a diagnosis, and it was built on US data.",
+  },
+  {
+    question: "How does the habits score work?",
+    answer: "Your first habits score is a machine learning model's estimate from your setup answers. Once you log something, it's a wellness guide based on the American Heart Association's Life's Essential 8. It averages the points for your blood pressure, activity, sleep, nicotine, body weight and diet, using your last 7 days and your answers. High blood pressure limits how high it can go, so good habits can't hide it. It isn't the official AHA score, it hasn't been validated, and it doesn't diagnose or predict any condition."
   },
   {
     question: "How do I manage my Care Team contacts?",

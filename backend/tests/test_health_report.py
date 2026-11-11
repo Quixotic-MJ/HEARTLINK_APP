@@ -84,6 +84,7 @@ def test_the_report_sums_up_the_period(data):
         "crisis": 0, "low": 0, "stage_2": 1, "stage_1": 1, "elevated": 0, "normal": 1}
     assert r["pulse"] == {"average": 75, "readings": 2}
     assert r["score"] == {"start": 64, "end": 71, "change": 7}
+    assert r["heart_risk"] == {"start": None, "end": None, "band": None, "kind": None}  # no risk saved on these scores
     assert r["medicines"] == {"answered": 3, "taken": 2, "percent": 67}
     assert r["sodium"] == {"days_with_meals": 2, "average_mg": 1150, "limit_mg": 1500, "days_over_limit": 1}
     assert r["exercise"] == {"sessions": 2, "minutes": 75, "minutes_per_week": 18}
@@ -193,3 +194,11 @@ def test_the_report_lists_lab_results_that_still_count(data, monkeypatch):
     assert r["lab_results"]["cholesterol"]["total_cholesterol"] == 200 and r["lab_results"]["cholesterol"]["counts"]
     monkeypatch.setattr(labs, "_today", lambda: date(2027, 11, 9))
     assert build_report("pat", 30)["lab_results"] == {}
+
+
+def test_the_report_shows_the_heart_risk_change():
+    from app.services.health_report import _risk_change
+    rows = [{"computed_at": "2026-10-01", "contributing_factors": {"risk": {"available": True, "ascvd_10": 6.0, "band": "intermediate", "kind": "estimated"}}},
+            {"computed_at": "2026-10-05", "contributing_factors": {}},
+            {"computed_at": "2026-10-20", "contributing_factors": {"risk": {"available": True, "ascvd_10": 4.2, "band": "borderline", "kind": "calculated"}}}]
+    assert _risk_change(rows) == {"start": 6.0, "end": 4.2, "band": "borderline", "kind": "calculated"}

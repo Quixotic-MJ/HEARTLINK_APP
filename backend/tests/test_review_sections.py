@@ -150,8 +150,17 @@ def test_app_level_hidden_until_cardiology_is_in(world):
 
     review_sections.submit_cardiology(ROUND, GOOD, as_user("cardio"))
     after = review_sections.case_detail(ROUND, as_user("diet"))
-    assert after["app"] == {"tier": "Moderate", "score": 64, "scorer": "bp_rules"}
+    assert after["app"] == {"tier": "Moderate", "score": 64, "scorer": "bp_rules", "heart_risk": None}
     assert after["sections"]["cardiology"]["tier_agreement"] == "under"
+
+
+def test_heart_risk_shown_with_the_app_level_after_cardiology(world):
+    """HL-146: the Heart risk saved in the snapshot stays hidden with the app's level, then shows beside it."""
+    risk = {"percent": 12.4, "band": "high", "kind": "estimated", "at": "2026-11-11T00:00:00+00:00"}
+    world["cases"].rc["input_snapshot"] = {**(world["cases"].rc.get("input_snapshot") or {}), "heart_risk": risk}
+    assert review_sections.case_detail(ROUND, as_user("diet"))["app"] is None
+    review_sections.submit_cardiology(ROUND, GOOD, as_user("cardio"))
+    assert review_sections.case_detail(ROUND, as_user("diet"))["app"]["heart_risk"] == risk
 
 
 def test_unknown_round_is_404(world):

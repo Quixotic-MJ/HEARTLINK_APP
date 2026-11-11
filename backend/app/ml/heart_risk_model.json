@@ -1,0 +1,187 @@
+{
+  "version": "heart-risk-estimate-1",
+  "kind": "linear regressions predict total cholesterol, HDL and eGFR from setup answers; PREVENT then gives the risk",
+  "trained_at": "2026-11-11T10:57:16Z",
+  "data": "NHANES 2017-2018, adults 30-79, not pregnant, no heart disease or stroke, with cholesterol, HDL, BP and creatinine",
+  "label": "PREVENT 10-year ASCVD risk (Khan et al., Circulation 2024), base model, worked out with app/services/heart_risk.py from NHANES 2017-2018 measurements and answers",
+  "label_status": "pending expert review",
+  "features": [
+    "age",
+    "male",
+    "bmi",
+    "current_smoker",
+    "bp_medicine",
+    "diabetes",
+    "cholesterol_medicine",
+    "sbp"
+  ],
+  "medians": {
+    "age": 54.0,
+    "male": 0.0,
+    "bmi": 28.9,
+    "current_smoker": 0.0,
+    "bp_medicine": 0.0,
+    "diabetes": 0.0,
+    "cholesterol_medicine": 0.0,
+    "sbp": 124.6667
+  },
+  "means": {
+    "age": 52.723058,
+    "male": 0.471805,
+    "bmi": 30.133772,
+    "current_smoker": 0.185464,
+    "bp_medicine": 0.286967,
+    "diabetes": 0.14881,
+    "cholesterol_medicine": 0.195802,
+    "sbp": 127.398287
+  },
+  "scales": {
+    "age": 13.238003,
+    "male": 0.499204,
+    "bmi": 7.287606,
+    "current_smoker": 0.388673,
+    "bp_medicine": 0.452346,
+    "diabetes": 0.355901,
+    "cholesterol_medicine": 0.396817,
+    "sbp": 19.109607
+  },
+  "lab_models": {
+    "total_cholesterol": {
+      "weights": {
+        "age": 3.304564,
+        "male": -3.123516,
+        "bmi": -2.209365,
+        "current_smoker": -0.455996,
+        "bp_medicine": -1.386731,
+        "diabetes": -3.927935,
+        "cholesterol_medicine": -6.056112,
+        "sbp": 4.980634
+      },
+      "intercept": 194.132206
+    },
+    "hdl": {
+      "weights": {
+        "age": 1.167583,
+        "male": -5.185601,
+        "bmi": -4.271042,
+        "current_smoker": -0.121773,
+        "bp_medicine": -0.04559,
+        "diabetes": -1.762659,
+        "cholesterol_medicine": 0.1808,
+        "sbp": 0.570152
+      },
+      "intercept": 53.401942
+    },
+    "egfr": {
+      "weights": {
+        "age": -10.300341,
+        "male": -1.694436,
+        "bmi": -1.207679,
+        "current_smoker": -0.261839,
+        "bp_medicine": -2.225688,
+        "diabetes": 0.339484,
+        "cholesterol_medicine": 0.240241,
+        "sbp": 0.604795
+      },
+      "intercept": 93.089818
+    }
+  },
+  "metrics_cross_validated": {
+    "people": 3192,
+    "average_risk_percent": 4.4,
+    "share_by_band": {
+      "low": 0.519,
+      "borderline": 0.15,
+      "intermediate": 0.207,
+      "high": 0.123
+    },
+    "this_model": {
+      "mean_error_points": 0.78,
+      "rmse_points": 1.58,
+      "within_2_points": 0.909,
+      "same_band": 0.85,
+      "too_optimistic_band": 0.087,
+      "real_high_called_high": 0.776
+    },
+    "this_model_without_a_bp_reading": {
+      "mean_error_points": 1.06,
+      "rmse_points": 2.06,
+      "within_2_points": 0.853,
+      "same_band": 0.786,
+      "too_optimistic_band": 0.161,
+      "real_high_called_high": 0.585
+    },
+    "risk_directly_from_answers_linear": {
+      "mean_error_points": 1.09,
+      "rmse_points": 2.27,
+      "within_2_points": 0.853,
+      "same_band": 0.82,
+      "too_optimistic_band": 0.117,
+      "real_high_called_high": 0.786
+    },
+    "risk_directly_from_answers_linear_without_a_bp_reading": {
+      "mean_error_points": 1.22,
+      "rmse_points": 2.28,
+      "within_2_points": 0.81,
+      "same_band": 0.758,
+      "too_optimistic_band": 0.192,
+      "real_high_called_high": 0.562
+    },
+    "prevent_with_typical_lab_values": {
+      "mean_error_points": 0.79,
+      "rmse_points": 1.6,
+      "within_2_points": 0.905,
+      "same_band": 0.849,
+      "too_optimistic_band": 0.08,
+      "real_high_called_high": 0.766
+    },
+    "gradient_boosting": {
+      "mean_error_points": 0.82,
+      "rmse_points": 1.61,
+      "within_2_points": 0.903,
+      "same_band": 0.839,
+      "too_optimistic_band": 0.086,
+      "real_high_called_high": 0.738
+    },
+    "guessing_the_average": {
+      "mean_error_points": 3.47,
+      "rmse_points": 4.51,
+      "within_2_points": 0.29,
+      "same_band": 0.15,
+      "too_optimistic_band": 0.331,
+      "real_high_called_high": 0.0
+    },
+    "by_group": {
+      "women": {
+        "people": 1686,
+        "mean_error_points": 0.66,
+        "average_real": 3.71,
+        "average_estimate": 3.47
+      },
+      "men": {
+        "people": 1506,
+        "mean_error_points": 0.91,
+        "average_real": 5.18,
+        "average_estimate": 5.06
+      },
+      "age_30_49": {
+        "people": 1327,
+        "mean_error_points": 0.32,
+        "average_real": 1.24,
+        "average_estimate": 1.11
+      },
+      "age_50_64": {
+        "people": 1186,
+        "mean_error_points": 0.93,
+        "average_real": 4.6,
+        "average_estimate": 4.33
+      },
+      "age_65_79": {
+        "people": 679,
+        "mean_error_points": 1.39,
+        "average_real": 10.24,
+        "average_estimate": 10.11
+      }
+    }
+  }
+}

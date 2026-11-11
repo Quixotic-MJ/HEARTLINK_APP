@@ -68,7 +68,7 @@ export const CHECKUP = [
 ];
 
 export const SCORERS = {
-  heart_score: "Heart score (Life's Essential 8)",
+  heart_score: "Habits score (Life's Essential 8)",
   baseline_model: "Baseline model",
   bp_rules: "Blood-pressure rules",
   lifestyle_points: "Lifestyle points",

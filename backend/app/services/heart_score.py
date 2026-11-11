@@ -437,17 +437,37 @@ def score_for_user(user_id: str) -> Optional[Dict[str, Any]]:
     exercise_logs = get_exercises_repo().list_user_logs(user_id)
     # The log doesn't store the exercise's intensity, so it comes from the library
     routines = get_content_repo().list_routines() if any(e.get("routine_id") for e in exercise_logs) else []
-    return score_from(
-        baseline=get_baseline_repo().get_baseline(user_id),
-        profile=get_profile_repo().get_by_id(user_id),
-        health_logs=get_health_logs(user_id),
+    baseline = get_baseline_repo().get_baseline(user_id)
+    profile = get_profile_repo().get_by_id(user_id)
+    health_logs = get_health_logs(user_id)
+    sleep_logs = get_sleep_repo().list_user_logs(user_id)
+    lab_results = _lab_results(get_lab_results_repo, user_id)
+    result = score_from(
+        baseline=baseline,
+        profile=profile,
+        health_logs=health_logs,
         exercise_logs=exercise_logs,
-        sleep_logs=get_sleep_repo().list_user_logs(user_id),
+        sleep_logs=sleep_logs,
         meal_logs=get_meals_repo().list_user_meals(user_id),
         routines=routines,
         sodium_limit=_sodium_limit(user_id),
-        lab_results=_lab_results(get_lab_results_repo, user_id),
+        lab_results=lab_results,
     )
+    if result is not None:
+        result["risk"] = _risk(profile, baseline, health_logs, sleep_logs, lab_results)
+    return result
+
+
+def _risk(profile, baseline, health_logs, sleep_logs, lab_results) -> Optional[Dict[str, Any]]:
+    """HL-139: the Heart risk, saved with the habits score. A failure never stops the score being saved."""
+    from app.services import heart_risk
+
+    try:
+        return heart_risk.risk_for(profile=profile, baseline=baseline, health_logs=health_logs, sleep_logs=sleep_logs,
+                                   lab_results=lab_results)
+    except Exception as e:
+        logger.warning("Heart risk couldn't be worked out (%s)", type(e).__name__)
+        return None
 
 
 def _factors(result: Dict[str, Any], trigger: str, extra: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -460,6 +480,7 @@ def _factors(result: Dict[str, Any], trigger: str, extra: Optional[Dict[str, Any
         "areas_total": result["areas_total"],
         "average": result["average"],
         "rule": result["rule"],
+        "risk": result.get("risk"),
         **(extra or {}),
     }
 
@@ -470,11 +491,18 @@ def _save(user_id: str, result: Dict[str, Any], factors: Dict[str, Any]) -> Dict
     return get_hss_repo().create_hss_record(user_id, {
         "score": result["score"],
         "tier": result["tier"],
+        "risk_probability": _risk_probability(result.get("risk")),
         "source": "telemetry",
         "model_version": METHOD_VERSION,
         "contributing_factors": factors,
         "computed_at": utc_now().isoformat(),
     })
+
+
+def _risk_probability(risk: Optional[Dict[str, Any]]) -> Optional[float]:
+    from app.services.heart_risk import risk_probability
+
+    return risk_probability(risk)
 
 
 def recalculate_score(user_id: str, trigger: str, *, extra: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
@@ -511,7 +539,8 @@ def refresh_if_outdated(user_id: str, history: List[Dict[str, Any]]) -> List[Dic
     if latest.get("source") == "baseline":
         return history
     factors = latest.get("contributing_factors") or {}
-    outdated_method = factors.get("method") != METHOD_VERSION
+    # HL-139: a record saved before the Heart risk existed is refreshed once, so the risk appears without a new log
+    outdated_method = factors.get("method") != METHOD_VERSION or "risk" not in factors
     today = _local_now().date()
     if not outdated_method and _day(latest.get("computed_at")) == today:
         return history
@@ -525,9 +554,16 @@ def refresh_if_outdated(user_id: str, history: List[Dict[str, Any]]) -> List[Dic
         _checked_today.add(key)
         if result is None:
             return history
-        if not outdated_method and result["score"] == latest.get("score") and result["areas"] == factors.get("areas"):
+        same_risk = (result.get("risk") or {}).get("ascvd_10") == (factors.get("risk") or {}).get("ascvd_10")
+        if not outdated_method and result["score"] == latest.get("score") and result["areas"] == factors.get("areas") and same_risk:
             return history
-        trigger = "method_update" if outdated_method else "daily_update"
+        # HL-144: a record that only lacked the Heart risk says the risk is new, not that the score's method changed
+        if factors.get("method") != METHOD_VERSION:
+            trigger = "method_update"
+        elif outdated_method:
+            trigger = "risk_added"
+        else:
+            trigger = "daily_update"
         return [_save(user_id, result, _factors(result, trigger))] + history
     except Exception as e:
         logger.warning("Couldn't refresh the Heart score for %s: %s", user_id, e)

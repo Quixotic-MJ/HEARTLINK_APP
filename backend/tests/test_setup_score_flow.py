@@ -98,7 +98,9 @@ def test_setup_saves_the_models_starting_estimate(world):
     assert res.status_code == 201
     record = scores.saved[-1]
     assert record["source"] == "baseline" and record["model_version"].startswith("starting-score-le8")
-    assert 50 <= record["score"] <= 79 and "risk_probability" not in record
+    assert 50 <= record["score"] <= 79
+    # HL-139: no risk answers in this setup, so the risk waits for them
+    assert record["risk_probability"] is None and record["contributing_factors"]["risk"]["reason"] == "questions"
     factors = record["contributing_factors"]
     assert factors["source"] == "starting_model" and factors["model_estimate"] >= record["score"]
     assert res.json()["initial_hss"]["score"] == record["score"]
@@ -141,3 +143,44 @@ def test_no_one_can_change_someone_elses_answers(world):
     client = TestClient(app, base_url="https://testserver")
     res = client.put(f"/api/users/{PATIENT_ID}/baseline/answers", json=ANSWERS, headers={"Authorization": f"Bearer {token}"})
     assert res.status_code == 403
+
+
+# ── HL-140: the three Heart risk answers ──────────────────────────────────────────────────────────────────────────
+
+RISK_ANSWERS = dict(bp_medicine=True, has_diabetes=False, cholesterol_medicine=False)
+
+
+def test_setup_saves_the_risk_answers_and_an_estimated_risk(world):
+    baseline, scores = world
+    res = call("POST", "/baseline/complete", {**SETUP, **RISK_ANSWERS})
+    assert res.status_code == 201
+    assert {k: baseline.saved[k] for k in RISK_ANSWERS} == RISK_ANSWERS
+    risk = scores.saved[-1]["contributing_factors"]["risk"]
+    assert risk["kind"] == "estimated" and risk["age"] == 36 and risk["band"] == "low"
+    assert scores.saved[-1]["risk_probability"] == round(risk["ascvd_10"] / 100, 4)
+    assert res.json()["initial_hss"]["contributing_factors"]["risk"] == risk
+
+
+def test_an_older_app_without_them_still_finishes_setup(world):
+    baseline, _ = world
+    assert call("POST", "/baseline/complete", SETUP).status_code == 201
+    assert not any(k in baseline.saved for k in RISK_ANSWERS)
+
+
+def test_existing_users_answer_them_once_and_the_risk_follows(world):
+    baseline, scores = world
+    assert call("PUT", "/baseline/risk-answers", RISK_ANSWERS).status_code == 404  # setup first
+    call("POST", "/baseline/complete", SETUP)
+    res = call("PUT", "/baseline/risk-answers", RISK_ANSWERS)
+    assert res.status_code == 200 and baseline.saved["bp_medicine"] is True
+    risk = scores.saved[-1]["contributing_factors"]["risk"]
+    # No lab results, so it's the estimate (or, before the model file exists, "no_estimate"), never "questions"
+    assert risk.get("kind") == "estimated" or risk.get("reason") == "no_estimate"
+    assert call("PUT", "/baseline/risk-answers", {"bp_medicine": True}).status_code == 422
+
+
+def test_changing_heart_answers_keeps_the_risk_answers(world):
+    baseline, _ = world
+    call("POST", "/baseline/complete", {**SETUP, **RISK_ANSWERS})
+    assert call("PUT", "/baseline/answers", ANSWERS).status_code == 200
+    assert baseline.saved["bp_medicine"] is True

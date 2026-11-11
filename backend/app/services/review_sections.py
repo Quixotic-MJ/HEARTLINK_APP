@@ -100,8 +100,10 @@ def case_detail(round_id: str, current_user: Dict[str, Any]) -> Dict[str, Any]:
         "recommendations": recommendations,
         "sections": {name: _section_view(sections.get(name)) for name in SECTION_EXPERT_TYPE},
         "progress": section_progress(rc, set(sections), recommendations),
-        # Kept from reviewers until the Cardiologist has given their own level
-        "app": {"tier": rc.get("app_tier"), "score": rc.get("app_score"), "scorer": rc.get("app_scorer")} if cardiology_done else None,
+        # Kept from reviewers until the Cardiologist has given their own level. HL-146: the Heart risk saved when the
+        # round opened (None for older rounds) is shown with it, as extra information
+        "app": {"tier": rc.get("app_tier"), "score": rc.get("app_score"), "scorer": rc.get("app_scorer"),
+                "heart_risk": snap.get("heart_risk")} if cardiology_done else None,
         "viewer": _viewer(current_user, rc),
     }
 

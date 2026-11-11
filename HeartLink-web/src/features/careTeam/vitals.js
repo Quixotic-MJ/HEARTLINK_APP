@@ -39,3 +39,44 @@ export function tierDotClass(tier) {
 
 export const TAG =
   "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11.5px] font-medium whitespace-nowrap";
+
+// HL-146: the Heart risk (AHA PREVENT 10-year ASCVD, lower is better), as the backend sends it
+// (backend/app/services/heart_risk.py). Bands from the 2026 ACC/AHA guideline: under 3% Low, 3-4.9% Borderline,
+// 5-9.9% Intermediate, 10%+ High.
+const RISK_BANDS = {
+  low: { label: "Low", className: EMERALD, dotClass: "bg-cal-success" },
+  borderline: { label: "Borderline", className: AMBER, dotClass: "bg-cal-warning" },
+  intermediate: { label: "Intermediate", className: AMBER, dotClass: "bg-cal-warning" },
+  high: { label: "High", className: ROSE, dotClass: "bg-cal-error" },
+};
+
+export function riskBand(band) {
+  return RISK_BANDS[band] || { label: band || "No band", className: NEUTRAL, dotClass: "bg-cal-muted-soft" };
+}
+
+export function riskPercent(value) {
+  if (value == null || Number.isNaN(Number(value))) return null;
+  const n = Number(value);
+  return n < 1 ? "Under 1%" : `${n.toFixed(1).replace(/\.0$/, "")}%`;
+}
+
+/** A score history record's Heart risk ({available, ascvd_10, band, kind, ...}), or null for older records. */
+export function riskOfRecord(record) {
+  const risk = record?.contributing_factors?.risk;
+  return risk && typeof risk === "object" && "available" in risk ? risk : null;
+}
+
+/** Why a record has no Heart risk number, in a few words. */
+export function riskMissingText(risk) {
+  if (!risk) return "Not worked out";
+  switch (risk.reason) {
+    case "age":
+      return "Ages 30 to 79 only";
+    case "questions":
+      return "3 questions not answered";
+    case "profile":
+      return "Age or sex missing";
+    default:
+      return "Not worked out";
+  }
+}

@@ -112,6 +112,16 @@ def test_moving_to_the_new_method_explains_itself(monkeypatch):
     assert result["title"] == "Your Heart score was updated." and "Life's Essential 8" in result["body"]
 
 
+def test_adding_the_heart_risk_says_so_without_the_percent(monkeypatch):
+    """HL-144: the refresh that only added the Heart risk doesn't claim the score's method changed."""
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    risk = {"available": True, "ascvd_10": 4.1, "band": "borderline", "kind": "estimated"}
+    for trigger in ("risk_added", "method_update"):
+        result = _generate_insight([rec(58, trigger=trigger, risk=risk), rec(58, 60)], None)
+        assert result["title"] == "New: your heart risk."
+        assert "%" not in result["body"] and "4.1" not in result["body"]
+
+
 def test_older_records_without_the_new_details_still_give_a_note():
     old = [{"score": 70, "computed_at": "2026-10-02T00:00:00Z"}, {"score": 73, "computed_at": "2026-10-01T00:00:00Z"}]
     assert note(old)[0] == "Your score went down 3."

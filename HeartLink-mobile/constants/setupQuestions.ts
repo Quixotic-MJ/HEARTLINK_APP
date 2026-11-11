@@ -21,7 +21,7 @@ export interface SetupPart {
 export const SETUP_PART_LIST: SetupPart[] = [
   { n: 1, name: "About you", summary: "Name, birthday, sex, height, weight", tint: "sky", icon: "account-outline" },
   { n: 2, name: "Movement", summary: "Exercise, walking, sitting time", tint: "mint", icon: "walk" },
-  { n: 3, name: "Habits", summary: "Sleep, smoking, alcohol", tint: "lavender", icon: "weather-night" },
+  { n: 3, name: "Habits", summary: "Sleep, smoking, alcohol, medicine", tint: "lavender", icon: "weather-night" },
   { n: 4, name: "Food & goals", summary: "Meals, salt, goals, allergies", tint: "peach", icon: "leaf" },
 ];
 
@@ -31,7 +31,16 @@ export const QUIT_OPTIONS = [
   { value: "5_plus_years", label: "5 or more years ago" },
 ];
 
-type BooleanField = "vigorous_activity" | "moderate_activity" | "walk_bike_transport" | "ever_smoked" | "ever_drank";
+type BooleanField =
+  | "vigorous_activity"
+  | "moderate_activity"
+  | "walk_bike_transport"
+  | "ever_smoked"
+  | "ever_drank"
+  // HL-140: for the Heart risk
+  | "bp_medicine"
+  | "has_diabetes"
+  | "cholesterol_medicine";
 type ChoiceField =
   | "sex"
   | "sedentary_hours"
@@ -287,6 +296,37 @@ export const SETUP_QUESTIONS: SetupQuestion[] = [
       { value: "2-3x/week", label: "2 to 3 times a week" },
       { value: "4+/week", label: "4 or more times a week" },
     ],
+  },
+  // HL-140: the three answers the Heart risk (AHA PREVENT) needs
+  {
+    id: "bp-medicine",
+    part: 3,
+    kind: "yesno",
+    field: "bp_medicine",
+    icon: "pill",
+    title: "Do you take medicine for blood pressure?",
+    subtitle: "Medicine a doctor prescribed to lower your blood pressure.",
+    why: "Your heart risk is worked out differently when blood pressure is treated.",
+  },
+  {
+    id: "diabetes",
+    part: 3,
+    kind: "yesno",
+    field: "has_diabetes",
+    icon: "water-outline",
+    title: "Has a doctor told you that you have diabetes?",
+    subtitle: "Not counting diabetes only during pregnancy.",
+    why: "Diabetes is one of the main things your heart risk uses.",
+  },
+  {
+    id: "cholesterol-medicine",
+    part: 3,
+    kind: "yesno",
+    field: "cholesterol_medicine",
+    icon: "pill",
+    title: "Do you take medicine for cholesterol?",
+    subtitle: "For example a statin, such as atorvastatin or rosuvastatin.",
+    why: "Your heart risk is worked out differently when cholesterol is treated.",
   },
 
   // ── Part 4 · Food & goals ──

@@ -7,14 +7,14 @@ import DsButton from "../onboarding/DsButton";
 import { useDs } from "../onboarding/useDs";
 import { bandTag } from "./ScoreCard";
 import { light, dark } from "../../constants/theme";
-import { basedOnText, HeartFactors, pressureText } from "../../services/heartScore";
+import { AREA_ROWS, basedOnText, HeartFactors, pressureText } from "../../services/heartScore";
 import { isHypertensiveCrisis, isSevereHypotension } from "../../services/vitalsCheck";
 
 export type TodayPage = { key: string; label: string; content: React.ReactNode };
 
 /**
  * The dashboard's top card: pages you swipe through (or pick with the dots), like a fitness app's rings card.
- * It always opens on the first page, the Heart score.
+ * It always opens on the first page, the habits score (the Heart risk card sits above it, HL-144).
  */
 export function TodayCard({ pages }: { pages: TodayPage[] }) {
   const { c } = useDs();
@@ -114,14 +114,16 @@ export function ScorePage({
   const up = change?.startsWith("Up");
   const t = isDark ? dark : light;
   return (
-    <View style={{ gap: 10 }}>
+    // flex: 1 fills the swipe card's height (set by its tallest page), so the extra space goes around the score
+    // instead of collecting under the footer
+    <View style={{ flex: 1, gap: 10 }}>
       <PageTitle
-        title="Heart score"
+        title="Heart health habits"
         right={
           <AnimatedButton
             onPress={onExplain}
             accessibilityRole="button"
-            accessibilityLabel="How your score is worked out"
+            accessibilityLabel="About your habits score"
             style={{ width: 44, height: 44, marginVertical: -8, marginRight: -10, alignItems: "center", justifyContent: "center" }}
           >
             <Feather name="info" size={20} color={c.slate} />
@@ -129,38 +131,80 @@ export function ScorePage({
         }
       />
       {hasScore ? (
-        <View style={{ alignItems: "center", gap: 10 }}>
-          <View style={{ alignItems: "center", justifyContent: "center" }}>{children}</View>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 10 }}>
-            <View style={{ paddingVertical: 4, paddingHorizontal: 12, borderRadius: 999, backgroundColor: tag.bg }}>
-              <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 14, fontWeight: "700", color: tag.fg }}>{tag.text}</Text>
+        <View style={{ flex: 1, gap: 12, justifyContent: "center" }}>
+          {/* HL-144: the heart centred (the owner's preference), with its level and blood pressure under it. Every
+              area's points are in "About your habits score" (the i, or the line below), one tap away. */}
+          <View style={{ alignItems: "center", gap: 8 }}>
+            <View style={{ alignItems: "center", justifyContent: "center" }}>{children}</View>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 10 }}>
+              <View style={{ paddingVertical: 4, paddingHorizontal: 12, borderRadius: 999, backgroundColor: tag.bg }}>
+                <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 15, fontWeight: "700", color: tag.fg }}>{tag.text}</Text>
+              </View>
+              {change ? (
+                <Text style={{ fontSize: 15, fontWeight: "600", color: up ? t.successText : c.charcoal }}>
+                  {up ? "↑ " : "↓ "}
+                  {change}
+                </Text>
+              ) : null}
             </View>
-            {change ? (
-              <Text style={{ fontSize: 15, fontWeight: "600", color: up ? t.successText : c.charcoal }}>
-                {up ? "↑ " : "↓ "}
-                {change}
-              </Text>
+            {pressureText(factors) ? (
+              <Text style={{ fontSize: 15, lineHeight: 21, color: c.charcoal, textAlign: "center" }}>{pressureText(factors)}</Text>
             ) : null}
+            {reason ? <Text style={{ fontSize: 13, color: c.slate, textAlign: "center" }}>{reason}</Text> : null}
           </View>
-          {pressureText(factors) ? (
-            <Text style={{ fontSize: 14, fontWeight: "500", color: c.charcoal, textAlign: "center" }}>{pressureText(factors)}</Text>
-          ) : null}
-          {basedOnText(factors) ? (
-            <Text style={{ fontSize: 13, color: c.slate, textAlign: "center" }}>{basedOnText(factors)}</Text>
-          ) : null}
-          {reason ? <Text style={{ fontSize: 13, color: c.slate, textAlign: "center" }}>{reason}</Text> : null}
+          <FocusArea factors={factors} onPress={onExplain} />
         </View>
       ) : (
         <View style={{ alignItems: "center", gap: 12, paddingVertical: 8 }}>
           {children}
           <Text style={{ fontSize: 15, lineHeight: 22, color: c.charcoal, textAlign: "center" }}>
-            Log your blood pressure to get your first score.
+            Log your blood pressure to get your first habits score.
           </Text>
           <DsButton label="Log blood pressure" block={false} onPress={onLogBloodPressure} />
         </View>
       )}
-      <Text style={{ fontSize: 12, color: c.steel, textAlign: "center" }}>A wellness guide, not a diagnosis.</Text>
+      <Text style={{ fontSize: 12, color: c.steel, textAlign: "center" }}>
+        Higher is better. Based on the AHA&apos;s Life&apos;s Essential 8. A wellness guide, not a diagnosis.
+      </Text>
     </View>
+  );
+}
+
+/** HL-144: the habit area with the fewest points (the first in the explanation's order on a tie), or null when every
+ * area scores 100. */
+export function focusArea(factors?: HeartFactors | null): { label: string; points: number } | null {
+  const areas = factors?.areas;
+  if (!areas) return null;
+  let lowest: { label: string; points: number } | null = null;
+  for (const row of AREA_ROWS) {
+    const area = areas[row.key];
+    if (!area) continue;
+    const points = Math.max(0, Math.min(100, area.points));
+    if (points < 100 && (!lowest || points < lowest.points)) lowest = { label: row.label, points };
+  }
+  return lowest;
+}
+
+/** One line under the ring: the area to work on next, which opens every area's points. */
+function FocusArea({ factors, onPress }: { factors?: HeartFactors | null; onPress: () => void }) {
+  const { c } = useDs();
+  const focus = focusArea(factors);
+  const used = basedOnText(factors);
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${focus ? `Work on next: ${focus.label}, ${focus.points} of 100. ` : ""}See all areas`}
+      style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 44, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, backgroundColor: c.surface }}
+    >
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontSize: 14, fontWeight: "600", color: c.ink }}>
+          {focus ? `Work on next: ${focus.label}, ${focus.points} of 100` : "Every area is at 100"}
+        </Text>
+        {used ? <Text style={{ fontSize: 12.5, color: c.slate }}>{`${used} · See all areas`}</Text> : null}
+      </View>
+      <Feather name="chevron-right" size={18} color={c.steel} />
+    </TouchableOpacity>
   );
 }
 
@@ -301,7 +345,7 @@ export function habitsSummary({
   if (sodiumMg <= 0 && movementMins <= 0 && !sleepHours) {
     return {
       tone: "neutral",
-      text: "Log meals, movement and sleep below. Your Heart score looks at your last 7 days.",
+      text: "Log meals, movement and sleep below. Your habits score looks at your last 7 days.",
     };
   }
   const movementMet = movementGoal > 0 && movementMins >= movementGoal;

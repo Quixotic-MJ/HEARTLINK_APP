@@ -1,3 +1,4 @@
+import { bandColors, bandLabel, DISCLAIMER, HeartRisk, percentText, riskOf, unavailableText } from "../../services/heartRisk";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 import { useRouter } from "expo-router";
@@ -27,7 +28,8 @@ const daysOrNull = (on: boolean, v?: string) => (on ? Math.max(1, parseInt(v || 
 
 // Same two requests the old calculating screen made: profile first, then the baseline that
 // computes the starting Health Stability Score.
-async function submitBaseline(data: BaselineData, userId: string, token: string): Promise<number> {  const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+async function submitBaseline(data: BaselineData, userId: string, token: string): Promise<{ score: number; risk: HeartRisk | null }> {
+  const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 
   const profileRes = await apiFetch(`/api/users/${userId}/profile`, {
     method: "PUT",
@@ -76,6 +78,10 @@ async function submitBaseline(data: BaselineData, userId: string, token: string)
       salty_food_freq: data.salty_food_freq || "sometimes",
       allergies: data.allergies?.includes("None") ? [] : data.allergies || [],
       dietary_practice: data.dietary_practice || "None",
+      // HL-140: sent only when answered, so the Heart risk asks again rather than guessing
+      ...(data.answered?.bp_medicine ? { bp_medicine: !!data.bp_medicine } : {}),
+      ...(data.answered?.has_diabetes ? { has_diabetes: !!data.has_diabetes } : {}),
+      ...(data.answered?.cholesterol_medicine ? { cholesterol_medicine: !!data.cholesterol_medicine } : {}),
     }),
   });
   if (!baselineRes.ok) {
@@ -85,7 +91,7 @@ async function submitBaseline(data: BaselineData, userId: string, token: string)
   const body = await baselineRes.json().catch(() => null);
   const score = Number(body?.initial_hss?.score);
   if (!Number.isFinite(score)) throw new Error("We couldn't read your score.");
-  return Math.round(score);
+  return { score: Math.round(score), risk: riskOf(body?.initial_hss?.contributing_factors) };
 }
 
 // Plain-language notes from the answers themselves (wellness wording, not a diagnosis).
@@ -146,7 +152,7 @@ function RingFill({ r, circ, filled, color }: { r: number; circ: number; filled:
 type State =
   | { status: "working" }
   | { status: "error"; message: string }
-  | { status: "done"; score: number; name: string; helping: string[]; grow: string[] };
+  | { status: "done"; score: number; risk: HeartRisk | null; name: string; helping: string[]; grow: string[] };
 
 export default function ScoreScreen() {
   const router = useRouter();
@@ -162,12 +168,12 @@ export default function ScoreScreen() {
       const id = userId || (await getStoredUserId()) || "";
       const authToken = token || (await getToken()) || "";
       if (!id) throw new Error("Please log in again to finish set-up.");
-      const score = await submitBaseline(data, id, authToken);
+      const { score, risk } = await submitBaseline(data, id, authToken);
       const notes = readAnswers(data);
       const name = data.first_name;
       await refreshUser();
       resetData();
-      setState({ status: "done", score, name, ...notes });
+      setState({ status: "done", score, risk, name, ...notes });
     } catch (e) {
       setState({ status: "error", message: e instanceof Error ? e.message : "Something went wrong." });
     }
@@ -278,7 +284,7 @@ export default function ScoreScreen() {
           }}
         >
           <Text style={{ fontSize: 11.5, fontWeight: "700", letterSpacing: 0.8, textTransform: "uppercase", color: c.onTint }}>
-            Your Starting Score
+            Your heart health habits
           </Text>
         </View>
 
@@ -312,9 +318,14 @@ export default function ScoreScreen() {
         </Animated.View>
 
         <Text style={{ fontSize: 15.5, lineHeight: 23, color: c.slate, textAlign: "center", marginTop: 14, marginBottom: 22, maxWidth: 320 }}>
-          This is where you start, based on your answers. It adapts as you log daily readings, meals, and activity.
+          Your starting habits score, from your answers. Higher is better, and it adapts as you log readings, meals and activity.
         </Text>
       </View>
+
+      {/* HL-145: the estimated Heart risk from the same answers */}
+      <Animated.View entering={FadeInDown.delay(1000).duration(350)} style={{ marginBottom: 14 }}>
+        <SetupRisk risk={state.risk} />
+      </Animated.View>
 
       {state.helping.length || state.grow.length ? (
         <Animated.View entering={FadeInDown.delay(1050).duration(350)} className="flex-row" style={{ gap: 10 }}>
@@ -373,5 +384,33 @@ export default function ScoreScreen() {
         <InfoNote text="HeartLink helps you build heart-healthy habits. It doesn't diagnose conditions or replace your doctor." />
       </View>
     </DsScreen>
+  );
+}
+
+/** HL-145: the estimated Heart risk on setup's last screen, or why there isn't one. */
+function SetupRisk({ risk }: { risk: HeartRisk | null }) {
+  const { c } = useDs();
+  if (!risk) return null;
+  return (
+    <View style={{ padding: 16, borderRadius: 14, borderWidth: 1.5, borderColor: c.hairline, backgroundColor: c.canvas, gap: 6 }}>
+      <Text style={{ fontSize: 16, fontWeight: "700", color: c.ink }}>Your estimated heart risk</Text>
+      {risk.available ? (
+        <>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <Text style={{ fontSize: 32, fontWeight: "700", color: c.ink }}>{percentText(risk.ascvd_10)}</Text>
+            <View style={{ paddingVertical: 3, paddingHorizontal: 10, borderRadius: 999, backgroundColor: bandColors(risk.band, c).bg }}>
+              <Text style={{ fontSize: 13.5, fontWeight: "700", color: bandColors(risk.band, c).fg }}>{bandLabel(risk.band)}</Text>
+            </View>
+          </View>
+          <Text style={{ fontSize: 14.5, lineHeight: 21, color: c.charcoal }}>
+            Your chance of a heart attack or stroke in the next 10 years. Lower is better. Add cholesterol and kidney lab
+            results later for an exact number.
+          </Text>
+        </>
+      ) : (
+        <Text style={{ fontSize: 14.5, lineHeight: 21, color: c.charcoal }}>{unavailableText(risk)}</Text>
+      )}
+      <Text style={{ fontSize: 12.5, lineHeight: 18, color: c.steel }}>{DISCLAIMER}</Text>
+    </View>
   );
 }

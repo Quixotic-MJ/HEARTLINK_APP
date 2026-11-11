@@ -77,6 +77,30 @@ class BloodSugarResult(BaseModel):
         return self
 
 
+# HL-141: a kidney result for the Heart risk: blood creatinine in mg/dL (the app converts umol/L), or the eGFR printed on
+# the report. The server works out eGFR from creatinine (CKD-EPI 2021).
+class KidneyResult(BaseModel):
+    test_date: date
+    creatinine: Optional[float] = Field(default=None, ge=0.2, le=20)
+    egfr: Optional[float] = Field(default=None, ge=5, le=200)
+
+    @model_validator(mode="after")
+    def one_result(self):
+        if self.creatinine is None and self.egfr is None:
+            raise ValueError("Enter creatinine or eGFR.")
+        return self
+
+
+# HL-140: the three answers the Heart risk needs, for people who finished setup before they were asked
+class RiskAnswersUpdate(BaseModel):
+    bp_medicine: bool
+    has_diabetes: bool
+    cholesterol_medicine: bool
+
+
+RISK_ANSWERS = ("bp_medicine", "has_diabetes", "cholesterol_medicine")
+
+
 # HL-114: the Heart score answers that can change after setup
 class HeartAnswersUpdate(BaseModel):
     ever_smoked: bool
@@ -85,6 +109,10 @@ class HeartAnswersUpdate(BaseModel):
     fruit_veg_servings: Literal["0-1", "2-3", "4-5", "6+"]
     fried_food_freq: Literal["rarely", "sometimes", "often", "daily"]
     salty_food_freq: Literal["rarely", "sometimes", "often", "daily"]
+    # HL-140: optional, so an older app that doesn't send them leaves the saved answers alone
+    bp_medicine: Optional[bool] = None
+    has_diabetes: Optional[bool] = None
+    cholesterol_medicine: Optional[bool] = None
 
     @model_validator(mode="after")
     def clean_smoking_answers(self):
@@ -129,6 +157,11 @@ class BaselineOnboardingRequest(BaseModel):
     salty_food_freq: Literal["rarely", "sometimes", "often", "daily"]
     fruit_veg_servings: Literal["0-1", "2-3", "4-5", "6+"]
     
+    # HL-140: for the Heart risk. Optional, so an older app can still finish setup
+    bp_medicine: Optional[bool] = None
+    has_diabetes: Optional[bool] = None
+    cholesterol_medicine: Optional[bool] = None
+
     # Health Background (Non-ML features)
     allergies: List[str] = []
     dietary_practice: str = "None"

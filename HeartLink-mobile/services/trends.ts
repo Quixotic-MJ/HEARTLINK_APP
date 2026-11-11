@@ -56,6 +56,14 @@ export function scoreByDay(days: TrendDay[], history: ScoreRow[]): (number | nul
   return lastPerDay(days, history, (h) => (num(h.score) > 0 ? Math.round(num(h.score)) : null));
 }
 
+/** HL-145: each day's latest Heart risk (10-year %, lower is better), from the risk saved with each score record. */
+export function riskByDay(days: TrendDay[], history: ScoreRow[]): (number | null)[] {
+  return lastPerDay(days, history, (h) => {
+    const risk = (h.contributing_factors as { risk?: { available?: boolean; ascvd_10?: number } } | null | undefined)?.risk;
+    return risk?.available && typeof risk.ascvd_10 === "number" ? risk.ascvd_10 : null;
+  });
+}
+
 export function pressureByDay(days: TrendDay[], vitals: VitalsRow[]): (Pressure | null)[] {
   return lastPerDay(days, vitals, (v) =>
     num(v.systolic_bp) > 0 && num(v.diastolic_bp) > 0 ? { sys: num(v.systolic_bp), dia: num(v.diastolic_bp) } : null

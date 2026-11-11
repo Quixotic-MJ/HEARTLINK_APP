@@ -47,6 +47,8 @@ import { Header } from "../../../components/Header";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { ScreenWrapper } from "../../../components/ui/ScreenWrapper";
 import { TourSpot, useDashboardTour } from "../../../components/dashboard/DashboardTour";
+import { HeartRiskCard } from "../../../components/dashboard/HeartRiskCard";
+import { riskOf } from "../../../services/heartRisk";
 import { ScoreExplanationModal } from "../../../components/dashboard/ScoreExplanationModal";
 import { TodayCard, ScorePage, HabitsPage, LatestReadingPage, sleepText } from "../../../components/dashboard/TodayCard";
 import { CheckinGrid, type CheckinTile, type MedicineStatus } from "../../../components/dashboard/TodayTiles";
@@ -502,6 +504,7 @@ export default function DashboardScreen() {
   const { tour, start: startTour } = useDashboardTour({
     // The recommendations only show when there are some and the score isn't critical.
     shown: {
+      risk: true,
       score: true,
       note: !!data?.insight,
       missions: true,
@@ -838,13 +841,27 @@ export default function DashboardScreen() {
           <Text style={{ fontSize: 14, color: c.slate }}>{todayLabel}</Text>
         </View>
 
+        {/* ── HL-144: Heart risk (AHA PREVENT) first; the habits score is the swipe card under it ── */}
+        <Reanimated.View entering={FadeInDown.delay(80).duration(260)}>
+          <TourSpot target="risk" tour={tour}>
+            <HeartRiskCard
+              risk={riskOf(data?.hss_factors)}
+              onAddLabResults={() => {
+                Haptics.selectionAsync();
+                router.push("/(home)/(settings)/lab-results");
+              }}
+              onAnswerQuestions={() => router.push("/(home)/(settings)/heart-answers")}
+            />
+          </TourSpot>
+        </Reanimated.View>
+
         <Reanimated.View entering={FadeInDown.delay(100).duration(260)}>
           <TourSpot target="score" tour={tour}>
             <TodayCard
               pages={[
                 {
                   key: "score",
-                  label: "Heart score",
+                  label: "Heart health habits",
                   content: (
                     <ScorePage
                       label={theme.label}
@@ -870,14 +887,11 @@ export default function DashboardScreen() {
                         )}
                         <ScoreRing
                           score={hssScore}
-                          size={185}
+                          size={150}
                           color={theme.barColor}
                           refreshTrigger={dataUpdatedAt}
                           celebrateTrigger={completedCount}
-                          systolic={latestSbp}
-                          diastolic={latestDbp}
                           bpm={latestBpm}
-                          streakDays={streakDays}
                         />
                       </Animated.View>
                     </ScorePage>

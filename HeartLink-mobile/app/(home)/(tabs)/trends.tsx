@@ -38,7 +38,7 @@ import {
   periodDays,
   pressureByDay,
   pulseByDay,
-  scoreByDay,
+  riskByDay, scoreByDay,
   scoreChange,
   scoreRangeByDay,
   scoresOfDay,
@@ -51,9 +51,10 @@ import {
 // HL-086: 90 days and 1 year are Premium (components/trends/LongTermTrends.tsx); on a free account they open the
 // pricing screen.
 
-type Metric = "score" | "bp" | "pulse" | "sodium";
+type Metric = "risk" | "score" | "bp" | "pulse" | "sodium";
 const METRICS: { id: Metric; label: string }[] = [
-  { id: "score", label: "Heart score" },
+  { id: "risk", label: "Heart risk" },
+  { id: "score", label: "Habits score" },
   { id: "bp", label: "Blood pressure" },
   { id: "pulse", label: "Pulse" },
   { id: "sodium", label: "Sodium" },
@@ -136,6 +137,7 @@ export default function TrendsTabScreen() {
     const vitals = data?.vitals ?? [];
     const history = data?.history ?? [];
     const scores = scoreByDay(days, history);
+    const risks = riskByDay(days, history);
     const ranges = scoreRangeByDay(days, history);
     const pressure = pressureByDay(days, vitals);
     const pulse = pulseByDay(days, vitals);
@@ -145,7 +147,7 @@ export default function TrendsTabScreen() {
       { meals: data?.meal_logs ?? [], exercises: data?.exercise_logs ?? [], sleep: data?.sleep_logs ?? [], vitals },
       { sodiumMg: sodiumLimit, movementMin: movementGoal }
     );
-    return { days, history, scores, ranges, pressure, pulse, sodium, summary };
+    return { days, history, scores, risks, ranges, pressure, pulse, sodium, summary };
   }, [data, period, sodiumLimit, movementGoal]);
 
   const onRefresh = async () => {
@@ -172,7 +174,7 @@ export default function TrendsTabScreen() {
         <h1>HeartLink trends report</h1>
         <p>Last ${period} days, made on ${new Date().toLocaleDateString()}</p>
         <h2>Latest</h2>
-        ${row("Heart score", latestScore ? `${latestScore} / 100` : "Not logged")}
+        ${row("Habits score", latestScore ? `${latestScore} / 100` : "Not logged")}
         ${row("Blood pressure", latestBp ? `${latestBp.sys}/${latestBp.dia} mmHg` : "Not logged")}
         ${row("Pulse", latestPulse ? `${latestPulse} bpm` : "Not logged")}
         <h2>Last ${period} days</h2>
@@ -292,8 +294,14 @@ export default function TrendsTabScreen() {
         </ScrollView>
 
         <View style={{ paddingHorizontal: 20, gap: 22 }}>
-          {long ? (
-            <LongTermTrends days={period} metric={metric} />
+          {long && metric === "risk" ? (
+            // HL-145: the long views summarise on the server, which doesn't hold the Heart risk yet
+            <View style={{ padding: 20, borderRadius: 12, backgroundColor: c.surface, gap: 6 }}>
+              <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>Heart risk covers up to 30 days for now</Text>
+              <Text style={{ fontSize: 14.5, lineHeight: 21, color: c.charcoal }}>Pick 7, 14 or 30 days to see it.</Text>
+            </View>
+          ) : long ? (
+            <LongTermTrends days={period} metric={metric as Exclude<Metric, "risk">} />
           ) : query.isLoading ? (
             <Skeleton style={{ height: 300, borderRadius: 12 }} />
           ) : (query.isError || offline) && !data ? (
@@ -425,6 +433,7 @@ type TrendData = {
   days: ReturnType<typeof periodDays>;
   history: ScoreRow[];
   scores: (number | null)[];
+  risks: (number | null)[];
   ranges: ReturnType<typeof scoreRangeByDay>;
   pressure: ReturnType<typeof pressureByDay>;
   pulse: (number | null)[];
@@ -579,7 +588,7 @@ function MetricCard({
           yMax={100}
           ticks={[yMin, 100].filter((v, i, a) => a.indexOf(v) === i)}
           bands={bands}
-          accessibilityLabel={`Heart score over the last ${period} days. Latest ${latest.value}.`}
+          accessibilityLabel={`Habits score over the last ${period} days. Latest ${latest.value}.`}
         />
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 16, marginTop: -6 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
@@ -623,6 +632,34 @@ function MetricCard({
           {t.summary.pressure.readings === 1
             ? "Only 1 reading so far. Log on another day to start seeing a trend."
             : "Each bar runs from the lower number (diastolic) to the upper number (systolic) of the day's last reading."}
+        </Text>
+      </View>
+    );
+  }
+
+  // HL-145: the Heart risk over time. It moves slowly: mostly when blood pressure, lab results or answers change.
+  if (metric === "risk") {
+    const latest = lastOf(t.risks);
+    if (!latest) return empty(`No heart risk in the last ${period} days`, "Your heart risk shows here once it's worked out. Log your blood pressure, or answer the 3 questions on the Dashboard.", "Log blood pressure", logBp);
+    const values = t.risks.filter((r): r is number => r !== null);
+    const first = values[0];
+    const moved = values.length > 1 && Math.abs(latest.value - first) >= 0.1
+      ? `${latest.value < first ? "Down" : "Up"} from ${first}% at the start. Lower is better.`
+      : "Lower is better.";
+    return (
+      <View style={card}>
+        {head(`${latest.value}%`, `10-year heart risk, ${dayName(t.days[latest.index])}`, moved)}
+        <TrendChart
+          kind="line"
+          days={t.days}
+          values={t.risks}
+          yMin={0}
+          yMax={Math.max(10, Math.ceil((Math.max(...values) + 2) / 5) * 5)}
+          ticks={[3, 5, 10].filter((v) => v <= Math.max(10, Math.ceil((Math.max(...values) + 2) / 5) * 5))}
+          accessibilityLabel={`Heart risk over the last ${period} days. Latest ${latest.value} percent over 10 years.`}
+        />
+        <Text style={{ fontSize: 12.5, lineHeight: 18, color: c.steel, marginTop: 8 }}>
+          Lines at 3%, 5% and 10% mark the Low, Borderline, Intermediate and High bands. An estimate, not a diagnosis.
         </Text>
       </View>
     );

@@ -285,6 +285,14 @@ def _note_for_latest_event(user_hss: list, latest_log: dict | None) -> tuple:
                 "Your first score was an estimate from your setup answers. Now it's based on your blood pressure, activity, sleep, nicotine, body weight and diet.",
                 "info", None)
 
+    # HL-144: the refresh that added the Heart risk to an existing account. Records saved by it before this fix say
+    # "method_update" but already hold the risk, so they get this note too. The note never gives the risk % (HL-139).
+    if trigger == "risk_added" or (trigger == "method_update" and "risk" in factors):
+        return ("New: your heart risk.",
+                "It's at the top of your Dashboard: the chance of a heart attack or stroke in the next 10 years. Your "
+                "habits score below works as before.",
+                "info", None)
+
     if trigger == "method_update":
         return ("Your Heart score was updated.",
                 "It's now based on the American Heart Association's Life's Essential 8. Tap the i on your score to see each area.",
@@ -345,7 +353,7 @@ def _note_kind(user_hss: list) -> tuple:
     diff = _score_change(user_hss)
     factors = latest.get("contributing_factors") or {}
     trigger = factors.get("trigger") or ""
-    if trigger == "method_update" or _just_left_the_starting_score(user_hss):
+    if trigger in ("method_update", "risk_added") or _just_left_the_starting_score(user_hss):
         kind = "update"
     elif reading is not None:
         kind = "reading"

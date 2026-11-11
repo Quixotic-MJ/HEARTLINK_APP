@@ -9,7 +9,7 @@ import CareNotes from "./components/careNotes.jsx";
 import { useApiQuery } from "../../hooks/useApiQuery.js";
 import { useAuth } from "../../contexts/useAuth.js";
 import { formatUserRef } from "../../utils/formatUserRef.js";
-import { TAG, bpBand, tierClass, tierDotClass } from "./vitals.js";
+import { TAG, bpBand, riskBand, riskMissingText, riskOfRecord, riskPercent, tierClass, tierDotClass } from "./vitals.js";
 import { formatNoteTime } from "./noteTime.js";
 
 // HL-039 / HL-040: one patient's logs (what the caller's expert type may read) and the care-team notes.
@@ -18,7 +18,8 @@ const SECTIONS = [
   ["meals", "Meals"],
   ["exercise", "Exercise"],
   ["sleep", "Sleep"],
-  ["scores", "Score history"],
+  // HL-146: each record holds the Heart risk and the habits score worked out together
+  ["scores", "Heart risk and habits"],
   ["alerts", "Alerts"],
   // HL-138: lab results the patient added themselves (read-only here)
   ["lab_results", "Lab results"],
@@ -85,12 +86,19 @@ const when = [
   ),
 ];
 
-const LAB_NAME = { cholesterol: "Cholesterol", blood_sugar: "Blood sugar" };
+const LAB_NAME = { cholesterol: "Cholesterol", kidney: "Kidney", blood_sugar: "Blood sugar" };
 
 const labResult = (r) => {
   if (r.kind === "cholesterol") {
     const nonHdl = Math.round(r.total_cholesterol - r.hdl);
     return `Non-HDL ${nonHdl} mg/dL (total ${r.total_cholesterol}, HDL ${r.hdl})${r.cholesterol_medicine ? ", on cholesterol medicine" : ""}`;
+  }
+  if (r.kind === "kidney") {
+    // HL-141: eGFR is worked out from creatinine on the server (CKD-EPI 2021) unless the report printed it
+    const parts = [];
+    if (r.egfr != null) parts.push(`eGFR ${Math.round(r.egfr)} mL/min`);
+    if (r.creatinine != null) parts.push(`creatinine ${r.creatinine} mg/dL`);
+    return parts.length === 2 ? `${parts[0]} (${parts[1]})` : parts.join("");
   }
   const parts = [];
   if (r.hba1c != null) parts.push(`HbA1c ${r.hba1c}%`);
@@ -107,7 +115,7 @@ const TABLES = {
       ["result", "Result (self-reported)", (r) => <span className="text-cal-ink">{labResult(r)}</span>],
       [
         "counts",
-        "In the Heart score",
+        "Counts",
         (r) => (r.counts ? <span>Until {r.counts_until}</span> : <span className="text-cal-muted">Expired</span>),
       ],
     ],
@@ -292,12 +300,33 @@ const TABLES = {
     ],
   },
   scores: {
-    empty: "No scores yet.",
+    empty: "Nothing worked out yet.",
     columns: [
       when,
       [
+        "risk",
+        "Heart risk (10 years)",
+        (r) => {
+          const risk = riskOfRecord(r);
+          if (!risk?.available) return <span className="text-[12.5px] text-cal-muted">{riskMissingText(risk)}</span>;
+          const b = riskBand(risk.band);
+          return (
+            <span className="flex flex-wrap items-center gap-2">
+              <span className="font-cal-mono text-[14px] font-semibold tabular-nums text-cal-ink">
+                {riskPercent(risk.ascvd_10)}
+              </span>
+              <span className={`${TAG} ${b.className}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${b.dotClass}`} />
+                <span>{b.label}</span>
+              </span>
+              {risk.kind === "estimated" && <span className="text-[11.5px] text-cal-muted">Estimated</span>}
+            </span>
+          );
+        },
+      ],
+      [
         "score",
-        "Score",
+        "Habits score",
         (r) => (
           <span className="font-cal-mono text-[14px] font-semibold tabular-nums text-cal-ink">
             {r.score}
@@ -306,7 +335,7 @@ const TABLES = {
       ],
       [
         "tier",
-        "Band",
+        "Habits level",
         (r) =>
           r.tier ? (
             <span className={`${TAG} ${tierClass(r.tier)}`}>
@@ -390,6 +419,7 @@ export default function PatientDetail() {
   const latestBp = data?.health?.find((h) => h.systolic_bp != null);
   const band = latestBp ? bpBand(latestBp.systolic_bp, latestBp.diastolic_bp) : null;
   const latestScore = data?.scores?.[0];
+  const latestRisk = riskOfRecord(latestScore);
   const openAlerts = (data?.alerts || []).filter((a) => a.status === "Under Review").length;
 
   return (
@@ -452,9 +482,13 @@ export default function PatientDetail() {
                     : ""}
                   Names and contact details are hidden.
                 </p>
+                <p className="mt-1 max-w-xl text-[12.5px] text-cal-muted">
+                  Heart risk: the chance of a heart attack or stroke in 10 years (AHA PREVENT). An estimate to
+                  discuss, not a diagnosis.
+                </p>
               </div>
 
-              <dl className="grid min-w-0 grid-cols-1 gap-px overflow-hidden rounded-[10px] border border-cal-hairline bg-cal-hairline sm:grid-cols-3 lg:min-w-[470px]">
+              <dl className="grid min-w-0 grid-cols-1 gap-px overflow-hidden rounded-[10px] border border-cal-hairline bg-cal-hairline sm:grid-cols-2 lg:min-w-[560px] xl:grid-cols-4 xl:min-w-[720px]">
                 <div className="bg-cal-canvas px-4 py-3.5">
                   <dt className="text-[12px] font-medium text-cal-muted">Latest blood pressure</dt>
                   <dd className="mt-1.5 flex flex-wrap items-center gap-2">
@@ -479,7 +513,31 @@ export default function PatientDetail() {
                 </div>
 
                 <div className="bg-cal-canvas px-4 py-3.5">
-                  <dt className="text-[12px] font-medium text-cal-muted">Score</dt>
+                  <dt className="text-[12px] font-medium text-cal-muted">Heart risk</dt>
+                  <dd className="mt-1.5 flex flex-wrap items-center gap-2">
+                    {data === null ? (
+                      <Skeleton className="h-6 w-16 rounded-[6px] bg-cal-surface-strong/60" />
+                    ) : latestRisk?.available ? (
+                      <>
+                        <span className="font-cal-display text-[22px] font-semibold tracking-[-0.5px] leading-none tabular-nums text-cal-ink">
+                          {riskPercent(latestRisk.ascvd_10)}
+                        </span>
+                        <span className={`${TAG} ${riskBand(latestRisk.band).className}`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${riskBand(latestRisk.band).dotClass}`} />
+                          <span>{riskBand(latestRisk.band).label}</span>
+                        </span>
+                        {latestRisk.kind === "estimated" && (
+                          <span className="w-full text-[11.5px] text-cal-muted">Estimated, no lab results</span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-[13.5px] text-cal-muted">{latestScore ? riskMissingText(latestRisk) : "None yet"}</span>
+                    )}
+                  </dd>
+                </div>
+
+                <div className="bg-cal-canvas px-4 py-3.5">
+                  <dt className="text-[12px] font-medium text-cal-muted">Habits score</dt>
                   <dd className="mt-1.5 flex flex-wrap items-center gap-2">
                     {data === null ? (
                       <Skeleton className="h-6 w-16 rounded-[6px] bg-cal-surface-strong/60" />

@@ -208,7 +208,16 @@ def test_followers_see_a_read_only_summary(world):
     assert s["last_check_in"] == LOGS[2]["logged_at"]
     assert len(s["days"]) == 30 and s["days"][-2]["systolic"] == 138 and s["days"][-2]["score"] == 71
     assert s["open_alerts"][0]["type"] == "Hypertensive Crisis"
-    assert set(s) == {"id", "name", "paused", "latest_bp", "latest_pulse", "score", "last_check_in", "days", "open_alerts"}
+    assert set(s) == {"id", "name", "paused", "latest_bp", "latest_pulse", "score", "heart_risk", "last_check_in", "days", "open_alerts"}
+    assert s["heart_risk"] is None  # these test scores have no Heart risk saved
+
+
+def test_followers_see_the_heart_risk():
+    from app.services.heart_risk import summary
+    record = {"computed_at": "2026-10-30T10:00:00+00:00",
+              "contributing_factors": {"risk": {"available": True, "ascvd_10": 6.1, "band": "intermediate", "kind": "estimated"}}}
+    assert summary(record) == {"percent": 6.1, "band": "intermediate", "kind": "estimated", "at": "2026-10-30T10:00:00+00:00"}
+    assert summary({"contributing_factors": {"risk": {"available": False, "reason": "age"}}}) is None
 
 
 def test_only_followers_see_it(world):

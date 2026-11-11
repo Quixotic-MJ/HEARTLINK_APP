@@ -21,13 +21,13 @@ import { formatDob, parseYMD, toYMD } from "../../../constants/setupQuestions";
 import { useToast } from "../../../contexts/ToastContext";
 import { useUser } from "../../../contexts/UserContext";
 import {
-  countsText, fromMgDl, LabKind, LabResult, LabResults, LabUnit, loadLabResults, removeLabResult, saveBloodSugar,
+  countsText, creatinineUnitLabel, fromMgDl, LabKind, LabResult, LabResults, LabUnit, loadLabResults, removeLabResult, saveBloodSugar, saveKidney,
   saveCholesterol, toMgDl, unitLabel,
 } from "../../../services/labResults";
 
 const UNITS = [
   { value: "mgdl", label: "mg/dL" },
-  { value: "mmol", label: "mmol/L" },
+  { value: "mmol", label: "mmol/L (µmol/L for creatinine)" },
 ];
 
 // The ranges match the server's checks; they only catch typing mistakes, they don't judge the result
@@ -234,7 +234,74 @@ function BloodSugarForm({ userId, unit, result, onChanged, onAskRemove }: Sectio
   );
 }
 
-/** HL-138: optional lab results. Each counts in the Heart score for 12 months from the test date. */
+
+const kidneySchema = z
+  .object({ test_date: z.string(), creatinine: z.string(), egfr: z.string() })
+  .refine((v) => dateOk(v.test_date), { path: ["test_date"] })
+  .refine((v) => !!v.creatinine.trim() || !!v.egfr.trim(), { path: ["egfr"] });
+type KidneyValues = z.infer<typeof kidneySchema>;
+
+/** HL-141: kidney function for the Heart risk. Creatinine is on most blood panels; some reports also print eGFR. */
+function KidneyForm({ userId, unit, result, onChanged, onAskRemove }: SectionProps) {
+  const { c } = useDs();
+  const { showToast } = useToast();
+  const [saving, setSaving] = useState(false);
+  const { control, setValue, handleSubmit, formState: { isValid, errors } } = useForm<KidneyValues>({
+    resolver: zodResolver(kidneySchema),
+    mode: "onChange",
+    defaultValues: {
+      test_date: result?.test_date ?? "",
+      creatinine: result?.creatinine != null ? fromMgDl(result.creatinine, unit, "creatinine") : "",
+      egfr: result?.egfr != null && result?.creatinine == null ? String(result.egfr) : "",
+    },
+  });
+  const v = useWatch({ control });
+  const set = (name: keyof KidneyValues) => (value: string) => setValue(name, value as never, { shouldValidate: true });
+
+  const save = handleSubmit(async (values) => {
+    const creatinine = values.creatinine.trim() ? toMgDl(values.creatinine, unit, "creatinine") : null;
+    const egfr = values.egfr.trim() ? Number(values.egfr.trim().replace(",", ".")) : null;
+    if ((values.creatinine.trim() && !number(0.2, 20)(creatinine)) || (egfr !== null && !number(5, 200)(egfr))) {
+      showToast({ title: "Check the numbers", message: `Creatinine in ${creatinineUnitLabel(unit)}, eGFR in mL/min`, type: "error" });
+      return;
+    }
+    setSaving(true);
+    try {
+      await saveKidney(userId, { test_date: values.test_date, creatinine, egfr });
+      onChanged("Kidney result saved");
+    } catch (e) {
+      showToast({ title: "Not saved", message: e instanceof Error ? e.message : "Try again", type: "error" });
+    } finally {
+      setSaving(false);
+    }
+  });
+
+  return (
+    <Section title="Kidney" icon="filter">
+      <Status result={result} />
+      {result?.egfr != null ? (
+        <Text style={{ fontSize: 14, color: c.charcoal }}>{`Kidney function (eGFR): ${Math.round(result.egfr)} mL/min`}</Text>
+      ) : null}
+      <TestDate value={v.test_date ?? ""} onChange={set("test_date")} hasError={!!errors.test_date && !!v.test_date} />
+      <View className="flex-row" style={{ gap: 12 }}>
+        <View className="flex-1">
+          <DsTextField label="Creatinine" unit={creatinineUnitLabel(unit)} value={v.creatinine ?? ""} onChangeText={set("creatinine")} keyboardType="decimal-pad" maxLength={5} />
+        </View>
+        <View className="flex-1">
+          <DsTextField label="eGFR" optional unit="mL/min" value={v.egfr ?? ""} onChangeText={set("egfr")} keyboardType="decimal-pad" maxLength={4} />
+        </View>
+      </View>
+      <Text style={{ fontSize: 12.5, lineHeight: 18, color: c.steel }}>
+        Enter creatinine and HeartLink works out your kidney function (eGFR), or type the eGFR if your report shows it.
+      </Text>
+      <DsButton label={result ? "Save new result" : "Save kidney result"} onPress={save} disabled={!isValid} loading={saving} />
+      {result ? <DsButton label="Remove kidney result" variant="quiet" onPress={() => onAskRemove("kidney")} /> : null}
+    </Section>
+  );
+}
+
+/** HL-138: optional lab results. Each counts for 12 months from the test date: cholesterol and blood sugar in the
+ * habits score, and cholesterol and kidney in the Heart risk (HL-139). */
 export default function LabResultsScreen() {
   const { c, isDark } = useDs();
   const router = useRouter();
@@ -277,7 +344,7 @@ export default function LabResultsScreen() {
     await load();
     setVersion((n) => n + 1);
     await queryClient.invalidateQueries({ queryKey: ["dashboard", userId] });
-    showToast({ title: message, message: "Your Heart score is up to date.", type: "success" });
+    showToast({ title: message, message: "Your heart risk and habits score are up to date.", type: "success" });
   };
 
   const remove = async () => {
@@ -319,7 +386,7 @@ export default function LabResultsScreen() {
         <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 60, gap: 20 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <InfoNote
             title="Optional"
-            text="If you've had a blood test, add the results so your Heart score covers cholesterol and blood sugar too. Each result counts for 12 months from the test date. This isn't a diagnosis: talk to your doctor about your results."
+            text="If you've had a blood test, add the results. Cholesterol and kidney results give an exact heart risk instead of an estimate, and cholesterol and blood sugar count in your habits score. Each result counts for 12 months from the test date. This isn't a diagnosis: talk to your doctor about your results."
           />
           <View style={{ gap: 8 }}>
             <Text style={{ fontSize: 14, fontWeight: "600", color: c.ink }}>Units on your lab result</Text>
@@ -334,6 +401,7 @@ export default function LabResultsScreen() {
             />
           </View>
           <CholesterolForm key={`chol-${version}`} userId={userId} unit={unit} result={results.cholesterol} onChanged={changed} onAskRemove={setRemoving} />
+          <KidneyForm key={`kidney-${version}`} userId={userId} unit={unit} result={results.kidney ?? null} onChanged={changed} onAskRemove={setRemoving} />
           <BloodSugarForm key={`sugar-${version}`} userId={userId} unit={unit} result={results.blood_sugar} onChanged={changed} onAskRemove={setRemoving} />
         </ScrollView>
       )}
@@ -342,8 +410,8 @@ export default function LabResultsScreen() {
         visible={!!removing}
         onCancel={() => setRemoving(null)}
         onConfirm={remove}
-        title={removing === "cholesterol" ? "Remove your cholesterol result?" : "Remove your blood sugar result?"}
-        message="Your Heart score goes back to leaving this area out. You can add a result again anytime."
+        title={removing === "cholesterol" ? "Remove your cholesterol result?" : removing === "kidney" ? "Remove your kidney result?" : "Remove your blood sugar result?"}
+        message="Your heart risk and habits score go back to working without it. You can add a result again anytime."
         confirmLabel="Remove"
         cancelLabel="Keep it"
         variant="destructive"

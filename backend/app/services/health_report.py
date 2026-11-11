@@ -16,7 +16,8 @@ from app.utils.time import parse_utc, to_local_date, utc_now
 REPORT_DAYS = (30, 90)
 TZ = "Asia/Manila"
 NO_SYMPTOM = "None (Feeling fine)"
-DISCLAIMER = "For discussion with your doctor. HeartLink is a wellness tool, not a diagnosis."
+DISCLAIMER = ("For discussion with your doctor. Based on the latest American Heart Association guidelines. "
+              "HeartLink is a wellness tool, not a diagnosis.")
 
 # American Heart Association blood pressure categories, checked from the most urgent down
 BP_CATEGORIES = (
@@ -125,6 +126,15 @@ def _sodium(meals: List[Dict[str, Any]], limit_mg: Optional[float]) -> Dict[str,
     }
 
 
+def _risk_change(scores: List[Dict[str, Any]]) -> Dict[str, Any]:
+    from app.services.heart_risk import summary
+
+    risks = [r for r in (summary(s) for s in scores) if r]
+    if not risks:
+        return {"start": None, "end": None, "band": None, "kind": None}
+    return {"start": risks[0]["percent"], "end": risks[-1]["percent"], "band": risks[-1]["band"], "kind": risks[-1]["kind"]}
+
+
 def _labs(user_id: str) -> Dict[str, Any]:
     from app.services import lab_results
     try:
@@ -174,6 +184,8 @@ def build_report(user_id: str, days: int) -> Dict[str, Any]:
             "end": round(_number(scores[-1]["score"])) if scores else None,
             "change": round(_number(scores[-1]["score"]) - _number(scores[0]["score"])) if len(scores) > 1 else None,
         },
+        # HL-139: the Heart risk at the start and end of the period (records that have one)
+        "heart_risk": _risk_change(scores),
         "medicines": _medicines(checkins),
         "sodium": _sodium(meals, (targets.get("sodium_mg") or {}).get("value")),
         "exercise": {"sessions": len(exercise), "minutes": round(minutes), "minutes_per_week": round(minutes * 7 / days)},

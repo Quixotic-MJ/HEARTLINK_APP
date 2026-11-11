@@ -148,10 +148,24 @@ class Store:
         self.rows.pop((user_id, kind), None)
 
 
+class Answers:
+    def __init__(self):
+        self.saved = {}
+
+    def get_baseline(self, user_id):
+        return {"user_id": user_id, **self.saved}
+
+    def save_baseline(self, user_id, data):
+        self.saved.update(data)
+        return self.saved
+
+
 @pytest.fixture
 def store(monkeypatch):
     s = Store()
+    s.answers = Answers()
     monkeypatch.setattr(labs, "_repo", lambda: s)
+    monkeypatch.setattr(labs, "_baseline_repo", lambda: s.answers)
     monkeypatch.setattr(labs, "_today", lambda: TODAY)
     return s
 
@@ -160,9 +174,9 @@ def test_save_view_and_remove(store):
     saved = labs.save("u1", "cholesterol", {"test_date": TODAY - timedelta(days=10), "total_cholesterol": 200, "hdl": 50,
                                             "cholesterol_medicine": False})
     assert saved["counts"] is True and saved["counts_until"] == "2027-10-20" and saved["note"] is None
-    assert labs.results_for("u1") == {"cholesterol": saved, "blood_sugar": None}
+    assert labs.results_for("u1") == {"cholesterol": saved, "blood_sugar": None, "kidney": None}
     labs.remove("u1", "cholesterol")
-    assert labs.results_for("u1") == {"cholesterol": None, "blood_sugar": None}
+    assert labs.results_for("u1") == {"cholesterol": None, "blood_sugar": None, "kidney": None}
 
 
 @pytest.mark.parametrize("days_ago", [-1, 731])
@@ -214,3 +228,33 @@ def test_bad_values_are_refused_with_422(client):
     http, token = client
     body = {"test_date": TODAY.isoformat(), "total_cholesterol": 150, "hdl": 200, "cholesterol_medicine": False}
     assert http.put("/api/users/p1/lab-results/cholesterol", json=body, headers=token("p1", "patient")).status_code == 422
+
+
+# ── HL-140 and HL-141 ─────────────────────────────────────────────────────────────────────────────────────────────
+
+
+def test_lab_answers_update_the_matching_setup_answers(store):
+    labs.save("u1", "cholesterol", {"test_date": TODAY, "total_cholesterol": 200, "hdl": 50, "cholesterol_medicine": True})
+    labs.save("u1", "blood_sugar", {"test_date": TODAY, "fasting_glucose": 90, "hba1c": None, "has_diabetes": False})
+    assert store.answers.saved == {"cholesterol_medicine": True, "has_diabetes": False}
+
+
+def test_kidney_from_creatinine_uses_age_and_sex(store, monkeypatch):
+    import app.db.repositories as repos
+    monkeypatch.setattr(repos, "get_profile_repo",
+                        lambda: SimpleNamespace(get_by_id=lambda uid: {"sex": "male", "date_of_birth": "1976-10-01"}))
+    saved = labs.save("u1", "kidney", {"test_date": TODAY, "creatinine": 1.0, "egfr": None})
+    assert saved["egfr"] == pytest.approx(91.7, abs=0.2) and saved["note"] is None
+    low = labs.save("u1", "kidney", {"test_date": TODAY, "creatinine": None, "egfr": 52})
+    assert low["egfr"] == 52 and low["note"] == labs.DOCTOR_NOTE
+
+
+def test_kidney_route_and_checks(client):
+    http, token = client
+    assert http.put("/api/users/p1/lab-results/kidney", json={"test_date": TODAY.isoformat()},
+                    headers=token("p1", "patient")).status_code == 422
+    res = http.put("/api/users/p1/lab-results/kidney", json={"test_date": TODAY.isoformat(), "egfr": 95},
+                   headers=token("p1", "patient"))
+    assert res.status_code == 200 and res.json()["result"]["egfr"] == 95
+    assert http.put("/api/users/p1/lab-results/kidney", json={"test_date": TODAY.isoformat(), "egfr": 95},
+                    headers=token("a1", "admin")).status_code == 403

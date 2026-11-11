@@ -15,14 +15,19 @@ import { useDs } from "../onboarding/useDs";
  * update TOUR_STEPS here and the <TourSpot> wrappers in app/(home)/(tabs)/dashboard.tsx.
  */
 
-export type TourTarget = "score" | "note" | "missions" | "vitals" | "summary" | "care";
+export type TourTarget = "risk" | "score" | "note" | "missions" | "vitals" | "summary" | "care";
 export type TourStep = { target: TourTarget; title: string; body: string };
 
 export const TOUR_STEPS: TourStep[] = [
   {
+    target: "risk",
+    title: "Your heart risk",
+    body: "Your chance of a heart attack or stroke in the next 10 years, from the American Heart Association's PREVENT equations. Lower is better. It says Estimated until you add cholesterol and kidney lab results. Tap it to see what it uses and what changes it. If it asks for 3 questions, tap it to answer them in Settings. It's an estimate to discuss with your doctor, not a diagnosis.",
+  },
+  {
     target: "score",
-    title: "Your heart score",
-    body: "Based on your blood pressure, activity, sleep, nicotine, body weight and diet over the last week, plus cholesterol and blood sugar if you add lab results; its colour shows the band. Swipe this card (or tap the dots) to see today's habits and your latest reading. Tap the i to see the points for each area. It isn't a diagnosis.",
+    title: "Your heart health habits",
+    body: "A score out of 100 for your blood pressure, activity, sleep, nicotine, body weight and diet over the last week, plus cholesterol and blood sugar if you add lab results. Higher is better. It shows the habit to work on next; tap that line, or the i, to see every habit's points. Swipe this card (or tap the dots) to see today's habits and your latest reading.",
   },
   {
     target: "missions",
