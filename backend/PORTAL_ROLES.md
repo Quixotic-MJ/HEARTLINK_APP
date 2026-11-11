@@ -28,6 +28,7 @@ Telehealth and remote rehabilitation are future work, not Version 1.
 | Case reviews: check suggested food | No | No | Yes | No |
 | Case reviews: check suggested exercise | No | No | No | Yes |
 | Model check page | Yes | Yes | Yes | Yes |
+| Register a model or change its status | Yes | No | No | No |
 | Notifications | Yes | Yes | Yes | Yes |
 
 The pages and the server agree on the table above, with the exceptions below.
@@ -50,6 +51,6 @@ isn't connected to the portal. Case reviews show a case code, age and sex, never
 
 | # | What was wrong | Now |
 |---|---|---|
-| 1 | Any staff account could register a model or change its status | HL-106 |
+| 1 | Any staff account could register a model or change its status | Admins only, the safe default until the Cardiologist decides otherwise (HL-106, `test_model_registry_access.py`) |
 | 2 | Every expert could open every patient, while another rule used the patient's contact list | Decided: every expert sees every patient, Admins none (HL-107, HL-136) |
 | 3 | The Cardiologist and Dietitian held unused log-writing permissions | Removed (HL-107, HL-136) |

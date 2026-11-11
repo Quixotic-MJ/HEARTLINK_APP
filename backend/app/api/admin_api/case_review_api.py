@@ -178,8 +178,8 @@ def list_registered_models(current_user: dict = Depends(get_current_admin_user))
     return get_case_review_repo().list_candidate_models()
 
 @router.post("/models")
-def register_candidate_model(payload: dict, current_user: dict = Depends(get_current_admin_user)):
-    """Register a new candidate model in the registry (retaining Candidate state)."""
+def register_candidate_model(payload: dict, current_user: dict = Depends(_require_admin)):
+    """Register a new candidate model in the registry (retaining Candidate state). HL-106: Admins only."""
     model_id = payload.get("model_id")
     artifact_name = payload.get("artifact_filename")
     model_hash = payload.get("model_hash")
@@ -209,8 +209,9 @@ def register_candidate_model(payload: dict, current_user: dict = Depends(get_cur
     return {"status": "success", "model": created}
 
 @router.put("/models/{model_id}/status")
-def update_model_status(model_id: str, payload: dict, current_user: dict = Depends(get_current_admin_user)):
-    """Update status of a registered candidate model (candidate, approved, rejected, deployed)."""
+def update_model_status(model_id: str, payload: dict, current_user: dict = Depends(_require_admin)):
+    """Update status of a registered candidate model (candidate, approved, rejected, deployed). HL-106: Admins only,
+    the safe default until the Cardiologist decides otherwise; experts can still see the list."""
     status_val = payload.get("status")
     if status_val not in {"candidate", "approved", "rejected", "deployed"}:
         raise HTTPException(status_code=400, detail="Invalid model status.")
