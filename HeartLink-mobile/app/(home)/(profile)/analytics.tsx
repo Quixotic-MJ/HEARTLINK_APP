@@ -89,8 +89,6 @@ export default function AnalyticsScreen() {
     return generateHeatmapCalendar(loggedDates);
   }, [streakData]);
 
-  const currentStreak = streakData?.current_streak || 0;
-  const maxStreak = streakData?.best_streak || 0;
 
   return (
     <SafeAreaView className="flex-1 bg-ds-canvas" edges={["top"]}>
@@ -163,22 +161,6 @@ export default function AnalyticsScreen() {
               </View>
               <Text className="text-2xl font-semibold text-ds-ink">{totalLogged}</Text>
               <Text className="text-[12px] font-semibold text-ds-slate uppercase tracking-wide mt-1 text-center">Days Logged</Text>
-            </View>
-
-            <View className="flex-1 bg-ds-canvas rounded-xl border border-ds-hairline p-4 items-center">
-              <View className="w-10 h-10 rounded-lg bg-ds-peach items-center justify-center mb-2">
-                <Text className="text-lg">🔥</Text>
-              </View>
-              <Text className="text-2xl font-semibold text-ds-ink">{currentStreak}</Text>
-              <Text className="text-[12px] font-semibold text-ds-slate uppercase tracking-wide mt-1 text-center">Current Streak</Text>
-            </View>
-
-            <View className="flex-1 bg-ds-canvas rounded-xl border border-ds-hairline p-4 items-center">
-              <View className="mb-2">
-                <IconBadge icon="trophy-outline" tint="lavender" size={40} />
-              </View>
-              <Text className="text-2xl font-semibold text-ds-ink">{maxStreak}</Text>
-              <Text className="text-[12px] font-semibold text-ds-slate uppercase tracking-wide mt-1 text-center">Best Streak</Text>
             </View>
           </View>
 

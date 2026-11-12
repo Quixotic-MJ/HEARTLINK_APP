@@ -63,6 +63,7 @@ def data(monkeypatch):
     monkeypatch.setattr(repos, "get_health_logs_repo", lambda: Rows(list_alerts=ALERTS))
     monkeypatch.setattr(repos, "get_baseline_repo", lambda: Rows(get_thresholds={}))
     monkeypatch.setattr("app.services.nutrition_targets.targets_for_user", lambda uid, t: {"sodium_mg": {"value": 1500}})
+    monkeypatch.setattr(repos, "get_profile_repo", lambda: Rows(get_by_id={"date_of_birth": "1974-01-15", "sex": "female"}))
 
 
 @pytest.mark.parametrize("sys_bp, dia_bp, expected", [
@@ -92,6 +93,40 @@ def test_the_report_sums_up_the_period(data):
     assert r["symptoms"] == [{"name": "Chest discomfort", "times": 2}, {"name": "Dizzy", "times": 1}]
     assert [a["type"] for a in r["alerts"]] == ["Hypertensive Crisis"]  # the 40-day-old one is outside
     assert "not a diagnosis" in r["disclaimer"]
+
+
+def test_the_doctor_gets_the_extra_blood_pressure_numbers(data):
+    """2026-11-12, for clinics: times on the highest and lowest, readings at or above 130/80, the ESH average without day 1."""
+    bp = build_report("pat", 30)["blood_pressure"]
+    assert bp["highest"]["time"] == "07:00" and bp["lowest"]["time"] == "19:00"
+    assert bp["at_or_above_target"] == 2  # 150/95 and 132/84
+    # 150/95 (7 am) and 118/76 (7 pm) are the same Manila day, the first one, so only 132/84 is left
+    assert bp["average_without_first_day"] == {"systolic": 132, "diastolic": 84, "readings": 1}
+
+
+def test_the_daily_log_lists_every_check_in_with_that_days_habits(data):
+    """The AMA/AHA Target: BP style log: newest day first, each reading with its time, then the day's sodium,
+    exercise and sleep."""
+    daily = build_report("pat", 30)["daily"]
+    dates = [d["date"] for d in daily]
+    assert dates == sorted(dates, reverse=True)
+    first = next(d for d in daily if any(r["systolic"] == 150 for r in d["readings"]))
+    reading = first["readings"][0]
+    assert reading == {"time": "07:00", "systolic": 150, "diastolic": 95, "category": "stage_2", "pulse": 80,
+                       "medication_taken": True, "symptoms": ["Chest discomfort"]}
+    salty = next(d for d in daily if d["sodium_mg"] == 1700)
+    assert salty["over_sodium_limit"] is True and salty["meals"] == 2
+    assert any(d["exercise_minutes"] == 30 for d in daily)  # the abandoned 20 minutes don't count
+    assert any(d["sleep_hours"] == 7 for d in daily)
+    # A check-in without blood pressure still shows (its medicine answer was "I don't take any")
+    assert any(r["systolic"] is None for d in daily for r in d["readings"])
+    # The deleted 200/100 reading is left out
+    assert not any(r["systolic"] == 200 for d in daily for r in d["readings"])
+
+
+def test_the_header_has_age_sex_and_the_health_answers(data):
+    p = build_report("pat", 30)["patient"]
+    assert p["sex"] == "female" and 50 <= p["age"] <= 53
 
 
 def test_an_empty_period_still_gives_a_report(monkeypatch, data):
@@ -142,7 +177,17 @@ def test_free_patients_are_told_it_is_premium(client):
     assert res.status_code == 403 and res.json()["detail"]["code"] == "premium_required"
 
 
-def test_only_30_or_90_days_and_only_your_own(client):
+def test_the_last_7_days_are_free(client):
+    """2026-11-12: the Visit summary's 7 days are for everyone; longer periods stay Premium."""
+    http, as_patient = client
+    free = as_patient(False)
+    res = http.get("/api/reports/pat?days=7", headers=free)
+    assert res.status_code == 200 and res.json()["days"] == 7
+    assert http.get("/api/reports/pat?days=30", headers=free).status_code == 403
+    assert http.get("/api/reports/someone-else?days=7", headers=free).status_code == 403
+
+
+def test_only_7_30_or_90_days_and_only_your_own(client):
     http, as_patient = client
     headers = as_patient(True)
     assert http.get("/api/reports/pat?days=365", headers=headers).status_code == 400

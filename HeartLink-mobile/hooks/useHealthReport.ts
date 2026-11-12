@@ -3,7 +3,8 @@ import { apiFetch } from "../lib/api";
 import { useUser } from "../contexts/UserContext";
 import { HealthReport, ReportDays } from "../services/healthReport";
 
-// HL-085: the doctor-ready health report (Premium). A free account gets `premiumRequired` instead of an error.
+// HL-085: the Visit summary (the doctor-ready report). 7 days are free; for 30 or 90 days a free account gets
+// PremiumRequiredError instead of an error.
 
 export class PremiumRequiredError extends Error {}
 

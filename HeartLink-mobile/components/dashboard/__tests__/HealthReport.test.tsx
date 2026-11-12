@@ -1,15 +1,15 @@
 import React from "react";
-import { render as rtlRender, screen } from "@testing-library/react-native";
+import { render as rtlRender, screen, userEvent } from "@testing-library/react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { apiFetch } from "../../../lib/api";
 import HealthReportScreen from "../../../app/(home)/(profile)/health-report";
 import { createTestQueryClient, queryClientWrapper } from "../../../test-utils/reactQuery";
 
-// HL-085: the health report screen, for a Premium and a free patient.
+// HL-085: the Visit summary screen (the doctor-ready report): 7 days free, 1 and 3 months Premium.
 
-jest.mock("expo-print", () => ({ printToFileAsync: jest.fn() }));
+jest.mock("expo-print", () => ({ printToFileAsync: jest.fn(), printAsync: jest.fn() }));
 jest.mock("expo-sharing", () => ({ shareAsync: jest.fn() }));
-jest.mock("expo-file-system/legacy", () => ({ cacheDirectory: "file://cache/", moveAsync: jest.fn() }));
+jest.mock("expo-file-system/legacy", () => ({ cacheDirectory: "file://cache/", writeAsStringAsync: jest.fn(), EncodingType: { Base64: "base64" } }));
 jest.mock("../../../contexts/UserContext", () => ({ useUser: () => ({ userId: "user-1", user: { first_name: "Ana" } }) }));
 jest.mock("../../../lib/api", () => ({ apiFetch: jest.fn() }));
 
@@ -51,26 +51,53 @@ async function renderScreen() {
   );
 }
 
-describe("Health report", () => {
+describe("Visit summary (the doctor-ready report, 2026-11-12)", () => {
   beforeEach(() => (apiFetch as jest.Mock).mockReset());
 
-  it("shows a Premium patient's report and offers the PDF", async () => {
-    (apiFetch as jest.Mock).mockResolvedValue({ ok: true, status: 200, json: async () => REPORT });
+  it("opens on the free last 7 days, with what the doctor sees first and the PDF", async () => {
+    (apiFetch as jest.Mock).mockResolvedValue({ ok: true, status: 200, json: async () => ({ ...REPORT, days: 7 }) });
     await renderScreen();
-    expect(await screen.findByText("133/85 mmHg (3 readings)")).toBeOnTheScreen();
-    expect(screen.getByText("64 → 71 (+7)")).toBeOnTheScreen();
+    expect(screen.getByText("Visit summary")).toBeOnTheScreen();
+    expect(await screen.findByText("133/85 average, 3 readings")).toBeOnTheScreen();
+    expect(screen.getByText(/Nothing stood out/)).toBeOnTheScreen();
     expect(screen.getByRole("button", { name: "Share PDF" })).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: "Preview the PDF" })).toBeOnTheScreen();
     expect(screen.getByText(/not a diagnosis/)).toBeOnTheScreen();
-    expect((apiFetch as jest.Mock).mock.calls[0][0]).toBe("/api/reports/user-1?days=30");
+    // The detailed tables are in the PDF, not repeated on the screen (Trends shows progress)
+    expect(screen.queryByText("64 → 71 (+7)")).toBeNull();
+    expect((apiFetch as jest.Mock).mock.calls[0][0]).toBe("/api/reports/user-1?days=7");
   });
 
-  it("tells a free patient it's part of Premium", async () => {
-    (apiFetch as jest.Mock).mockResolvedValue({
-      ok: false,
-      status: 403,
-      json: async () => ({ detail: { code: "premium_required", message: "This is a HeartLink Premium feature." } }),
-    });
+  it("helps the patient get ready and lists what to mention", async () => {
+    const daily = [
+      {
+        date: "2026-10-26",
+        readings: [{ time: "07:00", systolic: 150, diastolic: 95, category: "stage_2", pulse: 80, medication_taken: false, symptoms: ["Headache"] }],
+        sodium_mg: null,
+        meals: 0,
+        over_sodium_limit: false,
+        exercise_minutes: 0,
+        sleep_hours: null,
+      },
+    ];
+    (apiFetch as jest.Mock).mockResolvedValue({ ok: true, status: 200, json: async () => ({ ...REPORT, days: 7, daily }) });
     await renderScreen();
+    expect(await screen.findByText("Readings on 1 of the last 7 days")).toBeOnTheScreen();
+    expect(screen.getByText("Mornings: 1")).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: "Log a reading" })).toBeOnTheScreen();
+    expect(screen.getByText("150/95 (Stage 2) · Headache · medicine not taken")).toBeOnTheScreen();
+  });
+
+  it("shows 1 and 3 months as Premium for a free patient", async () => {
+    (apiFetch as jest.Mock).mockImplementation(async (url: string) =>
+      url.endsWith("days=7")
+        ? { ok: true, status: 200, json: async () => ({ ...REPORT, days: 7 }) }
+        : { ok: false, status: 403, json: async () => ({ detail: { code: "premium_required", message: "This is a HeartLink Premium feature." } }) },
+    );
+    const user = userEvent.setup();
+    await renderScreen();
+    expect(await screen.findByText("133/85 average, 3 readings")).toBeOnTheScreen();
+    await user.press(screen.getByRole("tab", { name: "1 month, Premium" }));
     expect(await screen.findByRole("button", { name: "See HeartLink Premium" })).toBeOnTheScreen();
     expect(screen.queryByRole("button", { name: "Share PDF" })).toBeNull();
   });

@@ -362,7 +362,6 @@ export default function DashboardScreen() {
   const sodiumLimitMg = data?.nutrition_budget?.sodium?.limit_mg || DEFAULT_SODIUM_LIMIT_MG;
   const movementMins = data?.today_activity?.total_exercise_minutes || 0;
   const movementGoal = (data as any)?.thresholds?.active_minutes_goal || 30;
-  const streakDays = typeof data?.streak?.current_streak === "number" ? data.streak.current_streak : 0;
 
   const [showQuickLogModal, setShowQuickLogModal] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -848,7 +847,6 @@ export default function DashboardScreen() {
                       hasScore={hasHssScore}
                       change={scoreChange}
                       factors={data?.hss_factors ?? null}
-                      reason={streakDays > 1 ? `${streakDays}-day logging streak` : null}
                       onExplain={() => {
                         Haptics.selectionAsync();
                         setScoreModalVisible(true);
@@ -911,17 +909,17 @@ export default function DashboardScreen() {
           </TourSpot>
         </Reanimated.View>
 
-        {/* ── Weekly report banner (Visit summary): only when the report is ready ── */}
+        {/* ── The Visit summary banner: once a week, when the summary is ready ── */}
         {reportOpenedAt !== undefined && isWeeklyReportReady(data?.weekly_report, reportOpenedAt) ? (
         <Reanimated.View entering={FadeInDown.delay(140).duration(260)}>
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={() => {
               Haptics.selectionAsync();
-              safeNavigate("/(home)/(tabs)/consultation-summary");
+              safeNavigate("/(home)/(profile)/health-report");
             }}
             accessibilityRole="button"
-            accessibilityLabel="Your weekly report is ready. See how your week went."
+            accessibilityLabel="Your visit summary is ready. See how your week went."
             style={{
               flexDirection: "row",
               alignItems: "center",
@@ -948,7 +946,7 @@ export default function DashboardScreen() {
             </View>
             <View style={{ flex: 1, gap: 2 }}>
               <Text style={{ fontSize: 15, fontWeight: "700", color: c.ink, letterSpacing: -0.2 }}>
-                Your weekly report is ready
+                Your visit summary is ready
               </Text>
               <Text style={{ fontSize: 13, color: c.slate }}>
                 See how your week went
@@ -1140,7 +1138,11 @@ export default function DashboardScreen() {
               <TourSpot target="care" tour={tour}>
                 <CareTools
                   nearestClinic={nearestClinic}
-
+                  // 2026-11-12: always one tap away, for a doctor's or clinic visit (the banner only shows once a week)
+                  onOpenSummary={() => {
+                    Haptics.selectionAsync();
+                    safeNavigate("/(home)/(profile)/health-report");
+                  }}
                   onOpenClinics={() => {
                     setMapVisible(true);
                     Haptics.selectionAsync();

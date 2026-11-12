@@ -213,7 +213,7 @@ export default function HealthAnalyticsScreen() {
                 Long-Term Heatmap
               </Text>
               <Text style={{ fontSize: 13, color: c.slate }}>
-                View 6-month check-in streaks & telemetry
+                See 6 months of check-ins
               </Text>
             </View>
           </View>

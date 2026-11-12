@@ -1,10 +1,15 @@
 """
-HL-085: the doctor-ready health report (Premium). A summary of the last 30 or 90 days for the patient to show at a
+HL-085: the doctor-ready report, the app's Visit summary. A summary of the last 7 days (free), or 30 or 90 days
+(Premium), for the patient to show at a
 checkup: blood pressure (averages, highest and lowest, morning vs evening, reading categories), pulse, the heart score
 from start to end, medicines, sodium against the patient's own limit, exercise, sleep, symptoms and health alerts.
 
 It only summarises what the patient logged. Blood pressure categories follow the American Heart Association's chart
 (the same thresholds the app uses everywhere); the report never diagnoses, and says so.
+
+2026-11-12, for clinics: the layout follows the AMA/AHA Target: BP 7-day home blood pressure log (every reading with its
+date and time, morning and evening, and the average), and the ESH 2021 home BP guidance (an average without the first day,
+whose readings tend to run high). `daily` is that log, with each day's medicine, symptoms, sodium, exercise and sleep.
 """
 import zoneinfo
 from collections import Counter
@@ -13,7 +18,10 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from app.utils.time import parse_utc, to_local_date, utc_now
 
-REPORT_DAYS = (30, 90)
+REPORT_DAYS = (7, 30, 90)
+# A reading at or above this counts toward "at or above 130/80" (the AHA's stage 1 line, used across the app)
+TARGET_SYSTOLIC, TARGET_DIASTOLIC = 130, 80
+FREE_REPORT_DAYS = (7,)  # 2026-11-12: the free weekly Visit summary
 TZ = "Asia/Manila"
 NO_SYMPTOM = "None (Feeling fine)"
 DISCLAIMER = ("For discussion with your doctor. Based on the latest American Heart Association guidelines. "
@@ -90,12 +98,18 @@ def _blood_pressure(checkins: List[Dict[str, Any]]) -> Dict[str, Any]:
         return {"systolic": _avg([r[1] for r in rows]), "diastolic": _avg([r[2] for r in rows]), "readings": len(rows)} if rows else None
 
     def reading(row):
-        return {"systolic": round(row[1]), "diastolic": round(row[2]), "date": row[0].date().isoformat()}
+        return {"systolic": round(row[1]), "diastolic": round(row[2]), "date": row[0].date().isoformat(),
+                "time": row[0].strftime("%H:%M")}
 
     categories = Counter(bp_category(s, d) for _, s, d in readings)
+    first_day = min(r[0].date() for r in readings)
+    later = [r for r in readings if r[0].date() != first_day]
     return {
         "readings": len(readings),
         "average": summary(readings),
+        # ESH 2021: home readings are averaged without the first day (only when there's more than one day)
+        "average_without_first_day": summary(later),
+        "at_or_above_target": sum(1 for _, s, d in readings if s >= TARGET_SYSTOLIC or d >= TARGET_DIASTOLIC),
         "highest": reading(max(readings, key=lambda r: (r[1], r[2]))),
         "lowest": reading(min(readings, key=lambda r: (r[1], r[2]))),
         "morning": summary([r for r in readings if 5 <= r[0].hour < 11]),
@@ -123,6 +137,81 @@ def _sodium(meals: List[Dict[str, Any]], limit_mg: Optional[float]) -> Dict[str,
         "average_mg": _avg(totals),
         "limit_mg": round(limit_mg) if limit_mg else None,
         "days_over_limit": sum(1 for t in totals if limit_mg and t > limit_mg),
+    }
+
+
+def _daily(checkins, meals, exercise, sleep, limit_mg: Optional[float]) -> List[Dict[str, Any]]:
+    """The day-by-day log, newest day first: every check-in (time, blood pressure, pulse, medicine, symptoms), then that
+    day's sodium, exercise and sleep. Days with nothing logged are left out."""
+    days: Dict[date, Dict[str, Any]] = {}
+
+    def day_of(value):
+        d = _day(value)
+        if d and d not in days:
+            days[d] = {"date": d.isoformat(), "readings": [], "sodium_mg": None, "meals": 0, "exercise_minutes": 0,
+                       "sleep_hours": None}
+        return days.get(d) if d else None
+
+    for c in sorted(checkins, key=lambda c: str(c.get("logged_at") or "")):
+        row, when = day_of(c.get("logged_at")), _local(c.get("logged_at"))
+        if not row or not when:
+            continue
+        sys_bp, dia_bp = _number(c.get("systolic_bp")), _number(c.get("diastolic_bp"))
+        row["readings"].append({
+            "time": when.strftime("%H:%M"),
+            "systolic": round(sys_bp) if sys_bp else None,
+            "diastolic": round(dia_bp) if dia_bp else None,
+            "category": bp_category(sys_bp, dia_bp) if sys_bp and dia_bp else None,
+            "pulse": round(_number(c.get("heart_rate_bpm"))) if _number(c.get("heart_rate_bpm")) else None,
+            "medication_taken": c.get("medication_taken") if c.get("medication_taken") in (True, False) else None,
+            "symptoms": [s for s in (c.get("symptoms") or []) if s and s != NO_SYMPTOM],
+        })
+    for m in meals:
+        row, mg = day_of(m.get("logged_at")), _number(m.get("sodium_mg"))
+        if row:
+            row["meals"] += 1
+            if mg is not None:
+                row["sodium_mg"] = (row["sodium_mg"] or 0) + mg
+    for e in exercise:
+        row = day_of(e.get("logged_at"))
+        if row:
+            row["exercise_minutes"] += _number(e.get("duration_minutes")) or 0
+    for s in sleep:
+        row, h = day_of(s.get("logged_at")), _number(s.get("duration_hours"))
+        if row and h:
+            row["sleep_hours"] = (row["sleep_hours"] or 0) + h
+    out = []
+    for d in sorted(days, reverse=True):
+        row = days[d]
+        if row["sodium_mg"] is not None:
+            row["sodium_mg"] = round(row["sodium_mg"])
+        row["over_sodium_limit"] = bool(limit_mg and row["sodium_mg"] is not None and row["sodium_mg"] > limit_mg)
+        row["exercise_minutes"] = round(row["exercise_minutes"])
+        if row["sleep_hours"] is not None:
+            row["sleep_hours"] = round(row["sleep_hours"], 1)
+        out.append(row)
+    return out
+
+
+def _patient(user_id: str) -> Dict[str, Any]:
+    """Age, sex and the three health answers, for the doctor's header. The name is added on the phone."""
+    from app.db.repositories import get_baseline_repo, get_profile_repo
+    try:
+        profile = get_profile_repo().get_by_id(user_id) or {}
+        answers = get_baseline_repo().get_baseline(user_id) or {}
+    except Exception:
+        return {}
+    profile = profile if isinstance(profile, dict) else {}
+    answers = answers if isinstance(answers, dict) else {}
+    born = parse_utc(profile.get("date_of_birth")) if profile.get("date_of_birth") else None
+    today = to_local_date(utc_now(), TZ)
+    age = (today.year - born.year - ((today.month, today.day) < (born.month, born.day))) if born else None
+    return {
+        "age": age,
+        "sex": profile.get("sex"),
+        "bp_medicine": answers.get("bp_medicine"),
+        "has_diabetes": answers.get("has_diabetes"),
+        "cholesterol_medicine": answers.get("cholesterol_medicine"),
     }
 
 
@@ -172,9 +261,11 @@ def build_report(user_id: str, days: int) -> Dict[str, Any]:
         s for c in checkins for s in (c.get("symptoms") or []) if s and s != NO_SYMPTOM
     )
 
+    sodium_limit = (targets.get("sodium_mg") or {}).get("value")
     return {
         "days": days,
         "period": {"start": to_local_date(start, TZ).isoformat(), "end": to_local_date(now, TZ).isoformat()},
+        "patient": _patient(user_id),
         "generated_at": now.isoformat(),
         "days_logged": len(logged_days),
         "blood_pressure": _blood_pressure(checkins),
@@ -187,7 +278,7 @@ def build_report(user_id: str, days: int) -> Dict[str, Any]:
         # HL-139: the Heart risk at the start and end of the period (records that have one)
         "heart_risk": _risk_change(scores),
         "medicines": _medicines(checkins),
-        "sodium": _sodium(meals, (targets.get("sodium_mg") or {}).get("value")),
+        "sodium": _sodium(meals, sodium_limit),
         "exercise": {"sessions": len(exercise), "minutes": round(minutes), "minutes_per_week": round(minutes * 7 / days)},
         "sleep": {"average_hours": _avg(hours, 1), "nights": len(hours)},
         "symptoms": [{"name": name, "times": n} for name, n in symptoms.most_common()],
@@ -197,5 +288,7 @@ def build_report(user_id: str, days: int) -> Dict[str, Any]:
             {"date": (_day(a.get("created_at")) or now.date()).isoformat(), "type": a.get("alert_type") or "Health alert"}
             for a in sorted(alerts, key=lambda a: parse_utc(a.get("created_at")) or start)
         ],
+        # The day-by-day log for clinics (AMA/AHA Target: BP style), newest day first
+        "daily": _daily(checkins, meals, exercise, sleep, sodium_limit),
         "disclaimer": DISCLAIMER,
     }

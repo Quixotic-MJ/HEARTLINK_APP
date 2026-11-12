@@ -18,10 +18,8 @@ import { useDs } from "../../../components/onboarding/useDs";
 import DsButton from "../../../components/onboarding/DsButton";
 import AnimatedButton from "../../../components/ui/AnimatedButton";
 import { SquareIconButton } from "../../../components/exercise/ExerciseBits";
-let isCurrentlySharing = false;
 import { useUser } from "../../../contexts/UserContext";
-import * as Print from "expo-print";
-import * as Sharing from "expo-sharing";
+import { sharePdf } from "../../../services/sharePdf";
 import { useToast } from "../../../contexts/ToastContext";
 import { ds } from "../../../constants/theme";
 
@@ -665,12 +663,9 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
         </html>
       `;
 
-      const { uri } = await Print.printToFileAsync({ html });
-      if (!(await Sharing.isAvailableAsync())) {
+      if ((await sharePdf(html, "HeartLink_profile_report", "Share your report")) === "unavailable") {
         showToast({ title: "Error", message: "Sharing is not available on this device.", type: "error" });
-        return;
       }
-      if (isCurrentlySharing) return; isCurrentlySharing = true; try { await Sharing.shareAsync(uri); } finally { setTimeout(() => { isCurrentlySharing = false; }, 1000); }
     } catch (error) {
       console.error(error);
       showToast({ title: "Error", message: "Failed to generate report.", type: "error" });
@@ -940,8 +935,7 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
         >
           <MoreRow icon="bar-chart-2" label="Long-term analytics" onPress={() => router.push("/(home)/(profile)/analytics")} />
           <MoreRow icon="users" label="My care team" onPress={() => router.push("/(home)/(profile)/care-team")} />
-          <MoreRow icon="file-text" label="Doctor consultation summary" onPress={() => router.push("/(home)/(tabs)/consultation-summary" as any)} />
-          <MoreRow icon="clipboard" label="Health report (1 or 3 months)" onPress={() => router.push("/(home)/(profile)/health-report")} />
+          <MoreRow icon="file-text" label="Visit summary" onPress={() => router.push("/(home)/(profile)/health-report")} />
           <MoreRow icon="download" label="Download biometrics PDF" onPress={exportPDF} isLast />
         </View>
       </ScrollView>

@@ -1,4 +1,16 @@
-import { HealthReport, medicinesLine, periodLabel, reportHtml, reportSections, scoreLine } from "../healthReport";
+import {
+  HealthReport,
+  dayLabel,
+  doctorHighlights,
+  medicinesLine,
+  periodLabel,
+  readiness,
+  reportFlags,
+  reportHtml,
+  reportSections,
+  scoreLine,
+  time12,
+} from "../healthReport";
 
 // HL-085: the health report's wording and its PDF.
 
@@ -42,28 +54,122 @@ describe("health report wording", () => {
   });
 });
 
+const CLINIC: HealthReport = {
+  ...REPORT,
+  patient: { age: 52, sex: "female", bp_medicine: true, has_diabetes: false, cholesterol_medicine: null },
+  blood_pressure: {
+    ...(REPORT.blood_pressure as Extract<HealthReport["blood_pressure"], { average: unknown }>),
+    highest: { systolic: 150, diastolic: 95, date: "2026-10-17", time: "07:00" },
+    average_without_first_day: { systolic: 125, diastolic: 80, readings: 2 },
+    at_or_above_target: 1,
+  },
+  daily: [
+    {
+      date: "2026-10-18",
+      readings: [{ time: "19:30", systolic: 118, diastolic: 76, category: "normal", pulse: 70, medication_taken: true, symptoms: [] }],
+      sodium_mg: 1700,
+      meals: 2,
+      over_sodium_limit: true,
+      exercise_minutes: 30,
+      sleep_hours: 7,
+    },
+    {
+      date: "2026-10-17",
+      readings: [
+        { time: "07:00", systolic: 150, diastolic: 95, category: "stage_2", pulse: 80, medication_taken: false, symptoms: ["Chest discomfort"] },
+        { time: "12:15", systolic: null, diastolic: null, category: null, pulse: null, medication_taken: null, symptoms: [] },
+      ],
+      sodium_mg: null,
+      meals: 0,
+      over_sodium_limit: false,
+      exercise_minutes: 0,
+      sleep_hours: null,
+    },
+    { date: "2026-10-16", readings: [], sodium_mg: 600, meals: 1, over_sodium_limit: false, exercise_minutes: 0, sleep_hours: 6.5 },
+  ],
+};
+
 describe("reportHtml", () => {
-  it("has the summary, only the categories that happened, and the disclaimer", () => {
+  it("has the blood pressure overview, the habits and the disclaimer", () => {
     const html = reportHtml(REPORT, "Ana Cruz");
     expect(html).toContain("133/85 mmHg (3 readings)");
-    expect(html).toContain("High, stage 2 (140/90 or more)");
-    expect(html).not.toContain("Very high (180/120 or more)");
     expect(html).toContain("No evening readings");
     expect(html).toContain("1 of 2 days (limit 1,500 mg)");
+    expect(html).toContain("67% of check-ins (2 of 3)");
     expect(html).toContain("not a diagnosis");
   });
 
   it("escapes anything typed by a person", () => {
-    const html = reportHtml({ ...REPORT, symptoms: [{ name: "<img src=x onerror=alert(1)>", times: 1 }] }, '<b>"Ana"</b>');
+    const html = reportHtml(
+      { ...CLINIC, symptoms: [{ name: "<img src=x onerror=alert(1)>", times: 1 }], daily: [{ ...CLINIC.daily![1], readings: [{ ...CLINIC.daily![1].readings[0], symptoms: ["<script>x</script>"] }] }] },
+      '<b>"Ana"</b>',
+    );
     expect(html).not.toContain("<img src=x");
     expect(html).not.toContain("<b>");
+    expect(html).not.toContain("<script>");
     expect(html).toContain("&lt;img src=x onerror=alert(1)&gt;");
   });
 
   it("works with nothing logged", () => {
-    const html = reportHtml({ ...REPORT, blood_pressure: { readings: 0 }, symptoms: [], alerts: [] }, "Ana");
+    const html = reportHtml({ ...REPORT, blood_pressure: { readings: 0 }, symptoms: [], alerts: [], daily: [] }, "Ana");
     expect(html).toContain("No blood pressure logged in this period");
-    expect(html).toContain("None reported");
+    expect(html).toContain("Nothing flagged");
+    expect(html).toContain("Nothing logged in this period");
+    expect(html).not.toContain("<svg");
+  });
+
+  it("works with an older server that has no daily log", () => {
+    const html = reportHtml(REPORT, "Ana");
+    expect(html).toContain("Daily log");
+    expect(html).toContain("Not answered");
+  });
+});
+
+describe("the Visit summary for clinics (AMA/AHA Target: BP log)", () => {
+  const html = reportHtml(CLINIC, "Ana Cruz");
+
+  it("starts with who the patient is and their health answers", () => {
+    expect(html).toContain("Ana Cruz · 52 years old · Female");
+    expect(html).toContain("Takes blood pressure medicine: Yes");
+    expect(html).toContain("Diabetes: No");
+    expect(html).toContain("Takes cholesterol medicine: Not answered");
+  });
+
+  it("adds the doctor's blood pressure numbers and a chart", () => {
+    expect(html).toContain("125/80 mmHg (2 readings)");
+    expect(html).toContain("1 of 3 readings (33%)");
+    expect(html).toContain("150/95 on Sat, Oct 17, 7:00 am");
+    expect(html).toContain("<svg");
+  });
+
+  it("lists every check-in with its time, medicine and symptoms, then the day's habits", () => {
+    expect(html).toContain("7:30 pm");
+    expect(html).toContain("12:15 pm");
+    expect(html).toContain("✗ Not taken");
+    expect(html).toContain("✓ Taken");
+    expect(html).toContain("2 meals, sodium 1,700 mg ⚠ over the limit · exercise 30 min · sleep 7 h");
+    expect(html).toContain("No readings · 1 meal, sodium 600 mg · no exercise logged · sleep 6.5 h");
+    expect(html).toContain('rowspan="3"');
+    // Newest day first
+    expect(html.indexOf("Sun, Oct 18")).toBeLessThan(html.indexOf("Fri, Oct 16"));
+  });
+
+  it("puts high readings, symptoms and alerts under Things to look at, newest first", () => {
+    const flags = reportFlags(CLINIC);
+    expect(flags).toEqual([
+      { date: "2026-10-26", time: null, text: "Health alert: Hypertensive Crisis" },
+      { date: "2026-10-17", time: "07:00", text: "150/95 (Stage 2) · Chest discomfort · medicine not taken" },
+    ]);
+    expect(html).toContain("Sat, Oct 17, 7:00 am");
+  });
+});
+
+describe("PDF helpers", () => {
+  it("writes times and days plainly", () => {
+    expect(time12("00:05")).toBe("12:05 am");
+    expect(time12("12:00")).toBe("12:00 pm");
+    expect(time12("19:30")).toBe("7:30 pm");
+    expect(dayLabel("2026-11-12")).toBe("Thu, Nov 12");
   });
 });
 
@@ -111,5 +217,49 @@ describe("Heart risk in the report (HL-145)", () => {
       { label: "10-year heart risk", value: "4.2%, Borderline (estimated)" },
       { label: "At the start of the period", value: "6.1%" },
     ]);
+  });
+});
+
+describe("the Visit summary screen (2026-11-12)", () => {
+  const day = (date: string, times: string[]) => ({
+    date,
+    readings: times.map((time) => ({ time, systolic: 128, diastolic: 82, category: "stage_1", pulse: 70, medication_taken: true, symptoms: [] })),
+    sodium_mg: null,
+    meals: 0,
+    over_sodium_limit: false,
+    exercise_minutes: 0,
+    sleep_hours: null,
+  });
+  const week = (n: number) =>
+    Array.from({ length: n }, (_, i) => day(`2026-10-${String(27 - i).padStart(2, "0")}`, ["07:00", "19:30"]));
+
+  it("says how ready the last 7 days are: none, few, enough or a full week", () => {
+    expect(readiness(REPORT)).toBeNull(); // an older server without the daily log
+    expect(readiness({ ...REPORT, daily: [] })).toMatchObject({ level: "none", title: "No readings in the last 7 days" });
+    expect(readiness({ ...REPORT, daily: week(2) })).toMatchObject({ level: "few", days: 2, title: "Readings on 2 of the last 7 days" });
+    expect(readiness({ ...REPORT, daily: week(4) })).toMatchObject({ level: "good", days: 4, mornings: 4, evenings: 4 });
+    expect(readiness({ ...REPORT, daily: week(7) })).toMatchObject({ level: "full", title: "A full week of readings" });
+  });
+
+  it("only counts the last 7 days, days with a blood pressure, and morning and evening by the clock", () => {
+    const daily = [
+      day("2026-10-27", ["12:30"]), // midday: neither morning nor evening
+      day("2026-10-20", ["07:00"]), // 8 days before the end: too old
+      { ...day("2026-10-25", ["07:00"]), readings: [{ ...day("x", ["07:00"]).readings[0], systolic: null, diastolic: null }] },
+    ];
+    expect(readiness({ ...REPORT, daily })).toMatchObject({ days: 1, mornings: 0, evenings: 0 });
+  });
+
+  it("shows the doctor's first lines in plain words", () => {
+    expect(doctorHighlights(CLINIC)).toEqual([
+      { label: "Blood pressure", value: "133/85 average, 3 readings" },
+      { label: "At or above 130/80", value: "1 of 3 readings" },
+      { label: "Medicine taken", value: "2 of 3 check-ins" },
+      { label: "Days with something logged", value: "21 of 30" },
+    ]);
+    expect(doctorHighlights({ ...REPORT, blood_pressure: { readings: 0 }, medicines: { answered: 0, taken: 0, percent: null } })[0]).toEqual({
+      label: "Blood pressure",
+      value: "No readings in this period",
+    });
   });
 });

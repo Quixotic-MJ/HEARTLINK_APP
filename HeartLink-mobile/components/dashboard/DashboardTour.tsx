@@ -46,8 +46,8 @@ export const TOUR_STEPS: TourStep[] = [
   },
   {
     target: "care",
-    title: "Care tools",
-    body: "Get a summary of your readings ready for a doctor's visit, or find clinics near you.",
+    title: "Care & Support",
+    body: "Open your Visit summary to show or send your readings to a doctor or clinic, or find clinics near you.",
   },
 ];
 
