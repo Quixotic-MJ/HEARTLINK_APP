@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, status, Query
 from typing import Dict, Any
 from app.services.analytics import get_analytics, update_thresholds
 from app.services.long_term_trends import LONG_TERM_DAYS, build_long_term
+from app.services.progress_summary import SUMMARY_DAYS, build_summary
 from app.services.premium import require_premium
 from app.utils.security import get_current_user, verify_user_access, check_expert_permission
 from app.schemas.user import ThresholdsUpdateRequest
@@ -17,6 +18,19 @@ def read_analytics(
     verify_user_access(current_user, user_id)
     check_expert_permission(current_user, "vitals:read")
     return get_analytics(user_id, days=days)
+
+@router.get("/{user_id}/summary", response_model=Dict[str, Any])
+def read_progress_summary(
+    user_id: str,
+    days: int = Query(default=7),
+    current_user: dict = Depends(get_current_user),
+):
+    """The AI summary on Trends for 7, 14 or 30 days (app/services/progress_summary.py). Free, like those periods."""
+    verify_user_access(current_user, user_id)
+    check_expert_permission(current_user, "vitals:read")
+    if days not in SUMMARY_DAYS:
+        raise HTTPException(status_code=400, detail="Choose 7, 14 or 30 days.")
+    return build_summary(user_id, days)
 
 @router.get("/{user_id}/long-term", response_model=Dict[str, Any])
 def read_long_term_trends(user_id: str, days: int = Query(default=90), current_user: dict = Depends(require_premium)):

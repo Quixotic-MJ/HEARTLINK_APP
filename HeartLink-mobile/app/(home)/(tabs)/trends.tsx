@@ -22,7 +22,8 @@ import { useNetInfo } from "@react-native-community/netinfo";
 import { bandTag } from "../../../components/dashboard/ScoreCard";
 import { TrendChart } from "../../../components/trends/TrendChart";
 import { LongTermTrends } from "../../../components/trends/LongTermTrends";
-import { WeeklyInsight, type WeeklyInsightLine } from "../../../components/trends/WeeklyInsight";
+import { ProgressSummaryCard } from "../../../components/trends/ProgressSummaryCard";
+import { useProgressSummary } from "../../../services/progressSummary";
 import { isPremiumProfile } from "../../../services/premium";
 import { isLongTerm, periodName } from "../../../services/longTermTrends";
 import {
@@ -69,7 +70,6 @@ type Analytics = {
   exercise_logs?: ExerciseRow[];
   sleep_logs?: SleepRow[];
   thresholds?: { sodium_limit_mg?: number | null; active_minutes_goal?: number | null } | null;
-  weekly_insights?: WeeklyInsightLine[];
 };
 
 let isCurrentlySharing = false;
@@ -114,7 +114,10 @@ export default function TrendsTabScreen() {
   // Offline, React Query pauses the request instead of failing it, so isError never came and nothing said so
   const offline = netInfo.isConnected === false || netInfo.isInternetReachable === false || query.isPaused;
 
-  const reload = () => (long ? queryClient.refetchQueries({ queryKey: ["longTermTrends", userId, period] }) : query.refetch());
+  // 2026-11-12: the AI summary of the period (7, 14 or 30 days), loaded on its own so the charts don't wait for it
+  const summary = useProgressSummary(userId, period);
+  const reload = () =>
+    long ? queryClient.refetchQueries({ queryKey: ["longTermTrends", userId, period] }) : Promise.all([query.refetch(), summary.refetch()]);
 
   useFocusEffect(
     useCallback(() => {
@@ -274,6 +277,18 @@ export default function TrendsTabScreen() {
           })}
         </View>
 
+        {!long ? (
+          <View style={{ paddingHorizontal: 20 }}>
+            <ProgressSummaryCard
+              days={period}
+              summary={summary.data}
+              loading={summary.isLoading}
+              failed={summary.isError}
+              onRetry={() => summary.refetch()}
+            />
+          </View>
+        ) : null}
+
         {/* Measure */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityRole="tablist" contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }}>
           {METRICS.map((m) => {
@@ -330,7 +345,6 @@ export default function TrendsTabScreen() {
 
           {data && !long ? (
             <>
-              {data.weekly_insights ? <WeeklyInsight lines={data.weekly_insights} /> : null}
               <View style={{ gap: 12 }}>
                 <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "600", color: c.ink }}>
                   Day by day

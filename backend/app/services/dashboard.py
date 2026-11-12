@@ -1,4 +1,3 @@
-import os
 import zoneinfo
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
@@ -194,31 +193,6 @@ def _get_trend_direction(user_hss: list) -> str:
     return str(diff)  # Already includes minus sign for negatives
 
 
-# Today's note (Groq): the same score story keeps the same AI line for the rest of the day, and each patient gets
-# at most AI_INSIGHT_DAILY_CAP new AI lines a day, so refreshing the dashboard doesn't call the AI every time.
-# Kept in memory (one server); a restart only means the next load asks again.
-AI_INSIGHT_DAILY_CAP = int(os.getenv("AI_INSIGHT_DAILY_CAP", "8"))
-_ai_insight_lines: Dict[tuple, str] = {}
-_ai_insight_calls: Dict[str, tuple] = {}
-
-
-def _ai_insight_allowed(user_id: str, today: str) -> bool:
-    day, count = _ai_insight_calls.get(user_id, (today, 0))
-    if day != today:
-        count = 0
-    if count >= AI_INSIGHT_DAILY_CAP:
-        return False
-    _ai_insight_calls[user_id] = (today, count + 1)
-    return True
-
-
-def _remember_ai_insight(key: tuple, line: str) -> None:
-    today = key[1]
-    for old in [k for k in _ai_insight_lines if k[1] != today]:
-        del _ai_insight_lines[old]
-    _ai_insight_lines[key] = line
-
-
 def _event_records(user_hss: list) -> tuple:
     """(latest record, the score before it, the latest record again if a blood pressure reading made it)."""
     latest = user_hss[0]
@@ -383,7 +357,7 @@ def _generate_insight(
 
     `action` names the one step the app offers under the note: "log_vitals", "review_meals", "see_what_to_do"
     (an emergency-level reading or symptom: Call 911 and nearby clinics), "log_later" or None.
-    `ai_written` is True when the body came from the AI coach rather than the rules below."""
+    `ai_written` is always False: the note comes from the rules below (the AI summary is on Trends)."""
     if len(user_hss) < 2:
         return {
             "title": "Start tracking to unlock insights.",
@@ -400,55 +374,9 @@ def _generate_insight(
         kind, diff, score = _note_kind(user_hss)
         title, body, icon, action = coach_note.improve_note(title, body, icon, action, kind, diff, score, facts)
 
-    ai_written = False
-    # Try to enhance the body with Groq AI if available
-    groq_api_key = os.environ.get("GROQ_API_KEY")
-    # An emergency note is never rewritten: it must keep its exact words and its Call 911 step
-    if groq_api_key and first_name and action != "see_what_to_do":
-        try:
-            import groq
-            # Increased timeout to 4.0s to accommodate the larger 120b model
-            client = groq.Groq(api_key=groq_api_key, timeout=4.0)
-            
-            today = to_local_date(utc_now()).isoformat()
-            cache_key = (user_id or first_name, today, title, body)
-            ai_body = _ai_insight_lines.get(cache_key)
-            if ai_body is None and _ai_insight_allowed(user_id or first_name, today):
-                # The AI only rewords the second line; anything with a new number or a medical claim is dropped
-                facts_text = " ".join(x for x in (title, body) if x)
-                ai_body = coach_note.checked_ai_line(
-                    _ask_ai_for_insight(client, coach_note.ai_prompt(first_name, title, body)), facts_text
-                )
-                if ai_body:
-                    _remember_ai_insight(cache_key, ai_body)
-            if ai_body:
-                body = ai_body  # the title (the fact) stays
-                ai_written = True
-        except Exception as e:
-            logger.warning(f"Groq API Error: {str(e)}")
-            # Silently fallback to the deterministic rule-based body if timeout or error
-            pass
-
-    return {"title": title, "body": body, "icon": icon, "action": action, "ai_written": ai_written}
-
-
-def _ask_ai_for_insight(client, prompt: str) -> str:
-    """One short AI rewording of Today's note (coach_note.ai_prompt); the caller checks it and keeps it for the day."""
-    chat_completion = client.chat.completions.create(
-        messages=[
-            {
-                "role": "system",
-                # /no_think: Qwen models otherwise write their reasoning first, which used up the short answer
-                "content": "/no_think You reword short wellness notes for a heart-health app. Output only the reworded "
-                "note, with no quotation marks, preamble or reasoning.",
-            },
-            {"role": "user", "content": prompt},
-        ],
-        model="qwen/qwen3.8-27b",
-        temperature=0.5,
-        max_tokens=160,
-    )
-    return chat_completion.choices[0].message.content or ""
+    # 2026-11-12: no AI on the Dashboard any more; the AI summary is on Trends (progress_summary.py). The key stays
+    # for older apps.
+    return {"title": title, "body": body, "icon": icon, "action": action, "ai_written": False}
 
 
 def _calculate_streak_data(meal_logs, exercise_logs, daily_health_logs, sleep_logs) -> Dict[str, Any]:

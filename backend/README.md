@@ -1,6 +1,6 @@
 # HeartLink - Backend API
 
-The core backend for HeartLink, built with FastAPI. It is the only part of the system that talks to the database: the mobile app and web portal both go through it. It handles logins and permissions, health data, the Heart Stability Score (HSS), case review, and AI insights.
+The core backend for HeartLink, built with FastAPI. It is the only part of the system that talks to the database: the mobile app and web portal both go through it. It handles logins and permissions, health data, the Heart Stability Score (HSS), case review, and the AI summary on Trends.
 
 ---
 
@@ -10,7 +10,7 @@ The core backend for HeartLink, built with FastAPI. It is the only part of the s
 * **Framework:** FastAPI, served by Uvicorn
 * **Database, Auth & Storage:** Supabase (PostgreSQL, Supabase Auth, Supabase Storage) through the service-role key
 * **Scoring:** scikit-learn Logistic Regression (`app/ml/heartlink_model.pkl`) plus guideline-based blood-pressure rules and lifestyle points
-* **AI insights:** Groq API (dashboard insights; optional Companion chat)
+* **AI summary:** Groq API (the Trends summary of a period, `app/services/progress_summary.py`; optional Companion chat). The Dashboard's Today's note uses no AI
 * **Security:** PyJWT, slowapi (rate limiting), Pydantic v2 validation
 * **Tests:** pytest
 
@@ -77,7 +77,7 @@ cp .env.example .env
 | `TRUSTED_PROXY_HOPS` | Proxies in front of the server, for rate-limiting by real IP. Railway only = `1`, Vercel → Railway = `2`. | No (default `0`) | `2` |
 | `DEV_OTP_ENABLED` | Sign-up with one shared code (no SMS yet). On locally, off in production unless set. | No | `true` |
 | `DEV_OTP_CODE` | The shared 6-digit sign-up code. Locally `123456`; in production it must be set and must not be `123456`. | Production, if sign-up is on | `482913` |
-| `GROQ_API_KEY` | Dashboard insight text | Optional | `gsk_...` |
+| `GROQ_API_KEY` | The AI summary on Trends (without it, the plain summary shows) | Optional | `gsk_...` |
 | `COMPANION_LLM_ENABLED`, `COMPANION_LLM_API_KEY` | Companion chat (off by default) | Optional | `true`, `gsk_...` |
 | `SUPABASE_JWT_SECRET` | Accept Supabase-issued tokens directly | Optional | |
 

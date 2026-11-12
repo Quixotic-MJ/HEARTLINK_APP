@@ -125,39 +125,6 @@ def test_the_ai_line_is_checked():
     assert coach_note.checked_ai_line("Keep going, you are doing", note) is None  # cut off
 
 
-class FakeGroq:
-    reply = ""
-
-    class Groq:
-        def __init__(self, api_key, timeout):
-            self.chat = self
-            self.completions = self
-
-        def create(self, **kwargs):
-            message = type("M", (), {"content": FakeGroq.reply})
-            return type("R", (), {"choices": [type("C", (), {"message": message})]})
-
-
-def test_the_ai_keeps_the_title_and_a_rejected_line_falls_back(monkeypatch):
-    monkeypatch.setenv("GROQ_API_KEY", "test-key")
-    monkeypatch.setitem(sys.modules, "groq", FakeGroq)
-    monkeypatch.setattr(dashboard, "_ai_insight_lines", {})
-    monkeypatch.setattr(dashboard, "_ai_insight_calls", {})
-    f = facts(meals=[{"meal_name": "Chicken adobo", "sodium_mg": 420, "logged_at": at()}],
-              vitals=[{"systolic_bp": 120, "diastolic_bp": 78, "logged_at": at()}])
-    hist = scores(84, 82, factors={"source": "heart_score", "trigger": "meal_log"})
-
-    FakeGroq.reply = "Nice choice, Ana! Your adobo had 420 mg sodium, so 1,200 mg is left."
-    note = _generate_insight(hist, None, "Ana", "u1", f)
-    assert note["title"] == "Up 2 from Chicken adobo." and note["ai_written"] is False  # 1,200 isn't in the facts
-
-    monkeypatch.setattr(dashboard, "_ai_insight_lines", {})
-    FakeGroq.reply = "Nice choice, Ana! Your adobo had 420 mg sodium and 1,580 mg is still left today."
-    note = _generate_insight(hist, None, "Ana", "u2", f)
-    assert note["title"] == "Up 2 from Chicken adobo." and note["ai_written"] is True
-    assert note["body"].startswith("Nice choice, Ana!")
-
-
 def test_trends_gets_the_weekly_insights_for_short_and_long_periods(monkeypatch):
     """Errors here are hidden from the patient (Trends still loads), so both paths are run for real."""
     from types import SimpleNamespace
