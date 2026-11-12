@@ -30,7 +30,7 @@ const navigation = [
 const CONTENT_CHECK =
   "Dietitians write and approve recipes, and Physical Therapists write and approve exercises, inside HeartLink. An approval checks the content. It isn't personal medical advice.";
 const PREMIUM =
-  "Safety features are free for everyone. Premium adds long-term trends, longer Visit summaries (1 or 3 months) and family sharing. Checkout in this capstone uses test mode only.";
+  "Safety features are free for everyone. Premium adds long-term trends, longer Visit summaries (1 or 3 months), family sharing with check-in alerts and a Sunday summary, and a weekly meal plan with a shopping list. Checkout in this capstone uses test mode only.";
 const features = [
   {
     icon: HeartPulse,
