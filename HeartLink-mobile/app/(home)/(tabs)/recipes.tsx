@@ -19,6 +19,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "../../../contexts/UserContext";
 import { apiFetch } from "../../../lib/api";
 import { useDs } from "../../../components/onboarding/useDs";
+import { MealPlanCard } from "../../../components/meals/MealPlanCard";
 import AnimatedButton from "../../../components/ui/AnimatedButton";
 import { useRefetchOnFocus } from "../../../hooks/useRefetchOnFocus";
 import { useExploreScore } from "../../../hooks/useExploreData";
@@ -411,6 +412,9 @@ export default function RecipesScreen({
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.line} />}
         ListHeaderComponent={
+          <View>
+          {/* HL-155: the week's meal plan (Premium) */}
+          <MealPlanCard />
           <View
             style={{
               marginBottom: 12,
@@ -445,6 +449,7 @@ export default function RecipesScreen({
                 </Text>
               </View>
             ) : null}
+          </View>
           </View>
         }
         ListEmptyComponent={

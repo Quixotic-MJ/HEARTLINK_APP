@@ -65,7 +65,10 @@ describe("Visit summary (the doctor-ready report, 2026-11-12)", () => {
     expect(screen.getByText(/not a diagnosis/)).toBeOnTheScreen();
     // The detailed tables are in the PDF, not repeated on the screen (Trends shows progress)
     expect(screen.queryByText("64 → 71 (+7)")).toBeNull();
-    expect((apiFetch as jest.Mock).mock.calls[0][0]).toBe("/api/reports/user-1?days=7");
+    // The screen also asks for the Premium status (2026-11-12), so the report isn't necessarily the first request
+    const urls = (apiFetch as jest.Mock).mock.calls.map((call) => call[0]);
+    expect(urls).toContain("/api/reports/user-1?days=7");
+    expect(urls).toContain("/api/premium");
   });
 
   it("helps the patient get ready and lists what to mention", async () => {

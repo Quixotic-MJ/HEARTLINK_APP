@@ -8,7 +8,14 @@ export type Invite = { code: string; expires_at: string };
 export type Follower = { id: string; name: string; since: string };
 export type Followed = { id: string; name: string; since: string; paused: boolean };
 
-export type SharingStatus = { is_premium: boolean; invite: Invite | null; followers: Follower[]; max_followers: number };
+export type SharingStatus = {
+  is_premium: boolean;
+  invite: Invite | null;
+  followers: Follower[];
+  max_followers: number;
+  // HL-154: followers are told after 2 days without a blood pressure reading (older servers leave it out)
+  nudges_enabled?: boolean;
+};
 
 export type SummaryDay = { date: string; systolic: number | null; diastolic: number | null; score: number | null };
 
@@ -26,7 +33,14 @@ export type FamilySummary =
       last_check_in: string | null;
       days: SummaryDay[];
       open_alerts: { type: string; severity: string | null; at: string }[];
+      // HL-154: the patient's own medicine answers (older servers leave it out)
+      medicine?: { today: boolean | null; week: { taken: number; answered: number } };
     };
+
+/** HL-154: the "Medicine today" tile. */
+export function medicineToday(today: boolean | null | undefined): string {
+  return today === true ? "Taken" : today === false ? "Not taken" : "Not answered";
+}
 
 export type AccountKind = "patient" | "family";
 

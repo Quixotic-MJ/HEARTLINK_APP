@@ -90,7 +90,7 @@ export default function FollowScreen() {
       </View>
 
       <View style={{ marginTop: 24 }}>
-        <InfoNote text="You'll see their latest readings and 30-day charts, and get a notification about an emergency-level reading. You can't change anything, and they can remove you at any time." />
+        <InfoNote text="You'll see their latest readings, 30-day charts and whether they took their medicine. You'll get a notification about an emergency-level reading, if they haven't checked in for 2 days, and a summary every Sunday. You can't change anything, and they can remove you at any time." />
       </View>
     </DsScreen>
   );

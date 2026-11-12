@@ -15,6 +15,10 @@ class FollowRequest(BaseModel):
     code: str = Field(min_length=1, max_length=20)
 
 
+class NudgesRequest(BaseModel):
+    enabled: bool
+
+
 class AccountKindRequest(BaseModel):
     kind: Literal["patient", "family"]
 
@@ -35,6 +39,12 @@ def read_sharing(user_id: str = Depends(_patient)):
 @router.post("/invite")
 def create_invite(user_id: str = Depends(_patient)):
     return family.create_invite(user_id)
+
+
+@router.put("/nudges")
+def set_nudges(payload: NudgesRequest, user_id: str = Depends(_patient)):
+    """HL-154: turn the "no check-in for 2 days" message to followers on or off."""
+    return family.set_nudges(user_id, payload.enabled)
 
 
 @router.delete("/followers/{follower_id}")

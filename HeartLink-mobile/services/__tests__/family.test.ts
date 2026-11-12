@@ -1,4 +1,4 @@
-import { agoLine, cleanCode, expiresLine, familyCanOpen, inviteMessage, isFamilyAccount, showCode, summaryChart } from "../family";
+import { agoLine, cleanCode, expiresLine, familyCanOpen, inviteMessage, isFamilyAccount, medicineToday, showCode, summaryChart } from "../family";
 
 // HL-087: family sharing helpers.
 
@@ -72,5 +72,14 @@ describe("the 30-day charts", () => {
     expect(chart.days[0].date.getDate()).toBe(26);
     expect(chart.pressure).toEqual([{ sys: 138, dia: 88 }, null]);
     expect(chart.scores).toEqual([71, null]);
+  });
+});
+
+describe("medicine today (HL-154)", () => {
+  it("says the patient's own answer plainly", () => {
+    expect(medicineToday(true)).toBe("Taken");
+    expect(medicineToday(false)).toBe("Not taken");
+    expect(medicineToday(null)).toBe("Not answered");
+    expect(medicineToday(undefined)).toBe("Not answered");
   });
 });

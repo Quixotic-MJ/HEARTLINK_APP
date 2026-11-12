@@ -23,6 +23,9 @@ export function useSharing() {
   return useQuery({
     queryKey: ["family", "sharing", userId],
     enabled: !!userId,
+    // Asked again every time the screen opens: Premium (given in the portal) and new followers change it from outside
+    // the app, so a saved answer could keep the invite button hidden (2026-11-12)
+    staleTime: 0,
     queryFn: () => call<SharingStatus>("/api/family/sharing"),
   });
 }
@@ -31,6 +34,16 @@ export function useCreateInvite() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => call<Invite>("/api/family/invite", { method: "POST" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["family", "sharing"] }),
+  });
+}
+
+/** HL-154: the patient's switch for the "no check-in for 2 days" message to followers. */
+export function useSetNudges() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (enabled: boolean) =>
+      call<{ nudges_enabled: boolean }>("/api/family/nudges", { method: "PUT", body: JSON.stringify({ enabled }) }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["family", "sharing"] }),
   });
 }
