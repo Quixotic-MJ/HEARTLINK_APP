@@ -2,6 +2,9 @@
 
 This document outlines the step-by-step technical and user journeys for the primary features across the HeartLink mobile application and web portal.
 
+*Last updated 2026-11-12: setup with the PAR-Q+ and the heart questions, Heart risk and the habits score (they replaced the Health Stability Score), the Dashboard swipe card and Today's note, the AI summary on Trends, the exercise safety pauses, the emergency symptoms, the recipe sodium note, and the Visit summary. Streaks were removed. Section 14 (Case review and Model Check on the web
+portal) was added for HL-153.*
+
 ## 1. Application Launch & Routing (Splash Screen)
 
 The splash screen is the very first thing you see when you open the HeartLink app. It acts like a "traffic cop," checking who you are and directing you to the right place.
@@ -117,56 +120,70 @@ flowchart TD
 
 ## 3. Baseline Setup Questionnaire
 
-This flow describes what happens right after a new patient signs up. HeartLink requires baseline data to establish a personalized cardiovascular health model.
+This flow describes what happens right after a new patient signs up. HeartLink asks a few questions once, so it can show a starting picture of the patient's heart health and offer only exercises that are safe for them.
 
 ### Scenario
-**"A new user completes their account registration and starts answering health questions."**
+**"A new user finishes signing up and sets up their profile."**
 
-The user is taken through a 6-step questionnaire asking about their physical body, activity levels, sleep, smoking, alcohol, and diet. Once they finish, the app calculates their very first Health Stability Score (HSS).
+The user first reads "Before we start": what HeartLink is (a wellness tool, not a diagnosis) and when to get help right away. A set-up map then shows four short parts. The user answers one question per screen, sees a recap after each part, and then answers the exercise safety check (the PAR-Q+). At the end they see two numbers: their **heart health habits score** and their **estimated 10-year heart risk**. They can log a first blood pressure reading, choose reminders, and see what day one looks like before reaching the Dashboard.
 
 ### Logic Used
-*   **Step-by-Step Collection:** The app groups questions into 6 distinct screens to avoid overwhelming the user (Biometrics -> Activity -> Sleep/Smoking -> Alcohol -> Diet -> Pre-existing Conditions).
-*   **Context Memory:** Instead of saving data to the database after every single screen, the app holds all the answers securely in temporary memory.
-*   **Final Calculation:** On the final "Calculating" screen, the app securely sends all the combined data to the server at once. The server immediately uses this data to calibrate the user's initial Health Stability Score (HSS).
-*   **Status Update:** The user's account is permanently marked as "Onboarded" so they will never see these questions again, and they are sent to their Dashboard.
+*   **Four parts, one question per screen:**
+    1.  *About you:* name, birthday, sex, height and weight.
+    2.  *Movement:* hard exercise, moderate activity, walking or biking, and sitting time.
+    3.  *Habits:* sleep, smoking, alcohol, and three heart questions: blood pressure medicine, diabetes, and cholesterol medicine.
+    4.  *Food:* portions, fruit and vegetables, fried and salty food, allergies and diet.
+*   **Finish later:** The set-up map remembers which parts are done, so the user can stop and carry on later. After each part, a recap shows their answers with Edit links.
+*   **Exercise safety check (PAR-Q+):** The whole PAR-Q+ is answered inside the app. The server works out the result, which decides **which exercises are offered, never the score**. It is a screening, not a diagnosis.
+*   **Starting numbers:** The answers are sent to the server once. It works out the starting **habits score** (out of 100, higher is better, based on the AHA's Life's Essential 8) and an **estimated heart risk**: the chance of a heart attack or stroke in the next 10 years (AHA PREVENT, lower is better). It stays "estimated" until the patient adds cholesterol and kidney lab results. People under 30 see "Heart risk estimates start at age 30".
+*   **First reading:** The user can log a first blood pressure reading on the normal check-in screen, so the emergency checks run exactly as they do everywhere else. "I don't have a monitor right now" skips it.
+*   **Status Update:** The account is marked as set up, so these questions are not shown again. Answers can be changed later in Settings.
 
 ### 3.1 Setup Flow
-This diagram shows the journey from the first question to the final dashboard reveal:
+This diagram shows the journey from the first screen to the Dashboard:
 
 ```mermaid
 flowchart TD
-    A(["New User<br/>Logs In"]) --> B["Step 1:<br/>Biometrics"]
-    B --> C["Step 2:<br/>Activity"]
-    C --> D["Step 3:<br/>Sleep/Smoke"]
-    D --> E["Step 4:<br/>Alcohol"]
-    E --> F["Step 5:<br/>Diet"]
-    F --> G["Step 6:<br/>Health Cond."]
-    
-    G --> H{"Submit All<br/>Data to<br/>Server"}
-    
-    H -- Error --> I["Show Error<br/>Toast"]
-    I --> G
-    
-    H -- Success --> J["Calculate<br/>HSS Score"]
-    J --> K["Mark Setup<br/>Complete"]
-    K --> L["Go to Main<br/>Dashboard"]
+    A(["New User<br/>Logs In"]) --> B["Before We<br/>Start"]
+    B --> C["Set-up Map<br/>(4 parts)"]
+    C --> D["Answer a Part<br/>(1 question/screen)"]
+    D --> E["Part Recap<br/>(Edit answers)"]
+    E --> F{"All 4 parts<br/>done?"}
+    F -- No --> C
+    F -- Yes --> G["Exercise Safety<br/>Check (PAR-Q+)"]
+
+    G --> H{"Send Answers<br/>to Server"}
+    H -- Error --> I["Try Again or<br/>Back to Answers"]
+    I --> H
+
+    H -- Success --> J["Habits Score +<br/>Estimated Heart Risk"]
+    J --> K["First BP<br/>Reading (optional)"]
+    K --> L["Reminders"]
+    L --> M["Day One"]
+    M --> N["Go to Main<br/>Dashboard"]
 ```
+
 ## 4. Main Dashboard Experience
 
-The dashboard is the central hub of the HeartLink app. This is the main screen the patient interacts with every day to track their progress, view their score, log habits, and receive personalized advice.
+The dashboard is the central hub of the HeartLink app. This is the main screen the patient uses every day to log check-ins, see their numbers and get suggestions.
 
 ### Scenario
-**"A patient opens the app in the morning to check their status, log their blood pressure, and see what meals or exercises are recommended for them today."**
+**"A patient opens the app in the morning to check their status, log their blood pressure, and see what meals or exercises are suggested for them today."**
 
-When the patient lands on the dashboard, they are greeted by an AI companion. They can instantly see their Health Stability Score (HSS) ring, a list of their 4 daily missions (Vitals, Meals, Movement, Sleep), personalized diet/exercise recommendations, their daily streak, and even a quick shortcut to find the nearest clinic. 
-If the patient's score has dropped to a critical level overnight, an alert will instantly pop up suggesting they seek medical attention.
+At the top is a card the patient can swipe through: their **heart health habits** score, today's habits, and their **10-year heart risk**. Below it are today's check-ins (blood pressure, meals, movement, sleep), "Today's note", their blood pressure for the week, meals and exercises picked for them, and Care & Support (the Visit summary and nearby clinics).
 
 ### Logic Used
-*   **Offline Mode:** If the patient doesn't have internet, the dashboard still loads using their last known data. When they regain a connection, it silently syncs in the background without interrupting them.
-*   **First-Time Tour:** If it's the patient's very first time, an interactive tutorial will guide them step-by-step through each section of the dashboard.
-*   **Critical Alerts:** The app constantly checks for active health alerts. If one exists and hasn't been dismissed, it automatically shows a warning popup with a button to find the nearest clinic.
-*   **Dynamic Companion:** The greeting message changes automatically based on the time of day, the patient's current daily streak, and their health score.
-*   **Smart Routing:** The dashboard acts as a launchpad. Tapping a recipe recommendation opens the meal details, tapping the score ring opens an explanation of how the score is calculated, and tapping the map opens the facility locator.
+*   **Swipe Card:** Three pages (swipe or tap the dots):
+    1.  *Heart health habits:* the habits score out of 100 and its level. Tapping the i shows every habit's points.
+    2.  *Today's habits:* how today's blood pressure, movement, sleep and food are going.
+    3.  *Heart risk:* the 10-year chance of a heart attack or stroke, with its band (Low, Borderline, Intermediate or High) and an "Estimated" tag until lab results are added. Intermediate and High show a gentle "discuss this with your doctor at your next checkup" note. It is never an emergency alarm.
+*   **Health Alert Popup:** If the server has an active health alert the patient hasn't dismissed, a "Health Alert" popup opens with a button to find a healthcare facility.
+*   **Today's Note:** One line on what just changed the score, with a step to take when there is one. It is written by rules, not AI. After an emergency-level reading it turns red with "Call 911".
+*   **Offline Mode:** Without internet, the dashboard still shows the last known data. Logs are saved on the phone and uploaded when the connection returns.
+*   **First-Time Tour:** The first time, a short tour explains each section: habits and heart risk, today's check-ins, today's note, blood pressure this week, picked for you, and Care & Support.
+*   **Weekly Visit Summary Banner:** Once a week, a banner says "Your visit summary is ready". Opening the Visit summary hides it for that week.
+*   **No Streaks:** Streaks were removed (2026-11-12). The app looks at what was logged, not at unbroken runs of days.
+*   **Smart Routing:** The dashboard is a launchpad. A recipe opens its details, an exercise opens its guide, the blood pressure card opens Trends, and Care & Support opens the Visit summary or the clinic locator.
 
 ### 4.1 Dashboard Loading Flow
 This diagram shows what happens behind the scenes when the dashboard screen opens:
@@ -174,50 +191,55 @@ This diagram shows what happens behind the scenes when the dashboard screen open
 ```mermaid
 flowchart TD
     A(["Open<br/>Dashboard"]) --> B{"Is it their<br/>first time?"}
-    
-    B -- Yes --> C["Show Tour<br/>Tutorial"]
+
+    B -- Yes --> C["Show Tour"]
     C --> D
-    
-    B -- No --> D["Fetch Data<br/>from Server"]
-    
-    D --> E{"Is there<br/>an active<br/>alert?"}
-    
-    E -- Yes --> F["Show Warning<br/>Popup"]
+
+    B -- No --> D["Fetch Data<br/>from Server<br/>(or saved data offline)"]
+
+    D --> E{"Active health<br/>alert not<br/>dismissed?"}
+    E -- Yes --> F["Show Health<br/>Alert Popup"]
     F --> G
-    
-    E -- No --> G["Display AI<br/>Greeting"]
-    G --> H["Show Full<br/>Dashboard"]
+    E -- No --> G{"Emergency-level<br/>reading today?"}
+
+    G -- Yes --> G1["Red Today's Note<br/>with Call 911"]
+    G -- No --> G2["Normal Today's<br/>Note"]
+    G1 --> H["Show Full<br/>Dashboard"]
+    G2 --> H
 ```
 
-### 4.2 Comprehensive Dashboard Interactions
+### 4.2 Dashboard Interactions
 This diagram explains every major action a patient can take from the main dashboard screen:
 
 ```mermaid
 flowchart TD
     A(["User is on<br/>Dashboard"]) --> B{"What do they<br/>tap on?"}
-    
-    B -- Notifications<br/>Bell --> C["Open Alerts<br/>Menu"]
-    
-    B -- Score Ring --> D["Show Score<br/>Breakdown"]
-    
-    B -- Daily<br/>Missions --> E{"Which<br/>mission?"}
-    E -- Vitals --> E1["Go to Log<br/>Symptoms"]
-    E -- Exercise --> E2["Open Quick<br/>Log Popup"]
-    E -- Meals --> E3["Open Meals<br/>Log Popup"]
-    E -- Sleep --> E4["Open Sleep<br/>Log Popup"]
-    
-    B -- Recommended<br/>Plan --> F{"What type<br/>of plan?"}
+
+    B -- Notifications<br/>Bell --> C["Open<br/>Notifications"]
+
+    B -- Swipe Card --> D{"Which<br/>page?"}
+    D -- Habits --> D1["Show Habit<br/>Points"]
+    D -- Today --> D2["Today's<br/>Habits"]
+    D -- Heart Risk --> D3["About Your<br/>Heart Risk"]
+
+    B -- Today's<br/>Check-ins --> E{"Which<br/>check-in?"}
+    E -- Blood pressure --> E1["Go to Log<br/>Check-in"]
+    E -- Movement --> E2["Open Movement<br/>Log"]
+    E -- Meals --> E3["Open Meals<br/>Log"]
+    E -- Sleep --> E4["Open Sleep<br/>Log"]
+
+    B -- Picked<br/>for You --> F{"What type?"}
     F -- Recipe --> F1["Open Recipe<br/>Details"]
-    F -- Exercise --> F2["Open Exercise<br/>Details"]
-    
-    B -- Clinic Locator --> G["Open Map<br/>Locator"]
-    
-    B -- Consult Tab --> H["View Doctor<br/>Summary PDF"]
+    F -- Exercise --> F2["Open Exercise<br/>Guide"]
+
+    B -- Care &<br/>Support --> G{"Which?"}
+    G -- Visit summary --> G1["Open Visit<br/>Summary"]
+    G -- Clinics --> G2["Open Clinic<br/>Locator"]
 ```
 
-## 5. Daily Missions Tracking
+## 5. Today's Check-ins (Daily Missions)
 
-Every day, the dashboard presents four daily missions to track the user's cardiovascular health: Vitals, Movement, Meals, and Sleep. 
+Every day, the dashboard shows four check-ins: Blood pressure (with the medicine answer), Movement, Meals, and Sleep.
 
 ### Scenario
 **"A patient logs their daily habits directly from the dashboard."**
@@ -274,36 +296,42 @@ flowchart TD
 
 ## 6. Trends & Analytics Experience
 
-The Trends tab gives patients a comprehensive look at how their health is changing over time. It aggregates all the data they log into easy-to-read charts and summaries.
+The Trends tab shows patients how their numbers change over time, drawn only from what they logged.
 
 ### Scenario
-**"A patient wants to see if their blood pressure has improved over the last 14 days and wants to export a quick report to show their doctor."**
+**"A patient wants to see if their blood pressure has improved over the last 14 days."**
 
-The patient navigates to the Trends tab. They tap "Blood Pressure" on the chart selector and change the timeframe to 14 days. The interactive graph updates instantly. They then tap the "Share" icon in the corner to generate a PDF report.
+The patient opens the Trends tab, picks "Blood pressure" and the 14-day period. The chart updates, and an AI summary explains in plain words how the period went. Best day and saltiest day are shown under the chart.
 
 ### Logic Used
-*   **Dynamic Interactive Charts:** The app uses custom drawings to create smooth line charts. When the user switches tabs (e.g., from Heart Rate to Sodium), the chart automatically recalculates the curves and updates the graph.
-*   **Averages & Highlights:** The app crunches the data to find the user's "Best Day" (highest HSS score) and their "Highest Sodium" day, displaying them in a quick summary section alongside progress bars for their sleep, activity, and sodium goals.
-*   **PDF Generation:** The export feature doesn't just take a screenshot. It builds a structured document in the background with the user's latest stats, converts it to a PDF, and triggers the native phone sharing menu (Messages, Email, Print).
+*   **One Measure at a Time:** Heart risk, Habits score, Blood pressure, Pulse or Sodium. A day with nothing logged is left empty on the chart; nothing is filled in.
+*   **Periods:** 7, 14 and 30 days are free. 90 days and 1 year are Premium.
+*   **AI Summary:** A short summary of the period to help the patient understand their progress and habits. It is not coaching and not medical advice. The server works out the facts from the patient's own logs; the AI only rewords them, and its text is checked (no new numbers, no medical words, no advice, no risk). If the check fails, the plain sentences show instead.
+*   **Highlights:** Best day (highest habits score) and saltiest day, once there are enough days with a habits score. Streaks were removed.
+*   **Share:** The share button makes a short Trends PDF for the 7, 14 or 30-day period. For 90 days or 1 year it opens the Visit summary instead (see section 13).
 
 ### 6.1 Trends Screen Flow
 This flowchart shows how the patient navigates and interacts with their data on the Trends screen:
 
 ```mermaid
 flowchart TD
-    A(["Open Trends<br/>Tab"]) --> B["Fetch User<br/>Analytics DB"]
-    
-    B --> C{"What to<br/>view?"}
-    
-    C -- Change Stat --> C1["Tap: Score,<br/>BP, HR, Sodium"]
-    C1 --> D["Update SVG<br/>Line Chart"]
-    
-    C -- Timeframe --> C2["Tap: 7D, 14D,<br/>or 30D"]
-    C2 --> B
-    
-    C -- Share --> C3["Tap Export<br/>Icon"]
-    C3 --> E["Generate PDF<br/>Trends Report"]
-    E --> F["Open Native<br/>Share Menu"]
+    A(["Open Trends<br/>Tab"]) --> B["Fetch What<br/>Was Logged"]
+    B --> S["Load AI<br/>Summary"]
+
+    B --> C{"What to<br/>do?"}
+
+    C -- Change Measure --> C1["Heart Risk, Habits,<br/>BP, Pulse, Sodium"]
+    C1 --> D["Update<br/>Chart"]
+
+    C -- Period --> C2{"7, 14, 30 days<br/>or longer?"}
+    C2 -- "7/14/30" --> B
+    C2 -- "90 days / 1 year" --> P{"Premium?"}
+    P -- Yes --> B
+    P -- No --> P1["Open Premium<br/>Screen"]
+
+    C -- Share --> C3["Tap Share"]
+    C3 --> E["Make Trends<br/>PDF"]
+    E --> F["Open Phone's<br/>Share Menu"]
 ```
 
 ## 7. Explore & Discovery Experience
@@ -356,13 +384,12 @@ When a user taps on a recipe from the Explore tab or the Dashboard, they are bro
 ### Scenario
 **"A patient finds a recipe, adjusts the portion size because they are cooking for two, and then logs the meal to their daily diary."**
 
-The patient opens a recipe and sees the ingredients list and step-by-step instructions. They use the '+' button to increase the servings. The app instantly updates the nutrition macros. Because they doubled the portion, a warning pops up letting them know this new portion size exceeds their recommended sodium limit. They adjust it back down and tap "Log This Meal".
+The patient opens a recipe and sees the ingredients list and step-by-step instructions. They use the '+' button to increase the servings. The app instantly updates the nutrition macros. Because they doubled the portion, a "High in sodium" note explains that this amount is more than half of a 1,500 mg daily sodium limit. They adjust it back down and tap "Log This Meal".
 
 ### Logic Used
 *   **Dynamic Servings:** The app multiplies the calories, sodium, fiber, and saturated fat in real-time as the user adjusts the servings counter.
-*   **Safety Limits:** The app constantly checks the current sodium value against a hard limit (140mg per meal). If exceeded, a red warning alert appears to stop the patient from consuming too much sodium in one sitting.
+*   **Sodium Note:** The app checks the sodium for the chosen servings. Over 800 mg shows "High in sodium" (more than half of the 1,500 mg daily limit); over 400 mg shows a milder note. No food is called forbidden: the note explains the amount and how lighter meals later can balance the day. Allergy and diet warnings stay separate and strong.
 *   **Offline Meal Logging:** If the user is in the kitchen with bad internet and logs the meal, the app smartly saves it locally ("queued for sync") and uploads it later when a connection is restored.
-*   **Heart Verification:** Recipes that have been professionally verified display a badge noting they are approved by a clinical nutritionist.
 
 ### 8.1 Recipe Interaction Flow
 This flowchart maps out how a user interacts with a recipe and ultimately logs it:
@@ -379,9 +406,9 @@ flowchart TD
     B -- Change<br/>Portions --> C3["Tap +/-<br/>Servings"]
     C3 --> E["Recalculate<br/>Macros"]
     
-    E --> F{"Does Sodium<br/>Exceed Limit?"}
-    F -- Yes --> G["Show High<br/>Sodium Warning"]
-    F -- No --> H["Hide Warning"]
+    E --> F{"Sodium over<br/>800 mg?"}
+    F -- Yes --> G["Show 'High in<br/>sodium' Note"]
+    F -- No --> H["Milder Note<br/>or None"]
     
     B -- Finish --> I["Tap 'Log<br/>This Meal'"]
     I --> J{"Has Internet?"}
@@ -403,7 +430,7 @@ The HeartLink app doesn't just list workouts; it actively guides patients throug
 The patient opens the Cardio workout and reads the guide. They tap "Start Exercise" and a 3-second countdown begins. The live session timer starts. Halfway through, they tap the 'X' button because they feel unwell. The app immediately asks if they stopped because they were tired or because of symptoms. They select symptoms, and the app instantly aborts the workout and rushes them to the Symptom Logger to record the chest tightness.
 
 ### Logic Used
-*   **Safety First (Critical Lock):** Before a workout even starts, the app checks the user's Health Stability Score (HSS). If it's critically low, or if they recently logged a severe symptom, the "Start" button is locked to prevent cardiac strain.
+*   **Safety First (Workout Pause):** The exercise safety check (PAR-Q+) decides, never the score. A workout is paused after a recent severe symptom, an emergency-level blood pressure reading, or a "Locked" or "Delayed" safety check result. "Eligible with caution" allows beginner exercises only. If the check hasn't been done, tapping "Start" opens it first. Breathing exercises always stay open.
 *   **Adaptive Player:** The live workout player adapts to the type of exercise. It loads a specialized screen depending on whether it's Breathing, Stretching, Cardio, or General Activity.
 *   **Short Session Check:** If the user stops a workout in under 30 seconds, the app asks if they want to discard it or save it anyway, preventing accidental logs.
 *   **Clinical Safety Net:** Every time a user finishes or stops an exercise, they must answer a post-workout assessment ("I feel OK" vs. "I have symptoms"). Logging symptoms here automatically tags them as exercise-induced for their doctor to review.
@@ -413,9 +440,9 @@ This flowchart details the exact sequence of states a patient moves through duri
 
 ```mermaid
 flowchart TD
-    A(["Open Exercise"]) --> B{"Is HSS Score<br/>Critical?"}
+    A(["Open Exercise"]) --> B{"Workout paused?<br/>(symptom, emergency<br/>reading, safety check)"}
     
-    B -- Yes --> C["Lock 'Start'<br/>Button"]
+    B -- Yes --> C["Show Why It's<br/>Paused"]
     B -- No --> D["Tap 'Start'"]
     
     D --> E["3-2-1<br/>Ready Screen"]
@@ -449,7 +476,7 @@ The patient taps the '+' button to log their vitals. They enter their systolic (
 
 ### Logic Used
 *   **Medical Validation:** The app performs sanity checks on the inputs: Systolic must be higher than Diastolic by at least 15 points. Weight cannot be absurdly low or high. If values are backwards, it throws an error.
-*   **Emergency Triggers:** The app constantly evaluates the vitals. If it detects an acute Hypertensive Crisis (>=180/120) or Severe Hypotension (<90/60), it immediately displays a full-screen red emergency modal advising them to seek medical care.
+*   **Emergency Triggers:** If it detects an acute Hypertensive Crisis (180 or higher top number, or 120 or higher bottom number) or Severe Hypotension (under 90 top, or under 60 bottom), it immediately shows the emergency guidance advising them to seek medical care. The same happens for chest discomfort rated 7 or more, shortness of breath while resting, or fainting or nearly fainting.
 *   **Interactive Severity Slider:** When a symptom is selected, an interactive draggable slider appears to rate the pain/severity from 1 to 10, changing color from green to red.
 
 ### 10.1 Symptom Logger Flow
@@ -539,34 +566,87 @@ flowchart TD
     G -- Tap Call --> I["Open Phone<br/>Dialer"]
 ```
 
-## 13. Expert Consultation Summary Flow
+## 13. Visit Summary (for a Doctor or Clinic)
 
-This screen is a "print-ready" view designed specifically to be handed to a cardiologist during a routine check-up.
+The Visit summary is the one report a patient shows or sends to a doctor or clinic. It replaced the old Consultation Summary and the separate health report (2026-11-12).
 
 ### Scenario
-**"A patient is sitting in the waiting room at their cardiologist's office. The nurse asks for their latest vitals."**
+**"A patient has a checkup next week and wants to bring their home blood pressure readings."**
 
-The patient opens the Consultation Summary tab. They see a clean, professional dashboard summarizing their last 7 days of averages, their highest risks, and a timeline of their symptoms. They tap "Share PDF" and AirDrop/Email the report directly to the nurse's tablet.
+From the Dashboard (Care & Support) or Profile, the patient opens the Visit summary. A card says "Readings on 4 of the last 7 days" and suggests checking blood pressure every morning and evening before the visit. On the day, they look at "What your doctor will see first" and "Things to mention to your doctor", tap "Preview the PDF" to check it, then "Share PDF" to send it to the clinic.
 
 ### Logic Used
-*   **Data Aggregation:** The page heavily relies on React Query to pull massive amounts of data (analytics, history, missions) and calculates 7-day averages for BP, HR, and Sodium. 
-*   **Insight Generation:** It scans the logs to generate quick insights like "Reported Shortness of Breath 2 times this week".
-*   **PDF Printing:** Utilizing `expo-print`, the app constructs a hidden, beautifully formatted HTML document containing all the medical data and graphs, converts it to a PDF file, and uses `expo-sharing` to open the phone's share sheet.
+*   **Periods:** The last 7 days are free. 1 month and 3 months are Premium (on a free account they show a lock, and choosing one shows a Premium prompt).
+*   **Is Your Summary Ready?:** Counts the days in the last 7 with a blood pressure reading, and the mornings (5–11 am) and evenings (5–10 pm). Doctors look for at least 3 days, and a full week is best (ESH 2021 home blood pressure guidance). It suggests 2 readings a minute apart, morning and evening (AMA/AHA Target: BP).
+*   **What the Doctor Sees First:** The blood pressure average, how many readings were at or above 130/80, morning vs evening, medicine taken, heart risk and days logged.
+*   **Things to Mention:** High (stage 2), very high or low readings and symptoms, with their date and time, plus health alerts. Newest first.
+*   **The PDF:** Follows the AMA/AHA Target: BP home blood pressure log.
+    *   *Page 1:* the patient's name, age, sex and health answers; a blood pressure table (averages, the ESH average without the first day, at or above 130/80, highest and lowest with time, pulse); a chart with lines at 130 and 80; things to look at; and medicine, habits and risk.
+    *   *Page 2 onwards:* a day-by-day log of every check-in (time, blood pressure, level, pulse, medicine, symptoms), with that day's meals and sodium, exercise and sleep under each day.
+*   **Sharing:** The PDF is made with `expo-print`, copied into the app's own cache folder, then shared with `expo-sharing`. Copying it first fixed the Android error "Not allowed to read file under given URL".
+*   **Not a Diagnosis:** The summary only lists what was logged, and says so on every page.
 
-### 13.1 Consultation Summary Flow
+### 13.1 Visit Summary Flow
 
 ```mermaid
 flowchart TD
-    A(["Open Consultation<br/>Summary"]) --> B["Fetch Analytics,<br/>Logs, & Missions"]
-    
-    B --> C["Calculate 7-Day<br/>Averages"]
-    C --> D["Identify Highest<br/>Risks & Symptoms"]
-    
-    D --> E["Display Clean<br/>Clinical View"]
-    
-    E --> F{"Doctor Requests<br/>Copy?"}
-    
-    F -- Yes --> G["Tap 'Share PDF'"]
-    G --> H["Build Hidden<br/>HTML Report"]
-    H --> I["Generate & Share<br/>PDF File"]
+    A(["Open Visit<br/>Summary"]) --> B{"Which<br/>period?"}
+    B -- 7 days --> C["Fetch Summary<br/>from Server"]
+    B -- 1 or 3 months --> P{"Premium?"}
+    P -- No --> P1["Show Premium<br/>Prompt"]
+    P -- Yes --> C
+
+    C --> D["Is Your Summary<br/>Ready? (days, mornings,<br/>evenings)"]
+    D --> E["What the Doctor<br/>Sees First"]
+    E --> F["Things to<br/>Mention"]
+
+    F --> G{"User Action"}
+    G -- Log a reading --> G1["Go to Log<br/>Check-in"]
+    G -- Preview the PDF --> G2["Open Print<br/>Preview"]
+    G -- Share PDF --> H["Build PDF<br/>(overview + daily log)"]
+    H --> I["Copy to App<br/>Cache"]
+    I --> J["Open Phone's<br/>Share Menu"]
+```
+
+## 14. Case Review & Model Check (Web Portal)
+
+Clinicians check the app's Heart risk on anonymized patients. The full steps for admins and experts are in
+`documentation/CASE_REVIEW_GUIDE.md`.
+
+### Scenario
+**"A patient's estimated Heart risk is High, so an urgent case opens, and the Cardiologist reviews it the next morning."**
+
+The admin opens Case review and sees the urgent case. The Cardiologist opens it, reads the anonymized snapshot (age,
+sex, answers, labs, the last 30 days of readings), and picks the band they would give: Intermediate, with an estimate of
+8%. Only after submitting do they see the app's answer (High, 11%, estimated) and "App too high". The Dietitian and the
+Physical Therapist then check the recipes and exercises the app gives this patient. Model Check counts the review once
+the Cardiologist is a verified clinician.
+
+### Logic Used
+*   **Cases open by themselves** when someone opens Case review:
+    *   *Urgent:* a High Heart risk, a reading of 180/120 or more or under 90/60, chest discomfort rated 7 or more,
+        breathlessness at rest, or fainting.
+    *   *Re-review:* the Heart risk band changed since the last review.
+    *   *Sample:* an admin draws it weekly, 5 patients per band.
+*   **Blind review:** the app's Heart risk stays hidden until the Cardiologist submits.
+*   **Model Check:** agreement, weighted kappa, and under- and over-calling between the app's band and the Cardiologist's.
+    It counts verified clinicians only, needs 30 reviews before the numbers mean anything, and can be filtered to the
+    machine learning "Estimated" risk.
+*   **No patient effect:** reviews don't change what patients see. Retraining from reviews is switched off.
+
+### 14.1 Case Review Flow
+
+```mermaid
+flowchart TD
+    A(["Open Case<br/>Review"]) --> B["Check for New<br/>Urgent & Re-review Cases"]
+    W(["Admin: Weekly<br/>Sample"]) --> C
+    B --> C["Queue: Urgent,<br/>Re-review, Sample"]
+    C --> D["Cardiologist Gives<br/>Heart Risk Band"]
+    D --> E["App's Heart Risk<br/>Shown & Compared"]
+    E --> F["Dietitian Checks<br/>Recipes"]
+    E --> G["PT Checks Exercises<br/>(PAR-Q+ shown)"]
+    F --> H{"All Parts<br/>Done?"}
+    G --> H
+    H -- Yes --> I["Leaves the Queue"]
+    E --> J["Model Check<br/>(verified clinicians)"]
 ```

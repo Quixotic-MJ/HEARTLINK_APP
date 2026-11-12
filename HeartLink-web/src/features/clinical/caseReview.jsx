@@ -150,6 +150,29 @@ const Cases = () => {
           <p className="text-[13.5px] font-medium text-cal-body">{yourPart}</p>
         </div>
 
+        {/* HL-153: the steps in short; the full guide is documentation/CASE_REVIEW_GUIDE.md */}
+        <details className="group rounded-[12px] border border-cal-hairline bg-cal-canvas px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <summary className="cursor-pointer select-none text-[13.5px] font-semibold text-cal-ink">
+            How case review works
+          </summary>
+          <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-[13px] leading-relaxed text-cal-body">
+            <li>
+              Cases open by themselves: urgent ones (a High Heart risk, a very high or low reading, or a serious symptom)
+              and re-reviews (the Heart risk band changed). Opening this page checks for new ones; so does
+              &ldquo;Check for new cases&rdquo;. Urgent cases should be reviewed within {urgentHours} hours.
+            </li>
+            <li>Once a week, an admin draws the random sample: up to 5 patients from each Heart risk band.</li>
+            <li>
+              The Cardiologist goes first: the Heart risk band they would give, the main reasons, their confidence and
+              whether a checkup is needed. The app&apos;s own Heart risk shows only after they submit.
+            </li>
+            <li>
+              The Dietitian and the Physical Therapist then check the recipes and exercises the app gives this patient.
+              Model Check compares the bands; only reviews by verified clinicians count.
+            </li>
+          </ol>
+        </details>
+
         <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
           <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
             <div className="text-[12.5px] font-medium text-cal-muted">Open queue</div>

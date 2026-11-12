@@ -27,7 +27,7 @@ const mapSleepHours = (val: string) => {
 const daysOrNull = (on: boolean, v?: string) => (on ? Math.max(1, parseInt(v || "1", 10)) : null);
 
 // Same two requests the old calculating screen made: profile first, then the baseline that
-// computes the starting Health Stability Score.
+// computes the starting habits score (once the Heart Health Stability Score) and the estimated Heart risk.
 async function submitBaseline(data: BaselineData, userId: string, token: string): Promise<{ score: number; risk: HeartRisk | null }> {
   const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 
@@ -287,7 +287,7 @@ export default function ScoreScreen() {
           </Text>
         </View>
 
-        <View style={{ width: 196, height: 196 }} accessible accessibilityLabel={`Heart Health Stability Score ${state.score} out of 100, ${band.label}`}>
+        <View style={{ width: 196, height: 196 }} accessible accessibilityLabel={`Heart health habits score ${state.score} out of 100, ${band.label}`}>
           <Svg width={196} height={196} viewBox="0 0 188 188">
             <Circle cx={94} cy={94} r={R} fill="none" stroke={c.surfaceAlt} strokeWidth={12} />
             <RingFill r={R} circ={circ} filled={filled} color={c.line} />

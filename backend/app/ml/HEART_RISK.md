@@ -152,3 +152,12 @@ lifts High called High from 59% to 78%.
 - **Where the machine learning fits:** most people have no recent blood test. The model predicts their missing lab
   values from setup answers, and the official PREVENT equations do the rest. It's labelled "Estimated" until real
   results are added.
+
+## How the estimate is checked by clinicians (HL-153)
+
+In the web portal's **Case review**, a Cardiologist gives the Heart risk band they would give a patient, without seeing
+the app's. **Model Check** then compares the two: agreement, weighted kappa, and how often the app's band is lower
+(under-calling) or higher. Its **Estimated** filter shows the rounds where the risk came from this model (no lab results).
+`python scripts/train_heart_risk.py --clinical-export <file>` gives the same check on the portal's export. It only
+measures: the model is never retrained from reviews until the adviser and the cardiologist approve the labels. The steps
+for admins and experts are in `documentation/CASE_REVIEW_GUIDE.md`.

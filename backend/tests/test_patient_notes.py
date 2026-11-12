@@ -124,6 +124,12 @@ def notes_repo(monkeypatch):
     monkeypatch.setattr("app.services.patient_overview.get_sleep_repo",
                         lambda: FakeLogsRepo([{"duration_hours": 7}, {"duration_hours": 3, "is_deleted": True}]))
     monkeypatch.setattr("app.api.admin_api.patient_care_api.record_admin_activity", lambda **k: None)
+    # 2026-11-12: the heart answers and the PAR-Q+ result on the patient page
+    monkeypatch.setattr("app.db.repositories.get_baseline_repo",
+                        lambda: type("B", (), {"get_baseline": lambda self, uid: {"bp_medicine": True, "has_diabetes": False}})())
+    monkeypatch.setattr("app.services.exercise_screening._repo",
+                        lambda: type("S", (), {"get": lambda self, uid: {
+                            "state": "caution", "declared_at": "2026-11-01T08:00:00+00:00", "expires_at": "2099-11-01T08:00:00+00:00"}})())
     # Other test modules install app-wide dependency overrides at import time; use the real guards here.
     saved = dict(app.dependency_overrides)
     app.dependency_overrides.clear()
@@ -301,6 +307,17 @@ def test_cardiologist_logs_skip_deleted_sleep_and_check_in_resets():
     assert [h["id"] for h in body["health"]] == ["h1"]
     assert body["meals"] == [{"meal_name": "Tinola"}] and body["exercise"] == [{"routine_name": "Walk"}]
     assert body["scores"][0]["score"] == 62
+
+
+def test_the_patient_page_shows_the_heart_answers_and_the_exercise_check():
+    """2026-11-12: the three heart answers (an unanswered one is null) and what the PAR-Q+ allows today."""
+    for expert in ("cardio-1", "diet-1", "pt-1"):
+        answers = _call("GET", f"/api/admin/patients/{PATIENT_ID}/logs", expert).json()["health_answers"]
+        assert answers["bp_medicine"] is True and answers["has_diabetes"] is False and answers["cholesterol_medicine"] is None
+        assert answers["exercise_check"] == {
+            "state": "caution", "reason": None, "cleared": False,
+            "answered_at": "2026-11-01T08:00:00+00:00", "expires_at": "2099-11-01T08:00:00+00:00",
+        }
 
 
 def test_patient_logs_for_unknown_patient_are_404():

@@ -30,21 +30,21 @@ import {
   LANES,
   PROGRESS,
   REASONS,
-  SCORERS,
-  TIERS,
+  RISK_BANDS,
   labelOf,
 } from "./reviewUi.js";
+import { riskBand, riskPercent } from "../careTeam/vitals.js";
 import { WorkspaceHeader } from "../../components/ui/workspaceHeader.jsx";
 
 // HL-058: Model Check replaces Calibration History. One row per review round with a Cardiologist review;
 // the Dietitian's and PT's checks sit inside that row. Measures count clinical reviews only.
+// HL-153: it compares the app's Heart risk band with the Cardiologist's. "Estimated" is the machine learning estimate for
+// people without lab results. Older reviews (a habits-style level) are listed, greyed out, and left out of the measures.
 
-const SCORER_FILTERS = [
-  ["all", "All scorers"],
-  ["heart_score", SCORERS.heart_score],
-  ["baseline_model", SCORERS.baseline_model],
-  ["bp_rules", SCORERS.bp_rules],
-  ["lifestyle_points", SCORERS.lifestyle_points],
+const KIND_FILTERS = [
+  ["all", "All Heart risks"],
+  ["calculated", "Calculated (with lab results)"],
+  ["estimated", "Estimated (machine learning)"],
 ];
 
 const ROW_FILTERS = [
@@ -52,13 +52,6 @@ const ROW_FILTERS = [
   ["clinical", "Clinical"],
   ["practice", "Practice"],
 ];
-
-const SHORT_TIER = {
-  Stable: "Stable",
-  Moderate: "Moderate",
-  "Elevated Risk": "Elevated",
-  Critical: "Critical",
-};
 
 const TIER_DOT = {
   Stable: "bg-cal-success",
@@ -123,6 +116,27 @@ function CheckSummary({ check }) {
   );
 }
 
+// HL-153: a Heart risk band with its dot, and the % under it
+function BandInline({ band, percent, note }) {
+  if (!band) {
+    return <span className="text-[13px] font-medium text-cal-muted">None to compare</span>;
+  }
+  const view = riskBand(band);
+  return (
+    <>
+      <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-cal-ink">
+        <span className={`h-2 w-2 shrink-0 rounded-full ${view.dotClass}`} />
+        <span>{view.label}</span>
+      </span>
+      <div className="mt-0.5 text-[12px] text-cal-muted">
+        {percent != null && <span className="font-cal-mono font-medium tabular-nums text-cal-ink">{riskPercent(percent)}</span>}
+        {percent != null && note ? <span> · </span> : null}
+        {note && <span>{note}</span>}
+      </div>
+    </>
+  );
+}
+
 function TierInline({ tier }) {
   if (!tier) {
     return <span className="text-[13px] font-medium text-cal-muted">No level</span>;
@@ -140,14 +154,14 @@ const ModelCheck = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
   const [exporting, setExporting] = useState(false);
-  const [scorer, setScorer] = useState("all");
+  const [kind, setKind] = useState("all");
   const [rowFilter, setRowFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [open, setOpen] = useState(null);
   const [archiveTarget, setArchiveTarget] = useState(null);
 
-  // The current results stay on screen while another scorer's load; archiving refreshes them by itself
-  const modelCheck = useApiQuery(`/api/admin/model-check?scorer=${scorer}`, {
+  // The current results stay on screen while another kind loads; archiving refreshes them by itself
+  const modelCheck = useApiQuery(`/api/admin/model-check?kind=${kind}`, {
     keepPrevious: true,
   });
   const data = modelCheck.data ?? null;
@@ -168,7 +182,7 @@ const ModelCheck = () => {
     }
   };
 
-  // HL-059: clinical reviews only, for checking the model outside the app (scripts/train_starting_score.py)
+  // HL-059 / HL-153: clinical reviews only, for checking the estimate outside the app (scripts/train_heart_risk.py)
   const exportDataset = async () => {
     setExporting(true);
     try {
@@ -214,8 +228,8 @@ const ModelCheck = () => {
         !q ||
         (r.case_code || "").toLowerCase().includes(q) ||
         (r.reviewer_name || "").toLowerCase().includes(q) ||
-        (r.app_tier || "").toLowerCase().includes(q) ||
-        (r.expert_tier || "").toLowerCase().includes(q);
+        (r.app_risk_band || r.app_tier || "").toLowerCase().includes(q) ||
+        (r.expert_risk_band || r.expert_tier || "").toLowerCase().includes(q);
       return matchesType && matchesSearch;
     });
   }, [allRows, rowFilter, searchQuery]);
@@ -229,7 +243,7 @@ const ModelCheck = () => {
         <WorkspaceHeader
           icon={History}
           title="Model Check"
-          description="How often the app's score level matches a cardiologist's, and which way it misses. Only reviews by verified clinicians count."
+          description="How often the app's Heart risk band matches the band a cardiologist gives, and which way it misses. Only reviews by verified clinicians count."
         >
           {isAdmin && (
             <button
@@ -246,21 +260,21 @@ const ModelCheck = () => {
           )}
         </WorkspaceHeader>
 
-        {/* ─── 2. SCORER PILL SWITCHER ──────────────────────────────────────── */}
+        {/* ─── 2. HEART RISK KIND SWITCHER (HL-153) ─────────────────────────── */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div
             role="group"
-            aria-label="Scorer"
+            aria-label="How the Heart risk was worked out"
             className="relative inline-flex flex-wrap items-center gap-1 rounded-[16px] sm:rounded-full border border-cal-hairline/80 bg-cal-surface-soft p-1 select-none"
           >
-            {SCORER_FILTERS.map(([key, label]) => {
-              const active = scorer === key;
+            {KIND_FILTERS.map(([key, label]) => {
+              const active = kind === key;
               return (
                 <button
                   key={key}
                   type="button"
                   aria-pressed={active}
-                  onClick={() => setScorer(key)}
+                  onClick={() => setKind(key)}
                   className={`group relative rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors cursor-pointer select-none ${
                     active
                       ? "text-white font-semibold"
@@ -383,12 +397,18 @@ const ModelCheck = () => {
                     ? ` (${pct(data.practice.agreement)} agreement)`
                     : ""}
                 </span>
-                {clinical.score_difference?.reviews_with_score ? (
+                {clinical.percent_difference?.reviews_with_percent ? (
                   <span>
-                    Average 1–100 score gap:{" "}
+                    Average gap between the cardiologist&apos;s % and the app&apos;s:{" "}
                     <span className="font-cal-mono font-semibold tabular-nums text-cal-ink">
-                      {clinical.score_difference.average_gap} pts
+                      {clinical.percent_difference.average_gap} points
                     </span>
+                  </span>
+                ) : null}
+                {clinical.left_out?.older_reviews || clinical.left_out?.no_app_risk ? (
+                  <span>
+                    Not measured: {clinical.left_out.older_reviews} older review(s) (habits level),{" "}
+                    {clinical.left_out.no_app_risk} without an app Heart risk
                   </span>
                 ) : null}
               </div>
@@ -399,11 +419,11 @@ const ModelCheck = () => {
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cal-hairline px-5 py-4">
                 <div>
                   <h3 className="text-[15px] font-semibold text-cal-ink">
-                    Level by level (clinical reviews)
+                    Band by band (clinical reviews)
                   </h3>
                   <p className="mt-0.5 text-[12.5px] text-cal-muted">
-                    Rows show the app&apos;s predicted tier; columns show the
-                    cardiologist&apos;s clinical rating.
+                    Rows show the app&apos;s Heart risk band; columns show the band
+                    the cardiologist gave.
                   </p>
                 </div>
 
@@ -433,34 +453,34 @@ const ModelCheck = () => {
                       >
                         App ↓ · Cardiologist →
                       </th>
-                      {TIERS.map((t) => (
+                      {RISK_BANDS.map((b) => (
                         <th
-                          key={t}
+                          key={b.code}
                           scope="col"
                           className="px-2 py-2 text-[12.5px] font-semibold text-cal-ink"
                         >
                           <span className="inline-flex items-center justify-center gap-1.5">
                             <span
-                              className={`h-2 w-2 rounded-full ${TIER_DOT[t]}`}
+                              className={`h-2 w-2 rounded-full ${riskBand(b.code).dotClass}`}
                             />
-                            <span>{SHORT_TIER[t]}</span>
+                            <span>{b.label}</span>
                           </span>
                         </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {TIERS.map((t, i) => (
-                      <tr key={t}>
+                    {RISK_BANDS.map((b, i) => (
+                      <tr key={b.code}>
                         <th
                           scope="row"
                           className="px-3 py-2.5 text-left text-[13px] font-semibold text-cal-ink"
                         >
                           <span className="inline-flex items-center gap-2">
                             <span
-                              className={`h-2 w-2 rounded-full ${TIER_DOT[t]}`}
+                              className={`h-2 w-2 rounded-full ${riskBand(b.code).dotClass}`}
                             />
-                            <span>{SHORT_TIER[t]}</span>
+                            <span>{b.label}</span>
                           </span>
                         </th>
                         {(matrix[i] || [0, 0, 0, 0]).map((n, j) => {
@@ -585,7 +605,7 @@ const ModelCheck = () => {
                         scope="col"
                         className="px-4 py-3 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted"
                       >
-                        App said
+                        App&apos;s Heart risk
                       </th>
                       <th
                         scope="col"
@@ -661,7 +681,7 @@ const ModelCheck = () => {
                       </tr>
                     ) : (
                       rows.map((r) => {
-                        const agreement = AGREEMENT[r.tier_agreement];
+                        const agreement = AGREEMENT[r.older_review ? r.tier_agreement : r.risk_agreement];
                         const laneInfo = LANES[r.lane];
                         const isOpen = open === r.round_id;
 
@@ -671,7 +691,7 @@ const ModelCheck = () => {
                               onClick={() => setOpen(isOpen ? null : r.round_id)}
                               className={`cursor-pointer transition-colors hover:bg-cal-surface-soft/70 ${
                                 isOpen ? "bg-cal-surface-soft/50" : ""
-                              }`}
+                              } ${r.older_review ? "opacity-60" : ""}`}
                             >
                               <td
                                 className="px-3 py-3.5 align-middle"
@@ -717,29 +737,30 @@ const ModelCheck = () => {
                               </td>
 
                               <td className="px-4 py-3.5 align-middle">
-                                <TierInline tier={r.app_tier} />
-                                <div className="mt-0.5 text-[12px] text-cal-muted">
-                                  {r.app_score != null && (
-                                    <>
-                                      <span className="font-cal-mono font-medium tabular-nums text-cal-ink">
-                                        {r.app_score}
-                                      </span>
-                                      <span> · </span>
-                                    </>
-                                  )}
-                                  <span>
-                                    {SCORERS[r.app_scorer] || r.app_scorer}
-                                  </span>
-                                </div>
+                                {r.older_review ? (
+                                  <>
+                                    <TierInline tier={r.app_tier} />
+                                    <div className="mt-0.5 text-[12px] text-cal-muted">Older review: habits level</div>
+                                  </>
+                                ) : (
+                                  <BandInline
+                                    band={r.app_risk_band}
+                                    percent={r.app_risk_percent}
+                                    note={r.app_risk_kind === "estimated" ? "Estimated" : r.app_risk_kind ? "Calculated" : "Under 30 or over 79"}
+                                  />
+                                )}
                               </td>
 
                               <td className="px-4 py-3.5 align-middle">
-                                <TierInline tier={r.expert_tier} />
-                                <div className="mt-0.5 font-cal-mono text-[11.5px] tabular-nums text-cal-muted">
-                                  {r.expert_score != null
-                                    ? `Score ${r.expert_score}`
-                                    : "No numeric score"}
-                                </div>
+                                {r.older_review ? (
+                                  <TierInline tier={r.expert_tier} />
+                                ) : (
+                                  <BandInline
+                                    band={r.expert_risk_band}
+                                    percent={r.expert_risk_percent}
+                                    note={r.expert_risk_percent == null ? "No % given" : null}
+                                  />
+                                )}
                               </td>
 
                               <td className="px-4 py-3.5 align-middle">

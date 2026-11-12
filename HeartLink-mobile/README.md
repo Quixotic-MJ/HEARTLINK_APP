@@ -1,6 +1,6 @@
 # HeartLink - Mobile Application
 
-The patient app for HeartLink, built with React Native and Expo. Patients log vitals, meals, exercise and sleep, see their Heart Stability Score (HSS) and recommendations, and find nearby clinics. It works offline and syncs when the connection returns.
+The patient app for HeartLink, built with React Native and Expo. Patients log vitals, meals, exercise and sleep, see their 10-year heart risk (AHA PREVENT) and heart health habits score, get recommendations, and find nearby clinics. It works offline and syncs when the connection returns.
 
 ---
 

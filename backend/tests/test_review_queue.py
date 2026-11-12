@@ -140,13 +140,20 @@ def test_not_urgent(world, entry):
     assert review_queue.urgent_reason("p1", {"tier": "Moderate"}, NOW) is None
 
 
-def test_critical_level_is_urgent(world):
-    assert review_queue.urgent_reason("p1", {"tier": "Critical"}, NOW) == "App level is Critical"
+def test_a_low_habits_score_is_not_urgent(world):
+    """HL-153: poor habits aren't urgent; a High Heart risk, a crisis or low reading, or a serious symptom is."""
+    assert review_queue.urgent_reason("p1", {"tier": "Critical"}, NOW) is None
 
 
 # --- HL-139: a High Heart risk is urgent, and the expert sees the risk ----------------------------------
 
 RISK = {"available": True, "kind": "calculated", "ascvd_10": 12.4, "band": "high", "urgent": True}
+
+
+def with_risk(band, percent, tier="Moderate", score=70):
+    """An HSS row whose record also holds a Heart risk (HL-139)."""
+    risk = {"available": True, "kind": "estimated", "ascvd_10": percent, "band": band, "urgent": band == "high"}
+    return {"source": "telemetry", "score": score, "tier": tier, "contributing_factors": {"source": "heart_score", "risk": risk}}
 
 
 def test_high_heart_risk_is_urgent(world):
@@ -164,6 +171,13 @@ def test_the_expert_sees_the_heart_risk(world):
     assert status["heart_risk"] == RISK
     created = review_queue.open_round(patient("p1"), "urgent", "test", status)
     assert created["input_snapshot"]["heart_risk"] == RISK
+    # HL-153: saved on the round, for the comparison with the Cardiologist's band
+    assert (created["app_risk_band"], created["app_risk_percent"], created["app_risk_kind"]) == ("high", 12.4, "calculated")
+
+
+def test_a_round_without_a_heart_risk_has_none_saved(world):
+    created = review_queue.open_round(patient("p1"), "urgent", "test", {"tier": "Moderate", "score": 60, "scorer": "heart_score"})
+    assert created["app_risk_band"] is None and created["app_risk_percent"] is None
 
 
 # --- refresh: urgent and re-review rounds ------------------------------------------------------------
@@ -171,11 +185,16 @@ def test_the_expert_sees_the_heart_risk(world):
 def test_refresh_opens_urgent_and_rereview_once(world):
     world["profiles"] = Profiles([patient("urgent"), patient("changed"), patient("calm")])
     world["hss"] = Hss({"urgent": {"source": "telemetry", "score": 52, "tier": "Elevated Risk"},
-                        "changed": {"source": "baseline", "score": 66, "tier": "Moderate"},
-                        "calm": {"source": "baseline", "score": 85, "tier": "Stable"}})
+                        "changed": with_risk("borderline", 4.1),
+                        "calm": with_risk("low", 1.2, tier="Stable", score=85)})
     world["logs"] = Logs({"urgent": [log(systolic_bp=184, diastolic_bp=118)]})
-    world["cases"].rounds.append({"id": "old", "patient_id": "changed", "status": "complete", "app_tier": "Stable",
-                                  "lane": "sample", "created_at": iso(NOW - timedelta(days=40))})
+    # HL-153: a re-review is due when the Heart risk band changed (low then, borderline now); the habits level doesn't count
+    world["cases"].rounds += [
+        {"id": "old", "patient_id": "changed", "status": "complete", "app_tier": "Moderate", "app_risk_band": "low",
+         "lane": "sample", "created_at": iso(NOW - timedelta(days=40))},
+        {"id": "old2", "patient_id": "calm", "status": "complete", "app_tier": "Moderate", "app_risk_band": "low",
+         "lane": "sample", "created_at": iso(NOW - timedelta(days=40))},
+    ]
 
     first = review_queue.refresh_queue(NOW)
     second = review_queue.refresh_queue(NOW)
@@ -191,7 +210,7 @@ def test_refresh_opens_urgent_and_rereview_once(world):
 
 def test_open_sample_round_moves_to_urgent(world):
     world["profiles"] = Profiles([patient("p1")])
-    world["hss"] = Hss({"p1": {"source": "baseline", "score": 45, "tier": "Critical"}})
+    world["hss"] = Hss({"p1": with_risk("high", 11.0)})
     world["cases"].rounds.append({"id": "r1", "patient_id": "p1", "status": "open", "lane": "sample",
                                   "reason": "Weekly random sample", "created_at": iso(NOW)})
     result = review_queue.refresh_queue(NOW)
@@ -202,23 +221,28 @@ def test_open_sample_round_moves_to_urgent(world):
 
 # --- weekly sample -------------------------------------------------------------------------------------
 
-def test_sample_spreads_across_levels_and_respects_cooldown(world):
+def test_sample_spreads_across_heart_risk_bands_and_respects_cooldown(world):
+    """HL-153: 5 per Heart risk band; people without a Heart risk (under 30, over 79) aren't sampled."""
     people, latest = [], {}
-    for tier in rules.TIERS:
+    percents = {"low": 1.5, "borderline": 4.0, "intermediate": 7.0, "high": 14.0}
+    for band in rules.RISK_BANDS:
         for i in range(rules.SAMPLE_PER_TIER + 3):
-            pid = f"{tier}-{i}"
+            pid = f"{band}-{i}"
             people.append(patient(pid))
-            latest[pid] = {"source": "baseline", "score": 50, "tier": tier}
+            latest[pid] = with_risk(band, percents[band])
     people.append(patient("recent"))
-    latest["recent"] = {"source": "baseline", "score": 90, "tier": "Stable"}
+    latest["recent"] = with_risk("low", 1.0)
+    people.append(patient("young"))
+    latest["young"] = {"source": "telemetry", "score": 80, "tier": "Stable"}
     world["profiles"], world["hss"] = Profiles(people), Hss(latest)
     world["cases"].rounds.append({"id": "x", "patient_id": "recent", "status": "complete", "lane": "sample",
                                   "created_at": iso(NOW - timedelta(days=rules.SAMPLE_COOLDOWN_DAYS - 1))})
 
     opened = review_queue.draw_sample("admin-1", NOW, random.Random(7))
 
-    per_tier = {tier: sum(1 for r in opened if r["app_tier"] == tier) for tier in rules.TIERS}
-    assert per_tier == {tier: rules.SAMPLE_PER_TIER for tier in rules.TIERS}
+    per_band = {band: sum(1 for r in opened if r["app_risk_band"] == band) for band in rules.RISK_BANDS}
+    assert per_band == {band: rules.SAMPLE_PER_TIER for band in rules.RISK_BANDS}
+    assert "young" not in {r["patient_id"] for r in opened}
     assert all(r["lane"] == "sample" and r["created_by"] == "admin-1" for r in opened)
     assert "recent" not in {r["patient_id"] for r in opened}
     assert all("app says" not in r["reason"] for r in opened)

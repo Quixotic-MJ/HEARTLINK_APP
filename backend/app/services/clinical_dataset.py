@@ -5,8 +5,10 @@ One row per completed review round whose Cardiologist review is clinical (by a v
 the starting score's inputs, what the app said, the Cardiologist's level and a yes/no label. Practice, archived and
 incomplete reviews are left out, and the export lists why. No patient id, names or free-text notes are included.
 
-`scripts/train_starting_score.py --clinical-export <file>` checks the current model against this export. Retraining from it
-is switched off: its yes/no labels don't fit a model that estimates a Life's Essential 8 score.
+HL-153: the Cardiologist now gives a Heart risk band, so the label comes from that band, and each row carries the app's
+Heart risk when the round opened. `scripts/train_heart_risk.py --clinical-export <file>` checks the machine learning
+estimate against it. Retraining from it is switched off until the adviser and the cardiologist approve the labels.
+Older reviews (a habits-style level) are left out.
 """
 import math
 import os
@@ -18,11 +20,11 @@ from app.services.feature_transform import INPUTS, _age, transform_to_model_feat
 from app.services.model_check import MIN_CLINICAL_REVIEWS
 from app.utils.time import parse_utc, utc_now
 
-# Which Cardiologist levels count as "higher risk" (label 1). The starting score predicts heart disease or stroke,
-# which the four levels only roughly match, so this stays a setting until the cardiologist confirms it.
-DEFAULT_HIGHER_RISK_TIERS = ("Elevated Risk", "Critical")
+# Which Cardiologist bands count as "higher risk" (label 1): where the guideline says to talk about treatment. A setting
+# until the cardiologist confirms it.
+DEFAULT_HIGHER_RISK_BANDS = ("intermediate", "high")
 LABEL_STATUS = "pending cardiologist review"
-FORMAT_VERSION = "clinical-export-1"
+FORMAT_VERSION = "clinical-export-2"
 
 
 class NotEnoughReviews(Exception):
@@ -31,14 +33,14 @@ class NotEnoughReviews(Exception):
         self.count = count
 
 
-def higher_risk_tiers() -> Tuple[str, ...]:
-    """CLINICAL_LABEL_HIGHER_RISK_TIERS, e.g. "Elevated Risk,Critical" (the default)."""
-    raw = os.getenv("CLINICAL_LABEL_HIGHER_RISK_TIERS", "")
-    tiers = tuple(t.strip() for t in raw.split(",") if t.strip()) or DEFAULT_HIGHER_RISK_TIERS
-    unknown = [t for t in tiers if t not in rules.TIERS]
+def higher_risk_bands() -> Tuple[str, ...]:
+    """CLINICAL_LABEL_HIGHER_RISK_BANDS, e.g. "intermediate,high" (the default)."""
+    raw = os.getenv("CLINICAL_LABEL_HIGHER_RISK_BANDS", "")
+    bands = tuple(t.strip().lower() for t in raw.split(",") if t.strip()) or DEFAULT_HIGHER_RISK_BANDS
+    unknown = [t for t in bands if t not in rules.RISK_BANDS]
     if unknown:
-        raise ValueError(f"CLINICAL_LABEL_HIGHER_RISK_TIERS has unknown levels: {', '.join(unknown)}")
-    return tiers
+        raise ValueError(f"CLINICAL_LABEL_HIGHER_RISK_BANDS has unknown bands: {', '.join(unknown)}")
+    return bands
 
 
 def _plain(value: Any) -> Any:
@@ -77,14 +79,14 @@ def _exclusion(rc: Dict[str, Any], cardio: Dict[str, Any]) -> Optional[str]:
         return "Round not complete"
     if not cardio.get("is_clinical"):
         return "Practice review (reviewer not a verified clinician)"
-    if cardio.get("expert_tier") not in rules.TIERS:
-        return "No risk level given"
+    if cardio.get("expert_risk_band") not in rules.RISK_BANDS:
+        return "Older review (habits level, before HL-153)" if cardio.get("expert_tier") else "No Heart risk band given"
     return None
 
 
 def build_export(model_version: Optional[str] = None) -> Dict[str, Any]:
     """Raises NotEnoughReviews below the minimum; the caller turns that into a clear error."""
-    tiers = higher_risk_tiers()
+    bands = higher_risk_bands()
     repo = get_case_review_repo()
     cardio_by_round = {
         s.get("review_case_id"): s
@@ -116,12 +118,15 @@ def build_export(model_version: Optional[str] = None) -> Dict[str, Any]:
                 "app_tier": rc.get("app_tier"),
                 "app_scorer": rc.get("app_scorer"),
                 "app_model_version": rc.get("model_version"),
-                "expert_tier": cardio["expert_tier"],
-                "expert_score": cardio.get("expert_score"),
+                "app_risk_band": rc.get("app_risk_band"),
+                "app_risk_percent": rc.get("app_risk_percent"),
+                "app_risk_kind": rc.get("app_risk_kind"),
+                "expert_risk_band": cardio["expert_risk_band"],
+                "expert_risk_percent": cardio.get("expert_risk_percent"),
                 "confidence": cardio.get("confidence"),
                 "reasons": cardio.get("reasons") or [],
                 "checkup_flag": cardio.get("checkup_flag"),
-                "label": 1 if cardio["expert_tier"] in tiers else 0,
+                "label": 1 if cardio["expert_risk_band"] in bands else 0,
             })
 
     if len(rows) < MIN_CLINICAL_REVIEWS:
@@ -134,8 +139,8 @@ def build_export(model_version: Optional[str] = None) -> Dict[str, Any]:
         "model_version": model_version,
         "inputs": list(INPUTS),
         "label": {
-            "rule": f"1 when the Cardiologist's level is {' or '.join(tiers)}, otherwise 0",
-            "higher_risk_tiers": list(tiers),
+            "rule": f"1 when the Cardiologist's Heart risk band is {' or '.join(bands)}, otherwise 0",
+            "higher_risk_bands": list(bands),
             "status": LABEL_STATUS,
         },
         "min_clinical_reviews": MIN_CLINICAL_REVIEWS,

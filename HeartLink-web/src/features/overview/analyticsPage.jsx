@@ -25,7 +25,7 @@ import { PageHeader } from "../../styles/designSystem.jsx";
 
 const TABS = [
   { id: "adoption", label: "User adoption", icon: Users },
-  { id: "outcomes", label: "HSS trends", icon: HeartPulse },
+  { id: "outcomes", label: "Habits score trends", icon: HeartPulse },
   { id: "content", label: "Content usage", icon: Globe },
 ];
 
@@ -323,7 +323,7 @@ const Analytics = () => {
         )}
 
         {/* ═══════════════════════════════════════════════════════════ */}
-        {/* TAB 2: HSS TRENDS                                          */}
+        {/* TAB 2: HABITS SCORE TRENDS (once the HSS)                                          */}
         {/* ═══════════════════════════════════════════════════════════ */}
         {activeTab === "outcomes" && (
           <motion.div
@@ -334,13 +334,13 @@ const Analytics = () => {
             transition={{ duration: 0.22, ease: [0.25, 1, 0.5, 1] }}
             className="space-y-5"
           >
-            {/* Stacked HSS Chart */}
+            {/* Stacked habits score chart */}
             <div className="bg-ds-canvas border border-ds-hairline rounded-xl p-5 ">
               <h3 className="text-[13.5px] font-semibold text-ds-ink mb-0.5">
-                HSS population tiers over time
+                Habits score levels over time
               </h3>
               <div className="text-[12px] text-ds-slate mb-4">
-                How registered users distribute across HSS tiers at the end of each month
+                How registered users spread across the habits score levels at the end of each month
               </div>
               <div className="w-full h-72">
                 <ResponsiveContainer width="100%" height="100%">
@@ -361,10 +361,10 @@ const Analytics = () => {
 
             {/* Content Library by Tier */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
-              {/* Recipe Library by HSS */}
+              {/* Recipe library by habits score level */}
               <div className="bg-ds-canvas border border-ds-hairline rounded-xl p-5 ">
                 <h3 className="text-[13.5px] font-semibold text-ds-ink mb-0.5">
-                  Recipe library by HSS target tier
+                  Recipe library by habits score level
                 </h3>
                 <div className="text-[12px] text-ds-slate mb-4">
                   Content distribution across risk cohorts
@@ -387,10 +387,10 @@ const Analytics = () => {
                 </div>
               </div>
 
-              {/* Exercise Library by HSS */}
+              {/* Exercise library by habits score level */}
               <div className="bg-ds-canvas border border-ds-hairline rounded-xl p-5 ">
                 <h3 className="text-[13.5px] font-semibold text-ds-ink mb-0.5">
-                  Exercise library by HSS target tier
+                  Exercise library by habits score level
                 </h3>
                 <div className="text-[12px] text-ds-slate mb-4">
                   Content distribution across risk cohorts

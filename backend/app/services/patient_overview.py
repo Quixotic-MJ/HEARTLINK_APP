@@ -87,6 +87,26 @@ def _lab_results(patient_id: str) -> Dict[str, Any]:
         return {"cholesterol": None, "blood_sugar": None}
 
 
+def _health_answers(patient_id: str, health_logs: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """2026-11-12: the three heart answers from setup (they feed the Heart risk) and the PAR-Q+ result, read-only.
+    A failure to read either never breaks the patient page; the answer shows as not given."""
+    from app.db.repositories import get_baseline_repo
+    from app.services import exercise_screening
+    from app.services.dashboard import latest_severe_symptom_at
+
+    try:
+        answers = get_baseline_repo().get_baseline(patient_id) or {}
+    except Exception:
+        answers = {}
+    answers = answers if isinstance(answers, dict) else {}
+    return {
+        "bp_medicine": answers.get("bp_medicine"),
+        "has_diabetes": answers.get("has_diabetes"),
+        "cholesterol_medicine": answers.get("cholesterol_medicine"),
+        "exercise_check": exercise_screening.expert_view(patient_id, latest_severe_symptom_at(health_logs)),
+    }
+
+
 def patient_logs(patient_id: str, current_user: dict) -> Dict[str, Any]:
     patient = get_patient_or_404(patient_id)
     result: Dict[str, Any] = {
@@ -112,6 +132,8 @@ def patient_logs(patient_id: str, current_user: dict) -> Dict[str, Any]:
         result["alerts"] = health_repo.list_alerts(user_id=patient_id)
         # HL-138: the patient's own lab results, if they added any (experts can read them, not change them)
         result["lab_results"] = _lab_results(patient_id)
+        # 2026-11-12: the heart answers and the exercise safety check (PAR-Q+) result, shown above the logs
+        result["health_answers"] = _health_answers(patient_id, result["health"])
         result["sections"] += ["health", "sleep", "scores", "alerts", "lab_results"]
     if has_permission(current_user, "meal_logs:read"):
         result["meals"] = get_meals_repo().list_user_meals(patient_id, limit=LOG_LIMIT)

@@ -156,13 +156,44 @@ def predicted_labs_risk(people: pd.DataFrame, x: pd.DataFrame, folds: KFold, sbp
     return out
 
 
+def clinical_check(path: str) -> dict:
+    """HL-153: the estimate against the portal's clinical reviews (Model Check's export): of the rounds whose Heart risk
+    was estimated, how often the Cardiologist's band agrees, and how often the estimate was lower (under-calling) or
+    higher. Checked only, never trained on: retraining from reviews stays off until the adviser approves the labels."""
+    with open(path, encoding="utf-8") as fh:
+        export = json.load(fh)
+    rows = [r for r in export.get("rows", [])
+            if r.get("app_risk_kind") == "estimated" and r.get("app_risk_band") in BANDS and r.get("expert_risk_band") in BANDS]
+    result = {"reviews": len(rows)}
+    if rows:
+        pairs = [(BANDS.index(r["app_risk_band"]), BANDS.index(r["expert_risk_band"])) for r in rows]
+        n = len(pairs)
+        result.update({
+            "agreement": round(sum(a == e for a, e in pairs) / n, 3),
+            "under_calling": round(sum(a < e for a, e in pairs) / n, 3),
+            "over_calling": round(sum(a > e for a, e in pairs) / n, 3),
+        })
+        print(f"Clinical reviews of the estimate: {n}, agreement {result['agreement']:.0%}, "
+              f"under-calling {result['under_calling']:.0%}, over-calling {result['over_calling']:.0%}")
+    else:
+        print("No clinical reviews of an estimated Heart risk in this export.")
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--data-dir", required=True)
+    parser.add_argument("--data-dir", help="the NHANES files (needed to train or check the model)")
+    parser.add_argument("--clinical-export", help="the portal's clinical reviews export (HL-153), checked but not trained on")
     parser.add_argument("--biopro-dir", help="folder with BIOPRO_J.xpt, if not in --data-dir")
     parser.add_argument("--write", action="store_true", help="write app/ml/heart_risk_model.json")
     parser.add_argument("--report", help="also save the results to this JSON file")
     args = parser.parse_args()
+    if args.clinical_export:
+        clinical_check(args.clinical_export)
+        if not args.data_dir:
+            return
+    if not args.data_dir:
+        parser.error("--data-dir is needed to train or check the model")
 
     people = people_and_labels(args.data_dir, args.biopro_dir or args.data_dir)
     y = people.risk

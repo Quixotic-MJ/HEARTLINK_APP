@@ -9,7 +9,7 @@ import { Skeleton } from "../../components/ui/skeleton.jsx";
 import { apiFetch } from "../../lib/api.js";
 import { useApiQuery } from "../../hooks/useApiQuery.js";
 import LoadError from "../../components/ui/loadError.jsx";
-import { riskBand, riskPercent } from "../careTeam/vitals.js";
+import { TAG, exerciseCheckView, riskBand, riskPercent } from "../careTeam/vitals.js";
 import {
   AGREEMENT,
   CHECKUP,
@@ -18,16 +18,17 @@ import {
   LANES,
   PROGRESS,
   REASONS,
-  SCORERS,
+  RISK_BANDS,
+  RISK_KINDS,
   SECTION_EXPERT,
   SECTION_LABELS,
-  TIERS,
   labelOf,
   waitingText,
 } from "./reviewUi.js";
 
 // HL-055 / HL-056: one review round. Every reviewer sees the same anonymized snapshot; each expert
-// answers only their own section. The app's level stays hidden until the Cardiologist submits.
+// answers only their own section. HL-153: the Cardiologist gives the Heart risk band they would give; the app's Heart
+// risk stays hidden until they submit, then the two are compared.
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const day = (iso) => {
@@ -194,15 +195,15 @@ function Snapshot({ data }) {
       </div>
 
       <p className="border-t border-cal-hairline pt-3.5 text-[12px] leading-relaxed text-cal-muted">
-        Frozen when the case opened. The app&apos;s own risk level stays hidden until the Cardiologist submits.
+        Frozen when the case opened. The app&apos;s Heart risk stays hidden until the Cardiologist submits.
       </p>
     </section>
   );
 }
 
 function CardiologyForm({ caseId, existing, onSaved }) {
-  const [tier, setTier] = useState(existing?.expert_tier || "");
-  const [score, setScore] = useState(existing?.expert_score ?? "");
+  const [band, setBand] = useState(existing?.expert_risk_band || "");
+  const [percent, setPercent] = useState(existing?.expert_risk_percent ?? "");
   const [reasons, setReasons] = useState(existing?.reasons || []);
   const [confidence, setConfidence] = useState(existing?.confidence || "");
   const [checkup, setCheckup] = useState(existing?.checkup_flag || "");
@@ -210,7 +211,7 @@ function CardiologyForm({ caseId, existing, onSaved }) {
   const [tried, setTried] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const valid = tier && confidence && checkup && reasons.length > 0;
+  const valid = band && confidence && checkup && reasons.length > 0;
   const toggle = (code) =>
     setReasons((r) => (r.includes(code) ? r.filter((x) => x !== code) : [...r, code]));
 
@@ -222,8 +223,8 @@ function CardiologyForm({ caseId, existing, onSaved }) {
       const res = await apiFetch(`/api/admin/review-queue/${caseId}/cardiology`, {
         method: "POST",
         body: JSON.stringify({
-          expert_tier: tier,
-          expert_score: score === "" ? null : Number(score),
+          expert_risk_band: band,
+          expert_risk_percent: percent === "" ? null : Number(percent),
           reasons,
           confidence,
           checkup_flag: checkup,
@@ -241,48 +242,53 @@ function CardiologyForm({ caseId, existing, onSaved }) {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Risk Level Selector */}
+      {/* HL-153: the Heart risk band the Cardiologist would give */}
       <fieldset className="m-0 border-0 p-0">
-        <legend className="mb-2.5 text-[13.5px] font-semibold text-cal-ink">
-          Risk level <span className="font-normal text-cal-muted">(required)</span>
+        <legend className="mb-1 text-[13.5px] font-semibold text-cal-ink">
+          Heart risk band you would give <span className="font-normal text-cal-muted">(required)</span>
         </legend>
+        <p className="mb-2.5 text-[12.5px] text-cal-muted">
+          The chance of a heart attack or stroke in the next 10 years, in the AHA PREVENT bands.
+        </p>
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-          {TIERS.map((t) => {
-            const active = tier === t;
+          {RISK_BANDS.map((b) => {
+            const active = band === b.code;
             return (
               <button
-                key={t}
+                key={b.code}
                 type="button"
                 aria-pressed={active}
-                onClick={() => setTier(t)}
-                className={`min-h-[44px] rounded-[8px] border px-3 text-[13.5px] font-semibold transition-colors cursor-pointer ${
+                onClick={() => setBand(b.code)}
+                className={`flex min-h-[52px] flex-col items-center justify-center rounded-[8px] border px-3 py-1.5 transition-colors cursor-pointer ${
                   active
                     ? "border-cal-primary bg-cal-primary text-cal-on-primary"
                     : "border-cal-hairline bg-cal-canvas text-cal-ink hover:bg-cal-surface-soft"
                 }`}
               >
-                {t}
+                <span className="text-[13.5px] font-semibold">{b.label}</span>
+                <span className={`text-[11.5px] ${active ? "text-cal-on-primary" : "text-cal-muted"}`}>{b.range}</span>
               </button>
             );
           })}
         </div>
       </fieldset>
 
-      {/* Optional Numeric Score */}
-      <div className="flex max-w-[280px] flex-col gap-1.5">
-        <label htmlFor="expert-score" className="text-[13.5px] font-semibold text-cal-ink">
-          Score, 1–100{" "}
+      {/* Optional: their own 10-year risk estimate */}
+      <div className="flex max-w-[320px] flex-col gap-1.5">
+        <label htmlFor="expert-percent" className="text-[13.5px] font-semibold text-cal-ink">
+          Your 10-year risk estimate, %{" "}
           <span className="font-normal text-cal-muted">(optional, if confident)</span>
         </label>
         <input
-          id="expert-score"
+          id="expert-percent"
           type="number"
-          min="1"
+          min="0.1"
           max="100"
-          value={score}
-          onChange={(e) => setScore(e.target.value)}
+          step="0.1"
+          value={percent}
+          onChange={(e) => setPercent(e.target.value)}
           className={`${inputClass} font-cal-mono`}
-          placeholder="e.g. 58"
+          placeholder="e.g. 6.5"
         />
       </div>
 
@@ -379,7 +385,7 @@ function CardiologyForm({ caseId, existing, onSaved }) {
           role="alert"
           className="rounded-[8px] border border-cal-error/25 bg-cal-error/5 px-3.5 py-2.5 text-[13px] font-medium text-cal-error"
         >
-          Choose a risk level, at least one reason, a confidence level, and a checkup option.
+          Choose a Heart risk band, at least one reason, a confidence level, and a checkup option.
         </p>
       )}
 
@@ -398,7 +404,9 @@ function CardiologyForm({ caseId, existing, onSaved }) {
 }
 
 function CardiologyResult({ section, app, canEdit, onEdit }) {
-  const agreement = AGREEMENT[section.tier_agreement];
+  // HL-153: the Cardiologist's Heart risk band vs the app's. Older reviews gave a habits-style level instead.
+  const older = !section.expert_risk_band;
+  const agreement = AGREEMENT[older ? section.tier_agreement : section.risk_agreement];
   return (
     <div className="flex flex-col gap-5">
       {/* 3-Up Comparison Cards */}
@@ -406,32 +414,37 @@ function CardiologyResult({ section, app, canEdit, onEdit }) {
         <div className="rounded-[12px] border border-cal-hairline bg-cal-surface-soft p-4">
           <div className="text-[12px] font-medium text-cal-muted">Cardiologist</div>
           <div className="mt-1 font-cal-display text-[20px] font-semibold tracking-[-0.4px] text-cal-ink">
-            {section.expert_tier}
+            {older ? section.expert_tier : riskBand(section.expert_risk_band).label}
           </div>
           <div className="mt-1 font-cal-mono text-[12px] text-cal-muted">
-            {section.expert_score != null ? `Score ${section.expert_score}` : "No score given"}
+            {older
+              ? "Older review (habits level)"
+              : section.expert_risk_percent != null
+                ? `Their estimate ${riskPercent(section.expert_risk_percent)}`
+                : "No % given"}
           </div>
         </div>
 
         <div className="rounded-[12px] border border-cal-hairline bg-cal-surface-soft p-4">
-          <div className="text-[12px] font-medium text-cal-muted">App said</div>
+          <div className="text-[12px] font-medium text-cal-muted">App&apos;s Heart risk</div>
           <div className="mt-1 font-cal-display text-[20px] font-semibold tracking-[-0.4px] text-cal-ink">
-            {app?.tier || "No level"}
+            {app?.risk ? riskBand(app.risk.band).label : "None to compare"}
           </div>
           <div className="mt-1 text-[12px] text-cal-muted">
-            {app?.score != null ? (
-              <span className="font-cal-mono">{`Score ${app.score} · `}</span>
-            ) : null}
-            {SCORERS[app?.scorer] || ""}
+            {app?.risk ? (
+              <>
+                <span className="font-cal-mono">{riskPercent(app.risk.percent)}</span>
+                {` · ${RISK_KINDS[app.risk.kind] || ""}`}
+              </>
+            ) : (
+              "Under 30, over 79, or not worked out when the case opened"
+            )}
           </div>
-          {/* HL-146: the Heart risk when the round opened (AHA PREVENT), extra information only */}
-          {app?.heart_risk?.percent != null && (
+          {/* The habits score, extra information only */}
+          {app?.score != null && (
             <div className="mt-2 border-t border-cal-hairline pt-2 text-[12px] text-cal-muted">
-              Heart risk{" "}
-              <span className="font-cal-mono font-semibold text-cal-ink">
-                {riskPercent(app.heart_risk.percent)}
-              </span>
-              {`, ${riskBand(app.heart_risk.band).label}${app.heart_risk.kind === "estimated" ? " (estimated)" : ""}`}
+              Habits score <span className="font-cal-mono font-semibold text-cal-ink">{app.score}</span>
+              {app.tier ? ` (${app.tier})` : ""}
             </div>
           )}
         </div>
@@ -445,7 +458,9 @@ function CardiologyResult({ section, app, canEdit, onEdit }) {
           <div className="mt-1 text-[15px] font-semibold text-cal-ink leading-snug">
             {agreement?.label || "Not comparable"}
           </div>
-          <div className="mt-1 text-[11.5px] text-cal-muted">Computed automatically</div>
+          <div className="mt-1 text-[11.5px] text-cal-muted">
+            {older ? "Older review: compared with the habits level, not counted" : "Computed automatically"}
+          </div>
         </div>
       </div>
 
@@ -912,15 +927,18 @@ const CaseReviewDetail = () => {
                   )}
 
                   {tab === "exercise" && (
-                    <ItemsSection
-                      key="exercise"
-                      caseId={data.id}
-                      section="exercise"
-                      items={data.recommendations?.exercises || []}
-                      saved={data.sections?.exercise}
-                      canSubmit={viewer.can_submit?.exercise}
-                      onSaved={onSaved}
-                    />
+                    <>
+                      {data.exercise_check && <ExerciseCheckLine check={data.exercise_check} />}
+                      <ItemsSection
+                        key="exercise"
+                        caseId={data.id}
+                        section="exercise"
+                        items={data.recommendations?.exercises || []}
+                        saved={data.sections?.exercise}
+                        canSubmit={viewer.can_submit?.exercise}
+                        onSaved={onSaved}
+                      />
+                    </>
                   )}
                 </div>
               </section>
@@ -931,5 +949,32 @@ const CaseReviewDetail = () => {
     </AdminLayout>
   );
 };
+
+
+// 2026-11-12: the patient's exercise safety check (PAR-Q+) today. The exercises listed below are the ones it allows,
+// as in the app (HL-123): the result decides, never the score.
+function ExerciseCheckLine({ check }) {
+  const view = exerciseCheckView(check);
+  const answered = check.answered_at ? new Date(check.answered_at) : null;
+  const when =
+    answered && !Number.isNaN(answered.getTime())
+      ? answered.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })
+      : null;
+  return (
+    <div className="mb-4 rounded-[8px] border border-cal-hairline bg-cal-surface-soft px-4 py-3">
+      <div className="flex flex-wrap items-center gap-2 text-[13px]">
+        <span className="font-medium text-cal-ink">Exercise safety check (PAR-Q+):</span>
+        <span className={`${TAG} ${view.className}`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${view.dotClass}`} />
+          <span>{view.label}</span>
+        </span>
+        {when && <span className="text-cal-muted">Answered {when}</span>}
+      </div>
+      <p className="mt-1.5 text-[12.5px] text-cal-muted">
+        {view.detail} The exercises below are the ones this result allows in the app.
+      </p>
+    </div>
+  );
+}
 
 export default CaseReviewDetail;

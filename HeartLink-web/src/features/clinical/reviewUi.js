@@ -41,7 +41,22 @@ export const PROGRESS = {
   not_needed: { label: "Not needed", className: NOT_NEEDED_CHIP, dotClass: "bg-cal-muted-soft" },
 };
 
+// The habits-style levels older reviews used (before HL-153)
 export const TIERS = ["Stable", "Moderate", "Elevated Risk", "Critical"];
+
+// HL-153: the Heart risk bands the Cardiologist chooses from (AHA PREVENT, 2026 ACC/AHA bands), lowest first
+export const RISK_BANDS = [
+  { code: "low", label: "Low", range: "under 3%" },
+  { code: "borderline", label: "Borderline", range: "3 to 4.9%" },
+  { code: "intermediate", label: "Intermediate", range: "5 to 9.9%" },
+  { code: "high", label: "High", range: "10% or more" },
+];
+
+// How the app worked out the Heart risk
+export const RISK_KINDS = {
+  calculated: "Calculated (with lab results)",
+  estimated: "Estimated (machine learning, no lab results)",
+};
 
 export const REASONS = [
   { code: "blood_pressure", label: "Blood pressure" },

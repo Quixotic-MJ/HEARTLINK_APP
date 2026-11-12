@@ -80,3 +80,43 @@ export function riskMissingText(risk) {
       return "Not worked out";
   }
 }
+
+// 2026-11-12: the patient's answers from setup (true, false, or not answered)
+export function answerText(value) {
+  if (value === true) return "Yes";
+  if (value === false) return "No";
+  return "Not answered";
+}
+
+// 2026-11-12: the exercise safety check (PAR-Q+) result, as the backend sends it
+// (backend/app/services/exercise_screening.py). It decides which exercises the app offers, never the score.
+const NEEDED_REASON = {
+  not_done: "Not answered yet",
+  old_check: "Only the old 5-question check was answered",
+  expired: "Over 12 months old",
+  symptom_since: "A severe symptom was logged since it was answered",
+};
+
+export function exerciseCheckView(check) {
+  const state = check?.state;
+  if (state === "eligible") {
+    return { label: "Eligible", detail: "All NO on page 1: every approved exercise.", className: EMERALD, dotClass: "bg-cal-success" };
+  }
+  if (state === "caution") {
+    return check.cleared
+      ? { label: "Cleared", detail: "A professional cleared them: beginner exercises and breathing.", className: AMBER, dotClass: "bg-cal-warning" }
+      : { label: "Eligible with caution", detail: "Cleared through the follow-up questions: beginner exercises and breathing.", className: AMBER, dotClass: "bg-cal-warning" };
+  }
+  if (state === "delayed") {
+    return { label: "Delayed", detail: "Pregnant or unwell right now: breathing only until they answer it again.", className: AMBER, dotClass: "bg-cal-warning" };
+  }
+  if (state === "locked") {
+    return { label: "Locked", detail: "A follow-up YES or HeartLink's extra check: breathing only until a professional clears them.", className: ROSE, dotClass: "bg-cal-error" };
+  }
+  return {
+    label: "Needs answering",
+    detail: `${NEEDED_REASON[check?.reason] ?? "Not answered yet"}: breathing only until they answer it.`,
+    className: NEUTRAL,
+    dotClass: "bg-cal-muted-soft",
+  };
+}

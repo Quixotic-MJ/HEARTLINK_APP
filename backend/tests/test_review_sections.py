@@ -47,6 +47,10 @@ class Content:
             {"id": "r4", "name": "Fried fish", "hss_tier": "Critical", "status": "published", "expert_validated": True},
             # HL-037: not Dietitian-approved, so the review never lists it.
             {"id": "r5", "name": "Pancit", "hss_tier": "Moderate", "status": "published", "expert_validated": False},
+            # 2026-11-12: the app also suggests "Stable" recipes, minus ones that clash with allergies
+            {"id": "r6", "name": "Vegetable soup", "hss_tier": "Stable", "status": "published", "expert_validated": True},
+            {"id": "r7", "name": "Shrimp sinigang", "hss_tier": "Stable", "status": "published", "expert_validated": True,
+             "ingredients": [{"name": "shrimp"}]},
         ]
 
     def list_routines(self):
@@ -55,6 +59,11 @@ class Content:
             {"id": "e2", "name": "Band rows", "hss_tier": "Moderate", "status": "published", "expert_validated": True},
             # HL-026: not PT-approved, so patients never get it and the review never lists it.
             {"id": "e3", "name": "Arm circles", "hss_tier": "Moderate", "status": "published", "expert_validated": False},
+            # 2026-11-12: listed by the PAR-Q+ result, not the level
+            {"id": "e4", "name": "Chair march", "hss_tier": "Critical", "status": "published", "expert_validated": True,
+             "difficulty_level": "Beginner"},
+            {"id": "e5", "name": "Box breathing", "hss_tier": "Critical", "type": "Breathing", "status": "published",
+             "expert_validated": True},
         ]
 
 
@@ -67,6 +76,8 @@ def expert(uid, kind, verified=False, role="medical_expert"):
 def world(monkeypatch):
     rc = {"id": ROUND, "case_code": "CASE-0042", "lane": "urgent", "reason": "BP 182/121 logged Oct 12",
           "status": "open", "app_tier": "Moderate", "app_score": 64, "app_scorer": "bp_rules",
+          # HL-153: the app's Heart risk when the round opened
+          "app_risk_band": "borderline", "app_risk_percent": 4.2, "app_risk_kind": "estimated",
           "created_at": datetime(2026, 10, 13, tzinfo=timezone.utc).isoformat(),
           "input_snapshot": {"date_of_birth": "1968-05-01", "sex": "male", "onboarding": {"ever_smoked": True},
                              "clinical": {"resting_bp_mmhg": "182/121"}, "timeline": []}}
@@ -85,7 +96,7 @@ def as_user(uid):
     return {"user_id": uid}
 
 
-GOOD = {"expert_tier": "Critical", "expert_score": "38", "reasons": ["blood_pressure", "symptoms", "nonsense"],
+GOOD = {"expert_risk_band": "high", "expert_risk_percent": "12.5", "reasons": ["blood_pressure", "symptoms", "nonsense"],
         "confidence": "high", "checkup_flag": "asap", "notes": "Crisis-range reading with headache."}
 
 
@@ -94,18 +105,29 @@ GOOD = {"expert_tier": "Critical", "expert_score": "38", "reasons": ["blood_pres
 def test_cardiologist_review_completes_round_and_compares(world):
     saved = review_sections.submit_cardiology(ROUND, GOOD, as_user("cardio"))
 
-    assert saved["expert_tier"] == "Critical" and saved["expert_score"] == 38
+    # HL-153: a Heart risk band and an optional %, compared with the app's Heart risk
+    assert saved["expert_risk_band"] == "high" and saved["expert_risk_percent"] == 12.5
     assert saved["reasons"] == ["blood_pressure", "symptoms"]
-    assert saved["tier_agreement"] == "under"          # the app said Moderate: less risky than the cardiologist
-    assert saved["score_difference"] == 38 - 64
+    assert saved["risk_agreement"] == "under"          # the app said Borderline: less risky than the cardiologist
+    assert saved["risk_difference"] == 8.3             # 12.5 - 4.2 percentage points
+    assert "expert_tier" not in saved
     assert saved["is_clinical"] is True and saved["reviewer_expert_type"] == "Cardiologist"
     assert world["cases"].rc["status"] == "complete" and world["cases"].rc["completed_at"]
 
 
 def test_score_is_optional(world):
-    saved = review_sections.submit_cardiology(ROUND, {**GOOD, "expert_score": "", "expert_tier": "Moderate"}, as_user("cardio"))
-    assert saved["expert_score"] is None and saved["score_difference"] is None
-    assert saved["tier_agreement"] == "agree"
+    saved = review_sections.submit_cardiology(ROUND, {**GOOD, "expert_risk_percent": "", "expert_risk_band": "borderline"},
+                                              as_user("cardio"))
+    assert saved["expert_risk_percent"] is None and saved["risk_difference"] is None
+    assert saved["risk_agreement"] == "agree"
+
+
+def test_a_round_without_an_app_heart_risk_has_nothing_to_compare(world):
+    """HL-153: under 30 or over 79 there's no app band, so the review counts for nothing in Model Check."""
+    world["cases"].rc.update({"app_risk_band": None, "app_risk_percent": None, "app_risk_kind": None})
+    saved = review_sections.submit_cardiology(ROUND, GOOD, as_user("cardio"))
+    assert saved["risk_agreement"] is None and saved["risk_difference"] is None
+    assert world["cases"].rc["status"] == "complete"
 
 
 def test_unverified_cardiologist_review_is_practice(world):
@@ -121,7 +143,8 @@ def test_only_cardiologists_submit_cardiology(world, who):
 
 
 @pytest.mark.parametrize("bad", [
-    {"expert_tier": "Fine"}, {"expert_score": 0}, {"expert_score": 101}, {"expert_score": "abc"},
+    {"expert_risk_band": "Critical"}, {"expert_risk_band": None}, {"expert_risk_percent": 0},
+    {"expert_risk_percent": 101}, {"expert_risk_percent": "abc"},
     {"reasons": []}, {"reasons": ["nonsense"]}, {"confidence": "very"}, {"checkup_flag": "maybe"},
     {"notes": "x" * 2001},
 ])
@@ -150,8 +173,9 @@ def test_app_level_hidden_until_cardiology_is_in(world):
 
     review_sections.submit_cardiology(ROUND, GOOD, as_user("cardio"))
     after = review_sections.case_detail(ROUND, as_user("diet"))
-    assert after["app"] == {"tier": "Moderate", "score": 64, "scorer": "bp_rules", "heart_risk": None}
-    assert after["sections"]["cardiology"]["tier_agreement"] == "under"
+    assert after["app"] == {"tier": "Moderate", "score": 64, "scorer": "bp_rules", "heart_risk": None,
+                            "risk": {"band": "borderline", "percent": 4.2, "kind": "estimated"}}
+    assert after["sections"]["cardiology"]["risk_agreement"] == "under"
 
 
 def test_heart_risk_shown_with_the_app_level_after_cardiology(world):
@@ -208,6 +232,34 @@ def test_the_review_lists_only_pt_approved_exercises(world):
     # HL-026: the exercises the app recommends are the ones patients can actually get.
     ids = [e["id"] for e in review_sections.recommendations_for({"app_tier": "Moderate"})["exercises"]]
     assert "e3" not in ids and set(ids) <= {"e1", "e2"}
+
+
+@pytest.mark.parametrize("state, expected", [
+    ("eligible", {"e2", "e5", "e1"}),  # every approved exercise; 3 shown, by name
+    ("caution", {"e4", "e5"}),         # beginner exercises and breathing
+    ("locked", {"e5"}),                # breathing only
+    ("needed", {"e5"}),
+])
+def test_the_pt_reviews_the_exercises_the_par_q_allows(world, monkeypatch, state, expected):
+    """2026-11-12: like the app (HL-123), the PAR-Q+ result decides, never the level. Breathing is always open."""
+    monkeypatch.setattr(review_sections, "exercise_check_for", lambda rc: {"state": state})
+    rc = {"app_tier": "Moderate", "patient_id": "p1"}
+    assert {e["id"] for e in review_sections.recommendations_for(rc)["exercises"]} == expected
+
+
+def test_the_dietitian_reviews_the_recipes_the_app_suggests(world, monkeypatch):
+    """2026-11-12: the patient's level or "Stable", without the ones that clash with their allergies."""
+    monkeypatch.setattr(review_sections, "exercise_check_for", lambda rc: None)
+    monkeypatch.setattr(review_sections, "RECIPES_SHOWN", 10)
+    rc = {"app_tier": "Moderate", "input_snapshot": {"onboarding": {"allergies": ["shellfish"]}}}
+    ids = [r["id"] for r in review_sections.recommendations_for(rc)["recipes"]]
+    assert sorted(ids) == ["r1", "r2", "r6"]
+
+
+def test_the_case_shows_the_par_q_result(world, monkeypatch):
+    check = {"state": "caution", "reason": None, "cleared": False, "answered_at": "2026-11-01T08:00:00+00:00", "expires_at": None}
+    monkeypatch.setattr(review_sections, "exercise_check_for", lambda rc: check)
+    assert review_sections.case_detail(ROUND, as_user("pt"))["exercise_check"] == check
 
 
 def test_the_review_lists_only_dietitian_approved_recipes(world):

@@ -259,7 +259,7 @@ export default function OnboardingScreen() {
           <View
             className="flex-row pb-3"
             accessible={true}
-            accessibilityLabel="By tonight. Your Heart Health Stability Score. One clear number, updated as you log."
+            accessibilityLabel="By tonight. Your heart risk and habits score. Your 10-year heart risk, plus a habits score that moves as you log."
           >
             <View className="w-8 items-center">
               <Animated.View
@@ -284,11 +284,11 @@ export default function OnboardingScreen() {
                 By tonight
               </Text>
               <Text style={{ fontSize: 15.5, fontWeight: "600", color: c.ink, marginTop: 2, letterSpacing: -0.2 }}>
-                Your Heart Health Stability Score
+                Your heart risk and habits score
               </Text>
               {!compact && (
                 <Text style={{ fontSize: 13.5, lineHeight: 19, color: c.slate, marginTop: 2 }}>
-                  One clear number, updated as you log.
+                  Your 10-year heart risk, plus a habits score that moves as you log.
                 </Text>
               )}
             </Animated.View>
