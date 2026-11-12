@@ -18,9 +18,9 @@ export interface PremiumStatus {
 }
 
 export interface PremiumFeature {
-  key: "reports" | "trends" | "family";
-  icon: "file-chart-outline" | "chart-timeline-variant" | "account-heart-outline";
-  tint: "sky" | "mint" | "peach";
+  key: "reports" | "trends" | "family" | "meals";
+  icon: "file-chart-outline" | "chart-timeline-variant" | "account-heart-outline" | "calendar-check-outline";
+  tint: "sky" | "mint" | "peach" | "yellow";
   title: string;
   text: string;
   /** False until the ticket that builds it ships (HL-085..087), so the screen never promises what isn't there. */
@@ -49,7 +49,16 @@ export const PREMIUM_FEATURES: PremiumFeature[] = [
     icon: "account-heart-outline",
     tint: "peach",
     title: "Family sharing",
-    text: "Let someone you trust see your readings and get a notification if a reading is at an emergency level.",
+    text: "Let someone you trust see your readings and whether you took your medicine. They're told about an emergency-level reading or 2 days without a check-in, and get a summary every Sunday.",
+    ready: true,
+  },
+  {
+    // HL-155
+    key: "meals",
+    icon: "calendar-check-outline",
+    tint: "yellow",
+    title: "Weekly meal plan",
+    text: "Breakfast, lunch and dinner for 7 days from Dietitian-approved recipes that fit your sodium limit and allergies, with a shopping list.",
     ready: true,
   },
 ];

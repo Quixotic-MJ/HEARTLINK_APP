@@ -92,6 +92,8 @@ def sharing_status(user_id: str) -> Dict[str, Any]:
         "invite": _invite_out(repo.get_open_invite(profile["id"], now)),
         "followers": followers(profile["id"]),
         "max_followers": MAX_FOLLOWERS,
+        # HL-154: whether followers are told after 2 days without a blood pressure reading
+        "nudges_enabled": profile.get("family_nudges_enabled") is not False,
     }
 
 
@@ -173,6 +175,25 @@ def stop_following(user_id: str, patient_id: str) -> None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="You don't follow this person.")
 
 
+def set_nudges(user_id: str, enabled: bool) -> Dict[str, Any]:
+    """HL-154: the patient's switch for the "no check-in for 2 days" message to their followers."""
+    profile = _patient_profile(user_id)
+    if not get_profile_repo().update(profile["id"], {"family_nudges_enabled": bool(enabled)}):
+        raise HTTPException(status_code=500, detail="Couldn't save that. Try again.")
+    return {"nudges_enabled": bool(enabled)}
+
+
+def _medicine(logs: List[Dict[str, Any]], today: date) -> Dict[str, Any]:
+    """HL-154: the patient's own medicine answers: today's latest (None if not answered yet) and the last 7 days."""
+    answered = [l for l in logs if l.get("medication_taken") in (True, False)]
+    todays = [l for l in answered if _day(l.get("logged_at")) == today]
+    week = [l for l in answered if (_day(l.get("logged_at")) or today) > today - timedelta(days=7)]
+    return {
+        "today": todays[-1]["medication_taken"] if todays else None,
+        "week": {"taken": sum(1 for l in week if l["medication_taken"]), "answered": len(week)},
+    }
+
+
 def set_account_kind(user_id: str, kind: str) -> Dict[str, Any]:
     profile = _patient_profile(user_id)
     if kind not in ACCOUNT_KINDS:
@@ -233,6 +254,8 @@ def summary(user_id: str, patient_id: str) -> Dict[str, Any]:
         # HL-139: the Heart risk, which family followers see too (decided 2026-11-11)
         "heart_risk": risk_summary(latest_score),
         "last_check_in": latest_log.get("logged_at") if latest_log else None,
+        # HL-154: "took medicine today" for carers, only the patient's own answer
+        "medicine": _medicine(logs, today),
         "days": [{"date": d.isoformat(), "systolic": v.get("systolic"), "diastolic": v.get("diastolic"), "score": v.get("score")}
                  for d, v in by_day.items()],
         "open_alerts": [

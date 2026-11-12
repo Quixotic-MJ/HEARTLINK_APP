@@ -208,7 +208,10 @@ def test_followers_see_a_read_only_summary(world):
     assert s["last_check_in"] == LOGS[2]["logged_at"]
     assert len(s["days"]) == 30 and s["days"][-2]["systolic"] == 138 and s["days"][-2]["score"] == 71
     assert s["open_alerts"][0]["type"] == "Hypertensive Crisis"
-    assert set(s) == {"id", "name", "paused", "latest_bp", "latest_pulse", "score", "heart_risk", "last_check_in", "days", "open_alerts"}
+    assert set(s) == {"id", "name", "paused", "latest_bp", "latest_pulse", "score", "heart_risk", "last_check_in", "days",
+                      "open_alerts", "medicine"}
+    # HL-154: the patient's own medicine answers for carers (today's, and the last 7 days)
+    assert set(s["medicine"]) == {"today", "week"} and set(s["medicine"]["week"]) == {"taken", "answered"}
     assert s["heart_risk"] is None  # these test scores have no Heart risk saved
 
 

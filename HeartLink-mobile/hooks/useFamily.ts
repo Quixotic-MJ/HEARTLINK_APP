@@ -38,6 +38,16 @@ export function useCreateInvite() {
   });
 }
 
+/** HL-154: the patient's switch for the "no check-in for 2 days" message to followers. */
+export function useSetNudges() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (enabled: boolean) =>
+      call<{ nudges_enabled: boolean }>("/api/family/nudges", { method: "PUT", body: JSON.stringify({ enabled }) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["family", "sharing"] }),
+  });
+}
+
 export function useRemoveFollower() {
   const queryClient = useQueryClient();
   return useMutation({

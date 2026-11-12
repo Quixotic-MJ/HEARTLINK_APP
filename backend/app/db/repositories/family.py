@@ -44,6 +44,15 @@ class FamilyRepository:
     def delete_link(self, patient_id: str, follower_id: str) -> bool:
         raise NotImplementedError
 
+    # HL-154: the hourly family alerts job
+    def list_all_links(self) -> List[Dict[str, Any]]:
+        raise NotImplementedError
+
+    def claim(self, link_id: str, field: str, before: str, now: str) -> bool:
+        """Sets `field` (last_nudge_at or last_digest_at) to now only if it's empty or older than `before`. True when this
+        call made the change, so only one server sends the message."""
+        raise NotImplementedError
+
 
 class SupabaseFamilyRepository(FamilyRepository):
     def __init__(self, client):
@@ -134,6 +143,30 @@ class SupabaseFamilyRepository(FamilyRepository):
         try:
             res = (self.client.table(LINKS_TABLE).delete().eq("patient_id", patient_id)
                    .eq("follower_id", follower_id).execute())
+            return bool(res.data)
+        except Exception as e:
+            handle_db_error(e)
+            return False
+
+    def list_all_links(self) -> List[Dict[str, Any]]:
+        try:
+            rows, start, step = [], 0, 1000
+            while True:
+                batch = self.client.table(LINKS_TABLE).select("*").order("created_at").range(start, start + step - 1).execute().data or []
+                rows += batch
+                if len(batch) < step:
+                    return rows
+                start += step
+        except Exception as e:
+            handle_db_error(e)
+            return []
+
+    def claim(self, link_id: str, field: str, before: str, now: str) -> bool:
+        if field not in ("last_nudge_at", "last_digest_at"):
+            raise ValueError(field)
+        try:
+            res = (self.client.table(LINKS_TABLE).update({field: now}).eq("id", link_id)
+                   .or_(f"{field}.is.null,{field}.lt.{before}").execute())
             return bool(res.data)
         except Exception as e:
             handle_db_error(e)

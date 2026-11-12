@@ -12,7 +12,7 @@ import { TrendChart } from "../../components/trends/TrendChart";
 import { PageHeader } from "../../components/family/FamilyBits";
 import { useToast } from "../../contexts/ToastContext";
 import { useFamilySummary, useStopFollowing } from "../../hooks/useFamily";
-import { agoLine, summaryChart } from "../../services/family";
+import { agoLine, medicineToday, summaryChart } from "../../services/family";
 
 // HL-087: what a follower sees: the latest readings, the last check-in, 30-day charts and any open health alert.
 // Read-only, and only what the patient logged; never a diagnosis.
@@ -127,6 +127,14 @@ export default function FollowedPersonScreen() {
           />
           <Tile label="Habits score" value={s.score ? String(s.score.value) : "--"} note={s.score ? agoLine(s.score.at) : "No score yet"} />
           <Tile label="Last check-in" value={agoLine(s.last_check_in)} note="Any check-in" />
+          {/* HL-154: the patient's own answer from their check-in */}
+          {s.medicine ? (
+            <Tile
+              label="Medicine today"
+              value={medicineToday(s.medicine.today)}
+              note={s.medicine.week.answered ? `Taken at ${s.medicine.week.taken} of ${s.medicine.week.answered} check-ins this week` : "No answers this week"}
+            />
+          ) : null}
         </View>
 
         <View style={{ gap: 10 }}>

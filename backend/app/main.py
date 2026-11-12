@@ -51,6 +51,7 @@ from app.api import uploads_api
 from app.api import feedback_api
 from app.api import premium_api
 from app.api import family_api
+from app.api import meal_plan_api
 from app.api import reports_api
 from app.api.companion import companion
 
@@ -131,6 +132,7 @@ app.include_router(uploads_api.router)
 app.include_router(feedback_api.router)
 app.include_router(premium_api.router)
 app.include_router(family_api.router)
+app.include_router(meal_plan_api.router)
 app.include_router(reports_api.router)
 app.include_router(admin_premium_api.router)
 app.include_router(companion.router)
@@ -173,6 +175,12 @@ async def on_startup():
         import asyncio
         from app.services.notification_archive import run_archive_job
         app.state.archive_job = asyncio.create_task(run_archive_job())
+
+    # HL-154: family alerts (no check-in for 2 days, the Sunday summary); runs now, then hourly.
+    if os.getenv("FAMILY_ALERTS_JOB", "on").lower() != "off":
+        import asyncio
+        from app.services.family_alerts import run_family_alerts_job
+        app.state.family_alerts_job = asyncio.create_task(run_family_alerts_job())
 
 @app.api_route("/", methods=["GET", "HEAD"], tags=["System"])
 def root_check():

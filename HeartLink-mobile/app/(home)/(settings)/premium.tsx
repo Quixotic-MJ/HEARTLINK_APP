@@ -34,6 +34,7 @@ const FEATURE_ROUTES: Record<PremiumFeature["key"], string> = {
   reports: "/(home)/(profile)/health-report",
   trends: "/(home)/(tabs)/trends",
   family: "/(home)/(settings)/family-sharing",
+  meals: "/(home)/(meals)/meal-plan",
 };
 
 function SectionTitle({ children }: { children: string }) {
@@ -257,7 +258,8 @@ export default function PremiumScreen() {
         Follow your heart health over months
       </Text>
       <Text style={{ fontSize: 16, lineHeight: 24, color: c.slate, marginTop: 8 }}>
-        Longer Visit summaries, trends over months and family sharing, on top of everything you already use for free.
+        Longer Visit summaries, trends over months, family sharing and a weekly meal plan, on top of everything you
+        already use for free.
       </Text>
 
       {premium.isPending ? (

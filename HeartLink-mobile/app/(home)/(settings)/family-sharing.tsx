@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Share, Text, View } from "react-native";
+import { Share, Switch, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useDs } from "../../../components/onboarding/useDs";
@@ -9,7 +9,7 @@ import { Skeleton } from "../../../components/ui/Skeleton";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { Card, PageHeader, PersonRow } from "../../../components/family/FamilyBits";
 import { useToast } from "../../../contexts/ToastContext";
-import { useCreateInvite, useRemoveFollower, useSharing } from "../../../hooks/useFamily";
+import { useCreateInvite, useRemoveFollower, useSetNudges, useSharing } from "../../../hooks/useFamily";
 import { Follower, agoLine, expiresLine, inviteMessage, showCode } from "../../../services/family";
 
 // HL-087: the patient's side of family sharing (Premium). Make a one-time code to send, see who follows you, remove
@@ -22,6 +22,7 @@ export default function FamilySharingScreen() {
   const sharing = useSharing();
   const createInvite = useCreateInvite();
   const removeFollower = useRemoveFollower();
+  const setNudges = useSetNudges();
   const [removing, setRemoving] = useState<Follower | null>(null);
 
   const status = sharing.data;
@@ -142,6 +143,46 @@ export default function FamilySharingScreen() {
           ) : (
             <Text style={{ fontSize: 15, lineHeight: 22, color: c.slate }}>Nobody follows you yet.</Text>
           )}
+
+          {/* HL-154: what followers are told, and the patient's switch for the nudge */}
+          {status.is_premium ? (
+            <>
+              <Text accessibilityRole="header" style={{ marginTop: 28, marginBottom: 10, fontSize: 18, fontWeight: "600", color: c.ink }}>
+                What your followers are told
+              </Text>
+              <Card>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 16 }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>No check-in for 2 days</Text>
+                    <Text style={{ fontSize: 14, lineHeight: 20, color: c.slate, marginTop: 2 }}>
+                      Tell them once if you haven&apos;t logged a blood pressure reading for 2 days.
+                    </Text>
+                  </View>
+                  <Switch
+                    value={status.nudges_enabled !== false}
+                    disabled={setNudges.isPending}
+                    onValueChange={(on) => {
+                      Haptics.selectionAsync().catch(() => {});
+                      setNudges.mutate(on, {
+                        onError: (e) => showToast({ title: "Couldn't save that", message: e.message, type: "error" }),
+                      });
+                    }}
+                    trackColor={{ false: c.hairlineStrong, true: c.line }}
+                    thumbColor={c.onPrimary}
+                    ios_backgroundColor={c.hairlineStrong}
+                    accessibilityLabel="Tell followers after 2 days without a check-in"
+                    accessibilityRole="switch"
+                  />
+                </View>
+                <View style={{ borderTopWidth: 1, borderTopColor: c.hairlineSoft, padding: 16 }}>
+                  <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>A summary every Sunday</Text>
+                  <Text style={{ fontSize: 14, lineHeight: 20, color: c.slate, marginTop: 2 }}>
+                    Your week in a few words: readings, days logged and medicine taken.
+                  </Text>
+                </View>
+              </Card>
+            </>
+          ) : null}
 
           <View style={{ marginTop: 22 }}>
             <InfoNote
