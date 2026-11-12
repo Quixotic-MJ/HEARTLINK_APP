@@ -23,6 +23,9 @@ export function useSharing() {
   return useQuery({
     queryKey: ["family", "sharing", userId],
     enabled: !!userId,
+    // Asked again every time the screen opens: Premium (given in the portal) and new followers change it from outside
+    // the app, so a saved answer could keep the invite button hidden (2026-11-12)
+    staleTime: 0,
     queryFn: () => call<SharingStatus>("/api/family/sharing"),
   });
 }

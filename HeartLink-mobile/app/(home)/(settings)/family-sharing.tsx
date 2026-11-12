@@ -55,8 +55,8 @@ export default function FamilySharingScreen() {
   return (
     <DsScreen header={<PageHeader title="Family sharing" onBack={() => router.back()} />}>
       <Text style={{ fontSize: 15, lineHeight: 23, color: c.slate }}>
-        Let someone you trust follow your readings in the HeartLink app. They see your latest blood pressure, pulse
-        and score, and your 30-day charts, and get a notification if you log a reading at an emergency level. They
+        Let someone you trust follow your readings in the HeartLink app. They see your latest blood pressure, pulse,
+        Heart risk and habits score, and your 30-day charts, and get a notification if you log a reading at an emergency level. They
         can&apos;t change anything.
       </Text>
 

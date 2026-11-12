@@ -12,7 +12,7 @@ import { DARK_MODE_ENABLED } from "../../../constants/theme";
 import { useSoundsSetting } from "../../../services/sounds";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { SquareIconButton } from "../../../components/exercise/ExerciseBits";
-import { isPremiumProfile } from "../../../services/premium";
+import { useIsPremium } from "../../../hooks/usePremium";
 import { isFamilyAccount } from "../../../services/family";
 import { pushStatusText, registerForPush, usePushStatus } from "../../../services/pushNotifications";
 
@@ -172,7 +172,7 @@ export default function SettingsScreen() {
     }, [])
   );
   const { logout, user } = useUser();
-  const isPremium = isPremiumProfile(user);
+  const isPremium = useIsPremium();
   const [soundsOn, setSoundsOn] = useSoundsSetting();
   // HL-087: an account made only to follow family members has no health set-up, so those rows are left out
   const familyOnly = isFamilyAccount(user);

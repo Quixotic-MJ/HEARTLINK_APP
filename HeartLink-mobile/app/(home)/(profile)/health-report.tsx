@@ -25,7 +25,7 @@ import {
   reportHtml,
   time12,
 } from "../../../services/healthReport";
-import { isPremiumProfile } from "../../../services/premium";
+import { useIsPremium } from "../../../hooks/usePremium";
 import { markWeeklyReportOpened } from "../../../services/weeklyReport";
 
 // HL-085, 2026-11-12: the Visit summary, the one report to show or send to a doctor or clinic. The last 7 days are free
@@ -186,7 +186,7 @@ export default function HealthReportScreen() {
   const { c } = useDs();
   const { user, userId } = useUser();
   const { showToast } = useToast();
-  const premium = isPremiumProfile(user);
+  const premium = useIsPremium();
   const [days, setDays] = useState<ReportDays>(7);
   const [sharing, setSharing] = useState(false);
   const report = useHealthReport(days);

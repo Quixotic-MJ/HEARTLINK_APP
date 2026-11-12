@@ -24,7 +24,7 @@ import { TrendChart } from "../../../components/trends/TrendChart";
 import { LongTermTrends } from "../../../components/trends/LongTermTrends";
 import { ProgressSummaryCard } from "../../../components/trends/ProgressSummaryCard";
 import { useProgressSummary } from "../../../services/progressSummary";
-import { isPremiumProfile } from "../../../services/premium";
+import { useIsPremium } from "../../../hooks/usePremium";
 import { isLongTerm, periodName } from "../../../services/longTermTrends";
 import {
   ExerciseRow,
@@ -88,10 +88,10 @@ const lastOf = <T,>(xs: (T | null)[]): { value: T; index: number } | null => {
 export default function TrendsTabScreen() {
   const { c, isDark } = useDs();
   const router = useRouter();
-  const { userId, token, user } = useUser();
+  const { userId, token } = useUser();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
-  const isPremium = isPremiumProfile(user);
+  const isPremium = useIsPremium();
 
   const [metric, setMetric] = useState<Metric>("score");
   const [period, setPeriod] = useState<Period>(7);
