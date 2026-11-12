@@ -20,7 +20,7 @@ forbidden. Allergy and diet warnings are different: they stay strong and specifi
 | Recipe sodium | Under 300 mg a serving | Listed as a low-sodium meal in Explore | `explore.ts` | **HeartLink's own choice** |
 | Score band | Recipes approved for the patient's band or "Stable" | Which recipes are suggested | `dashboard.py` | Dietitian tags each recipe |
 | Allergies | Ingredient, tag or name matches | Left out of suggestions and the weekly meal plan; elsewhere "Contains shrimp (you're allergic to shellfish)" | `dashboard.py`, `meal_plan.py`, `food_warnings.py` | Patient's setup answers |
-| Diet | Ingredient, tag or name clashes (Halal, Vegan, Vegetarian, Pescatarian) | Left out of suggestions and the weekly meal plan; elsewhere a warning | `dashboard.py`, `meal_plan.py`, `food_warnings.py` | Patient's setup answers. **Low-carb (a setup choice) has no rule yet: needs the Dietitian's carbohydrate limit** |
+| Diet | Ingredient, tag or name clashes (Halal, Vegan, Vegetarian, Pescatarian) | Left out of suggestions and the weekly meal plan; elsewhere a warning | `dashboard.py`, `meal_plan.py`, `food_warnings.py` | Patient's setup answers. Low-carb was removed from setup (no rule or carbohydrate values yet); it comes back with the Dietitian's carbohydrate limit |
 | Hidden by the care team | A recipe marked not suitable for this patient (HL-057) | Left out of suggestions, Explore's lists and the weekly meal plan | `dashboard.py`, `meal_plan.py`, `browse.tsx` | The care team's case review |
 
 Calories and cholesterol are shown against daily limits but don't change the score or the suggestions.
