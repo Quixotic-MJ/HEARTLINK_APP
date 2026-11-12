@@ -217,7 +217,7 @@ export default function TrendsTabScreen() {
           <AnimatedButton
             onPress={long ? () => router.push("/(home)/(profile)/health-report") : shareReport}
             accessibilityRole="button"
-            accessibilityLabel={long ? "Open your health report for your doctor" : "Share a report for your doctor"}
+            accessibilityLabel={long ? "Open your Visit summary for your doctor" : "Share a report for your doctor"}
             style={{ height: 44, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: c.hairline, borderRadius: 8 }}
           >
             <Feather name="share" size={16} color={c.ink} />

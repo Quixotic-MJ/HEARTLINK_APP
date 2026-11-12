@@ -1,4 +1,5 @@
-"""HL-059: the clinical dataset export (clinical reviews only, starting-score inputs, yes/no label)."""
+"""HL-059: the clinical dataset export (clinical reviews only, starting-score inputs, yes/no label).
+HL-153: the label comes from the Cardiologist's Heart risk band; rows carry the app's Heart risk."""
 import pytest
 from fastapi.testclient import TestClient
 
@@ -21,20 +22,22 @@ class FakeRepo:
     def __init__(self):
         self.cases, self.sections = [], []
 
-    def add(self, n, status="complete", tier="Moderate", clinical=True, features=None, snapshot=None,
-            section_status="submitted", created_at="2026-10-01T08:00:00Z"):
+    def add(self, n, status="complete", band="borderline", clinical=True, features=None, snapshot=None,
+            section_status="submitted", created_at="2026-10-01T08:00:00Z", older=False):
         rid = f"r{len(self.cases)}"
         self.cases.append({"id": rid, "patient_id": f"patient-{rid}", "case_code": f"HL-{rid}", "lane": "sample",
                            "status": status, "app_score": 70, "app_tier": "Moderate", "app_scorer": "bp_rules",
                            "model_version": "starting-score-2", "created_at": created_at,
+                           "app_risk_band": "borderline", "app_risk_percent": 4.2, "app_risk_kind": "estimated",
                            "model_features": SAVED_INPUTS if features is None else features,
                            "input_snapshot": snapshot or {}})
         self.sections.append({"review_case_id": rid, "section": "cardiology", "status": section_status,
-                              "is_clinical": clinical, "expert_tier": tier, "expert_score": 60, "confidence": "high",
+                              "is_clinical": clinical, "confidence": "high",
+                              **({"expert_tier": "Critical"} if older else {"expert_risk_band": band, "expert_risk_percent": 6.0}),
                               "reasons": ["bp_trend"], "checkup_flag": "within_2_weeks", "notes": "Seen at clinic",
                               "reviewer_name": "Dr. Cruz", "created_at": "2026-10-02T08:00:00Z"})
         for _ in range(n - 1):
-            self.add(1, status, tier, clinical, features, snapshot, section_status, created_at)
+            self.add(1, status, band, clinical, features, snapshot, section_status, created_at, older)
         return self
 
     def list_sections(self, review_case_id=None, section=None, include_archived=False):
@@ -48,14 +51,14 @@ class FakeRepo:
 def repo(monkeypatch):
     fake = FakeRepo()
     monkeypatch.setattr(clinical_dataset, "get_case_review_repo", lambda: fake)
-    monkeypatch.delenv("CLINICAL_LABEL_HIGHER_RISK_TIERS", raising=False)
+    monkeypatch.delenv("CLINICAL_LABEL_HIGHER_RISK_BANDS", raising=False)
     return fake
 
 
 def test_only_completed_clinical_reviews_become_rows_and_the_rest_say_why(repo):
-    repo.add(30, tier="Moderate").add(5, tier="Critical")
+    repo.add(30, band="borderline").add(5, band="high")
     repo.add(1, clinical=False).add(1, status="open").add(1, status="archived").add(1, section_status="archived")
-    repo.add(1, features={}, snapshot={})
+    repo.add(1, features={}, snapshot={}).add(1, older=True)
 
     export = clinical_dataset.build_export()
 
@@ -63,14 +66,17 @@ def test_only_completed_clinical_reviews_become_rows_and_the_rest_say_why(repo):
     assert export["counts"]["higher_risk"] == 5
     reasons = sorted(e["reason"] for e in export["excluded"])
     assert reasons == ["Archived", "Archived", "No setup answers saved with the round",
+                       "Older review (habits level, before HL-153)",
                        "Practice review (reviewer not a verified clinician)", "Round not complete"]
 
 
 def test_rows_have_the_inputs_and_label_but_no_one_identifiable(repo):
-    repo.add(30, tier="Elevated Risk")
+    repo.add(30, band="intermediate")
     row = clinical_dataset.build_export()["rows"][0]
     assert list(row["inputs"]) == INPUTS and row["inputs"] == SAVED_INPUTS
     assert row["label"] == 1 and row["inputs_rebuilt"] is False
+    assert (row["expert_risk_band"], row["expert_risk_percent"]) == ("intermediate", 6.0)
+    assert (row["app_risk_band"], row["app_risk_percent"], row["app_risk_kind"]) == ("borderline", 4.2, "estimated")
     for private in ("patient_id", "reviewer_name", "notes", "id"):
         assert private not in row
 
@@ -92,15 +98,15 @@ def test_fewer_than_30_clinical_reviews_is_refused(repo):
 
 
 def test_the_label_rule_is_a_setting_marked_pending_the_cardiologist(repo, monkeypatch):
-    repo.add(15, tier="Elevated Risk").add(15, tier="Critical")
+    repo.add(15, band="intermediate").add(15, band="high")
     export = clinical_dataset.build_export()
-    assert export["label"]["higher_risk_tiers"] == ["Elevated Risk", "Critical"]
+    assert export["label"]["higher_risk_bands"] == ["intermediate", "high"]
     assert export["label"]["status"] == "pending cardiologist review"
 
-    monkeypatch.setenv("CLINICAL_LABEL_HIGHER_RISK_TIERS", "Critical")
+    monkeypatch.setenv("CLINICAL_LABEL_HIGHER_RISK_BANDS", "high")
     assert clinical_dataset.build_export()["counts"]["higher_risk"] == 15
 
-    monkeypatch.setenv("CLINICAL_LABEL_HIGHER_RISK_TIERS", "Very high")
+    monkeypatch.setenv("CLINICAL_LABEL_HIGHER_RISK_BANDS", "Very high")
     with pytest.raises(ValueError):
         clinical_dataset.build_export()
 

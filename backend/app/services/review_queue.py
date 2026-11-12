@@ -92,8 +92,6 @@ def current_app_status(user_id: str) -> Dict[str, Any]:
 def urgent_reason(user_id: str, status: Dict[str, Any], now=None) -> Optional[str]:
     """Why this patient belongs in the urgent lane, or None. The newest trigger wins."""
     now = now or utc_now()
-    if status.get("tier") in rules.URGENT_TIERS:
-        return f"App level is {status['tier']}"
     # HL-139: a High Heart risk (10% or more over 10 years) also asks for an expert's look. Never an emergency.
     risk = status.get("heart_risk") or {}
     if risk.get("urgent"):
@@ -119,12 +117,19 @@ def urgent_reason(user_id: str, status: Dict[str, Any], now=None) -> Optional[st
     return None
 
 
+def risk_band_of(status: Dict[str, Any]) -> Optional[str]:
+    """HL-153: the app's Heart risk band now, or None (under 30, over 79, or not worked out yet)."""
+    band = (status.get("heart_risk") or {}).get("band")
+    return band if band in rules.RISK_BANDS else None
+
+
 def rereview_reason(user_id: str, status: Dict[str, Any]) -> Optional[str]:
-    """A re-review is due when the app's level changed since the last completed round."""
+    """HL-153: a re-review is due when the app's Heart risk band changed since the last completed round."""
     rounds = get_case_review_repo().list_patient_cases(user_id)
     last = next((r for r in rounds if r.get("status") == "complete"), None)
-    if last and last.get("app_tier") and status.get("tier") and last["app_tier"] != status["tier"]:
-        return "App level changed since the last review"
+    band = risk_band_of(status)
+    if last and last.get("app_risk_band") and band and last["app_risk_band"] != band:
+        return "Heart risk band changed since the last review"
     return None
 
 
@@ -176,6 +181,10 @@ def open_round(profile: Dict[str, Any], lane: str, reason: str, status: Dict[str
         "app_score": status.get("score"),
         "app_tier": status.get("tier"),
         "app_scorer": status.get("scorer") if status.get("scorer") in SCORERS else "unknown",
+        # HL-153: the Heart risk is what the Cardiologist's answer is compared with
+        "app_risk_band": risk_band_of(status),
+        "app_risk_percent": (status.get("heart_risk") or {}).get("ascvd_10") if risk_band_of(status) else None,
+        "app_risk_kind": (status.get("heart_risk") or {}).get("kind") if risk_band_of(status) else None,
         "created_by": created_by,
         **build_snapshot(profile),
     }
@@ -210,13 +219,14 @@ def refresh_queue(now=None) -> Dict[str, List[str]]:
 
 
 def draw_sample(created_by: Optional[str], now=None, rng: Optional[random.Random] = None) -> List[Dict[str, Any]]:
-    """Random pick across all four levels, Stable included, skipping anyone reviewed recently."""
+    """HL-153: a random pick across the four Heart risk bands, Low included, skipping anyone reviewed recently.
+    Patients without a Heart risk (under 30, over 79) have nothing to compare, so they aren't sampled."""
     now = now or utc_now()
     rng = rng or random.SystemRandom()
     repo = get_case_review_repo()
     cooldown = now - timedelta(days=rules.SAMPLE_COOLDOWN_DAYS)
 
-    by_tier: Dict[str, List] = {tier: [] for tier in rules.TIERS}
+    by_band: Dict[str, List] = {band: [] for band in rules.RISK_BANDS}
     for profile in _eligible_patients():
         rounds = repo.list_patient_cases(profile["id"])
         if any(r.get("status") == "open" for r in rounds):
@@ -224,12 +234,13 @@ def draw_sample(created_by: Optional[str], now=None, rng: Optional[random.Random
         if any((parse_utc(r.get("created_at")) or cooldown) > cooldown for r in rounds):
             continue
         status = current_app_status(profile["id"])
-        if status.get("tier") in by_tier:
-            by_tier[status["tier"]].append((profile, status))
+        band = risk_band_of(status)
+        if band:
+            by_band[band].append((profile, status))
 
     opened = []
-    for tier in rules.TIERS:
-        pool = by_tier[tier]
+    for band in rules.RISK_BANDS:
+        pool = by_band[band]
         for profile, status in rng.sample(pool, min(rules.SAMPLE_PER_TIER, len(pool))):
             created = open_round(profile, "sample", "Weekly random sample", status, created_by)
             if created:
@@ -275,11 +286,12 @@ def list_queue(now=None) -> List[Dict[str, Any]]:
     recs_by_tier: Dict[Any, Dict[str, List]] = {}
     items = []
     for rc in repo.list_review_cases(status="open") + repo.list_review_cases(status="complete"):
-        tier = rc.get("app_tier")
-        if tier not in recs_by_tier:
-            recs_by_tier[tier] = recommendations_for(rc)
+        # 2026-11-12: the lists depend on the patient (diet, allergies, PAR-Q+), not only the level
+        key = (rc.get("app_tier"), rc.get("patient_id"))
+        if key not in recs_by_tier:
+            recs_by_tier[key] = recommendations_for(rc)
         done = {s.get("section") for s in repo.list_sections(review_case_id=rc["id"])}
-        progress = section_progress(rc, done, recs_by_tier[tier])
+        progress = section_progress(rc, done, recs_by_tier[key])
         if rc.get("status") == "complete" and "waiting" not in progress.values():
             continue  # every part is done: the case leaves the queue
         opened_at = parse_utc(rc.get("created_at")) or now

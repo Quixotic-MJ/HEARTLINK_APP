@@ -6,10 +6,14 @@ cardiologist. Change them here only. The blood-pressure and symptom triggers mat
 emergency check in HeartLink-mobile/app/(home)/(health)/log-symptoms.tsx, so both should change together.
 """
 
+# The habits-style levels older reviews used (before HL-153)
 TIERS = ("Stable", "Moderate", "Elevated Risk", "Critical")
 
-# Urgent lane
-URGENT_TIERS = ("Critical",)
+# HL-153: what the Cardiologist judges and Model Check compares: the Heart risk band (AHA PREVENT, 2026 ACC/AHA bands:
+# low under 3%, borderline 3-4.9%, intermediate 5-9.9%, high 10% or more), lowest first
+RISK_BANDS = ("low", "borderline", "intermediate", "high")
+
+# Urgent lane. HL-153: a habits score under 50 no longer counts (poor habits aren't urgent); a High Heart risk does
 CRISIS_SYSTOLIC = 180
 CRISIS_DIASTOLIC = 120
 LOW_SYSTOLIC = 90
@@ -22,7 +26,7 @@ BREATH_URGENT_CONTEXTS = ("resting",)
 FAINTED_SYMPTOM = "Fainted or Nearly Fainted"
 URGENT_REVIEW_HOURS = 48
 
-# Sample lane (drawn by an admin, at most once a week is the intent)
+# Sample lane (drawn by an admin, at most once a week is the intent). HL-153: per Heart risk band
 SAMPLE_PER_TIER = 5
 SAMPLE_COOLDOWN_DAYS = 30
 

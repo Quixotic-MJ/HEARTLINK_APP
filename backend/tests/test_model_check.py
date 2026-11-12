@@ -1,10 +1,12 @@
-"""HL-058: Model Check (one row per review round, clinical-only measures) and clinician verification."""
+"""HL-058: Model Check (one row per review round, clinical-only measures) and clinician verification.
+HL-153: the measures compare the app's Heart risk band with the Cardiologist's."""
 import pytest
 from fastapi.testclient import TestClient
 
 from app.services import model_check as mc
 
-S, M, E, C = "Stable", "Moderate", "Elevated Risk", "Critical"
+# The Heart risk bands, lowest first (the same letters the level tests used)
+S, M, E, C = "low", "borderline", "intermediate", "high"
 
 
 # --- weighted kappa ------------------------------------------------------------------------------------
@@ -14,7 +16,7 @@ def test_perfect_agreement_is_one():
 
 
 def test_systematic_swap_is_negative():
-    # App says Stable when the cardiologist says Moderate and vice versa: worse than chance
+    # App says Low when the cardiologist says Borderline and vice versa: worse than chance
     assert mc.weighted_kappa([(S, M), (M, S)]) == -1.0
 
 
@@ -49,15 +51,23 @@ class Cases:
         return [s for s in self.sections if include_archived or s.get("status", "submitted") == "submitted"]
 
 
-def rnd(rid, tier, scorer="baseline_model", status="complete"):
-    return {"id": rid, "case_code": f"CASE-{rid}", "lane": "sample", "status": status, "app_tier": tier,
-            "app_score": 70, "app_scorer": scorer, "created_at": "2026-10-10T00:00:00+00:00"}
+def rnd(rid, band, kind="estimated", status="complete"):
+    return {"id": rid, "case_code": f"CASE-{rid}", "lane": "sample", "status": status,
+            "app_tier": "Stable" if band == S else "Moderate",
+            "app_score": 70, "app_scorer": "heart_score", "app_risk_band": band, "app_risk_kind": kind if band else None,
+            "app_risk_percent": 4.0 if band else None, "created_at": "2026-10-10T00:00:00+00:00"}
 
 
-def cardio(rid, tier, agreement, clinical=True, when="2026-10-12T00:00:00+00:00"):
-    return {"review_case_id": rid, "section": "cardiology", "expert_tier": tier, "tier_agreement": agreement,
+def cardio(rid, band, agreement, clinical=True, when="2026-10-12T00:00:00+00:00", difference=None):
+    return {"review_case_id": rid, "section": "cardiology", "expert_risk_band": band, "risk_agreement": agreement,
             "is_clinical": clinical, "reviewer_name": "Dr C", "reasons": ["blood_pressure"],
-            "score_difference": None, "updated_at": when}
+            "risk_difference": difference, "updated_at": when}
+
+
+def older(rid, tier="Critical"):
+    """A review from before HL-153: a habits-style level, no band."""
+    return {"review_case_id": rid, "section": "cardiology", "expert_tier": tier, "tier_agreement": "under",
+            "is_clinical": True, "reviewer_name": "Dr C", "reasons": ["blood_pressure"], "updated_at": "2026-10-01T00:00:00+00:00"}
 
 
 @pytest.fixture
@@ -69,7 +79,7 @@ def world(monkeypatch):
         monkeypatch.setattr(mc, "get_case_review_repo", lambda: state["cases"])
 
     monkeypatch.setattr("app.services.review_sections.recommendations_for",
-                        lambda rc: {"recipes": [{"id": "r1"}], "exercises": [] if rc.get("app_tier") == S else [{"id": "e1"}]})
+                        lambda rc: {"recipes": [{"id": "r1"}], "exercises": [] if rc.get("app_tier") == "Stable" else [{"id": "e1"}]})
     return install
 
 
@@ -98,9 +108,9 @@ def test_each_round_is_one_row_with_checks_inside(world):
 
 def test_measures_use_clinical_reviews_only(world):
     world(
-        [rnd("1", M), rnd("2", M), rnd("3", S, scorer="bp_rules"), rnd("4", E)],
-        [cardio("1", M, "agree"), cardio("2", E, "under"), cardio("3", S, "agree"),
-         cardio("4", M, "over", clinical=False)],
+        [rnd("1", M), rnd("2", M), rnd("3", S, kind="calculated"), rnd("4", E), rnd("old", M), rnd("young", None)],
+        [cardio("1", M, "agree", difference=-1.5), cardio("2", E, "under", difference=3.5), cardio("3", S, "agree"),
+         cardio("4", M, "over", clinical=False), older("old"), cardio("young", S, None)],
     )
     result = mc.model_check()
     clinical = result["clinical"]
@@ -108,12 +118,19 @@ def test_measures_use_clinical_reviews_only(world):
     assert clinical["reviews"] == 3 and clinical["enough_reviews"] is False
     assert clinical["agreement"] == {"count": 2, "percent": 66.7}
     assert clinical["under_calling"]["count"] == 1 and clinical["over_calling"]["count"] == 0
-    assert clinical["matrix"]["rows_app_columns_cardiologist"][1] == [0, 1, 1, 0]   # app Moderate row
+    assert clinical["matrix"]["levels"] == ["low", "borderline", "intermediate", "high"]
+    assert clinical["matrix"]["rows_app_columns_cardiologist"][1] == [0, 1, 1, 0]   # app Borderline row
+    assert clinical["percent_difference"] == {"reviews_with_percent": 2, "average_gap": 2.5}
+    # HL-153: an older habits-level review and a round without an app risk are listed but not measured
+    assert clinical["left_out"] == {"older_reviews": 1, "no_app_risk": 1}
     assert result["practice"] == {"reviews": 1, "agreement": {"count": 0, "percent": 0.0}}
-    assert len(result["rows"]) == 4                                                   # practice rows still listed
+    assert len(result["rows"]) == 6                                                   # every row is still listed
+    assert next(r for r in result["rows"] if r["round_id"] == "old")["older_review"] is True
 
-    bp_only = mc.model_check("bp_rules")
-    assert bp_only["clinical"]["reviews"] == 1 and len(bp_only["rows"]) == 1
+    calculated = mc.model_check("calculated")
+    assert calculated["kind"] == "calculated"
+    assert calculated["clinical"]["reviews"] == 1 and len(calculated["rows"]) == 1
+    assert mc.model_check("estimated")["clinical"]["reviews"] == 2
 
 
 # --- clinician verification (API) ------------------------------------------------------------------------

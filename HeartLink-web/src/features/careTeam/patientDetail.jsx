@@ -9,7 +9,18 @@ import CareNotes from "./components/careNotes.jsx";
 import { useApiQuery } from "../../hooks/useApiQuery.js";
 import { useAuth } from "../../contexts/useAuth.js";
 import { formatUserRef } from "../../utils/formatUserRef.js";
-import { TAG, bpBand, riskBand, riskMissingText, riskOfRecord, riskPercent, tierClass, tierDotClass } from "./vitals.js";
+import {
+  TAG,
+  answerText,
+  bpBand,
+  exerciseCheckView,
+  riskBand,
+  riskMissingText,
+  riskOfRecord,
+  riskPercent,
+  tierClass,
+  tierDotClass,
+} from "./vitals.js";
 import { formatNoteTime } from "./noteTime.js";
 
 // HL-039 / HL-040: one patient's logs (what the caller's expert type may read) and the care-team notes.
@@ -24,6 +35,58 @@ const SECTIONS = [
   // HL-138: lab results the patient added themselves (read-only here)
   ["lab_results", "Lab results"],
 ];
+
+const shortDate = (iso) => {
+  const d = iso ? new Date(iso) : null;
+  return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : null;
+};
+
+// 2026-11-12: the heart answers from setup (they feed the Heart risk) and the exercise safety check (PAR-Q+) result.
+// Read-only: the patient changes them in the app.
+function HealthAnswers({ answers }) {
+  const check = exerciseCheckView(answers.exercise_check);
+  const answered = shortDate(answers.exercise_check?.answered_at);
+  const items = [
+    ["Takes blood pressure medicine", answers.bp_medicine],
+    ["Has diabetes", answers.has_diabetes],
+    ["Takes cholesterol medicine", answers.cholesterol_medicine],
+  ];
+  return (
+    <section
+      aria-labelledby="answers-title"
+      className="grid gap-5 rounded-[12px] border border-cal-hairline bg-cal-canvas p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:p-6 lg:grid-cols-2"
+    >
+      <div>
+        <h2 id="answers-title" className="font-cal-display text-[17px] font-semibold tracking-[-0.3px] text-cal-ink">
+          Health answers
+        </h2>
+        <p className="mt-0.5 text-[12.5px] text-cal-muted">From setup. They feed the Heart risk.</p>
+        <dl className="mt-3 divide-y divide-cal-hairline">
+          {items.map(([label, value]) => (
+            <div key={label} className="flex items-center justify-between gap-4 py-2 text-[13.5px]">
+              <dt className="text-cal-body">{label}</dt>
+              <dd className={`font-medium ${value == null ? "text-cal-muted" : "text-cal-ink"}`}>{answerText(value)}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+      <div>
+        <h2 className="font-cal-display text-[17px] font-semibold tracking-[-0.3px] text-cal-ink">Exercise safety check</h2>
+        <p className="mt-0.5 text-[12.5px] text-cal-muted">
+          PAR-Q+, answered in the app. It decides which exercises are offered, never the score. A screening, not a diagnosis.
+        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className={`${TAG} ${check.className}`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${check.dotClass}`} />
+            <span>{check.label}</span>
+          </span>
+          {answered && <span className="text-[12.5px] text-cal-muted">Answered {answered}</span>}
+        </div>
+        <p className="mt-2 text-[13.5px] text-cal-body">{check.detail}</p>
+      </div>
+    </section>
+  );
+}
 
 const EXERCISE_STATUS = {
   completed: "Completed",
@@ -579,6 +642,8 @@ export default function PatientDetail() {
                 </div>
               </dl>
             </div>
+
+            {data?.health_answers && <HealthAnswers answers={data.health_answers} />}
 
             {/* ─── 2. TWO-COLUMN TELEMETRY & CARE-TEAM WORKSPACE ──────────── */}
             <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_410px]">

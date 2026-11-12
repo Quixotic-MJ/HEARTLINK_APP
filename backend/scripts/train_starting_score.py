@@ -154,9 +154,14 @@ def rules_only(f: pd.DataFrame) -> np.ndarray:
 
 
 def clinical_check(path: str, medians: pd.Series) -> None:
-    """Model Check's measures on the portal's clinical reviews (HL-059): agreement and under-calling."""
+    """Model Check's measures on the portal's clinical reviews (HL-059): agreement and under-calling.
+    HL-153: since then Cardiologists judge the Heart risk, not the habits score, so newer exports are checked with
+    scripts/train_heart_risk.py --clinical-export instead."""
     with open(path, encoding="utf-8") as fh:
         export = json.load(fh)
+    if export.get("format") != "clinical-export-1":
+        raise SystemExit("This export has Heart risk reviews (HL-153). Check it with: "
+                         "python scripts/train_heart_risk.py --clinical-export <file>")
     if export.get("inputs") != INPUTS:
         raise SystemExit(f"The export's inputs {export.get('inputs')} don't match this model's {INPUTS}.")
     rows = export["rows"]

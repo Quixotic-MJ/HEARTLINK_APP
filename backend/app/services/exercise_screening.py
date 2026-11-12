@@ -104,6 +104,23 @@ def status_for(user_id: str, severe_symptom_at: Optional[datetime] = None) -> Di
         return _needed("not_done")
 
 
+def expert_view(user_id: str, severe_symptom_at: Optional[datetime] = None) -> Dict[str, Any]:
+    """2026-11-12: the result for an expert's patient page (read-only): what it allows today and when it was answered."""
+    try:
+        row = _repo().get(user_id)
+    except Exception as e:
+        logger.warning(f"Could not read the exercise screening for {user_id}: {e}")
+        row = None
+    s = status_of(row, severe_symptom_at)
+    return {
+        "state": s["state"],
+        "reason": s.get("reason"),
+        "cleared": s.get("cleared", False),
+        "answered_at": (row or {}).get("declared_at"),
+        "expires_at": s.get("expires_at"),
+    }
+
+
 def is_breathing(exercise: Dict[str, Any]) -> bool:
     return "breath" in str(exercise.get("type") or "").lower()
 

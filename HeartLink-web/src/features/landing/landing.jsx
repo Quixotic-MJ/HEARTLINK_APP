@@ -6,6 +6,7 @@ import {
   ChevronDown,
   Download,
   Dumbbell,
+  FileText,
   HeartPulse,
   Menu,
   ShieldCheck,
@@ -29,7 +30,7 @@ const navigation = [
 const CONTENT_CHECK =
   "Dietitians write and approve recipes, and Physical Therapists write and approve exercises, inside HeartLink. An approval checks the content. It isn't personal medical advice.";
 const PREMIUM =
-  "Safety features are free for everyone. Premium adds long-term trends and family sharing. Checkout in this capstone uses test mode only.";
+  "Safety features are free for everyone. Premium adds long-term trends, longer Visit summaries (1 or 3 months) and family sharing. Checkout in this capstone uses test mode only.";
 const features = [
   {
     icon: HeartPulse,
@@ -44,7 +45,12 @@ const features = [
   {
     icon: Dumbbell,
     title: "Move at a level that suits you",
-    text: "A short exercise readiness check (PAR-Q+) decides which workouts you see. Breathing exercises are always open.",
+    text: "The PAR-Q+ exercise safety check, answered in the app, decides which workouts you see. Breathing exercises are always open.",
+  },
+  {
+    icon: FileText,
+    title: "Bring a summary to your checkup",
+    text: "A Visit summary of your last 7 days, free, with every reading by date and time. Share it as a PDF with your doctor or clinic.",
   },
 ];
 const questions = [
@@ -311,14 +317,14 @@ export default function Landing() {
               Blood pressure comes first. Meals, movement and sleep fill in the
               rest.
             </p>
-            <div className="mt-10 grid gap-8 md:grid-cols-3">
+            <div className="mt-10 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
               {features.map(({ icon: Icon, title, text }, index) => (
                 <article
                   key={title}
                   className="border-t border-cal-hairline pt-6"
                 >
                   <span
-                    className={`mb-6 inline-flex h-12 w-12 items-center justify-center rounded-[16px] ${["bg-ds-mint", "bg-ds-lavender", "bg-ds-peach"][index]}`}
+                    className={`mb-6 inline-flex h-12 w-12 items-center justify-center rounded-[16px] ${["bg-ds-mint", "bg-ds-lavender", "bg-ds-peach", "bg-ds-sky"][index]}`}
                   >
                     <Icon size={23} aria-hidden="true" />
                   </span>
