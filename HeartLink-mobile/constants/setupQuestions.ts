@@ -22,7 +22,7 @@ export const SETUP_PART_LIST: SetupPart[] = [
   { n: 1, name: "About you", summary: "Name, birthday, sex, height, weight", tint: "sky", icon: "account-outline" },
   { n: 2, name: "Movement", summary: "Exercise, walking, sitting time", tint: "mint", icon: "walk" },
   { n: 3, name: "Habits", summary: "Sleep, smoking, alcohol, medicine", tint: "lavender", icon: "weather-night" },
-  { n: 4, name: "Food & goals", summary: "Meals, salt, goals, allergies", tint: "peach", icon: "leaf" },
+  { n: 4, name: "Food", summary: "Meals, salt, allergies", tint: "peach", icon: "leaf" },
 ];
 
 export const QUIT_OPTIONS = [
@@ -79,7 +79,6 @@ export type SetupQuestion =
   | (QuestionBase & { kind: "choice"; field: ChoiceField; options: ChoiceOption[] })
   | (QuestionBase & { kind: "tiles"; field: ChoiceField; options: ChoiceOption[]; caption: string })
   | (QuestionBase & { kind: "yesno"; field: BooleanField; days?: DaysField; minutes?: MinutesField; yesHint?: string })
-  | (QuestionBase & { kind: "goals"; options: ChoiceOption[] })
   | (QuestionBase & { kind: "allergies"; options: ChoiceOption[] });
 
 const HOW_OFTEN: ChoiceOption[] = [
@@ -329,7 +328,7 @@ export const SETUP_QUESTIONS: SetupQuestion[] = [
     why: "Your heart risk is worked out differently when cholesterol is treated.",
   },
 
-  // ── Part 4 · Food & goals ──
+  // ── Part 4 · Food (the "What should HeartLink focus on?" question was removed 2026-11-12: nothing used it) ──
   {
     id: "portions",
     part: 4,
@@ -384,19 +383,6 @@ export const SETUP_QUESTIONS: SetupQuestion[] = [
     subtitle: "Chips, instant noodles, canned and cured foods.",
     why: "Salt has a big effect on blood pressure. This helps set your daily sodium limit.",
     options: HOW_OFTEN,
-  },
-  {
-    id: "goals",
-    part: 4,
-    kind: "goals",
-    title: "What should HeartLink focus on?",
-    subtitle: "Pick one or more. This shapes your daily missions.",
-    options: [
-      { value: "bp", label: "Blood pressure", desc: "Track it and build steady habits for your blood pressure" },
-      { value: "cholesterol", label: "Cholesterol & lipids", desc: "Keep an eye on blood fats through food" },
-      { value: "recovery", label: "Cardiac recovery", desc: "Pacing and rest after a heart event" },
-      { value: "preventive", label: "Preventive longevity", desc: "General heart wellness and fitness" },
-    ],
   },
   {
     id: "allergies",
@@ -508,8 +494,6 @@ export function isAnswered(q: SetupQuestion, d: BaselineData): boolean {
       }
       return true;
     }
-    case "goals":
-      return d.health_goals.length > 0;
     case "allergies":
       return d.allergies.length > 0;
   }

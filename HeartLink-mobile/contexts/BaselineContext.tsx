@@ -42,7 +42,6 @@ export type BaselineData = {
   fried_food_freq: string;
   salty_food_freq: string;
   fruit_veg_servings: string;
-  health_goals: string[];
   allergies: string[];
   dietary_practice: string;
 
@@ -61,7 +60,7 @@ const defaultData: BaselineData = {
   ever_drank: false,
   bp_medicine: false, has_diabetes: false, cholesterol_medicine: false,
   diet_level: '', fried_food_freq: '', salty_food_freq: '', fruit_veg_servings: '',
-  health_goals: [], allergies: [], dietary_practice: '',
+  allergies: [], dietary_practice: '',
   answered: {},
 };
 

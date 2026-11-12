@@ -13,7 +13,6 @@ import QuestionLayout, { Tag } from "../../../components/onboarding/QuestionLayo
 import {
   ChoiceList,
   ChoiceTiles,
-  CheckList,
   ChipGroup,
   DsTextField,
   StepperCard,
@@ -41,8 +40,6 @@ function errorFor(q: SetupQuestion): string {
       return "Please choose your date of birth.";
     case "body":
       return "Enter a height between 50 and 300 cm and a weight between 20 and 400 kg.";
-    case "goals":
-      return "Pick at least one goal.";
     case "allergies":
       return "Pick at least one, or None.";
     default:
@@ -130,7 +127,7 @@ export default function QuestionScreen() {
     }
   };
 
-  const nextLabel = from === "recap" ? "Save" : lastInPart ? (q.part === 4 ? "See my starting score" : `Finish ${part.name}`) : "Next";
+  const nextLabel = from === "recap" ? "Save" : lastInPart ? (q.part === 4 ? "Next: exercise safety check" : `Finish ${part.name}`) : "Next";
 
   // ── Answer controls for each kind of question ──
   let body: React.ReactNode = null;
@@ -280,18 +277,6 @@ export default function QuestionScreen() {
       );
       break;
     }
-    case "goals":
-      body = (
-        <CheckList
-          options={q.options}
-          selected={data.health_goals}
-          accessibilityLabel={q.title}
-          onToggle={(v) =>
-            set({ health_goals: data.health_goals.includes(v) ? data.health_goals.filter((g) => g !== v) : [...data.health_goals, v] })
-          }
-        />
-      );
-      break;
     case "allergies":
       body = (
         <ChipGroup

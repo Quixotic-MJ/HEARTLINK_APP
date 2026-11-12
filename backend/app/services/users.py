@@ -65,8 +65,9 @@ def update_profile(user_id: str, data: dict) -> dict:
         "date_of_birth": data.get("date_of_birth"),
         "sex": data.get("sex"),
         "height_cm": data.get("height_cm"),
-        "weight_kg": data.get("weight_kg"),
-        "health_goals": data.get("health_goals", [])
+        "weight_kg": data.get("weight_kg")
+        # health_goals is no longer sent or changed (the focus question was removed 2026-11-12); saving the profile
+        # used to wipe it
     }
     res = profile_repo.update(user_id, update_data)
     if not res:

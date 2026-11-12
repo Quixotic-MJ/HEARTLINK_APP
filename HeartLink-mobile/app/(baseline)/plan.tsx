@@ -53,7 +53,7 @@ export default function PlanScreen() {
     : "All four parts are done.";
   const cta = nextPart
     ? `${started ? "Continue with" : "Start with"} ${nextPart.name}`
-    : "See my starting score";
+    : "Next: exercise safety check";
 
   return (
     <>

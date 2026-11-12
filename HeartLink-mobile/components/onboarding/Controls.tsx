@@ -139,7 +139,7 @@ export function ChoiceList({
   );
 }
 
-// ─── Multi choice: rows with a checkbox (health goals) ───────────────────────
+// ─── Multi choice: rows with a checkbox (e.g. the exercise checklists) ───────────────────────
 
 function CheckRow({ opt, on, onToggle }: { opt: ChoiceOption; on: boolean; onToggle: () => void }) {
   const { c } = useDs();

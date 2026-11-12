@@ -4,6 +4,7 @@ import hashlib
 import json
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 from app.db.repositories import (
+    get_baseline_repo,
     get_profile_repo,
     get_health_logs_repo,
     get_meals_repo,
@@ -31,25 +32,33 @@ def get_model_metadata() -> dict:
             "feature_pipeline_version": "transform_to_model_features v2",
         }
 
+def _lab_cholesterol(user_id: str):
+    """Total cholesterol (mg/dL) from a lab result that still counts, or None."""
+    try:
+        from app.services import lab_results
+
+        lab = lab_results.results_for(user_id).get("cholesterol")
+        return lab.get("total_cholesterol") if lab and lab.get("counts") else None
+    except Exception:
+        return None
+
+
 def get_clinical_baseline_data(user_id: str) -> dict:
     """
     Extracts the latest available clinical parameters from daily health logs
     and user baseline thresholds to serve Case Review and Profile portals.
     """
-    # 1. Fetch patient profile to check diagnosed conditions
-    profile = get_profile_repo().get_by_id(user_id) or {}
     
-    # Diagnosed conditions are usually stored in health_goals or alerts snapshot
+    # Conditions from what the patient actually said (2026-11-12). The old "What should HeartLink focus on?" answer was
+    # turned into "Hypertension" / "Hyperlipidemia" here, but a focus isn't a diagnosis, so it's no longer used.
     conditions = []
     alerts = get_health_logs_repo().list_alerts(user_id=user_id)
     alert = alerts[0] if alerts else None
+    onboarding = get_baseline_repo().get_baseline(user_id) or {}
     if alert and alert.get("patient_snapshot", {}).get("conditions"):
         conditions = alert["patient_snapshot"]["conditions"]
-    else:
-        if "bp" in profile.get("health_goals", []):
-            conditions.append("Hypertension")
-        if "cholesterol" in profile.get("health_goals", []):
-            conditions.append("Hyperlipidemia")
+    elif onboarding.get("has_diabetes"):
+        conditions.append("Diabetes (a doctor told them)")
             
     # 2. Query daily health logs for BP and HR
     from app.services.health_logs import get_health_logs
@@ -69,7 +78,8 @@ def get_clinical_baseline_data(user_id: str) -> dict:
         "chest_pain_type": chest_pain,
         "on_medication": on_medication,
         "diagnosed_conditions": conditions,
-        "serum_cholesterol": 240 if "cholesterol" in profile.get("health_goals", []) else 180,
+        # The patient's own lab result when they added one, never a made-up value
+        "serum_cholesterol": _lab_cholesterol(user_id),
         "fasting_blood_sugar": False,
         "exercise_angina": False
     }

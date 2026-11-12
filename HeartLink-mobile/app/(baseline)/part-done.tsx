@@ -49,8 +49,6 @@ function answerText(q: SetupQuestion, d: BaselineData): string {
       if (q.days && q.minutes) return `Yes, ${d[q.days]} days a week, ${d[q.minutes]} min`;
       return "Yes";
     }
-    case "goals":
-      return q.options.filter((o) => d.health_goals.includes(o.value)).map((o) => o.label).join(", ");
     case "allergies":
       return d.allergies.join(", ");
   }
@@ -84,7 +82,7 @@ export default function PartDoneScreen() {
         footer={
           <>
             <DsButton
-              label={next ? `Continue to ${next.name}` : "See my starting score"}
+              label={next ? `Continue to ${next.name}` : "Next: exercise safety check"}
               onPress={goNext}
               icon={<Feather name="arrow-right" size={17} color="#ffffff" />}
             />

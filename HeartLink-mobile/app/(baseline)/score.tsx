@@ -41,7 +41,6 @@ async function submitBaseline(data: BaselineData, userId: string, token: string)
       sex: data.sex,
       height_cm: parseFloat(data.height_cm) || 0,
       weight_kg: parseFloat(data.weight_kg) || 0,
-      health_goals: data.health_goals || [],
     }),
   });
   if (!profileRes.ok) {

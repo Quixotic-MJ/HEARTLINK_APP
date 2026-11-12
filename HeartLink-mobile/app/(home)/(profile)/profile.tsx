@@ -592,8 +592,7 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
         date_of_birth: newData.birthdate || userData.birthdate,
         sex: newData.gender || userData.gender,
         height_cm: parseFloat(newData.height),
-        weight_kg: parseFloat(newData.weight),
-        health_goals: [] 
+        weight_kg: parseFloat(newData.weight)
       };
       
       const effectiveToken = token || "";
