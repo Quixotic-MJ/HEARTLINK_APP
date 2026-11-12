@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from "@testing-library/react-native";
+import { act, renderHook, waitFor } from "@testing-library/react-native";
 import { apiFetch } from "../../lib/api";
 import { useIsPremium } from "../usePremium";
 import { createTestQueryClient, queryClientWrapper } from "../../test-utils/reactQuery";
@@ -39,9 +39,13 @@ describe("useIsPremium", () => {
 
   it("locks again when Premium was removed, even if the saved mockProfile still says Premium", async () => {
     mockProfile = { plan: "premium", premium_until: "2099-01-01T00:00:00+00:00" };
-    serverSays(false);
+    // The server answers only when the test says so. An instant answer could arrive before the first check on a busy
+    // test run, so that check sometimes saw the final answer and failed.
+    let answer: (response: unknown) => void = () => {};
+    (apiFetch as jest.Mock).mockReturnValue(new Promise((resolve) => (answer = resolve)));
     const { result } = await render();
     expect(result.current).toBe(true); // the saved mockProfile is the first guess while the server answers
+    await act(async () => answer({ ok: true, status: 200, json: async () => ({ is_premium: false }) }));
     await waitFor(() => expect(result.current).toBe(false));
     expect(mockRefreshUser).toHaveBeenCalled();
   });
