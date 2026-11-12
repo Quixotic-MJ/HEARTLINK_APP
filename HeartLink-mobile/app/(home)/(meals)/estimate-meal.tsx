@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter } from "expo-router";
 import { useUser } from "../../../contexts/UserContext";
 import { useToast } from "../../../contexts/ToastContext";
 import { logMealAndGetToast } from "../../../services/MealLoggingService";
@@ -14,41 +14,16 @@ import DsButton from "../../../components/onboarding/DsButton";
 import { useDs } from "../../../components/onboarding/useDs";
 import { AmountStepper, FoodHeader, ImpactNote, NutrientField } from "../../../components/food/FoodBits";
 import { mealTimeForHour } from "../../../services/foodLogging";
+import { EstimateHelper } from "../../../components/meals/EstimateHelper";
+import { EstimateSelection, describe, estimateTotals } from "../../../services/mealEstimate";
 
-// ─── Filipino Staple Presets ──────────────────────────────────────────────────
-// Rough averages with no recorded source; the dietitian checks them against FNRI's tables (backend/FOOD_RULES.md).
-
-const FILIPINO_QUICK_PRESETS: Record<
-  string,
-  { desc: string; sodium: string; calories: string; satFat: string; fiber: string }
-> = {
-  Sinigang: {
-    desc: "Sinigang (1 Bowl)",
-    sodium: "480",
-    calories: "220",
-    satFat: "4.0",
-    fiber: "3.5",
-  },
-  Tinola: {
-    desc: "Chicken Tinola (1 Bowl)",
-    sodium: "390",
-    calories: "190",
-    satFat: "2.5",
-    fiber: "2.0",
-  },
-  Rice: {
-    desc: "Steamed White Rice (1 Cup)",
-    sodium: "5",
-    calories: "206",
-    satFat: "0.1",
-    fiber: "0.6",
-  },
-};
+// HL-157: the old quick presets (sinigang, tinola, rice) had no recorded source; "Help me estimate" replaces them with
+// cited USDA values (constants/estimateFoods.ts). FNRI values replace those when FNRI's servers are back.
 
 const GUIDE = [
   {
-    title: "1. Look it up",
-    body: "FNRI's Philippine Food Composition Tables are free online at i.fnri.dost.gov.ph, or search for something like \"sodium in pancit canton\". Rough averages are fine.",
+    title: "1. Use \"Help me estimate\"",
+    body: "Pick the closest dish and how much you ate, then add the sauces, salt or processed meats you used. HeartLink adds them up. A food label is more exact when you have one.",
   },
   {
     title: "2. Beware hidden sodium",
@@ -65,27 +40,39 @@ const GUIDE = [
 export default function ManualMealLogScreen() {
   const { c, isDark } = useDs();
   const router = useRouter();
-  const params = useLocalSearchParams<{ quick_dish?: string }>();
-  const quickDish = params.quick_dish;
 
   const { userId, token } = useUser();
   const { showToast } = useToast();
 
-  const preset = quickDish ? FILIPINO_QUICK_PRESETS[quickDish] : undefined;
-
-  const [foodDescription, setFoodDescription] = useState(
-    preset?.desc || (quickDish ? `${quickDish} (1 Serving)` : "")
-  );
+  const [foodDescription, setFoodDescription] = useState("");
+  // HL-157: "Help me estimate" (the default) or "Use a food label" (exact numbers, as before)
+  const [mode, setMode] = useState<"helper" | "label">("helper");
+  const [selection, setSelection] = useState<EstimateSelection>({ dishId: null, portionIndex: 0, extras: {} });
+  const [nameEdited, setNameEdited] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showEstimateGuide, setShowEstimateGuide] = useState(false);
 
   // Manual Entry fields
   const [servings, setServings] = useState(1);
-  const [sodium, setSodium] = useState(preset?.sodium || "");
-  const [calories, setCalories] = useState(preset?.calories || "");
-  const [satFat, setSatFat] = useState(preset?.satFat || "");
-  const [fiber, setFiber] = useState(preset?.fiber || "");
+  const [sodium, setSodium] = useState("");
+  const [calories, setCalories] = useState("");
+  const [satFat, setSatFat] = useState("");
+  const [fiber, setFiber] = useState("");
   const [cholesterol, setCholesterol] = useState("");
+
+  // The helper's choices fill the same fields the label mode uses, for the whole meal (1 serving)
+  const totals = estimateTotals(selection);
+  const pickEstimate = (next: EstimateSelection) => {
+    setSelection(next);
+    const t = estimateTotals(next);
+    setServings(1);
+    setSodium(t.sodium ? String(t.sodium) : "");
+    setCalories(t.calories ? String(t.calories) : "");
+    setSatFat(t.satFat ? String(t.satFat) : "");
+    setFiber(t.fiber ? String(t.fiber) : "");
+    setCholesterol(t.cholesterol ? String(t.cholesterol) : "");
+    if (!nameEdited) setFoodDescription(describe(next));
+  };
 
   // Risk calculated from actual entered values
   const risk = calcRiskFromValues(
@@ -142,6 +129,28 @@ export default function ManualMealLogScreen() {
     );
   };
 
+  // In "Help me estimate" the name comes after the choices that fill it in; with a food label it comes first
+  const nameLabel = mode === "helper" ? "Meal name" : "What did you eat?";
+  const nameField = (
+    <View style={{ gap: 6 }}>
+      <Text style={{ fontSize: 14, fontWeight: "500", color: c.ink }}>{nameLabel}</Text>
+      {mode === "helper" ? (
+        <Text style={{ fontSize: 13, lineHeight: 18, color: c.slate }}>Filled in from your choices. Change it if you like.</Text>
+      ) : null}
+      <TextInput
+        value={foodDescription}
+        onChangeText={(t) => {
+          setFoodDescription(t);
+          setNameEdited(true);
+        }}
+        placeholder="e.g. Pork sinigang, lechon, mango"
+        placeholderTextColor={c.steel}
+        accessibilityLabel={nameLabel}
+        style={{ height: 48, paddingHorizontal: 14, borderWidth: 1, borderColor: c.hairlineStrong, borderRadius: 8, fontSize: 17, color: c.ink, backgroundColor: c.canvas }}
+      />
+    </View>
+  );
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.canvas }} edges={["top"]}>
       <StatusBar style={isDark ? "light" : "dark"} />
@@ -153,10 +162,38 @@ export default function ManualMealLogScreen() {
         keyboardShouldPersistTaps="handled"
         extraScrollHeight={20}
       >
+        {/* HL-157: help me estimate, or exact numbers from a food label */}
+        <View accessibilityRole="tablist" style={{ flexDirection: "row", padding: 4, borderRadius: 10, backgroundColor: c.surface }}>
+          {([
+            ["helper", "Help me estimate"],
+            ["label", "Use a food label"],
+          ] as const).map(([key, label]) => {
+            const on = mode === key;
+            return (
+              <AnimatedButton
+                key={key}
+                onPress={() => {
+                  setMode(key);
+                  // Back to the helper: its choices set the numbers again, so the summary and the saved meal match
+                  if (key === "helper" && (selection.dishId || Object.values(selection.extras).some(Boolean))) pickEstimate(selection);
+                }}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: on }}
+                accessibilityLabel={label}
+                style={{ flex: 1, height: 40, borderRadius: 8, alignItems: "center", justifyContent: "center", borderWidth: on ? 1 : 0, borderColor: c.hairline, backgroundColor: on ? c.canvas : "transparent" }}
+              >
+                <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 14, fontWeight: on ? "600" : "400", color: on ? c.ink : c.slate }}>{label}</Text>
+              </AnimatedButton>
+            );
+          })}
+        </View>
+
         {/* Why and how, in plain words */}
         <View style={{ padding: 16, borderRadius: 12, backgroundColor: c.surface, gap: 10 }}>
           <Text style={{ fontSize: 14, lineHeight: 21, color: c.charcoal }}>
-            Enter the nutrition from a food label. No label? A rough estimate is fine.
+            {mode === "helper"
+              ? "No label? Pick the closest dish and add what was salty. A rough estimate is better than nothing."
+              : "Enter the nutrition from a food label, per serving."}
           </Text>
           <AnimatedButton
             onPress={() => setShowEstimateGuide(true)}
@@ -169,18 +206,16 @@ export default function ManualMealLogScreen() {
           </AnimatedButton>
         </View>
 
-        <View style={{ gap: 6 }}>
-          <Text style={{ fontSize: 14, fontWeight: "500", color: c.ink }}>What did you eat?</Text>
-          <TextInput
-            value={foodDescription}
-            onChangeText={setFoodDescription}
-            placeholder="e.g. Pork sinigang, lechon, mango"
-            placeholderTextColor={c.steel}
-            accessibilityLabel="What did you eat?"
-            style={{ height: 48, paddingHorizontal: 14, borderWidth: 1, borderColor: c.hairlineStrong, borderRadius: 8, fontSize: 17, color: c.ink, backgroundColor: c.canvas }}
-          />
-        </View>
+        {mode === "label" ? nameField : null}
 
+        {mode === "helper" ? (
+          <>
+            <EstimateHelper selection={selection} totals={totals} onChange={pickEstimate} />
+            {nameField}
+            <DsButton label="Change the numbers" variant="quiet" onPress={() => setMode("label")} />
+          </>
+        ) : (
+        <>
         <View className="flex-row items-center justify-between" style={{ gap: 12 }}>
           <Text style={{ fontSize: 15, fontWeight: "500", color: c.ink, flexShrink: 1 }}>Servings you ate</Text>
           <AmountStepper
@@ -207,6 +242,8 @@ export default function ManualMealLogScreen() {
         </View>
 
         {hasNumbers ? <ImpactNote risk={risk} /> : null}
+        </>
+        )}
       </KeyboardAwareScrollView>
 
       <View className="px-5 pt-3 pb-5" style={{ borderTopWidth: 1, borderTopColor: c.hairlineSoft, backgroundColor: c.canvas }}>
