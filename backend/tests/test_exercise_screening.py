@@ -229,3 +229,76 @@ def test_screening_answers_never_change_the_score(repo):
     from app.services import heart_score, starting_score
     for module in (heart_score, starting_score):
         assert "exercise_screening" not in inspect.getsource(module)
+
+
+# ── 2026-11-12: the whole PAR-Q+ answered in the app ──────────────────────────────────────────────────────────────
+
+
+def form(page1_yes=(), present=(), follow_up_yes=()):
+    """A filled-in form: page 1 YES for the given questions; the given sections present, with the given follow-ups YES
+    (as "3b")."""
+    page1 = {q: q in page1_yes for q in es.PAGE_ONE}
+    sections = {}
+    for n, letters in es.SECTIONS.items():
+        on = n in present
+        sections[n] = {"present": on, "answers": {l: f"{n}{l}" in follow_up_yes for l in letters} if on else None}
+    return {"page1": page1, "sections": sections}
+
+
+def test_all_no_on_page_one_is_eligible_and_needs_no_follow_ups(repo):
+    f = {"page1": {q: False for q in es.PAGE_ONE}}
+    status = es.save_form("u1", f, False, False, True)
+    assert status["state"] == "eligible"
+    saved = repo.rows["u1"]
+    assert saved["parq_result"] == "all_no" and saved["answers"]["entered_in_app"] is True
+    assert saved["answers"]["form"]["page1"] == f["page1"]
+
+
+def test_a_page_one_yes_cleared_by_the_follow_ups_is_beginner(repo):
+    # Q1 YES (high blood pressure), section 4 present, both follow-ups NO
+    status = es.save_form("u1", form(page1_yes=("q1",), present=("4",)), False, False, True)
+    assert status["state"] == "caution"
+    assert repo.rows["u1"]["parq_result"] == "cleared_by_follow_ups"
+
+
+def test_a_follow_up_yes_locks_active_workouts(repo):
+    status = es.save_form("u1", form(page1_yes=("q1",), present=("3",), follow_up_yes=("3b",)), False, False, True)
+    assert status["state"] == "locked"
+    assert repo.rows["u1"]["parq_result"] == "follow_up_yes"
+
+
+@pytest.mark.parametrize("question", ["q2", "q3", "q7"])
+def test_chest_pain_dizziness_or_supervised_only_is_heartlinks_extra_check(repo, question):
+    # Cleared by the follow-ups, but page 1 said chest pain, dizziness or supervised activity only
+    status = es.save_form("u1", form(page1_yes=(question,), present=("10",)), False, False, True)
+    assert status["state"] == "locked"
+    assert repo.rows["u1"]["answers"]["extra_check_yes"] is True
+
+
+def test_pregnant_or_ill_still_delays(repo):
+    assert es.save_form("u1", form(), True, False, True)["state"] == "delayed"
+
+
+@pytest.mark.parametrize("bad, why", [
+    ({"page1": {"q1": False}}, "page 1"),
+    (form(page1_yes=("q4",)) | {"sections": {}}, "pages 2 and 3"),
+    ({"page1": {q: q == "q5" for q in es.PAGE_ONE}, "sections": {**form()["sections"], "5": {"present": True, "answers": {"a": False}}}}, "follow-up"),
+])
+def test_an_incomplete_form_is_refused(repo, bad, why):
+    with pytest.raises(HTTPException) as exc:
+        es.save_form("u1", bad, False, False, True)
+    assert exc.value.status_code == 422 and why in exc.value.detail
+    assert "u1" not in repo.rows
+
+
+def test_the_form_needs_the_declaration(repo):
+    with pytest.raises(HTTPException):
+        es.save_form("u1", form(), False, False, False)
+
+
+def test_the_condition_lists_are_kept_short_and_unknown_fields_dropped(repo):
+    f = form(page1_yes=("q4",), present=("10",))
+    f["notes"] = {"p1.q4_list": "  Asthma  ", "conditions_list": "x" * 400, "something_else": "dropped"}
+    es.save_form("u1", f, False, False, True)
+    notes = repo.rows["u1"]["answers"]["form"]["notes"]
+    assert notes == {"p1.q4_list": "Asthma", "conditions_list": "x" * 300}

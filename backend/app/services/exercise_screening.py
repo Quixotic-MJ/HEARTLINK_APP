@@ -1,9 +1,11 @@
 """HL-122 to HL-124: the PAR-Q+ screening, which decides which exercises a person may do and nothing else. It never changes
 the score.
 
-The app opens the official, unchanged PAR-Q+ (its terms don't allow putting the form inside an app without the PAR-Q+
-Collaboration's written consent) and the person records what it showed. HeartLink adds an extra check and a delay check in
-its own words. Results:
+Since 2026-11-12 (owner's choice, permission requested from the PAR-Q+ Collaboration) the whole PAR-Q+ is asked inside the
+app and every answer is saved (`save_form`): page 1's 7 questions, then the 10 condition sections and their follow-ups. The
+server works out what the form shows. The form's wording is never stored here: the app shows the official text from
+constants/parqWording.ts, which the team copies in unchanged. Older app builds still send only the result the person read
+off the PDF (`save_answers`). HeartLink adds an extra check and a delay check in its own words. Results:
 
 - eligible: all NO on page 1, so every approved exercise
 - caution: cleared through the follow-up questions, so beginner exercises and breathing [HeartLink proposal]
@@ -25,7 +27,15 @@ from app.utils.time import parse_utc, utc_now
 logger = logging.getLogger(__name__)
 
 FORM_VERSION = "PAR-Q+ 2025"
-RULES_VERSION = "heartlink-parq-1"
+RULES_VERSION = "heartlink-parq-2"
+# The PAR-Q+ 2025's question numbers (no wording): page 1 has 7, and pages 2-3 have 10 condition sections. Each section's
+# first question asks whether the condition is present; its follow-ups (a, b, ...) are answered only when it is.
+PAGE_ONE = tuple(f"q{i}" for i in range(1, 8))
+SECTIONS = {"1": "abc", "2": "ab", "3": "abcd", "4": "ab", "5": "abcde", "6": "ab", "7": "abcd", "8": "abc", "9": "abc", "10": "abc"}
+# HeartLink's extra check, now read straight from page 1: chest pain (2), dizziness or losing consciousness (3), and a
+# doctor saying only medically supervised activity (7) [HeartLink proposal]
+EXTRA_CHECK_QUESTIONS = ("q2", "q3", "q7")
+NOTE_FIELDS = ("p1.q4_list", "p1.q5_list", "p1.q6_list", "conditions_list")
 VALID_DAYS = 365
 RESULTS = ("all_no", "cleared_by_follow_ups", "follow_up_yes")
 OPEN_STATES = ("eligible", "caution")
@@ -109,7 +119,46 @@ def allows(screening: Dict[str, Any], exercise: Dict[str, Any]) -> bool:
     return False
 
 
-def save_answers(user_id: str, parq_result: str, extra_check_yes: Optional[bool], pregnant: bool, unwell: bool, declared: bool) -> Dict[str, Any]:
+def _bools(answers: Any, keys) -> bool:
+    return isinstance(answers, dict) and set(answers) == set(keys) and all(isinstance(v, bool) for v in answers.values())
+
+
+def result_from_form(form: Dict[str, Any]) -> tuple:
+    """(what the PAR-Q+ shows, HeartLink's extra check) from every answer in the form, as the form itself decides: all NO
+    on page 1 clears the person; otherwise any follow-up YES means further advice is needed."""
+    page1 = form.get("page1") if isinstance(form, dict) else None
+    if not _bools(page1, PAGE_ONE):
+        raise HTTPException(status_code=422, detail="Please answer every question on page 1.")
+    if not any(page1.values()):
+        return "all_no", False
+    extra = any(page1[q] for q in EXTRA_CHECK_QUESTIONS)
+    sections = form.get("sections") or {}
+    follow_up_yes = False
+    for number, letters in SECTIONS.items():
+        section = sections.get(number) if isinstance(sections, dict) else None
+        present = section.get("present") if isinstance(section, dict) else None
+        if not isinstance(present, bool):
+            raise HTTPException(status_code=422, detail="Please answer every condition question on pages 2 and 3.")
+        if present:
+            follow_ups = section.get("answers")
+            if not _bools(follow_ups, letters):
+                raise HTTPException(status_code=422, detail="Please answer every follow-up question.")
+            follow_up_yes = follow_up_yes or any(follow_ups.values())
+    return ("follow_up_yes" if follow_up_yes else "cleared_by_follow_ups"), extra
+
+
+def save_form(user_id: str, form: Dict[str, Any], pregnant: bool, unwell: bool, declared: bool) -> Dict[str, Any]:
+    """The whole PAR-Q+ answered in the app: the server decides the result, and every answer is kept."""
+    parq_result, extra = result_from_form(form)
+    clean = {"page1": form["page1"], "sections": {n: s for n, s in (form.get("sections") or {}).items() if n in SECTIONS}}
+    # The form's optional "list your condition(s) and medications" boxes, kept short
+    notes = form.get("notes") if isinstance(form.get("notes"), dict) else {}
+    clean["notes"] = {k: v.strip()[:300] for k, v in notes.items() if k in NOTE_FIELDS and isinstance(v, str) and v.strip()}
+    return save_answers(user_id, parq_result, None if parq_result == "all_no" else extra, pregnant, unwell, declared, form=clean)
+
+
+def save_answers(user_id: str, parq_result: str, extra_check_yes: Optional[bool], pregnant: bool, unwell: bool, declared: bool,
+                 form: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     if parq_result not in RESULTS:
         raise HTTPException(status_code=422, detail="Please choose what your PAR-Q+ showed.")
     if parq_result != "all_no" and extra_check_yes is None:
@@ -118,8 +167,11 @@ def save_answers(user_id: str, parq_result: str, extra_check_yes: Optional[bool]
         raise HTTPException(status_code=422, detail="Please confirm the declaration.")
     now = utc_now()
     state = decide(parq_result, bool(extra_check_yes), pregnant, unwell)
+    answers = {"extra_check_yes": bool(extra_check_yes) if parq_result != "all_no" else None, "pregnant": pregnant, "unwell": unwell}
+    if form is not None:
+        answers.update(form=form, entered_in_app=True)
     row = {
-        "answers": {"extra_check_yes": bool(extra_check_yes) if parq_result != "all_no" else None, "pregnant": pregnant, "unwell": unwell},
+        "answers": answers,
         "parq_result": parq_result,
         "state": state,
         "needs_assessment": state == "locked",

@@ -78,13 +78,17 @@ and the only way out of a safety check pause is the existing clearing step.
 
 ## Who may do which exercises (HL-122 to HL-124, built)
 
-The PAR-Q+ screening decides this, never the Heart score. The app opens the official PAR-Q+ unchanged and the person records
-its result; the code is `backend/app/services/exercise_screening.py`.
+The PAR-Q+ screening decides this, never the Heart score. Since 2026-11-12 (owner's choice; written permission requested
+from the PAR-Q+ Collaboration, eparmedx@gmail.com) the **whole PAR-Q+ is answered inside the app** in its official wording
+(`HeartLink-mobile/constants/parqWording.ts`, which the team copies in unchanged), and **every answer is saved**:
+page 1's 7 questions, then, after any YES, the 10 condition sections and their 31 follow-ups. The server works out what the
+form shows (`result_from_form` in `backend/app/services/exercise_screening.py`). Older app builds still send only the
+result the person read off the PDF.
 
 | Result | When | Exercises |
 |---|---|---|
 | Eligible | All NO on page 1 | Every approved exercise |
-| Eligible with caution | YES on page 1, all NO in the follow-ups, and no YES to HeartLink's extra check | Beginner exercises and breathing **[Proposal]** |
+| Eligible with caution | YES on page 1, all NO in the follow-ups, and no YES to HeartLink's extra check (page 1 questions 2, 3 or 7) | Beginner exercises and breathing **[Proposal]** |
 | Delayed | Pregnant, or ill right now | Breathing only, until they do the check again |
 | Locked | A follow-up YES, or HeartLink's extra check: chest pain, dizziness or fainting, or supervised activity only **[Proposal]** | Breathing only. "A doctor cleared me" moves them to Eligible with caution |
 | Needed | Not done, the old check, over 12 months old, or a severe symptom since | Breathing only, and starting a workout opens the check |

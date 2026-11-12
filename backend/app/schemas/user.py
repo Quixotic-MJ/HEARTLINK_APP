@@ -47,6 +47,9 @@ class ExerciseScreeningRequest(BaseModel):
     declared: bool = False
     # Older app builds send the 5-question check
     answers: Optional[dict[str, bool]] = None
+    # 2026-11-12: every PAR-Q+ answer from the in-app form: {"page1": {"q1": bool, ...}, "sections": {"1": {"present": bool,
+    # "answers": {"a": bool, ...}}, ...}}. Checked in exercise_screening.result_from_form
+    parq_form: Optional[dict] = None
 
 
 # HL-138: optional lab results. Values in mg/dL (the app converts mmol/L), HbA1c in percent. The ranges only catch

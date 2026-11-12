@@ -280,6 +280,8 @@ async def save_exercise_screening(
     _own_account(current_user, user_id)
     from app.services import exercise_screening
 
+    if payload.parq_form is not None:
+        return exercise_screening.save_form(user_id, payload.parq_form, payload.pregnant, payload.unwell, payload.declared)
     if payload.parq_result is None and payload.answers is not None:
         return exercise_screening.save_old_answers(user_id, payload.answers)
     return exercise_screening.save_answers(
