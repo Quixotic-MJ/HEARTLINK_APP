@@ -96,13 +96,13 @@ export const NEEDS: Record<NeedId, { title: string; blurb: string; intro: string
   seated: {
     title: "Seated exercises",
     blurb: "Done in a chair",
-    intro: "PT-approved exercises you can do sitting down that suit your score.",
+    intro: "PT-approved exercises you can do sitting down. Your exercise safety check decides which ones are open to you.",
     kind: "exercise",
   },
   breathing: {
     title: "Breathing",
     blurb: "To calm down",
-    intro: "PT-approved breathing exercises that suit your score.",
+    intro: "PT-approved breathing exercises. They're open to everyone, whatever your safety check says.",
     kind: "exercise",
   },
 };
@@ -120,17 +120,25 @@ export function recipesForNeed(need: NeedId, recipes: ExploreRecipe[], tier?: st
   return [];
 }
 
-export function exercisesForNeed(need: NeedId, exercises: ExploreExercise[], tier?: string | null): ExploreExercise[] {
-  const mine = exercises.filter((e) => suitsTier(e.tier, tier));
-  if (need === "seated") return mine.filter(isSeated);
-  if (need === "breathing") return mine.filter((e) => e.type === "Breathing");
-  return [];
+/**
+ * HL-123: the exercise safety check (PAR-Q+) decides which exercises are open, never the score, so these lists don't
+ * filter by score level. `exerciseOk` is the safety check's rule (exerciseAllowed); breathing is always open.
+ */
+export function exercisesForNeed(
+  need: NeedId,
+  exercises: ExploreExercise[],
+  exerciseOk: (e: ExploreExercise) => boolean = () => true
+): { open: ExploreExercise[]; heldBack: number } {
+  const all =
+    need === "seated" ? exercises.filter(isSeated) : need === "breathing" ? exercises.filter((e) => e.type === "Breathing") : [];
+  const open = all.filter(exerciseOk);
+  return { open, heldBack: all.length - open.length };
 }
 
 type Recommendation = { id: string | number; type: string };
 
 /**
- * "Picked for your score": the dashboard's own suggestions (they also respect the patient's diet and
+ * "Picked for you": the dashboard's own suggestions (they also respect the patient's diet and
  * allergies), looked up in the approved lists. Without them, the lowest-sodium meals and the first
  * exercises that suit the score.
  */

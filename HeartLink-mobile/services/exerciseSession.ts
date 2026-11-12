@@ -430,6 +430,16 @@ export function exerciseAllowed(screening: Readiness["exercise_screening"] | und
   return false;
 }
 
+/** For suggestions: breathing only during a rest or a pause (as the server's picks), else what the safety check allows. */
+export function exerciseOpenNow(
+  screening: Readiness["exercise_screening"] | undefined,
+  resting: boolean,
+  exercise: { type: string; level?: string | null }
+) {
+  if (resting) return exercise.type.toLowerCase().includes("breath");
+  return exerciseAllowed(screening, exercise);
+}
+
 /** HL-095: the words for an effort rating, 0 to 10. */
 export function effortLabel(n: number) {
   if (n === 0) return "No effort";

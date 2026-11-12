@@ -1,14 +1,5 @@
-import { bandName } from "../../../constants/theme";
 import React, { useCallback, useMemo, useState } from "react";
-import {
-  RefreshControl,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  Platform,
-} from "react-native";
+import { RefreshControl, ScrollView, Text, TextInput, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
@@ -18,6 +9,8 @@ import { Skeleton } from "../../../components/ui/Skeleton";
 import AnimatedButton from "../../../components/ui/AnimatedButton";
 import { Header } from "../../../components/Header";
 import { useDs } from "../../../components/onboarding/useDs";
+import { BadgeTint, IconBadge, McIcon } from "../../../components/onboarding/QuestionLayout";
+import { bandTag } from "../../../components/dashboard/ScoreCard";
 import {
   ExerciseRow,
   NeedTile,
@@ -41,43 +34,53 @@ import {
   pickReason,
   picksForScore,
 } from "../../../services/explore";
-import { exerciseAllowed } from "../../../services/exerciseSession";
+import { exerciseOpenNow } from "../../../services/exerciseSession";
 
-// Explore: picks for the patient's score, browse by need, and saved items.
+// Explore: picks for the patient, browse by need, and saved items. Built on the design system (DESIGN.md with
+// HEARTLINK.md): flat white cards with hairline borders and 12px corners, pastel icon badges by topic, ds-* colours.
 
 const PICK_GAP = 12;
-
 const CUBIC_OUT = Easing.out(Easing.cubic);
 
-const NEED_CONFIG: Record<
-  NeedId,
-  {
-    icon: React.ComponentProps<typeof Feather>["name"];
-    badgeBg: (c: any, isDark: boolean) => string;
-    iconColor: (c: any, isDark: boolean) => string;
-  }
-> = {
-  "low-sodium": {
-    icon: "droplet",
-    badgeBg: (c, isDark) => (isDark ? "rgba(245, 158, 11, 0.18)" : c.peach),
-    iconColor: (_c, isDark) => (isDark ? "#FBBF24" : "#D97706"),
-  },
-  quick: {
-    icon: "clock",
-    badgeBg: (c, isDark) => (isDark ? "rgba(234, 179, 8, 0.18)" : c.yellow),
-    iconColor: (_c, isDark) => (isDark ? "#FCD34D" : "#B45309"),
-  },
-  seated: {
-    icon: "user",
-    badgeBg: (c, isDark) => (isDark ? "rgba(16, 185, 129, 0.18)" : c.mint),
-    iconColor: (_c, isDark) => (isDark ? "#34D399" : "#059669"),
-  },
-  breathing: {
-    icon: "wind",
-    badgeBg: (c, isDark) => (isDark ? "rgba(59, 130, 246, 0.18)" : c.sky),
-    iconColor: (_c, isDark) => (isDark ? "#60A5FA" : "#2563EB"),
-  },
+// Topic colours from HEARTLINK.md: food is peach (quick meals yellow), movement mint, breathing sky.
+const NEED_BADGE: Record<NeedId, { icon: McIcon; tint: BadgeTint }> = {
+  "low-sodium": { icon: "bowl-mix-outline", tint: "peach" },
+  quick: { icon: "timer-outline", tint: "yellow" },
+  seated: { icon: "seat-outline", tint: "mint" },
+  breathing: { icon: "weather-windy", tint: "sky" },
 };
+
+/** A section heading with an optional line under it and something on the right (a count, a link). */
+function SectionTitle({ title, sub, right }: { title: string; sub?: string; right?: React.ReactNode }) {
+  const { c } = useDs();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", gap: 12 }}>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text accessibilityRole="header" style={{ fontSize: 20, lineHeight: 26, fontWeight: "600", color: c.ink }}>
+          {title}
+        </Text>
+        {sub ? <Text style={{ fontSize: 14, lineHeight: 20, color: c.slate }}>{sub}</Text> : null}
+      </View>
+      {right}
+    </View>
+  );
+}
+
+/** A grey note for an empty list, with an optional icon. */
+function EmptyNote({ icon, title, text }: { icon?: keyof typeof Feather.glyphMap; title?: string; text: string }) {
+  const { c } = useDs();
+  return (
+    <View style={{ padding: 16, borderRadius: 12, borderWidth: 1, borderColor: c.hairline, backgroundColor: c.surface, gap: 6 }}>
+      {title ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          {icon ? <Feather name={icon} size={16} color={c.charcoal} /> : null}
+          <Text style={{ fontSize: 15, fontWeight: "600", color: c.ink }}>{title}</Text>
+        </View>
+      ) : null}
+      <Text style={{ fontSize: 14, lineHeight: 20, color: c.slate }}>{text}</Text>
+    </View>
+  );
+}
 
 export default function ExploreTabScreen() {
   const router = useRouter();
@@ -122,7 +125,7 @@ export default function ExploreTabScreen() {
           tier,
           2,
           scoreQuery.data?.hidden,
-          (e) => exerciseAllowed(scoreQuery.data?.screening, e)
+          (e) => exerciseOpenNow(scoreQuery.data?.screening, !!scoreQuery.data?.resting, e)
         )
       ),
     [scoreQuery.data, recipes, exercises, tier]
@@ -144,13 +147,31 @@ export default function ExploreTabScreen() {
   const foundRecipes = q ? recipes.filter((r) => r.title.toLowerCase().includes(q)) : [];
   const foundExercises = q ? exercises.filter((e) => e.title.toLowerCase().includes(q)) : [];
 
-  const openRecipe = (id: string) =>
-    router.push(`/(home)/(meals)/recipe-details?id=${id}` as never);
-  const openExercise = (id: string) =>
-    router.push({ pathname: "/(home)/(health)/exercise-session", params: { id } });
+  const openRecipe = (id: string) => router.push(`/(home)/(meals)/recipe-details?id=${id}` as never);
+  const openExercise = (id: string) => router.push({ pathname: "/(home)/(health)/exercise-session", params: { id } });
 
-  const band = bandStyle(tier, c, isDark);
+  const hasTier = !!tier && tier !== "Unknown";
+  const band = bandTag(tier ?? "", hasTier, c);
   const loading = recipesQuery.isLoading || exercisesQuery.isLoading;
+
+  const shortcuts = [
+    {
+      label: "All meals",
+      sub: "Heart-healthy recipes",
+      icon: "food-apple-outline" as McIcon,
+      tint: "peach" as BadgeTint,
+      count: recipes.length,
+      href: "/(home)/(tabs)/recipes" as const,
+    },
+    {
+      label: "All exercises",
+      sub: "Gentle movement",
+      icon: "walk" as McIcon,
+      tint: "mint" as BadgeTint,
+      count: exercises.length,
+      href: "/(home)/(tabs)/exercises" as const,
+    },
+  ];
 
   return (
     <ScreenWrapper edges={["top"]} withScrollView={false} safeAreaClassName="flex-1 bg-ds-canvas">
@@ -159,92 +180,59 @@ export default function ExploreTabScreen() {
       <ScrollView
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 160, gap: 28 }}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.line} />
-        }
+        contentContainerStyle={{ paddingBottom: 160, gap: 32 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.line} />}
       >
-        {/* Page Header & Search Section */}
-        <Animated.View
-          entering={FadeInDown.duration(260).easing(CUBIC_OUT)}
-          style={{ paddingHorizontal: 20, paddingTop: 6, gap: 14 }}
-        >
-          <View style={{ gap: 2 }}>
-            <Text
-              accessibilityRole="header"
-              style={{ fontSize: 28, fontWeight: "700", color: c.ink, letterSpacing: -0.5 }}
-            >
+        {/* Title, search and the two ways into everything */}
+        <Animated.View entering={FadeInDown.duration(260).easing(CUBIC_OUT)} style={{ paddingHorizontal: 20, paddingTop: 4, gap: 16 }}>
+          <View style={{ gap: 4 }}>
+            <Text accessibilityRole="header" style={{ fontSize: 28, lineHeight: 35, fontWeight: "600", color: c.ink }}>
               Explore
             </Text>
-            <Text style={{ fontSize: 13.5, color: c.slate }}>
-              Personalized meals and gentle activities for your heart
+            <Text style={{ fontSize: 15, lineHeight: 22, color: c.slate }}>
+              Meals and gentle movement, approved by your care team.
             </Text>
           </View>
 
-          {/* Search Input */}
+          {/* Search: the design system's search field */}
           <View
             style={{
               height: 48,
-              paddingHorizontal: 14,
+              paddingLeft: 14,
+              paddingRight: 4,
               flexDirection: "row",
               alignItems: "center",
               gap: 10,
-              borderRadius: 14,
+              borderRadius: 8,
               borderWidth: 1,
-              borderColor: isDark ? c.hairline : "#E2E8F0",
-              backgroundColor: isDark ? c.surface : "#F8FAFC",
+              borderColor: c.hairline,
+              backgroundColor: c.surface,
             }}
           >
-            <Feather name="search" size={17} color={c.steel} />
+            <Feather name="search" size={18} color={c.steel} />
             <TextInput
               placeholder="Search meals and exercises"
               placeholderTextColor={c.steel}
               accessibilityLabel="Search meals and exercises"
               value={searchQuery}
               onChangeText={setSearchQuery}
-              style={{ flex: 1, fontSize: 15, color: c.ink, paddingVertical: 0 }}
+              returnKeyType="search"
+              style={{ flex: 1, fontSize: 16, color: c.ink, paddingVertical: 0 }}
             />
             {searchQuery.length > 0 ? (
-              <TouchableOpacity
+              <AnimatedButton
                 onPress={() => setSearchQuery("")}
                 accessibilityRole="button"
                 accessibilityLabel="Clear search"
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 13,
-                  backgroundColor: isDark ? c.surfaceAlt : "#E2E8F0",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
+                style={{ width: 40, height: 40, borderRadius: 8, alignItems: "center", justifyContent: "center" }}
               >
-                <Feather name="x" size={13} color={c.charcoal} />
-              </TouchableOpacity>
+                <Feather name="x" size={18} color={c.slate} />
+              </AnimatedButton>
             ) : null}
           </View>
 
-          {/* Quick Discovery Cards: All meals / All exercises */}
-          <View style={{ flexDirection: "row", gap: 10 }}>
-            {[
-              {
-                label: "All meals",
-                sub: "Heart-healthy recipes",
-                icon: "coffee" as const,
-                count: recipes.length,
-                href: "/(home)/(tabs)/recipes" as const,
-                badgeBg: isDark ? "rgba(245, 158, 11, 0.18)" : c.peach,
-                badgeFg: isDark ? "#FBBF24" : "#D97706",
-              },
-              {
-                label: "All exercises",
-                sub: "Gentle movement",
-                icon: "activity" as const,
-                count: exercises.length,
-                href: "/(home)/(tabs)/exercises" as const,
-                badgeBg: isDark ? "rgba(16, 185, 129, 0.18)" : c.mint,
-                badgeFg: isDark ? "#34D399" : "#059669",
-              },
-            ].map((b) => (
+          <View style={{ flexDirection: "row", gap: 12 }}>
+            {shortcuts.map((b) => (
               <AnimatedButton
                 key={b.label}
                 onPress={() => router.push({ pathname: b.href, params: { from: "explore" } })}
@@ -252,78 +240,23 @@ export default function ExploreTabScreen() {
                 accessibilityLabel={`${b.label}, ${b.count}`}
                 style={{
                   flex: 1,
-                  paddingVertical: 12,
-                  paddingHorizontal: 12,
-                  borderRadius: 16,
+                  padding: 14,
+                  gap: 12,
+                  borderRadius: 12,
                   borderWidth: 1,
-                  borderColor: isDark ? c.hairline : "#E2E8F0",
-                  backgroundColor: isDark ? c.surface : c.canvas,
-                  justifyContent: "space-between",
-                  gap: 10,
-                  ...Platform.select({
-                    ios: {
-                      shadowColor: "#0F172A",
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: isDark ? 0.25 : 0.05,
-                      shadowRadius: 6,
-                    },
-                    android: { elevation: 2 },
-                  }),
+                  borderColor: c.hairline,
+                  backgroundColor: c.canvas,
                 }}
               >
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <View
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 10,
-                      backgroundColor: b.badgeBg,
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Feather name={b.icon} size={18} color={b.badgeFg} />
-                  </View>
-                  <View
-                    style={{
-                      paddingHorizontal: 8,
-                      paddingVertical: 2.5,
-                      borderRadius: 999,
-                      backgroundColor: isDark ? c.surfaceAlt : "#F1F5F9",
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontSize: 12,
-                        fontWeight: "700",
-                        color: c.slate,
-                        fontVariant: ["tabular-nums"],
-                      }}
-                    >
-                      {b.count}
-                    </Text>
+                <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
+                  <IconBadge icon={b.icon} tint={b.tint} size={40} />
+                  <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: c.surfaceAlt }}>
+                    <Text style={{ fontSize: 13, fontWeight: "600", color: c.slate, fontVariant: ["tabular-nums"] }}>{b.count}</Text>
                   </View>
                 </View>
-                <View>
-                  <Text
-                    style={{
-                      fontSize: 15,
-                      fontWeight: "700",
-                      color: c.ink,
-                      letterSpacing: -0.2,
-                    }}
-                  >
-                    {b.label}
-                  </Text>
-                  <Text style={{ fontSize: 11.5, color: c.slate, marginTop: 1 }}>
-                    {b.sub}
-                  </Text>
+                <View style={{ gap: 2 }}>
+                  <Text style={{ fontSize: 15, fontWeight: "600", color: c.ink }}>{b.label}</Text>
+                  <Text style={{ fontSize: 13, color: c.slate }}>{b.sub}</Text>
                 </View>
               </AnimatedButton>
             ))}
@@ -333,11 +266,11 @@ export default function ExploreTabScreen() {
           {!q ? <MealPlanCard /> : null}
         </Animated.View>
 
-        {/* Search Results Mode */}
         {q ? (
+          /* Search results */
           <View style={{ paddingHorizontal: 20, gap: 10 }}>
-            <Text style={{ fontSize: 13, fontWeight: "500", color: c.slate }}>
-              {foundRecipes.length + foundExercises.length} results for &quot;{searchQuery.trim()}&quot;
+            <Text style={{ fontSize: 14, fontWeight: "500", color: c.slate }}>
+              {`${foundRecipes.length + foundExercises.length} ${foundRecipes.length + foundExercises.length === 1 ? "result" : "results"} for "${searchQuery.trim()}"`}
             </Text>
             {foundRecipes.map((r) => (
               <RecipeRow key={`r-${r.id}`} recipe={r} onPress={() => openRecipe(r.id)} />
@@ -346,115 +279,51 @@ export default function ExploreTabScreen() {
               <ExerciseRow key={`e-${e.id}`} exercise={e} onPress={() => openExercise(e.id)} />
             ))}
             {foundRecipes.length + foundExercises.length === 0 ? (
-              <View
-                style={{
-                  padding: 24,
-                  borderRadius: 16,
-                  backgroundColor: isDark ? c.surfaceAlt : "#F8FAFC",
-                  borderWidth: 1,
-                  borderColor: isDark ? c.hairline : "#E2E8F0",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <Feather name="search" size={24} color={c.steel} />
-                <Text
-                  style={{
-                    fontSize: 15,
-                    fontWeight: "600",
-                    color: c.ink,
-                    textAlign: "center",
-                  }}
-                >
-                  No matches found
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 13,
-                    lineHeight: 19,
-                    color: c.slate,
-                    textAlign: "center",
-                  }}
-                >
-                  No approved meals or exercises match &quot;{searchQuery.trim()}&quot;. Try another word or check category lists.
-                </Text>
-              </View>
+              <EmptyNote
+                icon="search"
+                title="No matches"
+                text={`No approved meals or exercises match "${searchQuery.trim()}". Try another word, or open All meals or All exercises.`}
+              />
             ) : null}
           </View>
         ) : (
-          /* Normal Discovery View */
           <>
-            {/* 1. Picked for your score */}
-            <Animated.View
-              entering={FadeInDown.delay(70).duration(260).easing(CUBIC_OUT)}
-              style={{ gap: 12 }}
-            >
-              <View style={{ paddingHorizontal: 20, gap: 6 }}>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <Text
-                    accessibilityRole="header"
-                    style={{ fontSize: 20, fontWeight: "700", color: c.ink, letterSpacing: -0.3 }}
-                  >
-                    Picked for your score
-                  </Text>
-                  {pickRow.length > 1 ? (
-                    <Text style={{ fontSize: 12.5, fontWeight: "500", color: c.slate }}>
-                      Swipe for all {pickRow.length}
-                    </Text>
-                  ) : null}
-                </View>
-
-                {tier && tier !== "Unknown" ? (
+            {/* 1. Picked for you: meals for the score level, exercises the safety check allows */}
+            <Animated.View entering={FadeInDown.delay(70).duration(260).easing(CUBIC_OUT)} style={{ gap: 14 }}>
+              <View style={{ paddingHorizontal: 20, gap: 8 }}>
+                <SectionTitle
+                  title="Picked for you"
+                  right={
+                    pickRow.length > 1 ? (
+                      <Text style={{ fontSize: 13, color: c.steel, paddingBottom: 3 }}>{`Swipe for all ${pickRow.length}`}</Text>
+                    ) : null
+                  }
+                />
+                {hasTier ? (
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                    <View
-                      style={{
-                        paddingHorizontal: 9,
-                        paddingVertical: 3.5,
-                        borderRadius: 999,
-                        backgroundColor: band.bg,
-                        borderWidth: band.border ? 1 : 0,
-                        borderColor: band.border,
-                      }}
-                    >
-                      <Text style={{ fontSize: 12, fontWeight: "700", color: band.fg }}>
-                        {score !== null ? `${bandName(tier ?? "")} • ${Math.round(score)}` : bandName(tier ?? "")}
+                    <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: band.bg }}>
+                      <Text style={{ fontSize: 13, fontWeight: "600", color: band.fg }}>
+                        {score !== null ? `${band.text} · ${Math.round(score)}` : band.text}
                       </Text>
                     </View>
-                    <Text style={{ fontSize: 12.5, color: c.slate }}>
-                      Tailored to your latest vitals
+                    <Text style={{ flexShrink: 1, fontSize: 13, lineHeight: 18, color: c.slate }}>
+                      Meals for your level, exercises your safety check allows
                     </Text>
                   </View>
                 ) : (
-                  <Text style={{ fontSize: 13, color: c.slate }}>
-                    Log a check-in to get picks for your score.
+                  <Text style={{ fontSize: 14, lineHeight: 20, color: c.slate }}>
+                    Log a check-in to get meals picked for your score.
                   </Text>
                 )}
               </View>
 
               {loading ? (
-                <View style={{ paddingHorizontal: 20, gap: 8 }}>
-                  <Skeleton style={{ height: 210, borderRadius: 16 }} />
+                <View style={{ paddingHorizontal: 20 }}>
+                  <Skeleton style={{ height: 230, width: PICK_CARD_WIDTH, borderRadius: 12 }} />
                 </View>
               ) : pickRow.length === 0 ? (
-                <View
-                  style={{
-                    marginHorizontal: 20,
-                    padding: 18,
-                    borderRadius: 16,
-                    backgroundColor: isDark ? c.surfaceAlt : "#F8FAFC",
-                    borderWidth: 1,
-                    borderColor: isDark ? c.hairline : "#E2E8F0",
-                  }}
-                >
-                  <Text style={{ fontSize: 14.5, lineHeight: 21, color: c.charcoal }}>
-                    No picks yet. Your care team is still approving meals and exercises.
-                  </Text>
+                <View style={{ paddingHorizontal: 20 }}>
+                  <EmptyNote text="No picks yet. Your care team is still approving meals and exercises." />
                 </View>
               ) : (
                 <>
@@ -463,11 +332,7 @@ export default function ExploreTabScreen() {
                     showsHorizontalScrollIndicator={false}
                     snapToInterval={PICK_CARD_WIDTH + PICK_GAP}
                     decelerationRate="fast"
-                    onScroll={(e) =>
-                      setPickIndex(
-                        Math.round(e.nativeEvent.contentOffset.x / (PICK_CARD_WIDTH + PICK_GAP))
-                      )
-                    }
+                    onScroll={(e) => setPickIndex(Math.round(e.nativeEvent.contentOffset.x / (PICK_CARD_WIDTH + PICK_GAP)))}
                     scrollEventThrottle={32}
                     contentContainerStyle={{ paddingHorizontal: 20, gap: PICK_GAP }}
                   >
@@ -476,24 +341,14 @@ export default function ExploreTabScreen() {
                         key={p.kind === "recipe" ? `r-${p.recipe.id}` : `e-${p.exercise.id}`}
                         pick={p}
                         reason={pickReason(p)}
-                        onPress={() =>
-                          p.kind === "recipe"
-                            ? openRecipe(p.recipe.id)
-                            : openExercise(p.exercise.id)
-                        }
+                        onPress={() => (p.kind === "recipe" ? openRecipe(p.recipe.id) : openExercise(p.exercise.id))}
                       />
                     ))}
                   </ScrollView>
 
                   {pickRow.length > 1 ? (
                     <View
-                      style={{
-                        flexDirection: "row",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        gap: 6,
-                        marginTop: 4,
-                      }}
+                      style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 6 }}
                       importantForAccessibility="no-hide-descendants"
                       accessibilityElementsHidden
                     >
@@ -501,29 +356,17 @@ export default function ExploreTabScreen() {
                         <View
                           key={i}
                           style={{
-                            width: i === pickIndex ? 20 : 6,
+                            width: i === pickIndex ? 18 : 6,
                             height: 6,
                             borderRadius: 3,
-                            backgroundColor:
-                              i === pickIndex
-                                ? c.primary
-                                : isDark
-                                ? c.hairlineStrong
-                                : "#CBD5E1",
+                            backgroundColor: i === pickIndex ? c.line : c.hairlineStrong,
                           }}
                         />
                       ))}
                     </View>
                   ) : null}
 
-                  <Text
-                    style={{
-                      paddingHorizontal: 20,
-                      fontSize: 12,
-                      lineHeight: 17,
-                      color: c.slate,
-                    }}
-                  >
+                  <Text style={{ paddingHorizontal: 20, fontSize: 13, lineHeight: 18, color: c.steel }}>
                     Picks support healthy habits. They are not a diagnosis.
                   </Text>
                 </>
@@ -531,41 +374,23 @@ export default function ExploreTabScreen() {
             </Animated.View>
 
             {/* 2. Browse by need */}
-            <Animated.View
-              entering={FadeInDown.delay(120).duration(260).easing(CUBIC_OUT)}
-              style={{ paddingHorizontal: 20, gap: 12 }}
-            >
-              <View style={{ gap: 2 }}>
-                <Text
-                  accessibilityRole="header"
-                  style={{ fontSize: 20, fontWeight: "700", color: c.ink, letterSpacing: -0.3 }}
-                >
-                  Browse by need
-                </Text>
-                <Text style={{ fontSize: 13, color: c.slate }}>
-                  Targeted recipes and movement for specific goals
-                </Text>
-              </View>
-
-              {[
-                ["low-sodium", "quick"],
-                ["seated", "breathing"],
-              ].map((row) => (
-                <View key={row.join()} style={{ flexDirection: "row", gap: 10 }}>
-                  {(row as NeedId[]).map((id) => (
+            <Animated.View entering={FadeInDown.delay(120).duration(260).easing(CUBIC_OUT)} style={{ paddingHorizontal: 20, gap: 14 }}>
+              <SectionTitle title="Browse by need" sub="Meals and movement for one goal at a time" />
+              {(
+                [
+                  ["low-sodium", "quick"],
+                  ["seated", "breathing"],
+                ] as NeedId[][]
+              ).map((row) => (
+                <View key={row.join()} style={{ flexDirection: "row", gap: 12 }}>
+                  {row.map((id) => (
                     <NeedTile
                       key={id}
                       title={NEEDS[id].title}
                       blurb={NEEDS[id].blurb}
-                      icon={NEED_CONFIG[id].icon}
-                      tone={NEED_CONFIG[id].badgeBg(c, isDark)}
-                      iconColor={NEED_CONFIG[id].iconColor(c, isDark)}
-                      onPress={() =>
-                        router.push({
-                          pathname: "/(home)/(meals)/browse",
-                          params: { need: id },
-                        })
-                      }
+                      icon={NEED_BADGE[id].icon}
+                      tint={NEED_BADGE[id].tint}
+                      onPress={() => router.push({ pathname: "/(home)/(meals)/browse", params: { need: id } })}
                     />
                   ))}
                 </View>
@@ -573,121 +398,37 @@ export default function ExploreTabScreen() {
             </Animated.View>
 
             {/* 3. Saved */}
-            <Animated.View
-              entering={FadeInDown.delay(160).duration(260).easing(CUBIC_OUT)}
-              style={{ paddingHorizontal: 20, gap: 12 }}
-            >
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
-                <View style={{ gap: 2 }}>
-                  <Text
-                    accessibilityRole="header"
-                    style={{
-                      fontSize: 20,
-                      fontWeight: "700",
-                      color: c.ink,
-                      letterSpacing: -0.3,
-                    }}
-                  >
-                    Saved
-                  </Text>
-                  <Text style={{ fontSize: 13, color: c.slate }}>
-                    Your bookmarked recipes and routines
-                  </Text>
-                </View>
-
-                {savedItems.length ? (
-                  <TouchableOpacity
-                    onPress={() => router.push("/(home)/(meals)/saved")}
-                    accessibilityRole="button"
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 4,
-                      paddingHorizontal: 10,
-                      paddingVertical: 5,
-                      borderRadius: 8,
-                      backgroundColor: isDark ? c.surfaceAlt : "#EFF6FF",
-                    }}
-                  >
-                    <Text style={{ fontSize: 13, fontWeight: "600", color: c.primary }}>
-                      See all ({savedItems.length})
-                    </Text>
-                    <Feather name="chevron-right" size={14} color={c.primary} />
-                  </TouchableOpacity>
-                ) : null}
-              </View>
+            <Animated.View entering={FadeInDown.delay(160).duration(260).easing(CUBIC_OUT)} style={{ paddingHorizontal: 20, gap: 14 }}>
+              <SectionTitle
+                title="Saved"
+                sub="Meals and exercises you bookmarked"
+                right={
+                  savedItems.length ? (
+                    <AnimatedButton
+                      onPress={() => router.push("/(home)/(meals)/saved")}
+                      accessibilityRole="button"
+                      accessibilityLabel={`See all ${savedItems.length} saved`}
+                      style={{ flexDirection: "row", alignItems: "center", gap: 2, minHeight: 44, paddingLeft: 8 }}
+                    >
+                      <Text style={{ fontSize: 14, fontWeight: "500", color: c.ink }}>{`See all (${savedItems.length})`}</Text>
+                      <Feather name="chevron-right" size={16} color={c.ink} />
+                    </AnimatedButton>
+                  ) : null
+                }
+              />
 
               {savedItems.length ? (
                 savedItems
                   .slice(0, 2)
                   .map((item) =>
                     item.kind === "recipe" ? (
-                      <RecipeRow
-                        key={`r-${item.recipe.id}`}
-                        recipe={item.recipe}
-                        onPress={() => openRecipe(item.recipe.id)}
-                      />
+                      <RecipeRow key={`r-${item.recipe.id}`} recipe={item.recipe} onPress={() => openRecipe(item.recipe.id)} />
                     ) : (
-                      <ExerciseRow
-                        key={`e-${item.exercise.id}`}
-                        exercise={item.exercise}
-                        onPress={() => openExercise(item.exercise.id)}
-                      />
+                      <ExerciseRow key={`e-${item.exercise.id}`} exercise={item.exercise} onPress={() => openExercise(item.exercise.id)} />
                     )
                   )
               ) : (
-                <View
-                  style={{
-                    padding: 20,
-                    borderRadius: 16,
-                    backgroundColor: isDark ? c.surfaceAlt : "#F8FAFC",
-                    borderWidth: 1,
-                    borderColor: isDark ? c.hairline : "#E2E8F0",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
-                >
-                  <View
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 12,
-                      backgroundColor: isDark ? c.surface : "#FFFFFF",
-                      borderWidth: 1,
-                      borderColor: isDark ? c.hairline : "#E2E8F0",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Feather name="bookmark" size={18} color={c.steel} />
-                  </View>
-                  <Text
-                    style={{
-                      fontSize: 14.5,
-                      fontWeight: "600",
-                      color: c.ink,
-                      textAlign: "center",
-                    }}
-                  >
-                    No saved items yet
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      lineHeight: 18,
-                      color: c.slate,
-                      textAlign: "center",
-                    }}
-                  >
-                    Tap the bookmark on a meal or exercise to keep it here.
-                  </Text>
-                </View>
+                <EmptyNote icon="bookmark" title="Nothing saved yet" text="Tap the bookmark on a meal or exercise to keep it here." />
               )}
             </Animated.View>
           </>
@@ -695,34 +436,4 @@ export default function ExploreTabScreen() {
       </ScrollView>
     </ScreenWrapper>
   );
-}
-
-/** The score band as a tinted tag (HEARTLINK.md), using the server's level names. */
-function bandStyle(tier: string | null, c: ReturnType<typeof useDs>["c"], isDark: boolean) {
-  if (tier === "Stable") {
-    return {
-      bg: isDark ? "rgba(16, 185, 129, 0.18)" : "#ECFDF5",
-      fg: isDark ? "#34D399" : "#059669",
-      border: isDark ? "rgba(16, 185, 129, 0.3)" : "#A7F3D0",
-    };
-  }
-  if (tier === "Moderate") {
-    return {
-      bg: isDark ? "rgba(234, 179, 8, 0.18)" : "#FEF3C7",
-      fg: isDark ? "#FCD34D" : "#B45309",
-      border: isDark ? "rgba(234, 179, 8, 0.3)" : "#FDE68A",
-    };
-  }
-  if (tier === "Elevated Risk") {
-    return {
-      bg: isDark ? "rgba(245, 158, 11, 0.18)" : "#FFF7ED",
-      fg: isDark ? "#FB923C" : "#C2410C",
-      border: isDark ? "rgba(245, 158, 11, 0.3)" : "#FFEDD5",
-    };
-  }
-  return {
-    bg: isDark ? "rgba(239, 68, 68, 0.18)" : "#FEF2F2",
-    fg: isDark ? "#F87171" : "#DC2626",
-    border: isDark ? "rgba(239, 68, 68, 0.3)" : "#FECACA",
-  };
 }

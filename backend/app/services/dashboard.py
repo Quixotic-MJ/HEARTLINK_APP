@@ -86,6 +86,26 @@ def allergy_words(allergies: List[str]) -> List[str]:
 # How careful each band is: an exercise suits a patient when its band is theirs or more careful.
 
 
+def order_recipe_picks(recipes: List[dict], remaining_sodium: float) -> List[dict]:
+    """Meals that fit the sodium left today come first (Dietitian-validated first, then lowest sodium); then the rest,
+    lowest sodium first, so a pick never jumps over what's left when a lower one exists. Strict limits since HL-156."""
+
+    def sodium(r: dict) -> float:
+        try:
+            return float(r.get("sodium_mg") or 0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    return sorted(
+        recipes,
+        key=lambda r: (
+            sodium(r) > remaining_sodium,
+            not bool(r.get("expert_validated", False)) if sodium(r) <= remaining_sodium else False,
+            sodium(r),
+        ),
+    )
+
+
 def exercise_suits(exercise: dict, screening: dict, resting: bool) -> bool:
     """HL-123: the screening result decides, never the score. Only breathing during a rest or a pause."""
     if resting:
@@ -616,13 +636,9 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
         and _recipe_is_safe(r, dietary_practice, allergies)
     ]
 
-    # Dynamic budget prioritization (HL-ENG-21 / Pillar D):
-    # If remaining sodium budget is < 500 mg, prioritize low-sodium expert-reviewed recipes
+    # The sodium left today decides the order: meals that fit it first (HL-ENG-21, strict limits since HL-156)
     remaining_sodium = sodium_limit - today_activity["total_sodium_mg"]
-    if remaining_sodium < 500:
-        reco_recipes.sort(key=lambda r: (not bool(r.get("expert_validated", False)), r.get("sodium_mg") or 0))
-    else:
-        reco_recipes.sort(key=lambda r: not bool(r.get("expert_validated", False)))
+    reco_recipes = order_recipe_picks(reco_recipes, remaining_sodium)
 
     # HL-123: the screening result decides which exercises are suggested, never the score. During the 24-hour rest after
     # a severe symptom, or after an emergency-level reading, breathing only (the exercise screen says the same).

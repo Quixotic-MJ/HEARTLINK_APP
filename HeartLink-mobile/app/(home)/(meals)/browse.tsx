@@ -10,6 +10,7 @@ import { ExerciseRow, RecipeRow } from "../../../components/explore/ExploreBits"
 import { useDs } from "../../../components/onboarding/useDs";
 import { useExploreExercises, useExploreRecipes, useExploreScore } from "../../../hooks/useExploreData";
 import { NEEDS, NeedId, exercisesForNeed, recipesForNeed } from "../../../services/explore";
+import { exerciseAllowed } from "../../../services/exerciseSession";
 
 // One "Browse by need" list from Explore, e.g. low-sodium meals, lowest first.
 
@@ -25,13 +26,26 @@ export default function BrowseByNeedScreen() {
 
   const recipesQuery = useExploreRecipes();
   const exercisesQuery = useExploreExercises();
-  const tier = useExploreScore().data?.tier ?? null;
+  const score = useExploreScore().data;
+  const tier = score?.tier ?? null;
+  const screening = score?.screening;
+  // HL-057: what the care team marked not suitable for this patient never shows here either
+  const hidden = score?.hidden;
 
   const recipes = useMemo(() => {
-    const list = recipesForNeed(need, recipesQuery.data ?? [], tier);
+    const list = recipesForNeed(need, recipesQuery.data ?? [], tier).filter((r) => !hidden?.includes(`recipe:${r.id}`));
     return meal === "All" ? list : list.filter((r) => r.category === meal);
-  }, [need, recipesQuery.data, tier, meal]);
-  const exercises = useMemo(() => exercisesForNeed(need, exercisesQuery.data ?? [], tier), [need, exercisesQuery.data, tier]);
+  }, [need, recipesQuery.data, tier, meal, hidden]);
+  // HL-123: the exercise safety check decides which exercises are open, not the score
+  const { open: exercises, heldBack } = useMemo(
+    () =>
+      exercisesForNeed(
+        need,
+        (exercisesQuery.data ?? []).filter((e) => !hidden?.includes(`exercise:${e.id}`)),
+        (e) => exerciseAllowed(screening, e)
+      ),
+    [need, exercisesQuery.data, hidden, screening]
+  );
   const isRecipes = info.kind === "recipe";
   const loading = isRecipes ? recipesQuery.isLoading : exercisesQuery.isLoading;
   const count = isRecipes ? recipes.length : exercises.length;
@@ -67,9 +81,17 @@ export default function BrowseByNeedScreen() {
           </ScrollView>
         ) : null}
 
+        {!isRecipes && !loading && heldBack > 0 ? (
+          <View style={{ padding: 14, borderRadius: 12, backgroundColor: c.surface }}>
+            <Text style={{ fontSize: 14, lineHeight: 20, color: c.charcoal }}>
+              {`${heldBack} more ${heldBack === 1 ? "exercise opens" : "exercises open"} when your exercise safety check allows ${heldBack === 1 ? "it" : "them"}. You can see ${heldBack === 1 ? "it" : "them"} on the Exercises tab.`}
+            </Text>
+          </View>
+        ) : null}
+
         {loading ? (
           [0, 1, 2].map((k) => <Skeleton key={k} style={{ height: 84, borderRadius: 12 }} />)
-        ) : count === 0 ? (
+        ) : count === 0 && heldBack > 0 && !isRecipes ? null : count === 0 ? (
           <View style={{ padding: 16, borderRadius: 12, backgroundColor: c.surface }}>
             <Text style={{ fontSize: 15, lineHeight: 22, color: c.charcoal }}>
               Nothing here yet. Your care team adds more as they approve meals and exercises.

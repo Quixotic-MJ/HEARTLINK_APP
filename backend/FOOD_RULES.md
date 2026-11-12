@@ -16,11 +16,12 @@ forbidden. Allergy and diet warnings are different: they stay strong and specifi
 | Sodium, whole day | Running total against the patient's limit | Sodium left today, or how far over | Log review, Meal logged (`foodLogging.ts`) | Limit: AHA, WHO |
 | Sodium, whole day | Over 2,000 mg | Note suggesting a lighter, lower-salt dinner | Companion note (`companionService.ts`) | WHO |
 | Sodium, last 7 days | No days over the limit 2, 1-2 days 1, 3 or more days 0, once 3 days have meals | Part of the Heart score's adapted diet points | `heart_score.py` | Limit: AHA. **Points are HeartLink's own choice** |
-| Sodium left today | Under 500 mg | Lowest-sodium approved recipes are suggested first | `dashboard.py` | **HeartLink's own choice** |
+| Sodium left today | A recipe's sodium vs what's left today | Recipes that fit what's left are suggested first (Dietitian-validated first, then lowest sodium); then the rest, lowest sodium first (HL-158) | `dashboard.py` (`order_recipe_picks`) | **HeartLink's own choice** |
 | Recipe sodium | Under 300 mg a serving | Listed as a low-sodium meal in Explore | `explore.ts` | **HeartLink's own choice** |
 | Score band | Recipes approved for the patient's band or "Stable" | Which recipes are suggested | `dashboard.py` | Dietitian tags each recipe |
-| Allergies | Ingredient, tag or name matches | Left out of suggestions; elsewhere "Contains shrimp (you're allergic to shellfish)" | `dashboard.py`, `food_warnings.py` | Patient's setup answers |
-| Diet | Ingredient, tag or name clashes | Left out of suggestions; elsewhere a warning | `dashboard.py`, `food_warnings.py` | Patient's setup answers |
+| Allergies | Ingredient, tag or name matches | Left out of suggestions and the weekly meal plan; elsewhere "Contains shrimp (you're allergic to shellfish)" | `dashboard.py`, `meal_plan.py`, `food_warnings.py` | Patient's setup answers |
+| Diet | Ingredient, tag or name clashes (Halal, Vegan, Vegetarian, Pescatarian) | Left out of suggestions and the weekly meal plan; elsewhere a warning | `dashboard.py`, `meal_plan.py`, `food_warnings.py` | Patient's setup answers. **Low-carb (a setup choice) has no rule yet: needs the Dietitian's carbohydrate limit** |
+| Hidden by the care team | A recipe marked not suitable for this patient (HL-057) | Left out of suggestions, Explore's lists and the weekly meal plan | `dashboard.py`, `meal_plan.py`, `browse.tsx` | The care team's case review |
 
 Calories and cholesterol are shown against daily limits but don't change the score or the suggestions.
 
