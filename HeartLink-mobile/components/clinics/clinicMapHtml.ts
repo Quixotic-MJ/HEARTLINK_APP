@@ -29,8 +29,11 @@ export function clinicMapHtml(clinics: Clinic[], you: Point | null, colors: MapC
 <link rel="stylesheet" href="https://unpkg.com/leaflet@${LEAFLET_VERSION}/dist/leaflet.css">
 <style>html,body,#map{height:100%;margin:0;padding:0;background:#e5e3df}
 .leaflet-tooltip{font:13px -apple-system,Roboto,sans-serif}
-.leaflet-touch .leaflet-bar a{width:40px;height:40px;line-height:40px;font-size:20px}
-.leaflet-touch .leaflet-bar a.hl-all,.leaflet-bar a.hl-all{display:block;width:auto;padding:0 12px;height:40px;white-space:nowrap;font:600 13px -apple-system,Roboto,sans-serif;line-height:40px;color:#1a1a1a;background:#fff;text-decoration:none}</style>
+.leaflet-touch .leaflet-bar,.leaflet-bar{border:1px solid #e5e3df!important;border-radius:8px;box-shadow:0 1px 2px rgba(15,15,15,.08);overflow:hidden}
+.leaflet-touch .leaflet-bar a,.leaflet-bar a{width:44px;height:44px;line-height:44px;font-size:20px;color:#1a1a1a;border-bottom:1px solid #e5e3df}
+.leaflet-bar a:last-child{border-bottom:none}
+.leaflet-touch .leaflet-bar a.hl-all,.leaflet-bar a.hl-all{display:block;width:auto;padding:0 14px;height:44px;white-space:nowrap;font:500 14px -apple-system,Roboto,sans-serif;line-height:44px;color:#1a1a1a;background:#fff;text-decoration:none}
+.leaflet-control-attribution{font:11px -apple-system,Roboto,sans-serif}</style>
 </head><body><div id="map"></div>
 <script src="https://unpkg.com/leaflet@${LEAFLET_VERSION}/dist/leaflet.js"></script>
 <script>
@@ -68,7 +71,7 @@ export function clinicMapHtml(clinics: Clinic[], you: Point | null, colors: MapC
   var moved = false;
   function fitAll() {
     map.invalidateSize();
-    if (points.length > 1) map.fitBounds(points, { padding: [28, 28], maxZoom: 15 });
+    if (points.length > 1) map.fitBounds(points, { paddingTopLeft: [32, 64], paddingBottomRight: [68, 36], maxZoom: 15 });
     else if (points.length === 1) map.setView(points[0], 15);
     else map.setView([10.3157, 123.8854], 13);
   }
@@ -93,7 +96,7 @@ export function clinicMapHtml(clinics: Clinic[], you: Point | null, colors: MapC
   window.selectClinic = function (id) {
     Object.keys(markers).forEach(function (key) {
       var item = markers[key], on = key === id;
-      item.marker.setStyle({ fillColor: on ? colors.selected : (item.clinic.er ? colors.er : colors.other), radius: on ? 11 : (item.clinic.er ? 9 : 7) });
+      item.marker.setStyle({ fillColor: on ? colors.selected : (item.clinic.er ? colors.er : colors.other), radius: on ? 12 : (item.clinic.er ? 10 : 8) });
       if (on) { item.marker.bringToFront(); map.panTo([item.clinic.lat, item.clinic.lng]); }
     });
   };

@@ -2,12 +2,18 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 import { WebView, type WebViewMessageEvent } from "react-native-webview";
 import { useDs } from "../onboarding/useDs";
+import { ds } from "../../constants/theme";
 import type { Clinic, Point } from "../../services/clinics";
 import { clinicMapHtml } from "./clinicMapHtml";
 
 // HL-078: the clinics map. OpenStreetMap through Leaflet in a WebView instead of Google's map SDK, which needs a
 // key in a real Android build and crashed the app without one. If the map can't load, the list next to it still
 // works; nothing here is needed to call or get directions.
+
+// Pin colours. The map tiles are light in both themes, so the pins always use the light set. Each kind has its own
+// colour: red emergency rooms, grey other places, black for the one picked, blue for you (before, clinics and "you"
+// were both blue).
+const PIN = { er: ds.light.danger, other: ds.light.slate, selected: ds.light.ink, you: ds.light.line };
 
 // Sent as the page address so OpenStreetMap's tile servers can see which app is asking (their usage policy).
 const MAP_BASE_URL = "https://heartlink-admin-six.vercel.app/";
@@ -31,8 +37,8 @@ export function ClinicMap({
 
   // Rebuilt only when the clinics or the patient's position change; picking a clinic just moves the highlight.
   const html = useMemo(
-    () => clinicMapHtml(clinics, you, { er: c.danger, other: c.primary, selected: c.navy, you: c.line }),
-    [clinics, you, c.danger, c.primary, c.navy, c.line],
+    () => clinicMapHtml(clinics, you, PIN),
+    [clinics, you],
   );
 
   useEffect(() => {
@@ -85,10 +91,10 @@ export function ClinicMap({
       ) : null}
     </View>
     {state === "failed" ? null : (
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 14 }} accessibilityLabel="Map key: red, emergency room; blue, clinic or hospital; light blue, you">
-        <Key color={c.danger} label="Emergency room" />
-        <Key color={c.primary} label="Clinic or hospital" />
-        {you ? <Key color={c.line} label="You" /> : null}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 14 }} accessibilityLabel="Map key: red, emergency room; grey, clinic or hospital; blue, you">
+        <Key color={PIN.er} label="Emergency room" />
+        <Key color={PIN.other} label="Clinic or hospital" />
+        {you ? <Key color={PIN.you} label="You" /> : null}
       </View>
     )}
     </View>

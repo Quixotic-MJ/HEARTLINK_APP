@@ -33,10 +33,10 @@ function FoodRow({ item, on, onToggle, onViewRecipe }: { item: FoodItem; on: boo
       accessibilityLabel={`${item.name}. ${meta}${warnings.length ? `. Warning: ${warnings.join(". ")}` : ""}`}
       style={{
         minHeight: 64,
-        paddingHorizontal: 14,
-        paddingVertical: 12,
+        paddingHorizontal: on ? 13 : 14,
+        paddingVertical: on ? 11 : 12,
         borderRadius: 12,
-        borderWidth: 1.5,
+        borderWidth: on ? 2 : 1,
         borderColor: on ? c.line : c.hairline,
         backgroundColor: on ? c.tint : c.canvas,
         flexDirection: "row",
@@ -152,7 +152,7 @@ export default function SearchMealScreen() {
   const groupNote = (source: FoodSource) => GROUP_NOTE[source];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.canvas }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.canvas }} edges={["top", "bottom"]}>
       <StatusBar style={isDark ? "light" : "dark"} />
       <FoodHeader title="Add food" onBack={() => router.back()} backLabel="Back to food diary" />
 
@@ -192,12 +192,12 @@ export default function SearchMealScreen() {
         ) : null}
 
         {groups.map((group) => (
-          <View key={group.source} style={{ paddingTop: 20 }}>
-            <View className="flex-row items-baseline justify-between" style={{ marginBottom: 8, gap: 12 }}>
-              <Text accessibilityRole="header" style={{ fontSize: 15, fontWeight: "600", color: c.ink }}>
+          <View key={group.source} style={{ paddingTop: 24 }}>
+            <View className="flex-row items-baseline justify-between" style={{ marginBottom: 10, gap: 12 }}>
+              <Text accessibilityRole="header" style={{ fontSize: 17, fontWeight: "600", color: c.ink }}>
                 {SOURCE_RULES[group.source].group}
               </Text>
-              <Text style={{ fontSize: 13, color: c.slate }}>{groupNote(group.source)}</Text>
+              <Text style={{ fontSize: 13, color: c.steel }}>{groupNote(group.source)}</Text>
             </View>
             <View style={{ gap: 8 }}>
               {group.items.map((item) => (
@@ -220,7 +220,7 @@ export default function SearchMealScreen() {
         ) : null}
 
         {!loading && groups.length === 0 ? (
-          <View style={{ marginTop: 24, padding: 20, borderRadius: 12, backgroundColor: c.surface, gap: 6 }}>
+          <View style={{ marginTop: 24, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: c.hairline, backgroundColor: c.surface, gap: 6 }}>
             <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>
               {recipeError ? "Food search isn't available right now" : q ? `No food matches "${query.trim()}"` : "Search for a food"}
             </Text>

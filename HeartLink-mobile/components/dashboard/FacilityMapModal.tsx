@@ -1,23 +1,15 @@
 import React, { useState, useEffect, useCallback } from "react";
-import {
-  View,
-  Text,
-  Modal,
-  TouchableOpacity,
-  ScrollView,
-  ActivityIndicator,
-  Platform,
-  Animated,
-  Easing,
-  Dimensions,
-} from "react-native";
-import { Feather } from "@expo/vector-icons";
-import { useColorScheme } from "../../hooks/useAppColorScheme";
+import { View, Text, Modal, Pressable, ScrollView, Animated, Easing, Dimensions } from "react-native";
 import * as Haptics from "expo-haptics";
-import { theme } from "../../constants/theme";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useDs } from "../onboarding/useDs";
+import DsButton from "../onboarding/DsButton";
+import { SquareIconButton } from "../exercise/ExerciseBits";
+import { Skeleton } from "../ui/Skeleton";
 import { ClinicMap } from "../clinics/ClinicMap";
+import { ClinicCard, ClinicRow } from "../clinics/ClinicCard";
 import { useNearbyClinics } from "../../hooks/useNearbyClinics";
-import { Clinic, callClinic, clinicLabel, distanceLabel, hasEmergencyRoom, openDirections } from "../../services/clinics";
+import { Clinic, hasEmergencyRoom } from "../../services/clinics";
 
 /**
  * FacilityMapModal: the dashboard's "Nearby clinics" pop-up (opened from Care tools).
@@ -25,6 +17,8 @@ import { Clinic, callClinic, clinicLabel, distanceLabel, hasEmergencyRoom, openD
  * HL-078: the map is OpenStreetMap (ClinicMap), not Google's map SDK, which crashed the test build without a key.
  * HL-088: places come from the checked Cebu City directory, nearest emergency rooms first; labels come from real
  * fields only, and Call shows only for a number the team checked. Directions opens the phone's maps app.
+ * Built on the design system: a white sheet with a title row (so nothing sits on top of the map's own buttons), the
+ * same clinic card as the full locator, and the nearest emergency room's Directions as the one blue button.
  */
 
 const MAX_PINS = 8;
@@ -38,15 +32,14 @@ export function FacilityMapModal({
   onClose: () => void;
   onOpenFull: () => void;
 }) {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
-
-  const { clinics, you, isPending: isLoading, isError } = useNearbyClinics(visible);
+  const { c } = useDs();
+  // The sheet draws behind Android's navigation bar (statusBarTranslucent), so its last lines need that much room
+  const insets = useSafeAreaInsets();
+  const { clinics, you, locationDenied, isPending: isLoading, isError } = useNearbyClinics(visible);
   const facilities = clinics.slice(0, MAX_PINS);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // Panel motion uses RN Animated (Reanimated entering swallows touches
-  // inside RN Modals). Blueprint spring: stiffness 400, damping 30, mass 0.8.
+  // Panel motion uses RN Animated (Reanimated entering swallows touches inside RN Modals).
   const [slideAnim] = useState(() => new Animated.Value(Dimensions.get("window").height));
   const [backdropAnim] = useState(() => new Animated.Value(0));
 
@@ -54,29 +47,15 @@ export function FacilityMapModal({
     slideAnim.setValue(Dimensions.get("window").height);
     backdropAnim.setValue(0);
     Animated.parallel([
-      Animated.timing(backdropAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        stiffness: 400,
-        damping: 30,
-        mass: 0.8,
-        useNativeDriver: true,
-      }),
+      Animated.timing(backdropAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.spring(slideAnim, { toValue: 0, stiffness: 400, damping: 30, mass: 0.8, useNativeDriver: true }),
     ]).start();
   }, [slideAnim, backdropAnim]);
 
   const animateOut = useCallback(
     (done?: () => void) => {
       Animated.parallel([
-        Animated.timing(backdropAnim, {
-          toValue: 0,
-          duration: 180,
-          useNativeDriver: true,
-        }),
+        Animated.timing(backdropAnim, { toValue: 0, duration: 180, useNativeDriver: true }),
         Animated.timing(slideAnim, {
           toValue: Dimensions.get("window").height,
           duration: 220,
@@ -95,6 +74,7 @@ export function FacilityMapModal({
   }, [visible]);
 
   const selected = facilities.find((f) => f.id === selectedId) ?? facilities[0];
+  const others = facilities.filter((f) => f.id !== selected?.id).slice(0, 3);
 
   const focusFacility = (f: Clinic) => {
     Haptics.selectionAsync();
@@ -102,240 +82,84 @@ export function FacilityMapModal({
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="none"
-      statusBarTranslucent
-      onShow={animateIn}
-      onRequestClose={() => animateOut(onClose)}
-    >
-      <Animated.View
-        style={{ flex: 1, backgroundColor: "rgba(15,23,42,0.6)", opacity: backdropAnim, justifyContent: "flex-end" }}
-      >
-        <TouchableOpacity
-          activeOpacity={1}
+    <Modal visible={visible} transparent animationType="none" statusBarTranslucent onShow={animateIn} onRequestClose={() => animateOut(onClose)}>
+      <Animated.View style={{ flex: 1, backgroundColor: "rgba(15, 15, 15, 0.5)", opacity: backdropAnim, justifyContent: "flex-end" }}>
+        <Pressable
           onPress={() => animateOut(onClose)}
+          accessibilityLabel="Close"
           style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
         />
 
         <Animated.View
           style={{
             width: "100%",
-            maxHeight: "88%",
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
+            maxHeight: "90%",
+            borderTopLeftRadius: 16,
+            borderTopRightRadius: 16,
             overflow: "hidden",
-            backgroundColor: isDark ? "#1A2634" : "#FFFFFF",
-            borderWidth: 1,
-            borderColor: isDark ? "#334155" : "#E2E8E5",
+            backgroundColor: c.canvas,
             transform: [{ translateY: slideAnim }],
           }}
         >
-          {/* Map (blueprint expanded square) */}
-          <View style={{ height: 300, backgroundColor: isDark ? "#0f172a" : "#E5E4EE", overflow: "hidden" }}>
-            {facilities.length ? (
-              <ClinicMap clinics={facilities} you={you} selectedId={selected?.id ?? null} onSelect={setSelectedId} height={300} />
-            ) : null}
-
-            {/* Loader until the map is ready (blueprint) */}
-            {isLoading && (
-              <View
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backgroundColor: isDark ? "#0f172a" : "#E5E4EE",
-                }}
-              >
-                <ActivityIndicator size="large" color={theme.dangerMid} />
-                <Text style={{ marginTop: 10, fontSize: 12, fontWeight: "600", color: isDark ? "#94A3B8" : "#64748b" }}>
-                  Finding nearby clinics…
+          {/* Title row: the close button lives here, not on the map */}
+          <View style={{ paddingTop: 8, paddingHorizontal: 20, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: c.hairlineSoft }}>
+            <View style={{ alignSelf: "center", width: 36, height: 4, borderRadius: 2, backgroundColor: c.hairlineStrong, marginBottom: 12 }} />
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text accessibilityRole="header" style={{ fontSize: 20, lineHeight: 26, fontWeight: "600", color: c.ink }}>
+                  Nearby emergency rooms
+                </Text>
+                <Text style={{ fontSize: 14, color: c.slate }}>
+                  {locationDenied ? "From Cebu City's centre (location is off)" : "Cebu City area, nearest first"}
                 </Text>
               </View>
-            )}
-
-            {/* Close (blueprint) */}
-            <TouchableOpacity
-              onPress={() => animateOut(onClose)}
-              accessibilityRole="button"
-              accessibilityLabel="Close map"
-              style={{
-                position: "absolute",
-                top: 12,
-                right: 12,
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                backgroundColor: isDark ? "#2A2A2D" : "#FFFFFF",
-                alignItems: "center",
-                justifyContent: "center",
-                ...Platform.select({
-                  ios: {
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.25,
-                    shadowRadius: 8,
-                  },
-                  android: { elevation: 6 },
-                }),
-              }}
-            >
-              <Feather name="x" size={20} color={isDark ? "#fff" : "#85848B"} />
-            </TouchableOpacity>
-
-            {/* Cebu scope pill */}
-            <View
-              pointerEvents="none"
-              style={{
-                position: "absolute",
-                top: 12,
-                left: 12,
-                borderRadius: 999,
-                paddingVertical: 6,
-                paddingHorizontal: 12,
-                backgroundColor: "rgba(15,23,42,0.65)",
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 6,
-              }}
-            >
-              <Feather name="map-pin" size={12} color={theme.onPrimary} />
-              <Text numberOfLines={1} style={{ fontSize: 11, fontWeight: "700", color: theme.surface }}>
-                Cebu City area
-              </Text>
+              <SquareIconButton icon="x" label="Close" onPress={() => animateOut(onClose)} />
             </View>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16 }}>
-            <Text style={{ fontSize: 11, fontWeight: "700", color: isDark ? "#94A3B8" : "#64748b", marginBottom: 12, letterSpacing: 0.5, textTransform: "uppercase" }}>
-              Nearest emergency rooms first
-            </Text>
-
-            {selected ? (
-              <View
-                style={{
-                  borderRadius: 16,
-                  padding: 14,
-                  backgroundColor: isDark ? "#1E293B" : "#F8FAFC",
-                  borderWidth: 1,
-                  borderColor: isDark ? "#334155" : "#E2E8F0",
-                  marginBottom: 12,
-                }}
-              >
-                <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
-                  <View style={{ flex: 1, marginRight: 8 }}>
-                    <Text
-                      numberOfLines={2}
-                      style={{ fontSize: 16, fontWeight: "700", color: isDark ? "#fff" : "#0f172a", marginBottom: 4 }}
-                    >
-                      {selected.name}
+          {/* The map stays out of the scrolling part: inside it, Android gives every drag to the scroll */}
+          {isLoading ? (
+            <View style={{ padding: 20, paddingBottom: 20 + insets.bottom, gap: 12 }} accessibilityLabel="Finding nearby clinics">
+              <Skeleton style={{ height: 220, borderRadius: 12 }} />
+              <Skeleton style={{ height: 150, borderRadius: 12 }} />
+            </View>
+          ) : (
+            <>
+              {facilities.length ? (
+                <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: c.hairlineSoft }}>
+                  <ClinicMap clinics={facilities} you={you} selectedId={selected?.id ?? null} onSelect={setSelectedId} height={200} />
+                </View>
+              ) : null}
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingTop: 16, paddingBottom: 24 + insets.bottom, gap: 12 }}>
+                {selected ? (
+                  <ClinicCard clinic={selected} primary={hasEmergencyRoom(selected)} />
+                ) : (
+                  <View style={{ padding: 16, borderRadius: 12, borderWidth: 1, borderColor: c.hairline, backgroundColor: c.surface }}>
+                    <Text style={{ fontSize: 14, lineHeight: 20, color: c.slate }}>
+                      {isError ? "Couldn't load clinics. Check your connection and try again." : "No clinics to show."} In an emergency, call 911.
                     </Text>
-                    <Text style={{ fontSize: 13, color: isDark ? "#94A3B8" : "#64748b" }}>
-                      {distanceLabel(selected.distanceKm)} • {clinicLabel(selected)}
-                    </Text>
-                    {selected.address ? (
-                      <Text numberOfLines={2} style={{ fontSize: 13, color: isDark ? "#94A3B8" : "#64748b", marginTop: 2 }}>
-                        {selected.address}
-                      </Text>
-                    ) : null}
                   </View>
-                  {hasEmergencyRoom(selected) && (
-                    <View
-                      style={{
-                        paddingHorizontal: 8,
-                        paddingVertical: 4,
-                        borderRadius: 8,
-                        backgroundColor: "rgba(34,197,94,0.15)",
-                      }}
-                    >
-                      <Text style={{ fontSize: 11, fontWeight: "600", color: theme.success }}>ER</Text>
-                    </View>
-                  )}
-                </View>
+                )}
 
-                <View style={{ flexDirection: "row", gap: 10, marginTop: 16 }}>
-                  <TouchableOpacity
-                    activeOpacity={0.85}
-                    onPress={() => openDirections(selected)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Directions to ${selected.name}`}
-                    style={{ flex: 1, borderRadius: 10, paddingVertical: 11, backgroundColor: theme.primary, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
-                  >
-                    <Feather name="navigation" size={15} color={theme.onPrimary} />
-                    <Text style={{ fontSize: 14, fontWeight: "700", color: theme.surface }}>Directions</Text>
-                  </TouchableOpacity>
-                  {selected.phone ? (
-                    <TouchableOpacity
-                      activeOpacity={0.85}
-                      onPress={() => callClinic(selected)}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Call ${selected.name}`}
-                      style={{ flex: 1, borderRadius: 10, paddingVertical: 11, backgroundColor: isDark ? "#0f172a" : "#1e293b", alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
-                    >
-                      <Feather name="phone-call" size={15} color={theme.onPrimary} />
-                      <Text style={{ fontSize: 14, fontWeight: "700", color: theme.surface }}>Call</Text>
-                    </TouchableOpacity>
-                  ) : null}
-                </View>
-              </View>
-            ) : (
-              !isLoading && (
-                <Text style={{ textAlign: "center", fontSize: 13, color: isDark ? "#94A3B8" : "#64748b", paddingVertical: 8 }}>
-                  {isError ? "Couldn't load clinics. Check your connection and try again." : "No clinics to show."} In an emergency, call 911.
-                </Text>
-              )
-            )}
+                {others.length ? (
+                  <View style={{ gap: 8, marginTop: 4 }}>
+                    <Text style={{ fontSize: 15, fontWeight: "600", color: c.ink }}>More nearby</Text>
+                    {others.map((f) => (
+                      <ClinicRow key={f.id} clinic={f} onPress={() => focusFacility(f)} />
+                    ))}
+                  </View>
+                ) : null}
 
-            {/* Nearby list */}
-            {facilities.length > 1 && (
-              <View style={{ gap: 8 }}>
-                {facilities.filter(f => f.id !== selected?.id).slice(0, 3).map((f) => (
-                  <TouchableOpacity
-                    key={f.id}
-                    activeOpacity={0.75}
-                    onPress={() => focusFacility(f)}
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      borderRadius: 14,
-                      paddingVertical: 14,
-                      paddingHorizontal: 16,
-                      backgroundColor: isDark ? "#1E293B" : "#FFFFFF",
-                      borderWidth: 1,
-                      borderColor: isDark ? "#334155" : "#E2E8F0",
-                    }}
-                  >
-                    <View style={{ flex: 1, marginRight: 8 }}>
-                      <Text numberOfLines={1} style={{ fontSize: 14, fontWeight: "700", color: isDark ? "#fff" : "#0f172a", marginBottom: 2 }}>
-                        {f.name}
-                      </Text>
-                      <Text style={{ fontSize: 12, color: isDark ? "#94A3B8" : "#64748b" }}>
-                        {distanceLabel(f.distanceKm)} • {clinicLabel(f)}
-                      </Text>
-                    </View>
-                    <Feather name="chevron-right" size={16} color={isDark ? "#94A3B8" : "#94a3b8"} />
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
+                <DsButton label="Open the full locator" variant="secondary" block onPress={() => animateOut(onOpenFull)} style={{ marginTop: 4 }} />
 
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => animateOut(onOpenFull)}
-              style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 16, marginTop: 4 }}
-            >
-              <Text style={{ fontSize: 14, fontWeight: "700", color: theme.blue }}>
-                Open full locator
-              </Text>
-              <Feather name="arrow-right" size={15} color={theme.blue} />
-            </TouchableOpacity>
-          </ScrollView>
+                {facilities.length ? (
+                  <Text style={{ fontSize: 13, lineHeight: 18, color: c.steel }}>
+                    {"Places come from OpenStreetMap, a public map. HeartLink isn't partnered with any of them. In an emergency, call 911."}
+                  </Text>
+                ) : null}
+              </ScrollView>
+            </>
+          )}
         </Animated.View>
       </Animated.View>
     </Modal>

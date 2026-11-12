@@ -246,7 +246,7 @@ export default function DailyDiaryScreen() {
   ];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.canvas }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.canvas }} edges={["top", "bottom"]}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
       <FoodHeader
