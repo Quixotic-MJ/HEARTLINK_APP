@@ -26,6 +26,11 @@ async function renderScreen() {
   );
 }
 
+// This screen re-draws its whole form on every tap and typed letter. Alone a test takes about 2 s, but in a full run
+// (hundreds of tests at once) one took 4.3 s against Jest's 5 s limit and sometimes failed. Like the PAR-Q+ screen
+// tests, these get 20 s; the taps and typing stay realistic (userEvent).
+const SCREEN_TEST_MS = 20000;
+
 const savedPayload = () => (logMealAndGetToast as jest.Mock).mock.calls[0][2];
 
 describe("Estimate a meal (HL-157)", () => {
@@ -50,7 +55,7 @@ describe("Estimate a meal (HL-157)", () => {
       calories: 247, // 238.4 + 8.5
       source: "manual_entry",
     });
-  });
+  }, SCREEN_TEST_MS);
 
   it("warns when the meal alone is over the daily sodium limit", async () => {
     const user = userEvent.setup();
@@ -59,7 +64,7 @@ describe("Estimate a meal (HL-157)", () => {
     // 1 pack (the default) = 1,610 mg
     expect(screen.getByRole("checkbox", { name: "1 pack", checked: true })).toBeOnTheScreen();
     expect(screen.getByText(/more than a whole day's limit/)).toBeOnTheScreen();
-  });
+  }, SCREEN_TEST_MS);
 
   it("keeps a name the patient typed", async () => {
     const user = userEvent.setup();
@@ -68,7 +73,7 @@ describe("Estimate a meal (HL-157)", () => {
     await user.press(screen.getByRole("radio", { name: /^Fried rice \(no meat\)/ }));
     await user.press(screen.getByRole("button", { name: "Save meal" }));
     expect(savedPayload().meal_name).toBe("Lola's fried rice");
-  });
+  }, SCREEN_TEST_MS);
 
   it("still takes exact numbers from a food label", async () => {
     const user = userEvent.setup();
@@ -79,5 +84,5 @@ describe("Estimate a meal (HL-157)", () => {
     await user.type(screen.getByLabelText("Calories in kcal"), "140");
     await user.press(screen.getByRole("button", { name: "Save meal" }));
     expect(savedPayload()).toMatchObject({ meal_name: "Crackers", sodium_mg: 320, calories: 140, portion: 1 });
-  });
+  }, SCREEN_TEST_MS);
 });
