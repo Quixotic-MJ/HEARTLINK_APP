@@ -151,6 +151,8 @@ export default function ExploreTabScreen() {
   const openExercise = (id: string) => router.push({ pathname: "/(home)/(health)/exercise-session", params: { id } });
 
   const hasTier = !!tier && tier !== "Unknown";
+  // As on Today: under 50 the score is critical and there are no picks; the care team's advice comes first
+  const critical = score !== null && score < 50;
   const band = bandTag(tier ?? "", hasTier, c);
   const loading = recipesQuery.isLoading || exercisesQuery.isLoading;
 
@@ -294,7 +296,7 @@ export default function ExploreTabScreen() {
                 <SectionTitle
                   title="Picked for you"
                   right={
-                    pickRow.length > 1 ? (
+                    pickRow.length > 1 && !critical ? (
                       <Text style={{ fontSize: 13, color: c.steel, paddingBottom: 3 }}>{`Swipe for all ${pickRow.length}`}</Text>
                     ) : null
                   }
@@ -317,7 +319,15 @@ export default function ExploreTabScreen() {
                 )}
               </View>
 
-              {loading ? (
+              {critical ? (
+                <View style={{ paddingHorizontal: 20 }}>
+                  <EmptyNote
+                    icon="pause-circle"
+                    title="Picks are paused for now"
+                    text="Your score is in its lowest band, so there are no picks, as on Today. Follow your care team's advice first. The lists below are still here."
+                  />
+                </View>
+              ) : loading ? (
                 <View style={{ paddingHorizontal: 20 }}>
                   <Skeleton style={{ height: 230, width: PICK_CARD_WIDTH, borderRadius: 12 }} />
                 </View>

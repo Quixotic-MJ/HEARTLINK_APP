@@ -406,7 +406,8 @@ export const SETUP_QUESTIONS: SetupQuestion[] = [
       { value: "Halal", label: "Halal" },
       { value: "Vegan", label: "Vegan" },
       { value: "Vegetarian", label: "Vegetarian" },
-      { value: "Low-Carb", label: "Low-carb" },
+      // "Low-carb" was offered here but no recipe rule used it (recipes have no carbohydrate values yet), so it's left
+      // out until the Dietitian gives a carbohydrate limit (HL-158). Earlier answers of "Low-Carb" change nothing.
     ],
   },
 ];
