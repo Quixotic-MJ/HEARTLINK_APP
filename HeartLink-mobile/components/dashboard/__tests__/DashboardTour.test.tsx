@@ -45,11 +45,11 @@ describe("Dashboard tour", () => {
 
     await user.press(screen.getByRole("button", { name: "Next" }));
     expect(screen.queryByText("Picked for you")).not.toBeOnTheScreen();
-    expect(screen.getByText("Care tools")).toBeOnTheScreen();
+    expect(screen.getByText("Care & Support")).toBeOnTheScreen();
 
     await user.press(screen.getByRole("button", { name: "Finish tour" }));
     expect(onFinish).toHaveBeenCalledTimes(1);
-    expect(screen.queryByText("Care tools")).not.toBeOnTheScreen();
+    expect(screen.queryByText("Care & Support")).not.toBeOnTheScreen();
     // The sections themselves stay.
     expect(screen.getByText("vitals section")).toBeOnTheScreen();
   });

@@ -6,10 +6,10 @@ import { Feather } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
-import * as Print from "expo-print";
-import * as Sharing from "expo-sharing";
 
 import { apiFetch } from "../../../lib/api";
+import { sharePdf } from "../../../services/sharePdf";
+import { useToast } from "../../../contexts/ToastContext";
 import { useUser } from "../../../contexts/UserContext";
 import { Header } from "../../../components/Header";
 import { bandName, ds, DsColors } from "../../../constants/theme";
@@ -34,7 +34,6 @@ import {
   SleepRow,
   VitalsRow,
   dayName,
-  longestStreak,
   peak,
   periodDays,
   pressureByDay,
@@ -72,8 +71,6 @@ type Analytics = {
   thresholds?: { sodium_limit_mg?: number | null; active_minutes_goal?: number | null } | null;
 };
 
-let isCurrentlySharing = false;
-
 // Same cut-offs as the dashboard's score bands.
 const tierOf = (score: number) => (score >= 80 ? "Stable" : score >= 60 ? "Moderate" : score >= 50 ? "Elevated Risk" : "Critical");
 
@@ -92,6 +89,7 @@ export default function TrendsTabScreen() {
   const { c, isDark } = useDs();
   const router = useRouter();
   const { userId, token, user } = useUser();
+  const { showToast } = useToast();
   const queryClient = useQueryClient();
   const isPremium = isPremiumProfile(user);
 
@@ -188,25 +186,18 @@ export default function TrendsTabScreen() {
         <p class="note">From what the patient logged in HeartLink. It is not a diagnosis.</p>
       </body></html>`;
     try {
-      const { uri } = await Print.printToFileAsync({ html });
-      if (!(await Sharing.isAvailableAsync()) || isCurrentlySharing) return;
-      isCurrentlySharing = true;
-      try {
-        await Sharing.shareAsync(uri);
-      } finally {
-        setTimeout(() => {
-          isCurrentlySharing = false;
-        }, 1000);
+      const result = await sharePdf(html, `HeartLink_trends_${period}_days`, "Share your report");
+      if (result === "unavailable") {
+        showToast({ title: "Sharing isn't available", message: "This phone can't share files.", type: "error" });
       }
-    } catch (error) {
-      console.error("Export failed:", error);
+    } catch {
+      showToast({ title: "Couldn't make the report", message: "Please try again.", type: "error" });
     }
   };
 
   const best = peak(t.days, t.scores);
   const saltiest = peak(t.days, t.sodium);
   const scoredDays = t.scores.filter((v) => v !== null).length;
-  const streak = longestStreak(t.scores);
   const s = t.summary;
 
   return (
@@ -406,19 +397,11 @@ export default function TrendsTabScreen() {
                         <NoticeTile bg={c.peach} fg={c.warmText} c={c} label="Saltiest day" value={`${saltiest.value.toLocaleString()} mg`} when={dayName(saltiest.day)} />
                       ) : null}
                     </View>
-                    <View
-                      accessible
-                      accessibilityLabel={`Longest streak: ${plural(streak, "day")} in a row with a heart score`}
-                      style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 12, backgroundColor: c.lavender }}
-                    >
-                      <Text style={{ fontSize: 20, fontWeight: "600", color: c.ink }}>{plural(streak, "day")}</Text>
-                      <Text style={{ flex: 1, fontSize: 13, lineHeight: 18, color: c.charcoal }}>Your longest run of days in a row with a heart score</Text>
-                    </View>
                   </>
                 ) : (
                   <View style={{ gap: 10, padding: 16, borderRadius: 12, borderWidth: 1, borderStyle: "dashed", borderColor: c.hairlineStrong }}>
                     <Text style={{ fontSize: 15, lineHeight: 22, color: c.charcoal }}>
-                      {`Your best day, saltiest day and longest streak show here after ${HIGHLIGHT_DAYS} days with a heart score.`}
+                      {`Your best day and saltiest day show here after ${HIGHLIGHT_DAYS} days with a habits score.`}
                     </Text>
                     <View accessible accessibilityLabel={`${scoredDays} of ${HIGHLIGHT_DAYS} days`} style={{ flexDirection: "row", gap: 4 }}>
                       {Array.from({ length: HIGHLIGHT_DAYS }, (_, i) => (

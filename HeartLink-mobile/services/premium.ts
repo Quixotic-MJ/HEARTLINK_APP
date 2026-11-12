@@ -32,8 +32,8 @@ export const PREMIUM_FEATURES: PremiumFeature[] = [
     key: "reports",
     icon: "file-chart-outline",
     tint: "sky",
-    title: "Reports for your checkups",
-    text: "A 1- or 3-month summary of your blood pressure, medicines and habits, as a PDF to show your doctor.",
+    title: "Longer Visit summaries",
+    text: "Your Visit summary for the last 1 or 3 months, not just 7 days, as a PDF to show your doctor.",
     ready: true,
   },
   {

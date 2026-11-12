@@ -1,8 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 /**
- * The Dashboard's "Your weekly report is ready" banner appears once a week, when there's enough logged for the report
- * to say something. The report itself can always be opened from Profile.
+ * The Dashboard's "Your visit summary is ready" banner appears once a week, when there's enough logged for the summary
+ * to say something. The Visit summary itself (app/(home)/(profile)/health-report.tsx) is always one tap away: Dashboard › Care & Support,
+ * or Profile.
  */
 export const REPORT_EVERY_DAYS = 7;
 export const MIN_LOGGED_DAYS = 3;
