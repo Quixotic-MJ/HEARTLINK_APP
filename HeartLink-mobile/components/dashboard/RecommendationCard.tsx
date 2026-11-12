@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, Platform } from "react-native";
+import { View, Text } from "react-native";
 import { Image } from "expo-image";
 import { Feather } from "@expo/vector-icons";
 import AnimatedButton from "../ui/AnimatedButton";
@@ -52,16 +52,17 @@ export function recommendationReason(rec: DashboardRec, today: { sodiumLeftMg: n
   return `${rec.duration_minutes} min`;
 }
 
-/** A card in the dashboard's "Picked for you" row: picture, name, metric reason and clinical endorsement. */
+/**
+ * A card in the dashboard's "Picked for you" row: picture, a pastel Meal or Exercise tag, the name, one fact (sodium or
+ * minutes) and who approved it. Flat white card with a thin border, as the design system's cards are; the approval
+ * shows once (the backend's tag is the same "Dietitian approved" / "PT approved").
+ */
 export function RecommendationCard({ rec, reason, onPress }: { rec: DashboardRec; reason: string; onPress: () => void }) {
-  const { c, isDark } = useDs();
+  const { c } = useDs();
   const isMeal = rec.type === "recipe";
   const isBreathing = rec.exercise_type === "Breathing";
-  const tint = isMeal
-    ? isDark ? "rgba(249, 115, 22, 0.16)" : "#FFF7ED"
-    : isBreathing
-    ? isDark ? "rgba(14, 165, 233, 0.16)" : "#F0F9FF"
-    : isDark ? "rgba(16, 185, 129, 0.16)" : "#ECFDF5";
+  // Topic pastels from HEARTLINK.md: food peach, movement mint, breathing sky
+  const tint = isMeal ? c.peach : isBreathing ? c.sky : c.mint;
   const iconName: keyof typeof Feather.glyphMap = isMeal
     ? "coffee"
     : isBreathing
@@ -70,6 +71,7 @@ export function RecommendationCard({ rec, reason, onPress }: { rec: DashboardRec
     ? "activity"
     : "user";
   const imageUrl = getRecImageUrl(rec);
+  const overToday = isMeal && reason.includes("over what's left");
 
   return (
     <AnimatedButton
@@ -78,40 +80,19 @@ export function RecommendationCard({ rec, reason, onPress }: { rec: DashboardRec
       accessibilityLabel={`${isMeal ? "Meal" : "Exercise"}: ${rec.title}. ${reason}. ${rec.tag}`}
       style={{
         width: PICK_CARD_WIDTH,
-        borderRadius: 18,
+        borderRadius: 14,
         overflow: "hidden",
-        backgroundColor: isDark ? c.surface : "#FFFFFF",
+        backgroundColor: c.canvas,
         borderWidth: 1,
-        borderColor: isDark ? c.hairline : "#EEF2F6",
-        ...Platform.select({
-          ios: {
-            shadowColor: "#0F172A",
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: isDark ? 0.35 : 0.07,
-            shadowRadius: 8,
-          },
-          android: { elevation: 2 },
-        }),
+        borderColor: c.hairline,
       }}
     >
-      {/* ── Top Image Container with Overlaid Badges ── */}
-      <View style={{ height: 126, backgroundColor: tint, position: "relative", alignItems: "center", justifyContent: "center" }}>
-        <Feather
-          name={iconName}
-          size={isMeal ? 28 : 34}
-          color={isDark ? c.steel : c.charcoal}
-          style={{ position: "absolute" }}
-        />
+      {/* Picture, with the topic icon on its pastel while it loads or when there's none */}
+      <View style={{ height: 124, backgroundColor: tint, alignItems: "center", justifyContent: "center" }}>
+        <Feather name={iconName} size={30} color={c.charcoal} style={{ position: "absolute" }} />
         {imageUrl ? (
-          <Image
-            source={{ uri: imageUrl }}
-            style={{ width: "100%", height: "100%" }}
-            contentFit="cover"
-            transition={200}
-          />
+          <Image source={{ uri: imageUrl }} style={{ width: "100%", height: "100%" }} contentFit="cover" transition={200} />
         ) : null}
-
-        {/* Floating Category Pill Badge (Top-Left) */}
         <View
           style={{
             position: "absolute",
@@ -119,105 +100,43 @@ export function RecommendationCard({ rec, reason, onPress }: { rec: DashboardRec
             left: 10,
             flexDirection: "row",
             alignItems: "center",
-            gap: 4.5,
-            paddingHorizontal: 8.5,
-            paddingVertical: 3.5,
+            gap: 5,
+            paddingHorizontal: 9,
+            paddingVertical: 4,
             borderRadius: 999,
-            backgroundColor: isDark ? "rgba(15, 23, 42, 0.86)" : "rgba(255, 255, 255, 0.94)",
-            borderWidth: 1,
-            borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.06)",
+            backgroundColor: tint,
           }}
         >
-          <Feather
-            name={isMeal ? "coffee" : "activity"}
-            size={11}
-            color={isMeal ? (isDark ? "#FB923C" : "#EA580C") : (isDark ? "#34D399" : "#059669")}
-          />
-          <Text
-            maxFontSizeMultiplier={1.3}
-            style={{
-              fontSize: 11,
-              fontWeight: "700",
-              color: isMeal ? (isDark ? "#FB923C" : "#EA580C") : (isDark ? "#34D399" : "#059669"),
-              letterSpacing: 0.1,
-            }}
-          >
+          <Feather name={isMeal ? "coffee" : "activity"} size={12} color={c.charcoal} />
+          <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 12, fontWeight: "700", color: c.charcoal }}>
             {isMeal ? "Meal" : "Exercise"}
           </Text>
         </View>
-
-        {/* Floating Tag Badge (Top-Right) */}
-        {rec.tag ? (
-          <View
-            style={{
-              position: "absolute",
-              top: 10,
-              right: 10,
-              paddingHorizontal: 8,
-              paddingVertical: 3.5,
-              borderRadius: 999,
-              backgroundColor: isDark ? "rgba(15, 23, 42, 0.86)" : "rgba(255, 255, 255, 0.94)",
-              borderWidth: 1,
-              borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.06)",
-            }}
-          >
-            <Text
-              maxFontSizeMultiplier={1.3}
-              style={{
-                fontSize: 10.5,
-                fontWeight: "600",
-                color: isDark ? c.ink : c.charcoal,
-              }}
-            >
-              {rec.tag}
-            </Text>
-          </View>
-        ) : null}
       </View>
 
-      {/* ── Bottom Content Details ── */}
-      <View style={{ padding: 13, gap: 8, flex: 1, justifyContent: "space-between" }}>
-        <View style={{ gap: 4 }}>
+      <View style={{ padding: 14, gap: 10, flex: 1, justifyContent: "space-between" }}>
+        <View style={{ gap: 6 }}>
           <Text
             maxFontSizeMultiplier={1.3}
-            style={{
-              fontSize: 15.5,
-              fontWeight: "700",
-              lineHeight: 20,
-              color: c.ink,
-              letterSpacing: -0.2,
-            }}
             numberOfLines={2}
+            style={{ fontSize: 16, fontWeight: "700", lineHeight: 21, color: c.ink, letterSpacing: -0.2 }}
           >
             {rec.title}
           </Text>
-
           {reason ? (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 1 }}>
-              <Feather
-                name={isMeal ? "shield" : "clock"}
-                size={12}
-                color={isDark ? c.steel : c.slate}
-              />
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Feather name={isMeal ? "droplet" : "clock"} size={13} color={overToday ? c.warmText : c.slate} />
               <Text
                 maxFontSizeMultiplier={1.3}
-                style={{
-                  fontSize: 12.5,
-                  fontWeight: "500",
-                  color: c.slate,
-                }}
                 numberOfLines={1}
+                style={{ flexShrink: 1, fontSize: 13.5, fontWeight: "500", color: overToday ? c.warmText : c.slate }}
               >
                 {reason}
               </Text>
             </View>
           ) : null}
         </View>
-
-        {/* Clinical Endorsement Tag */}
-        <View style={{ paddingTop: 4, borderTopWidth: 1, borderTopColor: isDark ? c.hairline : "#F1F5F9" }}>
-          <ApprovedBy who={isMeal ? "Dietitian" : "PT"} />
-        </View>
+        <ApprovedBy who={isMeal ? "Dietitian" : "PT"} />
       </View>
     </AnimatedButton>
   );

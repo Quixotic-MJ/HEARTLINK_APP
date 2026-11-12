@@ -7,7 +7,7 @@ import DsButton from "../onboarding/DsButton";
 import { useDs } from "../onboarding/useDs";
 import { bandTag } from "./ScoreCard";
 import { light, dark } from "../../constants/theme";
-import { AREA_ROWS, basedOnText, HeartFactors, pressureText } from "../../services/heartScore";
+import { HeartFactors, pressureText } from "../../services/heartScore";
 import { isHypertensiveCrisis, isSevereHypotension } from "../../services/vitalsCheck";
 
 export type TodayPage = { key: string; label: string; content: React.ReactNode };
@@ -45,12 +45,15 @@ export function TodayCard({ pages }: { pages: TodayPage[] }) {
           directionalLockEnabled
           showsHorizontalScrollIndicator={false}
           onMomentumScrollEnd={onSettle}
+          contentContainerStyle={{ alignItems: "stretch" }}
         >
           {/* Pages are laid out only once the card's width is known. Laid out before that, at their natural width,
               long lines (the habits tip) were measured as one line, and Android kept that, so text ran past the card. */}
           {width > 0 &&
             pages.map((p) => (
-              <View key={p.key} style={{ width, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 }}>
+              // Every page is as tall as the tallest, so shorter pages can centre their content. alignSelf covers phones;
+              // flexGrow covers the web, which wraps each page of a paging ScrollView in its own box.
+              <View key={p.key} style={{ width, alignSelf: "stretch", flexGrow: 1, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 }}>
                 {p.content}
               </View>
             ))}
@@ -133,9 +136,9 @@ export function ScorePage({
       {hasScore ? (
         <View style={{ flex: 1, gap: 12, justifyContent: "center" }}>
           {/* HL-144: the heart centred (the owner's preference), with its level and blood pressure under it. Every
-              area's points are in "About your habits score" (the i, or the line below), one tap away. */}
+              area's points are in "About your habits score" (the i), one tap away. */}
           <View style={{ alignItems: "center", gap: 8 }}>
-            <View style={{ alignItems: "center", justifyContent: "center" }}>{children}</View>
+            <View style={{ alignItems: "center", justifyContent: "center", marginTop: -4, marginBottom: -14 }}>{children}</View>
             <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 10 }}>
               <View style={{ paddingVertical: 4, paddingHorizontal: 12, borderRadius: 999, backgroundColor: tag.bg }}>
                 <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 15, fontWeight: "700", color: tag.fg }}>{tag.text}</Text>
@@ -152,7 +155,6 @@ export function ScorePage({
             ) : null}
             {reason ? <Text style={{ fontSize: 13, color: c.slate, textAlign: "center" }}>{reason}</Text> : null}
           </View>
-          <FocusArea factors={factors} onPress={onExplain} />
         </View>
       ) : (
         <View style={{ alignItems: "center", gap: 12, paddingVertical: 8 }}>
@@ -164,47 +166,9 @@ export function ScorePage({
         </View>
       )}
       <Text style={{ fontSize: 12, color: c.steel, textAlign: "center" }}>
-        Higher is better. Based on the AHA&apos;s Life&apos;s Essential 8. A wellness guide, not a diagnosis.
+        Higher is better · AHA Life&apos;s Essential 8 · Not a diagnosis
       </Text>
     </View>
-  );
-}
-
-/** HL-144: the habit area with the fewest points (the first in the explanation's order on a tie), or null when every
- * area scores 100. */
-export function focusArea(factors?: HeartFactors | null): { label: string; points: number } | null {
-  const areas = factors?.areas;
-  if (!areas) return null;
-  let lowest: { label: string; points: number } | null = null;
-  for (const row of AREA_ROWS) {
-    const area = areas[row.key];
-    if (!area) continue;
-    const points = Math.max(0, Math.min(100, area.points));
-    if (points < 100 && (!lowest || points < lowest.points)) lowest = { label: row.label, points };
-  }
-  return lowest;
-}
-
-/** One line under the ring: the area to work on next, which opens every area's points. */
-function FocusArea({ factors, onPress }: { factors?: HeartFactors | null; onPress: () => void }) {
-  const { c } = useDs();
-  const focus = focusArea(factors);
-  const used = basedOnText(factors);
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`${focus ? `Work on next: ${focus.label}, ${focus.points} of 100. ` : ""}See all areas`}
-      style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 44, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, backgroundColor: c.surface }}
-    >
-      <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 14, fontWeight: "600", color: c.ink }}>
-          {focus ? `Work on next: ${focus.label}, ${focus.points} of 100` : "Every area is at 100"}
-        </Text>
-        {used ? <Text style={{ fontSize: 12.5, color: c.slate }}>{`${used} · See all areas`}</Text> : null}
-      </View>
-      <Feather name="chevron-right" size={18} color={c.steel} />
-    </TouchableOpacity>
   );
 }
 
@@ -622,47 +586,3 @@ export function readingLevel(sys: number, dia: number): { text: string; emergenc
   return { text: "Above the healthy range", emergency: false };
 }
 
-/** Page 3: the latest blood pressure and pulse. */
-export function LatestReadingPage({ systolic, diastolic, bpm, pulseContext, when, onLog }: {
-  systolic: number | null; diastolic: number | null; bpm: number | null; pulseContext?: string | null; when: string | null; onLog: () => void;
-}) {
-  const { c, isDark } = useDs();
-  const t = isDark ? dark : light;
-  if (!systolic || !diastolic) {
-    return (
-      <View style={{ flex: 1, gap: 12 }}>
-        <PageTitle title="Latest reading" />
-        <Text style={{ fontSize: 15, lineHeight: 22, color: c.charcoal }}>No blood pressure logged yet.</Text>
-        <DsButton label="Log blood pressure" variant="secondary" block={false} onPress={onLog} />
-      </View>
-    );
-  }
-  const level = readingLevel(systolic, diastolic);
-  const healthy = level.text === "Healthy range";
-  return (
-    <View style={{ flex: 1, gap: 12 }}>
-      <PageTitle title="Latest reading" right={when ? <Text style={{ fontSize: 13, color: c.steel }}>{when}</Text> : null} />
-      <View style={{ flex: 1, justifyContent: "center", gap: 12 }}>
-      <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8 }}>
-        <Text style={{ fontSize: 42, fontWeight: "700", letterSpacing: -1, lineHeight: 46, color: c.ink, fontVariant: ["tabular-nums"] }}>
-          {systolic}/{diastolic}
-        </Text>
-        <Text style={{ fontSize: 15, color: c.slate, paddingBottom: 6 }}>mmHg</Text>
-      </View>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-        <View style={{ paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999, backgroundColor: level.emergency ? c.rose : healthy ? c.tint : c.yellow }}>
-          <Text style={{ fontSize: 13, fontWeight: "700", color: level.emergency ? t.dangerText : healthy ? c.onTint : c.warmText }}>{level.text}</Text>
-        </View>
-        {bpm ? (
-          <View style={{ paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999, backgroundColor: c.surfaceAlt }}>
-            <Text style={{ fontSize: 13, fontWeight: "600", color: c.charcoal }}>Pulse {bpm} bpm{pulseContext === "resting" ? " at rest" : pulseContext === "after_exercise" ? " after activity" : ""}</Text>
-          </View>
-        ) : null}
-      </View>
-      <Text style={{ fontSize: 13, lineHeight: 18, color: c.slate }}>
-        Healthy is under 120/80. Measuring at the same time each day gives the clearest picture.
-      </Text>
-      </View>
-    </View>
-  );
-}

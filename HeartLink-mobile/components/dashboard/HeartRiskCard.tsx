@@ -12,6 +12,7 @@ import {
   basisText,
   DISCLAIMER,
   HeartRisk,
+  needsReading,
   percentText,
   pressureUsedText,
   PREVENT_PAPER_URL,
@@ -25,6 +26,7 @@ const CARD = { borderWidth: 1, borderRadius: 14, padding: 16, gap: 10 } as const
 /**
  * HL-144: the Dashboard's Heart risk (lower is better), kept short so Today's mission stays on the first screen.
  * The number, its band and "Estimated" sit on one row; tapping it opens "About your heart risk" with the details.
+ * Since 2026-11-12 (owner's choice) it's the third page of the swipe card, where the latest reading was.
  * People who set up before the three questions existed answer them in Settings › Health answers (owner's choice,
  * 2026-11-11), so the card only links there.
  */
@@ -32,12 +34,22 @@ export function HeartRiskCard({
   risk,
   onAddLabResults,
   onAnswerQuestions,
+  onLogBloodPressure,
+  framed = true,
 }: {
   risk: HeartRisk | null;
   onAddLabResults: () => void;
   onAnswerQuestions: () => void;
+  /** Opens the blood pressure log, for the "a reading gives a better estimate" note */
+  onLogBloodPressure?: () => void;
+  /** false inside the swipe card, which already draws the card (2026-11-12) */
+  framed?: boolean;
 }) {
   const { c } = useDs();
+  // Inside the swipe card the page is as tall as the tallest page, so the risk sits in the middle of it
+  const box = framed
+    ? { ...CARD, borderColor: c.hairline, backgroundColor: c.canvas }
+    : { flex: 1, gap: 10, justifyContent: "center" as const };
   const [about, setAbout] = useState(false);
   const openAbout = () => {
     Haptics.selectionAsync();
@@ -54,7 +66,7 @@ export function HeartRiskCard({
         }}
         accessibilityRole="button"
         accessibilityLabel="See your heart risk. Answer 3 yes or no questions in Settings."
-        style={{ ...CARD, borderColor: c.hairline, backgroundColor: c.canvas, flexDirection: "row", alignItems: "center", gap: 12 }}
+        style={{ ...box, flexDirection: "row", alignItems: "center", gap: 12 }}
       >
         <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: c.tint, alignItems: "center", justifyContent: "center" }}>
           <Feather name="heart" size={19} color={c.onTint} />
@@ -71,7 +83,7 @@ export function HeartRiskCard({
   if (risk && risk.available) {
     const tag = bandColors(risk.band, c);
     return (
-      <View style={{ ...CARD, borderColor: c.hairline, backgroundColor: c.canvas }}>
+      <View style={box}>
         <TouchableOpacity
           onPress={openAbout}
           accessibilityRole="button"
@@ -94,6 +106,26 @@ export function HeartRiskCard({
           </View>
           <Feather name="chevron-right" size={20} color={c.steel} />
         </TouchableOpacity>
+        {needsReading(risk) ? (
+          <View style={{ flexDirection: "row", gap: 8, padding: 10, borderRadius: 10, backgroundColor: c.surface }}>
+            <Feather name="heart" size={16} color={c.charcoal} style={{ marginTop: 2 }} />
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={{ fontSize: 14, lineHeight: 20, color: c.charcoal }}>
+                No blood pressure reading in the last 30 days, so this uses a typical value. A reading gives a better
+                estimate.
+              </Text>
+              {onLogBloodPressure ? (
+                <TouchableOpacity
+                  onPress={onLogBloodPressure}
+                  accessibilityRole="link"
+                  style={{ minHeight: 44, justifyContent: "center", alignSelf: "flex-start" }}
+                >
+                  <Text style={{ fontSize: 15, fontWeight: "600", color: c.link }}>Log blood pressure</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          </View>
+        ) : null}
         {risk.note ? (
           <View style={{ flexDirection: "row", gap: 8, padding: 10, borderRadius: 10, backgroundColor: c.surface }}>
             <Feather name="message-circle" size={16} color={c.charcoal} style={{ marginTop: 2 }} />
@@ -108,7 +140,7 @@ export function HeartRiskCard({
 
   // No number: under 30 or over 79, missing age or sex, or no estimate yet
   return (
-    <View style={{ ...CARD, borderColor: c.hairline, backgroundColor: c.canvas }}>
+    <View style={box}>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 28 }}>
         <Text accessibilityRole="header" style={{ fontSize: 16, fontWeight: "700", color: c.ink }}>Heart risk</Text>
         <AnimatedButton

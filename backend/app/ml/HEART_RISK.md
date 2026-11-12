@@ -92,6 +92,13 @@ measurements. Their average risk is 4.4%.
 - **By age:** the average error grows with age (0.3 points at 30-49, 0.9 at 50-64, 1.4 at 65-79), because older people's
   risks are larger.
 
+**Tested and not added (2026-11-12):** a fourth question, "Has a doctor told you your cholesterol is high?" (NHANES
+BPQ080), on the same people and folds. It improved the estimate only slightly: average error 0.78 → 0.76 points, same band
+85.0% → 85.4%, High called High 77.6% → 79.6% (8 more of the 393 high-risk people), and the cholesterol guess 30.4 → 29.1
+mg/dL off. Without a blood pressure reading it made no difference (High called High 58.5% → 58.3%). "Told you have high
+blood pressure" (BPQ020) added nothing on top of the BP medicine answer. A blood pressure reading matters far more: it
+lifts High called High from 59% to 78%.
+
 ## Where the answers come from (HL-140)
 
 - **The three yes/no questions:** "Do you take medicine for blood pressure?", "Has a doctor told you that you have
@@ -108,7 +115,7 @@ measurements. Their average risk is 4.4%.
 - **Portal:** the patient list and patient page (HL-146), and case review, where it shows under "App said" as extra
   information. Like the app's level, it stays hidden until the Cardiologist submits, so the review stays blind.
 - **Price:** free on the Dashboard. The report, long-term trends and family view stay Premium.
-- **The AI coach note** never mentions the risk %.
+- **The AI summary on Trends** never mentions the risk % (it bans the word "risk" and any number not in its facts).
 
 ## Limitations to state in the manuscript
 

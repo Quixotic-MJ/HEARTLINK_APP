@@ -53,6 +53,23 @@ describe("HeartRiskCard", () => {
     expect(onAnswerQuestions).toHaveBeenCalledTimes(1);
   });
 
+  it("asks for a reading when the risk used a typical blood pressure", async () => {
+    const user = userEvent.setup();
+    const onLog = jest.fn();
+    await render(
+      <HeartRiskCard risk={{ ...CALCULATED, kind: "estimated", sbp: null, note: null, missing_labs: ["cholesterol", "kidney"] }}
+        onAnswerQuestions={jest.fn()} onAddLabResults={jest.fn()} onLogBloodPressure={onLog} />,
+    );
+    expect(screen.getByText(/so this uses a typical value/)).toBeOnTheScreen();
+    await user.press(screen.getByRole("link", { name: "Log blood pressure" }));
+    expect(onLog).toHaveBeenCalledTimes(1);
+  });
+
+  it("doesn't ask for a reading when one was used", async () => {
+    await show(CALCULATED);
+    expect(screen.queryByText(/so this uses a typical value/)).not.toBeOnTheScreen();
+  });
+
   it("explains the age limit", async () => {
     await show({ available: false, reason: "age", age: 24 });
     expect(screen.getByText(/start at age 30/)).toBeOnTheScreen();

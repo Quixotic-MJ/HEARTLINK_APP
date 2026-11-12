@@ -50,7 +50,7 @@ import { TourSpot, useDashboardTour } from "../../../components/dashboard/Dashbo
 import { HeartRiskCard } from "../../../components/dashboard/HeartRiskCard";
 import { riskOf } from "../../../services/heartRisk";
 import { ScoreExplanationModal } from "../../../components/dashboard/ScoreExplanationModal";
-import { TodayCard, ScorePage, HabitsPage, LatestReadingPage, sleepText } from "../../../components/dashboard/TodayCard";
+import { TodayCard, ScorePage, HabitsPage, sleepText } from "../../../components/dashboard/TodayCard";
 import { CheckinGrid, type CheckinTile, type MedicineStatus } from "../../../components/dashboard/TodayTiles";
 import { PressureWeek } from "../../../components/dashboard/PressureWeek";
 import { useWeekTrends } from "../../../hooks/useWeekTrends";
@@ -460,11 +460,6 @@ export default function DashboardScreen() {
   ];
 
   const week = useWeekTrends(userId);
-  const latestAt = data?.latest_vitals?.logged_at ? new Date(data.latest_vitals.logged_at) : null;
-  const latestWhen =
-    latestAt && !Number.isNaN(latestAt.getTime())
-      ? `${latestAt.toDateString() === new Date().toDateString() ? "Today" : latestAt.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}, ${latestAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
-      : null;
   // The score sound plays with the heart ring when the score is one the patient hasn't heard yet,
   // not on every visit (the last one heard is remembered on the phone)
   useEffect(() => {
@@ -504,7 +499,6 @@ export default function DashboardScreen() {
   const { tour, start: startTour } = useDashboardTour({
     // The recommendations only show when there are some and the score isn't critical.
     shown: {
-      risk: true,
       score: true,
       note: !!data?.insight,
       missions: true,
@@ -833,27 +827,13 @@ export default function DashboardScreen() {
           />
         ) : null}
 
-        {/* ── Today: the title, then the swipe card (Heart score, habits, latest reading) ── */}
+        {/* ── Today: the title, then the swipe card (habits score, today's habits, Heart risk; owner's choice 2026-11-12) ── */}
         <View style={{ marginTop: 4, marginBottom: -6 }}>
           <Text accessibilityRole="header" style={{ fontSize: 28, fontWeight: "700", letterSpacing: -0.6, color: c.ink }}>
             Today
           </Text>
           <Text style={{ fontSize: 14, color: c.slate }}>{todayLabel}</Text>
         </View>
-
-        {/* ── HL-144: Heart risk (AHA PREVENT) first; the habits score is the swipe card under it ── */}
-        <Reanimated.View entering={FadeInDown.delay(80).duration(260)}>
-          <TourSpot target="risk" tour={tour}>
-            <HeartRiskCard
-              risk={riskOf(data?.hss_factors)}
-              onAddLabResults={() => {
-                Haptics.selectionAsync();
-                router.push("/(home)/(settings)/lab-results");
-              }}
-              onAnswerQuestions={() => router.push("/(home)/(settings)/heart-answers")}
-            />
-          </TourSpot>
-        </Reanimated.View>
 
         <Reanimated.View entering={FadeInDown.delay(100).duration(260)}>
           <TourSpot target="score" tour={tour}>
@@ -881,13 +861,13 @@ export default function DashboardScreen() {
                       >
                         {isCritical && (
                           <Animated.View
-                            className="absolute w-[140px] h-[140px] rounded-full bg-danger-tint"
+                            className="absolute w-[178px] h-[178px] rounded-full bg-danger-tint"
                             style={{ opacity: glowOpacity }}
                           />
                         )}
                         <ScoreRing
                           score={hssScore}
-                          size={150}
+                          size={190}
                           color={theme.barColor}
                           refreshTrigger={dataUpdatedAt}
                           celebrateTrigger={completedCount}
@@ -911,16 +891,18 @@ export default function DashboardScreen() {
                   ),
                 },
                 {
-                  key: "reading",
-                  label: "Latest reading",
+                  key: "risk",
+                  label: "Heart risk",
                   content: (
-                    <LatestReadingPage
-                      systolic={latestSbp}
-                      diastolic={latestDbp}
-                      bpm={latestBpm}
-                      pulseContext={data?.latest_vitals?.context}
-                      when={latestWhen}
-                      onLog={() => handleMissionPress("vitals")}
+                    <HeartRiskCard
+                      framed={false}
+                      risk={riskOf(data?.hss_factors)}
+                      onAddLabResults={() => {
+                        Haptics.selectionAsync();
+                        router.push("/(home)/(settings)/lab-results");
+                      }}
+                      onAnswerQuestions={() => router.push("/(home)/(settings)/heart-answers")}
+                      onLogBloodPressure={() => handleMissionPress("vitals")}
                     />
                   ),
                 },
@@ -1038,27 +1020,6 @@ export default function DashboardScreen() {
                     <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "700", color: c.ink, letterSpacing: -0.3 }}>
                       Picked for you
                     </Text>
-                    <View
-                      style={{
-                        paddingHorizontal: 8,
-                        paddingVertical: 2.5,
-                        borderRadius: 999,
-                        backgroundColor: isDark ? "rgba(14, 165, 233, 0.16)" : "#E0F2FE",
-                        borderWidth: 1,
-                        borderColor: isDark ? "rgba(14, 165, 233, 0.3)" : "#BAE6FD",
-                      }}
-                    >
-                      <Text
-                        style={{
-                          fontSize: 11,
-                          fontWeight: "700",
-                          color: isDark ? "#38BDF8" : "#0284C7",
-                          letterSpacing: 0.3,
-                        }}
-                      >
-                        DAILY PICKS
-                      </Text>
-                    </View>
                   </View>
                   <TouchableOpacity
                     onPress={() => safeNavigate("/(home)/(tabs)/explore")}
@@ -1066,8 +1027,8 @@ export default function DashboardScreen() {
                     accessibilityLabel="See all picks in Explore"
                     style={{ height: 44, justifyContent: "center", flexDirection: "row", alignItems: "center", gap: 3 }}
                   >
-                    <Text style={{ fontSize: 14.5, fontWeight: "600", color: isDark ? "#38BDF8" : "#0284C7" }}>See all</Text>
-                    <Feather name="chevron-right" size={15} color={isDark ? "#38BDF8" : "#0284C7"} />
+                    <Text style={{ fontSize: 15, fontWeight: "600", color: c.link }}>See all</Text>
+                    <Feather name="chevron-right" size={16} color={c.link} />
                   </TouchableOpacity>
                 </Reanimated.View>
                 <ScrollView

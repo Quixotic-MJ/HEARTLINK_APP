@@ -99,6 +99,14 @@ export function thirtyYearText(risk: Extract<HeartRisk, { available: true }>): s
   return `Over 30 years: ${percentText(risk.ascvd_30)}`;
 }
 
+/**
+ * 2026-11-12: true when the risk used a typical blood pressure because there's no reading in the last 30 days. A
+ * reading helps the estimate far more than another question would (HEART_RISK.md: High called High 59% → 78%).
+ */
+export function needsReading(risk: HeartRisk | null | undefined): boolean {
+  return !!risk && risk.available && !risk.sbp;
+}
+
 export function pressureUsedText(risk: Extract<HeartRisk, { available: true }>): string | null {
   const sbp = risk.sbp;
   if (!sbp) return "No blood pressure in the last 30 days, so a typical value was used.";
