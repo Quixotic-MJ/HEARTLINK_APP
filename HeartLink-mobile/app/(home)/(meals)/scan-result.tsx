@@ -112,7 +112,7 @@ export default function ScanResultScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.canvas }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.canvas }} edges={["top", "bottom"]}>
       <StatusBar style={isDark ? "light" : "dark"} />
       <FoodHeader title="Check the product" onBack={() => router.back()} />
 

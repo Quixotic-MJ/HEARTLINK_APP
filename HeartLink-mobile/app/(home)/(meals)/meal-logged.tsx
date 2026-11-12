@@ -34,7 +34,7 @@ export default function MealLoggedScreen() {
   const summary = sodiumSummary(Number(params.earlier) || 0, mealSodium, Number(params.limit) || undefined);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.canvas }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.canvas }} edges={["top", "bottom"]}>
       <StatusBar style={isDark ? "light" : "dark"} />
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 56, paddingBottom: 24, gap: 24 }}>
         <View style={{ width: 56, height: 56, borderRadius: 12, backgroundColor: c.mint, alignItems: "center", justifyContent: "center" }}>
