@@ -47,6 +47,8 @@ export function useExploreScore() {
         recommendations?: { id: string | number; type: string }[];
         hidden_items?: { id: string | number; type: string }[];
         exercise_screening?: { answered: boolean; paused: boolean; state?: string; reason?: string | null } | null;
+        has_recent_severe_symptom?: boolean;
+        emergency_reading_pause?: boolean;
       };
       return {
         score: d.hss_score ?? null,
@@ -56,6 +58,8 @@ export function useExploreScore() {
         hidden: (d.hidden_items ?? []).map((h) => `${h.type}:${h.id}`),
         // HL-123: the safety check result decides which exercises are offered, never the score
         screening: d.exercise_screening ?? null,
+        // The 24-hour rest after a severe symptom, or a pause after an emergency-level reading: breathing only
+        resting: !!d.has_recent_severe_symptom || !!d.emergency_reading_pause,
       };
     },
   });

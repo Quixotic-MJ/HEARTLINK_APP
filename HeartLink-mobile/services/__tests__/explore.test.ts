@@ -29,16 +29,23 @@ describe("browse by need", () => {
     expect(recipesForNeed("quick", recipes, "Moderate").map((r) => r.id)).toEqual(["oatmeal", "tofu"]);
   });
 
-  it("finds seated and breathing exercises", () => {
-    const exercises = [
-      exercise("yoga", "15-Minute Chair Yoga", "Stationary"),
-      exercise("lifts", "Leg Lifts", "Stationary", "Stable", "Seated"),
-      exercise("walk", "Neighborhood Walk", "Light Cardio"),
-      exercise("breath", "Paced Breathing", "Breathing"),
-      exercise("breath-critical", "Relaxation", "Breathing", "Critical"),
-    ];
-    expect(exercisesForNeed("seated", exercises, "Moderate").map((e) => e.id)).toEqual(["yoga", "lifts"]);
-    expect(exercisesForNeed("breathing", exercises, "Moderate").map((e) => e.id)).toEqual(["breath"]);
+  const exercises = [
+    exercise("yoga", "15-Minute Chair Yoga", "Stationary"),
+    exercise("lifts", "Leg Lifts", "Stationary", "Stable", "Seated"),
+    exercise("walk", "Neighborhood Walk", "Light Cardio"),
+    exercise("breath", "Paced Breathing", "Breathing"),
+    exercise("breath-critical", "Relaxation", "Breathing", "Critical"),
+  ];
+
+  it("finds seated and breathing exercises, whatever the score level (HL-123)", () => {
+    expect(exercisesForNeed("seated", exercises).open.map((e) => e.id)).toEqual(["yoga", "lifts"]);
+    expect(exercisesForNeed("breathing", exercises).open.map((e) => e.id)).toEqual(["breath", "breath-critical"]);
+  });
+
+  it("lets the safety check decide, and counts what it holds back", () => {
+    const res = exercisesForNeed("seated", exercises, (e) => e.id !== "lifts");
+    expect(res.open.map((e) => e.id)).toEqual(["yoga"]);
+    expect(res.heldBack).toBe(1);
   });
 });
 

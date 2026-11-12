@@ -1,4 +1,4 @@
-import { exerciseAllowed, isWorkoutPaused, needsScreening, pauseReason } from "../exerciseSession";
+import { exerciseAllowed, exerciseOpenNow, isWorkoutPaused, needsScreening, pauseReason } from "../exerciseSession";
 import { picksForScore, toExploreExercise } from "../explore";
 
 const screen = (state: string, extra: Record<string, unknown> = {}) => ({
@@ -88,5 +88,21 @@ describe("Explore picks follow the safety check (HL-123)", () => {
     expect(picks.exercises.map((e) => e.id)).toEqual(["easy", "calm"]);
     const all = picksForScore([], [], exercises, "Critical", 5);
     expect(all.exercises.map((e) => e.id)).toEqual(["walk", "easy", "calm"]);
+  });
+});
+
+describe("exerciseOpenNow: what the picks suggest", () => {
+  const harder = { type: "Light Cardio", level: "Intermediate" };
+  const breathing = { type: "Breathing", level: "" };
+  const eligible = { answered: true, paused: false, state: "eligible" };
+
+  it("suggests breathing only during the 24-hour rest or after an emergency reading, like the server", () => {
+    expect(exerciseOpenNow(eligible, true, harder)).toBe(false);
+    expect(exerciseOpenNow(eligible, true, breathing)).toBe(true);
+  });
+
+  it("otherwise follows the safety check", () => {
+    expect(exerciseOpenNow(eligible, false, harder)).toBe(true);
+    expect(exerciseOpenNow({ ...eligible, state: "caution" }, false, harder)).toBe(false);
   });
 });

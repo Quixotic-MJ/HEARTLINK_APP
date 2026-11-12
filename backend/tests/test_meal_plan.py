@@ -76,6 +76,11 @@ def test_allergies_and_diet_are_respected():
     assert not {"l2", "d1", "l3"} & set(picked(vegetarian))  # chicken, fish, shrimp
 
 
+def test_meals_the_care_team_hid_are_left_out():
+    """HL-057: a recipe marked not suitable for this patient stays out of the plan, as it does from the suggestions."""
+    assert "l1" in picked(plan())
+    assert "l1" not in picked(plan(hidden={("recipe", "l1")}))
+
 def test_no_recipes_yet_means_every_meal_is_your_choice():
     p = plan(recipes=[])
     assert all(m["recipe"] is None and m["choice_limit_mg"] == 1200 for d in p["days"] for m in d["meals"])
@@ -115,6 +120,7 @@ def api(monkeypatch):
     monkeypatch.setattr(mp, "get_baseline_repo", lambda: type("B", (), {
         "get_baseline": lambda s, u: {"allergies": ["shellfish"]}, "get_thresholds": lambda s, u: None})())
     monkeypatch.setattr(mp, "get_content_repo", lambda: type("C", (), {"list_recipes": lambda s: RECIPES})())
+    monkeypatch.setattr(mp.review_feedback, "hidden_items", lambda uid: set())
     saved = dict(app.dependency_overrides)
     app.dependency_overrides[get_current_user] = lambda: {"user_id": "p1", "role": "patient"}
     yield TestClient(app), profile

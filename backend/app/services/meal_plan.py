@@ -24,6 +24,7 @@ from app.db.repositories import get_baseline_repo, get_content_repo, get_profile
 from app.services.dashboard import recipe_warnings
 from app.services.health_report import TZ
 from app.services.nutrition_targets import compute_targets
+from app.services import review_feedback
 from app.services.recipes import is_visible_to_patients
 from app.utils.time import to_local_date, utc_now
 
@@ -53,11 +54,15 @@ def _servings(recipe: Dict[str, Any]) -> float:
         return 1.0
 
 
-def suitable_recipes(recipes: List[Dict[str, Any]], diet: str, allergies: List[str]) -> Dict[str, List[Dict[str, Any]]]:
-    """Approved recipes that suit this patient, by meal (Breakfast / Lunch / Dinner), in a stable order."""
+def suitable_recipes(recipes: List[Dict[str, Any]], diet: str, allergies: List[str],
+                     hidden: Optional[set] = None) -> Dict[str, List[Dict[str, Any]]]:
+    """Approved recipes that suit this patient, by meal (Breakfast / Lunch / Dinner), in a stable order. `hidden` is
+    what the care team marked not suitable for this patient (HL-057), left out as in the suggestions."""
     pools: Dict[str, List[Dict[str, Any]]] = {meal: [] for meal in MEALS}
+    hidden = hidden or set()
     for r in recipes:
-        if is_visible_to_patients(r) and r.get("category") in pools and not recipe_warnings(r, diet, allergies):
+        if (is_visible_to_patients(r) and r.get("category") in pools and not recipe_warnings(r, diet, allergies)
+                and ("recipe", str(r.get("id"))) not in hidden):
             pools[r["category"]].append(r)
     for meal in MEALS:
         pools[meal].sort(key=lambda r: (str(r.get("name") or ""), str(r.get("id"))))
@@ -137,8 +142,8 @@ def _brief(recipe: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def build_plan(recipes: List[Dict[str, Any]], sodium_limit: float, diet: str, allergies: List[str], seed: str,
-               start: date) -> Dict[str, Any]:
-    pools = suitable_recipes(recipes, diet, allergies)
+               start: date, hidden: Optional[set] = None) -> Dict[str, Any]:
+    pools = suitable_recipes(recipes, diet, allergies, hidden)
     rng = random.Random(seed)
     order = {meal: rng.sample(range(len(pools[meal])), len(pools[meal])) for meal in MEALS}
     budget = sodium_limit * (1 - SNACK_SHARE)
@@ -192,5 +197,6 @@ def plan_for(user_id: str, week: Optional[str] = None, shuffle: int = 0) -> Dict
         answers.get("allergies") or [],
         seed=f"{profile.get('id') or user_id}:{start.isoformat()}:{shuffle}",
         start=start,
+        hidden=review_feedback.hidden_items(profile.get("id") or user_id),
     )
     return {**plan, "shuffle": shuffle}
