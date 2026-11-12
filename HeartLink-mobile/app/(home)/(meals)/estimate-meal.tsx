@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useUser } from "../../../contexts/UserContext";
 import { useToast } from "../../../contexts/ToastContext";
 import { logMealAndGetToast } from "../../../services/MealLoggingService";
@@ -16,9 +16,14 @@ import { AmountStepper, FoodHeader, ImpactNote, NutrientField } from "../../../c
 import { mealTimeForHour } from "../../../services/foodLogging";
 import { EstimateHelper } from "../../../components/meals/EstimateHelper";
 import { EstimateSelection, describe, estimateTotals } from "../../../services/mealEstimate";
+import { InfoNote } from "../../../components/onboarding/QuestionLayout";
+import { useChangePlanMeal } from "../../../hooks/useMealPlan";
+import { MealName, mealTitle } from "../../../services/mealPlan";
 
 // HL-157: the old quick presets (sinigang, tinola, rice) had no recorded source; "Help me estimate" replaces them with
 // cited USDA values (constants/estimateFoods.ts). FNRI values replace those when FNRI's servers are back.
+// HL-159: opened from the meal plan (plan_date and plan_meal), it's "My own meal": the estimate goes into the plan as the
+// patient's own estimate and nothing is logged.
 
 const GUIDE = [
   {
@@ -43,6 +48,11 @@ export default function ManualMealLogScreen() {
 
   const { userId, token } = useUser();
   const { showToast } = useToast();
+  const params = useLocalSearchParams<{ plan_date?: string; plan_meal?: string }>();
+  const planMeal = (["Breakfast", "Lunch", "Dinner"] as const).find((m) => m === params.plan_meal) as MealName | undefined;
+  const planMode = !!params.plan_date && !!planMeal;
+  const planTitle = planMode && planMeal ? mealTitle(params.plan_date!, planMeal) : "";
+  const changePlan = useChangePlanMeal();
 
   const [foodDescription, setFoodDescription] = useState("");
   // HL-157: "Help me estimate" (the default) or "Use a food label" (exact numbers, as before)
@@ -103,6 +113,26 @@ export default function ManualMealLogScreen() {
 
     setIsSubmitting(true);
 
+    if (planMode && planMeal && params.plan_date) {
+      // "My own meal" for the plan: saved as the patient's estimate, not logged
+      const name = foodDescription.trim().slice(0, 80);
+      changePlan.mutate(
+        { date: params.plan_date, meal: planMeal, own: { name, sodium_mg: totalSodium, calories: totalCalories || null } },
+        {
+          onSuccess: () => {
+            setIsSubmitting(false);
+            showToast({ title: "Plan updated", message: `${name} for ${planTitle}, as your estimate`, type: "success" });
+            router.dismissTo("/(home)/(meals)/meal-plan");
+          },
+          onError: (e) => {
+            setIsSubmitting(false);
+            showToast({ title: "Couldn't change the meal", message: e.message, type: "error" });
+          },
+        }
+      );
+      return;
+    }
+
     const payload = {
       meal_name: foodDescription.trim(),
       portion: servings,
@@ -154,7 +184,7 @@ export default function ManualMealLogScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.canvas }} edges={["top", "bottom"]}>
       <StatusBar style={isDark ? "light" : "dark"} />
-      <FoodHeader title="Estimate a meal" onBack={() => router.back()} />
+      <FoodHeader title={planMode ? "My own meal" : "Estimate a meal"} onBack={() => router.back()} />
 
       <KeyboardAwareScrollView
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 32, gap: 20 }}
@@ -162,6 +192,10 @@ export default function ManualMealLogScreen() {
         keyboardShouldPersistTaps="handled"
         extraScrollHeight={20}
       >
+        {planMode ? (
+          <InfoNote icon="calendar" text={`For ${planTitle} in your meal plan, as your own estimate. It isn't logged: log the meal when you eat it.`} />
+        ) : null}
+
         {/* HL-157: help me estimate, or exact numbers from a food label */}
         <View accessibilityRole="tablist" style={{ flexDirection: "row", padding: 4, borderRadius: 10, backgroundColor: c.surface }}>
           {([
@@ -247,7 +281,7 @@ export default function ManualMealLogScreen() {
       </KeyboardAwareScrollView>
 
       <View className="px-5 pt-3 pb-5" style={{ borderTopWidth: 1, borderTopColor: c.hairlineSoft, backgroundColor: c.canvas }}>
-        <DsButton label="Save meal" onPress={executeSave} loading={isSubmitting} />
+        <DsButton label={planMode ? `Use for ${planTitle}` : "Save meal"} onPress={executeSave} loading={isSubmitting} />
       </View>
 
       {/* Estimation Guide */}

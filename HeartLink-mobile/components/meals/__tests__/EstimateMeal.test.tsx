@@ -3,6 +3,8 @@ import { render as rtlRender, screen, userEvent } from "@testing-library/react-n
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import EstimateMealScreen from "../../../app/(home)/(meals)/estimate-meal";
 import { logMealAndGetToast } from "../../../services/MealLoggingService";
+import { apiFetch } from "../../../lib/api";
+import { createTestQueryClient, queryClientWrapper } from "../../../test-utils/reactQuery";
 
 // HL-157: Meals › Estimate a meal. "Help me estimate" fills the numbers from the dish, portion and hidden salt;
 // "Use a food label" keeps the exact entry.
@@ -11,6 +13,14 @@ jest.mock("../../../contexts/UserContext", () => ({ useUser: () => ({ userId: "u
 const mockShowToast = jest.fn();
 jest.mock("../../../contexts/ToastContext", () => ({ useToast: () => ({ showToast: mockShowToast }) }));
 jest.mock("../../../services/MealLoggingService", () => ({ logMealAndGetToast: jest.fn() }));
+jest.mock("../../../lib/api", () => ({ apiFetch: jest.fn() }));
+// HL-159: the meal plan opens this screen with plan_date and plan_meal ("My own meal")
+let mockParams: Record<string, string> = {};
+const mockDismissTo = jest.fn();
+jest.mock("expo-router", () => ({
+  useRouter: () => ({ push: jest.fn(), back: jest.fn(), replace: jest.fn(), dismissTo: mockDismissTo }),
+  useLocalSearchParams: () => mockParams,
+}));
 jest.mock("react-native-keyboard-aware-scroll-view", () => {
   const { ScrollView } = jest.requireActual("react-native");
   return { KeyboardAwareScrollView: ScrollView };
@@ -19,9 +29,12 @@ jest.mock("react-native-keyboard-aware-scroll-view", () => {
 const metrics = { frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 0, left: 0, right: 0, bottom: 0 } };
 
 async function renderScreen() {
+  const Wrapper = queryClientWrapper(createTestQueryClient());
   await rtlRender(
     <SafeAreaProvider initialMetrics={metrics}>
-      <EstimateMealScreen />
+      <Wrapper>
+        <EstimateMealScreen />
+      </Wrapper>
     </SafeAreaProvider>,
   );
 }
@@ -36,7 +49,10 @@ const savedPayload = () => (logMealAndGetToast as jest.Mock).mock.calls[0][2];
 describe("Estimate a meal (HL-157)", () => {
   beforeEach(() => {
     (logMealAndGetToast as jest.Mock).mockReset();
+    (apiFetch as jest.Mock).mockReset();
     mockShowToast.mockReset();
+    mockDismissTo.mockReset();
+    mockParams = {};
   });
 
   it("adds up the dish, the portion and the hidden salt, and saves them", async () => {
@@ -84,5 +100,21 @@ describe("Estimate a meal (HL-157)", () => {
     await user.type(screen.getByLabelText("Calories in kcal"), "140");
     await user.press(screen.getByRole("button", { name: "Save meal" }));
     expect(savedPayload()).toMatchObject({ meal_name: "Crackers", sodium_mg: 320, calories: 140, portion: 1 });
+  }, SCREEN_TEST_MS);
+
+  it("from the meal plan, saves My own meal to the plan as an estimate and logs nothing (HL-159)", async () => {
+    const user = userEvent.setup();
+    mockParams = { plan_date: "2026-11-17", plan_meal: "Lunch" };
+    (apiFetch as jest.Mock).mockResolvedValue({ ok: true, status: 204, json: async () => ({}) });
+    await renderScreen();
+    expect(screen.getByText("My own meal")).toBeOnTheScreen();
+    expect(screen.getByText(/It isn't logged/)).toBeOnTheScreen();
+    await user.press(screen.getByRole("radio", { name: /^Fried rice \(no meat\)/ }));
+    await user.press(screen.getByRole("button", { name: "Use for Tuesday's lunch" }));
+    expect(apiFetch).toHaveBeenCalledWith("/api/meal-plan/changes", expect.objectContaining({ method: "PUT" }));
+    const body = JSON.parse((apiFetch as jest.Mock).mock.calls[0][1].body);
+    expect(body).toEqual({ date: "2026-11-17", meal: "Lunch", own: { name: "Fried rice (no meat), 1 cup", sodium_mg: 530, calories: 238 } });
+    expect(logMealAndGetToast).not.toHaveBeenCalled();
+    expect(mockDismissTo).toHaveBeenCalledWith("/(home)/(meals)/meal-plan");
   }, SCREEN_TEST_MS);
 });

@@ -12,9 +12,23 @@ export interface PlannedRecipe {
   calories: number | null;
 }
 
+/** HL-159: the patient's own estimate for a meal ("My own meal"); never shown as approved */
+export interface OwnMeal {
+  name: string;
+  sodium_mg: number;
+  calories: number | null;
+}
+
 export interface PlannedMeal {
   meal: MealName;
   recipe: PlannedRecipe | null;
+  /** HL-159: the plan's pick, the patient's swap, their own meal, or "Your choice" (older servers send none) */
+  kind?: "plan" | "swap" | "own" | "choice";
+  own?: OwnMeal;
+  /** A saved (bookmarked) recipe */
+  saved?: boolean;
+  /** The patient's swap no longer suits them (unpublished, a new allergy), so this is the plan's pick again */
+  swap_gone?: boolean;
   /** For "Your choice": the sodium left for this meal that day */
   choice_limit_mg?: number;
 }
@@ -42,6 +56,30 @@ export interface MealPlan {
   days: PlanDay[];
   shopping_list: ShoppingItem[];
   note: string;
+  /** HL-159: how many meals this week the patient changed */
+  changes?: number;
+}
+
+/** HL-159: approved recipes the patient can swap in for one meal (GET /api/meal-plan/options) */
+export interface PlanOptions {
+  date: string;
+  meal: MealName;
+  /** The sodium this meal can have and keep the day within its budget */
+  room_mg: number;
+  current: PlannedMeal;
+  options: (PlannedRecipe & { saved: boolean })[];
+}
+
+/** "Tuesday's lunch" */
+export function mealTitle(iso: string, meal: MealName): string {
+  const d = new Date(`${iso}T12:00:00`);
+  const day = Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString("en-US", { weekday: "long" });
+  return `${day}'s ${meal.toLowerCase()}`;
+}
+
+/** The sodium a planned meal adds to its day: the recipe's, or the patient's own estimate. */
+export function mealSodium(m: PlannedMeal): number {
+  return m.own ? m.own.sodium_mg : m.recipe ? m.recipe.sodium_mg : 0;
 }
 
 export const MAX_PEOPLE = 6;
@@ -64,6 +102,7 @@ export function mg(n: number): string {
 
 /** The day line: "About 1,050 mg sodium from these meals; your limit is 1,500 mg." */
 export function daySodiumLine(day: PlanDay, limit: number): string {
+  if (day.sodium_mg > limit) return `About ${mg(day.sodium_mg)} sodium from these meals: over your daily limit of ${mg(limit)}.`;
   return `About ${mg(day.sodium_mg)} sodium from these meals; your daily limit is ${mg(limit)}.`;
 }
 

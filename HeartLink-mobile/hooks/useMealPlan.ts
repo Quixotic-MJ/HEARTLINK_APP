@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { apiFetch } from "../lib/api";
 import { useUser } from "../contexts/UserContext";
 import { PremiumRequiredError } from "./useHealthReport";
-import { MealPlan, thisWeek } from "../services/mealPlan";
+import { MealName, MealPlan, OwnMeal, PlanOptions, thisWeek } from "../services/mealPlan";
 
 // HL-155: the weekly meal plan (Premium). A free account gets PremiumRequiredError instead of an error.
 
@@ -53,4 +53,60 @@ export function usePlanNumber(week = thisWeek()) {
     });
   }, [userId, week]);
   return { week, shuffle, next };
+}
+
+// ─── HL-159: changing single meals ───────────────────────────────────────────
+
+/** Approved recipes that suit the patient and fit the day's sodium, to swap in for one meal. */
+export function usePlanOptions(date: string, meal: MealName, shuffle: number | null) {
+  const { userId } = useUser();
+  return useQuery({
+    queryKey: ["mealPlanOptions", userId, date, meal, shuffle],
+    enabled: !!userId && shuffle !== null && !!date,
+    queryFn: async (): Promise<PlanOptions> => {
+      const res = await apiFetch(`/api/meal-plan/options?date=${date}&meal=${meal}&shuffle=${shuffle}`);
+      if (!res.ok) throw new Error("Couldn't load the choices");
+      return res.json();
+    },
+  });
+}
+
+export type PlanChange =
+  | { date: string; meal: MealName; recipe_id: string }
+  | { date: string; meal: MealName; own: OwnMeal }
+  | { date: string; meal: MealName; putBack: true };
+
+async function detailOf(res: Response, fallback: string): Promise<string> {
+  const body = await res.json().catch(() => null);
+  return typeof body?.detail === "string" ? body.detail : fallback;
+}
+
+/** Swap a meal, make it "My own meal", or put the plan's pick back. The plan reloads afterwards. */
+export function useChangePlanMeal() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (change: PlanChange) => {
+      const res =
+        "putBack" in change
+          ? await apiFetch(`/api/meal-plan/changes?date=${change.date}&meal=${change.meal}`, { method: "DELETE" })
+          : await apiFetch("/api/meal-plan/changes", { method: "PUT", body: JSON.stringify(change) });
+      if (!res.ok) throw new Error(await detailOf(res, "Couldn't change the meal. Check your connection, then try again."));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["mealPlan"] });
+      queryClient.invalidateQueries({ queryKey: ["mealPlanOptions"] });
+    },
+  });
+}
+
+/** Every change in the week, gone: the plan's own picks again. */
+export function useUndoPlanChanges() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (week: string) => {
+      const res = await apiFetch(`/api/meal-plan/changes?week=${week}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(await detailOf(res, "Couldn't undo your changes. Check your connection, then try again."));
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["mealPlan"] }),
+  });
 }
