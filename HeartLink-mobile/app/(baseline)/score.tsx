@@ -13,6 +13,7 @@ import { useUser } from "../../contexts/UserContext";
 import { getToken, getUserId as getStoredUserId } from "../../lib/secureTokenStore";
 import { light, scoreBand, ScoreBand, DsColors } from "../../constants/theme";
 import { apiFetch } from "../../lib/api";
+import { CHOLESTEROL_LIMIT_MG, SODIUM_LIMIT_MG } from "../../services/dailyLimits";
 
 const mapSleepHours = (val: string) => {
   switch (val) {
@@ -326,6 +327,11 @@ export default function ScoreScreen() {
         <SetupRisk risk={state.risk} />
       </Animated.View>
 
+      {/* HL-156: the strict daily limits, from the guidelines, shown from day one */}
+      <Animated.View entering={FadeInDown.delay(1025).duration(350)} style={{ marginBottom: 14 }}>
+        <SetupLimits />
+      </Animated.View>
+
       {state.helping.length || state.grow.length ? (
         <Animated.View entering={FadeInDown.delay(1050).duration(350)} className="flex-row" style={{ gap: 10 }}>
           {state.helping.length ? (
@@ -387,6 +393,27 @@ export default function ScoreScreen() {
 }
 
 /** HL-145: the estimated Heart risk on setup's last screen, or why there isn't one. */
+function SetupLimits() {
+  const { c } = useDs();
+  const row = (label: string, value: string) => (
+    <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+      <Text style={{ fontSize: 15, color: c.charcoal }}>{label}</Text>
+      <Text style={{ fontSize: 15, fontWeight: "700", color: c.ink }}>{value}</Text>
+    </View>
+  );
+  return (
+    <View style={{ padding: 16, borderRadius: 14, borderWidth: 1.5, borderColor: c.hairline, backgroundColor: c.canvas, gap: 8 }}>
+      <Text style={{ fontSize: 16, fontWeight: "700", color: c.ink }}>Your daily limits</Text>
+      {row("Sodium", `${SODIUM_LIMIT_MG.toLocaleString("en-US")} mg`)}
+      {row("Cholesterol from food", `${CHOLESTEROL_LIMIT_MG} mg`)}
+      <Text style={{ fontSize: 12.5, lineHeight: 18, color: c.steel }}>
+        From the American Heart Association and the Philippine Heart Association guidelines. HeartLink checks your meals
+        against them. Your care team can set a stricter limit for you.
+      </Text>
+    </View>
+  );
+}
+
 function SetupRisk({ risk }: { risk: HeartRisk | null }) {
   const { c } = useDs();
   if (!risk) return null;

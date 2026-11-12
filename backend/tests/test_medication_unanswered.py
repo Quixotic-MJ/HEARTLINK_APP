@@ -72,3 +72,34 @@ def test_dashboard_counts_no_medicines_as_not_taken(monkeypatch, medication, exp
     for name in ("get_meals_repo", "get_exercises_repo", "get_sleep_repo"):
         monkeypatch.setattr(dashboard, name, lambda: Empty())
     assert dashboard._get_today_activity(PATIENT_ID)["medication_taken"] is expected
+
+
+# --- HL-156: the latest weight ------------------------------------------------------------------------
+
+class WeightProfiles(FakeProfileRepo):
+    def __init__(self, fail=False):
+        self.updates, self.fail = [], fail
+
+    def update(self, user_id, data):
+        if self.fail:
+            raise RuntimeError("db down")
+        self.updates.append((user_id, data))
+        return data
+
+
+@pytest.mark.parametrize("fail", [False, True])
+def test_a_check_in_weight_becomes_the_profile_weight(saved, monkeypatch, fail):
+    """The Cardiologist: use the latest weight, not an average. A failed update never breaks the check-in."""
+    profiles = WeightProfiles(fail)
+    monkeypatch.setattr(repos, "get_profile_repo", lambda: profiles)
+    res = _post({"weight_kg": 71.5, "medication_taken": True})
+    assert res.status_code in (200, 201)
+    assert saved and saved[-1]["weight_kg"] == 71.5
+    assert profiles.updates == ([] if fail else [(PATIENT_ID, {"weight_kg": 71.5})])
+
+
+def test_a_check_in_without_weight_leaves_the_profile_alone(saved, monkeypatch):
+    profiles = WeightProfiles()
+    monkeypatch.setattr(repos, "get_profile_repo", lambda: profiles)
+    _post({"medication_taken": True})
+    assert profiles.updates == []

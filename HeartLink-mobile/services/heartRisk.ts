@@ -25,8 +25,9 @@ export type HeartRisk =
   | { available: false; reason: "age" | "questions" | "profile" | "no_estimate"; age?: number; missing?: string[] };
 
 export const PREVENT_PAPER_URL = "https://doi.org/10.1161/CIRCULATIONAHA.123.067626";
+// HL-156: the Cardiologist asked for the evidence-based, accredited-organization wording
 export const DISCLAIMER =
-  "Based on the latest American Heart Association guidelines. An estimate to discuss with your doctor, not a diagnosis.";
+  "Based on the latest evidence-based guidelines from accredited health organizations (American Heart Association, Philippine Heart Association). An estimate to discuss with your doctor, not a diagnosis.";
 
 const BAND_LABELS: Record<RiskBand, string> = { low: "Low", borderline: "Borderline", intermediate: "Intermediate", high: "High" };
 

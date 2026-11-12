@@ -33,6 +33,7 @@ import {
   useSavedRecipes,
 } from "../../../hooks/useExploreData";
 import { useRefetchOnFocus } from "../../../hooks/useRefetchOnFocus";
+import { MealPlanCard } from "../../../components/meals/MealPlanCard";
 import {
   NEEDS,
   NeedId,
@@ -327,6 +328,9 @@ export default function ExploreTabScreen() {
               </AnimatedButton>
             ))}
           </View>
+
+          {/* HL-155: the week's meal plan (Premium), where people look for food. Hidden while searching. */}
+          {!q ? <MealPlanCard /> : null}
         </Animated.View>
 
         {/* Search Results Mode */}

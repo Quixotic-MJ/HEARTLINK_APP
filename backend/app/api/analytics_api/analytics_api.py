@@ -6,6 +6,9 @@ from app.services.progress_summary import SUMMARY_DAYS, build_summary
 from app.services.premium import require_premium
 from app.utils.security import get_current_user, verify_user_access, check_expert_permission
 from app.schemas.user import ThresholdsUpdateRequest
+from app.services.nutrition_targets import SODIUM_LIMIT_MG
+
+STRICT_LIMITS_MESSAGE = "Your daily limits come from heart-health guidelines. Your care team can set a lower one."
 
 router = APIRouter(prefix="/api/analytics", tags=["Analytics"])
 
@@ -48,7 +51,21 @@ def update_user_thresholds(
 ):
     verify_user_access(current_user, user_id)
     check_expert_permission(current_user, "vitals:write")
-    res = update_thresholds(user_id, payload.model_dump())
+    data = payload.model_dump(exclude_none=True)
+    # HL-156: strict daily limits. A patient can't change their sodium limit (sending the guideline value is ignored,
+    # for older app builds); the care team can only set a stricter (lower) one.
+    sodium = data.get("sodium_limit_mg")
+    if sodium is not None:
+        if current_user.get("role") == "patient":
+            if sodium != SODIUM_LIMIT_MG:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=STRICT_LIMITS_MESSAGE)
+            data.pop("sodium_limit_mg")
+        elif sodium > SODIUM_LIMIT_MG:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail=f"A personal sodium limit can only be stricter than {SODIUM_LIMIT_MG:,} mg.")
+    if not data:
+        return {"success": True, "message": "Nothing to change", "data": {}}
+    res = update_thresholds(user_id, data)
     return {"success": True, "message": "Thresholds updated", "data": res}
 
 

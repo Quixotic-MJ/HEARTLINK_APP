@@ -94,13 +94,26 @@ def test_limits_follow_weight_changes():
     assert before["calories"]["value"] != after["calories"]["value"]
 
 
-def test_saved_limits_always_win():
+def test_a_higher_saved_sodium_or_cholesterol_limit_is_ignored():
+    """HL-156: strict limits. An older, higher limit a patient saved never loosens the guideline."""
     saved = {"sodium_limit_mg": 2300, "cholesterol_limit_mg": 300, "daily_calories": 1800}
     t = compute_targets(profile(), answers(), saved)
-    assert t["sodium_mg"] == {"value": 2300, "source": nt.SOURCE_PERSONAL, "why": t["sodium_mg"]["why"]}
-    assert t["cholesterol_mg"]["value"] == 300 and t["cholesterol_mg"]["source"] == nt.SOURCE_PERSONAL
+    assert t["sodium_mg"]["value"] == 1500 and t["sodium_mg"]["source"] == nt.SOURCE_AHA_SODIUM
+    assert t["cholesterol_mg"]["value"] == 200 and t["cholesterol_mg"]["source"] == nt.SOURCE_TLC
     assert t["calories"]["value"] == 1800 and t["calories"]["source"] == nt.SOURCE_PERSONAL
     assert t["sat_fat_g"]["value"] == 12  # follows the saved calories: 1,800 x 6% / 9
+
+
+def test_a_stricter_limit_from_the_care_team_is_used():
+    t = compute_targets(profile(), answers(), {"sodium_limit_mg": 1200, "cholesterol_limit_mg": 150})
+    assert t["sodium_mg"] == {"value": 1200, "source": nt.SOURCE_CARE_TEAM, "why": nt.STRICTER_WHY}
+    assert t["cholesterol_mg"]["value"] == 150 and t["cholesterol_mg"]["source"] == nt.SOURCE_CARE_TEAM
+
+
+def test_the_sources_name_the_philippine_guidelines_too():
+    t = compute_targets(profile(), answers(), None)
+    assert "Philippine Heart Association" in t["sodium_mg"]["source"]
+    assert "Philippine dyslipidemia guidelines" in t["cholesterol_mg"]["source"]
 
 
 def test_saved_values_equal_to_the_guideline_keep_the_guideline_source():
@@ -145,10 +158,10 @@ def test_targets_for_user_reads_profile_answers_and_saved_limits(monkeypatch):
             return answers()
 
         def get_thresholds(self, user_id):
-            return {"sodium_limit_mg": 1800}
+            return {"sodium_limit_mg": 1300}
 
     monkeypatch.setattr(nt, "get_profile_repo", lambda: Profiles())
     monkeypatch.setattr(nt, "get_baseline_repo", lambda: Baselines())
     t = nt.targets_for_user("patient-1")
     assert t["calories"]["value"] == 1880
-    assert t["sodium_mg"]["value"] == 1800
+    assert t["sodium_mg"]["value"] == 1300
