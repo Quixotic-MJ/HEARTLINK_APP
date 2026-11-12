@@ -53,6 +53,18 @@ never supplies food values. Since HL-157 the only local food list is the estimat
 [USDA FoodData Central](https://fdc.nal.usda.gov/). FNRI's [Philippine Food Composition Tables](https://i.fnri.dost.gov.ph/fct/library)
 are the better source for Filipino food; FNRI's servers were down on 2026-11-12, so USDA is used until they're back.
 
+## Weekly meal plan (HL-155, HL-159)
+
+| Rule | What happens | Where |
+|---|---|---|
+| Recipes | Dietitian-approved and published, no allergy or diet clash, not hidden by the care team | `meal_plan.py` (`suitable_recipes`) |
+| Sodium | Each day's meals stay within 80% of the daily limit (20% kept for snacks and drinks); a meal that can't fit is "Your choice" | `meal_plan.py` |
+| Patient's swap | Another recipe that passes the same rules and fits the day; checked again every time the plan is read, and the plan's pick comes back if it no longer suits | `meal_plan.py`, `meal_plan_changes` |
+| "My own meal" | The patient's own estimate (the estimate helper or a label): counts against the day's sodium, shown as "Your estimate", never as approved, not on the shopping list; a day over the limit says so | `meal_plan.py`, `estimate-meal.tsx` |
+| Saved recipes | Picked first, each at most twice a week and never two days running (**HeartLink's own choice**) | `meal_plan.py` |
+
+A planned meal isn't a logged meal: only meals the patient logs count toward the day's totals and the Heart score.
+
 ## Estimate helper values (HL-157)
 
 Meals › Estimate a meal › **Help me estimate**: the patient picks the closest dish and portion, then adds the sauces,

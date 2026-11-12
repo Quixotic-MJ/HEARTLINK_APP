@@ -24,6 +24,7 @@ from app.db.repositories.exercise_screening import ExerciseScreeningRepository, 
 from app.db.repositories.lab_results import LabResultsRepository, SupabaseLabResultsRepository
 from app.db.repositories.premium import PremiumRepository, SupabasePremiumRepository
 from app.db.repositories.family import FamilyRepository, SupabaseFamilyRepository
+from app.db.repositories.meal_plan_changes import MealPlanChangesRepository, SupabaseMealPlanChangesRepository
 
 _profile_repo = None
 _baseline_repo = None
@@ -45,6 +46,7 @@ _lab_results_repo = None
 _patient_notes_repo = None
 _premium_repo = None
 _family_repo = None
+_meal_plan_changes_repo = None
 
 def get_profile_repo() -> ProfileRepository:
     global _profile_repo
@@ -168,3 +170,9 @@ def get_family_repo() -> FamilyRepository:
     if _family_repo is None:
         _family_repo = SupabaseFamilyRepository(get_supabase_client())
     return _family_repo
+
+def get_meal_plan_changes_repo() -> MealPlanChangesRepository:
+    global _meal_plan_changes_repo
+    if _meal_plan_changes_repo is None:
+        _meal_plan_changes_repo = SupabaseMealPlanChangesRepository(get_supabase_client())
+    return _meal_plan_changes_repo
