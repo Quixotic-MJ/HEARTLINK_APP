@@ -650,3 +650,7 @@ flowchart TD
     H -- Yes --> I["Leaves the Queue"]
     E --> J["Model Check<br/>(verified clinicians)"]
 ```
+
+> **Daily limits (HL-156):** sodium 1,500 mg and food cholesterol 200 mg come from the AHA and Philippine Heart
+> Association guidelines and are shown at the end of setup and in Settings › Health targets and limits. Patients can't
+> change them; only the care team can set a stricter one. A weight logged at a check-in becomes the profile weight.

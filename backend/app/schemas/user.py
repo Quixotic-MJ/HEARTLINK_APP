@@ -259,14 +259,17 @@ class CareTeamContactRequest(BaseModel):
 
 # Health Thresholds
 class ThresholdsUpdateRequest(BaseModel):
-    sodium_limit_mg: int = Field(..., ge=500, le=5000)
-    fluid_limit_ml: Optional[int] = Field(default=2000, ge=500, le=5000)
-    active_minutes_goal: int = Field(..., ge=0, le=300)
-    systolic_threshold: int = Field(..., ge=80, le=200)
-    diastolic_threshold: int = Field(..., ge=40, le=130)
+    """HL-156: every field is optional; only what's sent is saved. Sodium limits are strict (see analytics_api)."""
+    sodium_limit_mg: Optional[int] = Field(default=None, ge=500, le=5000)
+    fluid_limit_ml: Optional[int] = Field(default=None, ge=500, le=5000)
+    active_minutes_goal: Optional[int] = Field(default=None, ge=0, le=300)
+    systolic_threshold: Optional[int] = Field(default=None, ge=80, le=200)
+    diastolic_threshold: Optional[int] = Field(default=None, ge=40, le=130)
 
     @model_validator(mode="after")
     def validate_blood_pressure_thresholds(self):
+        if self.systolic_threshold is None or self.diastolic_threshold is None:
+            return self
         if self.systolic_threshold <= self.diastolic_threshold:
             raise ValueError("systolic_threshold must be strictly greater than diastolic_threshold")
         if (self.systolic_threshold - self.diastolic_threshold) < 15:

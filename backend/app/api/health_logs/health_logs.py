@@ -102,6 +102,17 @@ def add_health_log(
 
     log = create_health_log(user_id, data)
 
+    # HL-156 (the Cardiologist: use the latest weight, not an average): a weight from a check-in becomes the profile's
+    # weight, so BMI, calorie targets and the Heart risk follow it. Done before the score below is worked out. A failure
+    # only logs; the check-in is already saved.
+    if weight is not None:
+        try:
+            from app.db.repositories import get_profile_repo
+            get_profile_repo().update(user_id, {"weight_kg": weight})
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning("Couldn't update the profile weight (%s)", type(e).__name__)
+
     # HL-087: followers hear about an emergency-level reading. FastAPI runs this after the response is sent, and it
     # never raises, so the patient's own save and emergency warning are never delayed or changed.
     from app.services.family import is_emergency, notify_followers

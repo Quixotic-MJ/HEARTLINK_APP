@@ -24,7 +24,9 @@ TARGET_SYSTOLIC, TARGET_DIASTOLIC = 130, 80
 FREE_REPORT_DAYS = (7,)  # 2026-11-12: the free weekly Visit summary
 TZ = "Asia/Manila"
 NO_SYMPTOM = "None (Feeling fine)"
-DISCLAIMER = ("For discussion with your doctor. Based on the latest American Heart Association guidelines. "
+# HL-156: the Cardiologist asked for the evidence-based, accredited-organization wording
+DISCLAIMER = ("For discussion with your doctor. Based on the latest evidence-based guidelines from accredited health "
+              "organizations (American Heart Association, Philippine Heart Association). "
               "HeartLink is a wellness tool, not a diagnosis.")
 
 # American Heart Association blood pressure categories, checked from the most urgent down

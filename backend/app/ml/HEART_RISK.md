@@ -46,6 +46,9 @@ special device worn for a day, which a phone can't do. HeartLink uses the closes
 | With no daytime readings this week, the latest reading from the last 30 days | [HeartLink] |
 | With no reading in 30 days, the estimate uses a typical value, and the explanation says so | [HeartLink] |
 
+The Philippine hypertension guideline (PSH/PHA 2020, J Clin Hypertens 2021;23:1637–50) also prefers ABPM and accepts
+home blood pressure monitoring as an alternative, which is what the app has (HL-156).
+
 ## Bands (lower is better)
 
 | 10-year risk | Band | What happens |

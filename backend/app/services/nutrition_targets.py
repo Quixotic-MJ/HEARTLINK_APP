@@ -7,7 +7,9 @@ from app.db.repositories import get_profile_repo, get_baseline_repo
 # HL-016 / HL-017: daily food limits from published heart-health guidelines, worked out from the patient's
 # profile and setup answers every time they are read, so they follow weight changes with no stored copy.
 # Every number and its source is listed in backend/HEALTH_TARGETS.md. Pending review by the cardiologist and
-# dietitian. A value set in user_thresholds (by the patient or an expert) always wins.
+# dietitian.
+# HL-156 (the Cardiologist: "strict daily limits for sodium and cholesterol"): a saved sodium or cholesterol limit is used
+# only when it's stricter (lower) than the guideline; patients can't raise it, and only the care team sets a lower one.
 
 SODIUM_LIMIT_MG = 1500  # AHA ideal limit for most adults, especially with high blood pressure
 SODIUM_CEILING_MG = 2000  # WHO: under 2,000 mg a day for all adults
@@ -29,11 +31,13 @@ ACTIVITY_LEVELS = [
     (float("inf"), 1.725, "very active"),
 ]
 
-SOURCE_AHA_SODIUM = "American Heart Association"
+SOURCE_AHA_SODIUM = "American Heart Association; Philippine Heart Association and Philippine Society of Hypertension"
 SOURCE_AHA_SAT_FAT = "American Heart Association"
-SOURCE_TLC = "NCEP Therapeutic Lifestyle Changes diet"
+SOURCE_TLC = "Philippine dyslipidemia guidelines (low-cholesterol diet); NCEP Therapeutic Lifestyle Changes diet (200 mg)"
 SOURCE_MIFFLIN = "Mifflin-St Jeor equation"
 SOURCE_PERSONAL = "Set for you"
+SOURCE_CARE_TEAM = "Set by your care team"
+STRICTER_WHY = "Your care team set a stricter limit for you."
 SOURCE_DEFAULT = "Standard adult value"
 
 
@@ -143,20 +147,22 @@ def compute_targets(
     }
 
     # ── Cholesterol ──
+    # HL-156: only a stricter (lower) saved limit counts
     set_chol = _set_value(thresholds, "cholesterol_limit_mg")
-    if set_chol and set_chol != CHOLESTEROL_LIMIT_MG:
-        cholesterol = {"value": round(set_chol), "source": SOURCE_PERSONAL, "why": "Set for you by you or your care team."}
+    if set_chol and set_chol < CHOLESTEROL_LIMIT_MG:
+        cholesterol = {"value": round(set_chol), "source": SOURCE_CARE_TEAM, "why": STRICTER_WHY}
     else:
         cholesterol = {"value": CHOLESTEROL_LIMIT_MG, "source": SOURCE_TLC,
-                       "why": "The heart-healthy eating plan for lowering cholesterol keeps food cholesterol under 200 mg a day."}
+                       "why": "A low-cholesterol diet keeps food cholesterol under 200 mg a day."}
 
     # ── Sodium ──
+    # HL-156: only a stricter (lower) saved limit counts; an older, higher one a patient saved is ignored
     set_sodium = _set_value(thresholds, "sodium_limit_mg")
-    if set_sodium and set_sodium != SODIUM_LIMIT_MG:
-        sodium = {"value": round(set_sodium), "source": SOURCE_PERSONAL, "why": "Set for you by you or your care team."}
+    if set_sodium and set_sodium < SODIUM_LIMIT_MG:
+        sodium = {"value": round(set_sodium), "source": SOURCE_CARE_TEAM, "why": STRICTER_WHY}
     else:
         sodium = {"value": SODIUM_LIMIT_MG, "source": SOURCE_AHA_SODIUM,
-                  "why": f"The ideal limit for blood pressure. The World Health Organization's upper limit is {SODIUM_CEILING_MG:,} mg."}
+                  "why": "The limit advised for healthy blood pressure, in both the American and the Philippine guidelines."}
 
     return {
         "bmi": bmi,

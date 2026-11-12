@@ -5,8 +5,9 @@
 > review them. Change them in `app/services/nutrition_targets.py`, then update this file.
 
 HeartLink is a wellness tool, not a diagnostic device. These are everyday guideline amounts, not a
-prescription. A limit saved for a patient in `user_thresholds` (by the patient on Health Targets & Limits,
-or by an expert) always wins over the guideline value.
+prescription. **HL-156 (strict limits, as the Cardiologist asked):** sodium and cholesterol come from the guidelines.
+A patient can't raise or change them; only the care team can save a **stricter** (lower) one, and a higher saved value
+is ignored.
 
 The targets are worked out every time they are read (dashboard, Health Targets & Limits), from the profile
 (`date_of_birth`, `sex`, `height_cm`, `weight_kg`) and the setup answers. Nothing extra is stored, so they
@@ -16,8 +17,8 @@ follow weight changes straight away.
 
 | Target | Value | How it is worked out | Source |
 |---|---|---|---|
-| Sodium | 1,500 mg a day | Fixed. The WHO upper limit for all adults is 2,000 mg. | AHA ideal limit[^aha-sodium]; WHO[^who-sodium] |
-| Cholesterol (from food) | 200 mg a day | Fixed (HL-147: a strict daily limit, as the Cardiologist asked). | NCEP ATP III Therapeutic Lifestyle Changes (TLC) diet[^tlc] |
+| Sodium | 1,500 mg a day | Fixed. The WHO upper limit for all adults is 2,000 mg. | AHA ideal limit[^aha-sodium]; PSH/PHA 2020 Philippine hypertension guideline, "sodium restriction to as low as 1500 mg/day"[^psh-pha]; WHO[^who-sodium] |
+| Cholesterol (from food) | 200 mg a day | Fixed (HL-147: a strict daily limit, as the Cardiologist asked). | PHA/PLAS 2020 Philippine dyslipidemia guideline: a low-fat, low-cholesterol diet at any risk level[^pha-plas] (no number); the 200 mg is the NCEP ATP III Therapeutic Lifestyle Changes (TLC) diet[^tlc] |
 | Saturated fat | 6% of the calorie target ÷ 9 kcal/g, rounded to whole grams (13 g on 2,000 kcal) | Follows the calorie target. | AHA: 5–6% of calories for people who need to lower LDL cholesterol[^aha-satfat] |
 | Calories | Resting energy × activity factor, −500 kcal when BMI is 25 or more, never below 1,200 (women) / 1,500 (men), rounded to 10 kcal | See below. | Mifflin-St Jeor equation[^mifflin] |
 | BMI | weight (kg) ÷ height (m)² | Shown with its category. | WHO Asia-Pacific cut-offs[^bmi] |
@@ -57,12 +58,13 @@ follow weight changes straight away.
 | Date of birth or sex | BMI is still shown. Calories 2,000 kcal, as above. |
 | Setup answers | Activity factor 1.2. |
 
-## Saved limits (always win)
+## Saved limits (stricter only, HL-156)
 
-| `user_thresholds` column | Overrides |
+| `user_thresholds` column | Rule |
 |---|---|
-| `sodium_limit_mg` | Sodium. Setup saves 1,500 for every patient; a value equal to 1,500 is shown with the AHA source, any other value as "Set for you". |
-| `cholesterol_limit_mg` | Cholesterol. The column defaults to 200; same rule as sodium. |
+| `sodium_limit_mg` | Used only when **lower** than 1,500 ("Set by your care team"). Setup saves 1,500; older higher values a patient saved are ignored. `PUT /api/analytics/{id}/thresholds`: a patient can't change it (403); an expert can only set 500–1,500. |
+| `cholesterol_limit_mg` | Used only when **lower** than 200. The column defaults to 200. |
+| `active_minutes_goal` | The patient's daily movement goal (Settings › Health targets and limits). The only value a patient changes. |
 | `daily_calories` (not a column yet) | Calories, and so saturated fat. Read if it is ever added. |
 
 ## Where it shows
@@ -72,6 +74,12 @@ follow weight changes straight away.
 - `GET /api/analytics/{user_id}` → `targets`: every value with its `source` and a short `why`, shown on
   Health Targets & Limits.
 
+[^psh-pha]: Philippine Society of Hypertension and Philippine Heart Association. *Executive summary of the 2020 clinical
+  practice guidelines for the management of hypertension in the Philippines.* J Clin Hypertens 2021;23(9):1637–1650.
+  https://doi.org/10.1111/jch.14335 (Statement 4.1; it also prefers ABPM, with home monitoring as an acceptable alternative.)
+[^pha-plas]: Philippine Heart Association, Philippine Lipid and Atherosclerosis Society, et al. *Executive summary of the 2020
+  clinical practice guidelines for the management of dyslipidemia in the Philippines.* JAFES 2021;36(1).
+  https://doi.org/10.15605/jafes.036.01.01
 [^aha-sodium]: American Heart Association, *How much sodium should I eat per day?*
   https://heart.org/en/healthy-living/healthy-eating/eat-smart/sodium/how-much-sodium-should-i-eat-per-day
 [^who-sodium]: World Health Organization, *Reducing sodium intake to reduce blood pressure and risk of
@@ -93,5 +101,9 @@ follow weight changes straight away.
 - **Personal calories:** the calorie target already uses age, weight, height and sex (Mifflin-St Jeor). Heart rate isn't
   added: there's no standard formula for a whole day's calories from heart rate, only for exercise sessions. It's worked
   out inside HeartLink, so no health data goes to an outside service (Data Privacy Act of 2012).
-- **Disclaimer:** the Heart risk, food and report screens say the information follows the latest American Heart
-  Association guidelines and isn't a diagnosis.
+- **Disclaimer:** the Heart risk, setup result, food and report screens say the information follows "the latest
+  evidence-based guidelines from accredited health organizations (American Heart Association, Philippine Heart
+  Association)" and isn't a diagnosis (HL-156).
+- **Latest values (HL-156):** a weight logged at a check-in becomes the profile weight, so BMI, calories and the Heart
+  risk use the latest weight. Height comes from the profile. The latest resting heart rate is shown as logged; it isn't
+  part of any limit (no standard daily-calorie formula uses it).
