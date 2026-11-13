@@ -44,11 +44,11 @@ export default async function homeRefinement(page) {
         await main.getByRole("status", { name: "Loading account and content statuses", exact: true }).waitFor();
         assert(await main.locator(".skeleton").count() === 3, "Overview initial load lacks structural skeletons");
         release(); gate = null;
-        await main.getByRole("heading", { name: "Content workflow", exact: true }).waitFor();
+        await main.getByRole("heading", { name: "Recipes and exercises", exact: true }).waitFor();
         await main.getByText("24", { exact: true }).first().waitFor();
-        assert(await main.getByText("Sample data / Design preview—not live", { exact: true }).count() === 1, "Overview score data lacks its persistent sample disclosure");
-        assert(await main.getByText(/including on published records/).count() === 1, "Approval metadata loses its overlap explanation");
-        assert(await main.getByText(/lack review metadata/).count() === 2, "Missing review warnings are hidden");
+        assert(await main.getByText(/Sample data|Design preview/).count() === 0, "The overview shows made-up sample data");
+        assert(await main.getByText(/isn't approved yet/).count() === 2, "Published but unapproved recipes and exercises aren't flagged");
+        assert(await main.getByRole("rowheader", { name: "Total", exact: true }).count() === 1, "The status table has no total");
       } else {
         await main.getByRole("heading", { name: "Welcome back, Synthetic.", exact: true }).waitFor();
         assert(await main.locator(".score-design-preview").count() === 0, "Expert receives an Admin score preview");
@@ -87,7 +87,7 @@ export default async function homeRefinement(page) {
         gate = new Promise((resolve) => { release = resolve; });
         await main.getByRole("button", { name: "Refresh", exact: true }).click();
         await main.getByRole("status").filter({ hasText: "Updating overview" }).waitFor();
-        assert(await main.getByRole("heading", { name: "Content workflow", exact: true }).isVisible(), "Background refresh clears saved counts");
+        assert(await main.getByRole("heading", { name: "Recipes and exercises", exact: true }).isVisible(), "Background refresh clears saved counts");
         assert(await main.locator(".skeleton").count() === 0, "Background refresh shows first-load skeletons");
         release(); gate = null;
         await main.getByRole("button", { name: "Refresh", exact: true }).waitFor();
@@ -95,27 +95,16 @@ export default async function homeRefinement(page) {
         await local.reload();
         await main.getByRole("alert").waitFor();
         assert(await main.locator(".home-snapshot").count() === 0, "Error is misrepresented as actual zero counts");
-        assert(await main.getByText("Sample data / Design preview—not live", { exact: true }).isVisible(), "Sample preview loses its disclosure on an actual API error");
         mode = "zero";
         await main.getByRole("button", { name: "Try again", exact: true }).click();
-        await main.getByRole("heading", { name: "Content workflow", exact: true }).waitFor();
+        await main.getByRole("heading", { name: "Recipes and exercises", exact: true }).waitFor();
         assert((await main.locator(".home-snapshot dd").allTextContents()).every((value) => value === "0"), "Actual zero counts are not retained");
         mode = "partial";
         await local.reload();
         await main.locator(".home-account-states").getByText("Unknown", { exact: true }).waitFor();
         await local.goto(origin + "/analytics");
         await main.getByRole("heading", { name: "Analytics & reporting", exact: true }).waitFor();
-        const preview = main.getByRole("region", { name: "Synthetic analytics design preview", exact: true });
-        await preview.getByText("Sample data / Design preview—not live", { exact: true }).waitFor();
-        await preview.getByLabel("Sample period", { exact: true }).selectOption("6months");
-        await preview.getByText("6-month sample · illustrative score values", { exact: true }).waitFor();
-        assert(await preview.locator(".score-preview-bar-track").count() === 6, "Sample period control does not change illustrative chart");
-        for (const viewport of viewports) {
-          await local.setViewportSize(viewport);
-          assert(!await local.evaluate(() => document.documentElement.scrollWidth > innerWidth), "Analytics preview overflows");
-          if (viewport.width !== 812) await local.screenshot({ path: `.tmp/analytics-preview-${viewport.width}.png` });
-        }
-        assert(!requests.some((request) => /analytics|health|hss|dashboard\/me/.test(request)), "Sample preview requested health analytics");
+        assert(await main.getByText(/Sample data|Design preview/).count() === 0, "Analytics shows made-up sample data");
       } else {
         await local.goto(origin + "/dashboard");
         await local.waitForURL(origin + home);

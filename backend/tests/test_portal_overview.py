@@ -21,8 +21,9 @@ def portal(monkeypatch):
                      {"role": "legacy", "account_status": None}],
         "recipes": [{"status": "draft", "expert_validated": False},
                     {"status": "published", "expert_validated": True, "reviewed_by": "reviewer", "reviewed_at": "2026-11-07"},
-                    {"status": "published", "expert_validated": True},
-                    {"status": "archived"}],
+                    {"status": "published", "expert_validated": True, "name": "Steamed fish"},
+                    {"status": "archived"},
+                    {"status": "draft", "expert_validated": True, "reviewed_by": "reviewer", "reviewed_at": "2026-11-08"}],
         "exercise_routines": [{"status": "draft", "review_note": "Revise the instructions"}],
     }
 
@@ -67,12 +68,12 @@ def test_overview_reports_only_operational_counts(portal):
         "accounts": {"consumers": 2, "staff": 2, "unknown_role": 1,
                      "active": 2, "disabled": 1, "archived": 1, "unknown_status": 1},
         "content": {
-            "recipes": {"total": 4, "draft": 1, "published": 2, "archived": 1, "unknown_status": 0,
-                        "approval_recorded": 1, "awaiting_review": 1, "changes_requested": 0,
-                        "published_without_review": 1},
+            "recipes": {"total": 5, "draft": 2, "published": 2, "archived": 1, "unknown_status": 0,
+                        "approval_recorded": 2, "awaiting_review": 1, "changes_requested": 0, "approved_draft": 1,
+                        "published_without_review": 1, "published_without_review_names": ["Steamed fish"]},
             "exercises": {"total": 1, "draft": 1, "published": 0, "archived": 0, "unknown_status": 0,
-                          "approval_recorded": 0, "awaiting_review": 0, "changes_requested": 1,
-                          "published_without_review": 0},
+                          "approval_recorded": 0, "awaiting_review": 0, "changes_requested": 1, "approved_draft": 0,
+                          "published_without_review": 0, "published_without_review_names": []},
         },
     }
 

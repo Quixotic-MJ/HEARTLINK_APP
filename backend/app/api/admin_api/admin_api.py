@@ -73,8 +73,10 @@ def get_admin_dashboard(current_user: dict = Depends(get_current_admin_only)):
         for kind in ("recipes", "exercises"):
             counts = dict.fromkeys(
                 ("total", "draft", "published", "archived", "unknown_status", "approval_recorded",
-                 "awaiting_review", "changes_requested", "published_without_review"), 0
+                 "awaiting_review", "changes_requested", "approved_draft", "published_without_review"), 0
             )
+            # The names of published items no expert approved yet: patients don't see them, so someone must act
+            unapproved: list = []
             for row in repo.list_portal_content_statuses(kind):
                 counts["total"] += 1
                 status = row.get("status")
@@ -82,11 +84,15 @@ def get_admin_dashboard(current_user: dict = Depends(get_current_admin_only)):
                 approved = bool(row.get("expert_validated") and row.get("reviewed_by") and row.get("reviewed_at"))
                 if status != "archived" and approved:
                     counts["approval_recorded"] += 1
-                elif status == "draft":
-                    counts["changes_requested" if row.get("review_note") else "awaiting_review"] += 1
+                # Every draft is in exactly one of these three, so the rows add up to the total
+                if status == "draft":
+                    key = "approved_draft" if approved else "changes_requested" if row.get("review_note") else "awaiting_review"
+                    counts[key] += 1
                 if status == "published" and not approved:
                     counts["published_without_review"] += 1
-            content[kind] = counts
+                    if row.get("name") and len(unapproved) < 10:
+                        unapproved.append(str(row["name"]))
+            content[kind] = {**counts, "published_without_review_names": unapproved}
         return {"accounts": accounts, "content": content, "generated_at": utc_now().isoformat()}
     except Exception as error:
         logger.warning("Operational overview unavailable (%s)", type(error).__name__)

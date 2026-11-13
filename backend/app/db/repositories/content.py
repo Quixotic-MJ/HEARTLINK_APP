@@ -82,7 +82,7 @@ class SupabaseContentRepository(ContentRepository):
     def list_portal_content_statuses(self, kind: str) -> List[Dict[str, Any]]:
         table = {"recipes": "recipes", "exercises": "exercise_routines"}[kind]
         return list_projected_rows(
-            self.client, table, "status,expert_validated,reviewed_by,reviewed_at,review_note"
+            self.client, table, "name,status,expert_validated,reviewed_by,reviewed_at,review_note"
         )
 
     def _resolve_user_uuid(self, user_id: str) -> Optional[str]:
