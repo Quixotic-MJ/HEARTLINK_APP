@@ -23,7 +23,9 @@ from app.db.client import get_supabase_client
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 from app.utils.security import create_access_token
 from app.utils.phone import normalize_e164
-from app.db.repositories import get_profile_repo, get_pending_registration_repo
+from app.db.repositories import (
+    get_profile_repo, get_pending_registration_repo, get_password_reset_repo, get_refresh_token_repo,
+)
 from app.services import email_service
 
 
@@ -86,6 +88,21 @@ def _hash_signup_code(phone: str, code: str) -> str:
 def _wrong_code_detail(tries_left: int) -> str:
     return f"That code isn't right. You have {tries_left} {'try' if tries_left == 1 else 'tries'} left."
 
+# Forgot password on the phone (migration 052): the code is emailed, lasts this long, and has SIGNUP_CODE_MAX_ATTEMPTS tries
+RESET_CODE_TTL = timedelta(minutes=10)
+RESET_SENT_MESSAGE = "If an account matches, we've emailed a 6-digit code to its email address."
+RESET_EXPIRED_DETAIL = "This code has expired or was already used. Go back and send a new code."
+RESET_TOO_MANY_TRIES_DETAIL = "Too many wrong codes. Go back and send a new code."
+RESET_EMAIL_FAILED_DETAIL = "We couldn't send the email just now. Please try again in a minute."
+RESET_UNAVAILABLE_DETAIL = "Password reset by email isn't available right now. Please contact your care team."
+RESET_FAILED_DETAIL = "We couldn't change your password just now. Please try again."
+
+
+def _hash_reset_code(user_id: str, code: str) -> str:
+    """Same keyed hash as the sign-up code, marked as a reset code so the two can never match each other."""
+    return _hash_signup_code(f"reset:{user_id}", code)
+
+
 # HL-051: a login with no profile that is at most this old is the half-finished result of the same
 # sign-up (for example the first try timed out), so a retry may finish it instead of being blocked
 HALF_FINISHED_SIGNUP_WINDOW = timedelta(minutes=15)
@@ -141,6 +158,12 @@ class AuthService:
     def forgot_password(self, identifier: str) -> Dict[str, Any]:
         raise NotImplementedError
 
+    def request_password_reset(self, identifier: str) -> Dict[str, Any]:
+        raise NotImplementedError
+
+    def reset_password(self, identifier: str, code: str, new_password: str) -> Dict[str, Any]:
+        raise NotImplementedError
+
     def verify_credentials(self, user_id: str, password: str) -> bool:
         raise NotImplementedError
 
@@ -149,10 +172,11 @@ class AuthService:
 
 
 class SupabaseAuthService(AuthService):
-    def __init__(self, client, pending_repo=None):
+    def __init__(self, client, pending_repo=None, reset_repo=None):
         self.client = client
         # HL-046: pending sign-ups live in the database, so a restart or another worker doesn't lose them
         self._pending_repo = pending_repo
+        self._reset_repo = reset_repo
 
     @property
     def pending(self):
@@ -707,6 +731,113 @@ class SupabaseAuthService(AuthService):
             "success": True,
             "message": "If the account exists, password recovery instructions have been sent."
         }
+
+    # --- Forgot password on the phone: an emailed 6-digit code, then a new password -------------------------------
+    # (The web portal's "Forgot password" still uses forgot_password above.)
+
+    @property
+    def resets(self):
+        if self._reset_repo is None:
+            self._reset_repo = get_password_reset_repo()
+        return self._reset_repo
+
+    def _reset_account(self, identifier: str) -> Optional[Dict[str, Any]]:
+        """The active patient account for this email or phone number (any Philippine format) that has an email."""
+        ident = (identifier or "").strip()
+        if not ident:
+            return None
+        profile_repo = get_profile_repo()
+        if "@" in ident:
+            profile = profile_repo.get_by_identifier(ident.lower())
+        else:
+            profile = None
+            for variant in dict.fromkeys([normalize_e164(ident), ident, _digits(ident)]):
+                if variant:
+                    profile = profile_repo.get_by_identifier(variant)
+                if profile:
+                    break
+        if not profile or (profile.get("role") or "patient") != "patient":
+            return None
+        if profile.get("account_status") != "active" or not (profile.get("email") or "").strip():
+            return None
+        return profile
+
+    def request_password_reset(self, identifier: str) -> Dict[str, Any]:
+        """
+        Emails a 6-digit code to the account's address. The answer is the same whether or not an account matched,
+        so this can't be used to find out who has an account.
+        """
+        profile = self._reset_account(identifier)
+        if profile:
+            user_id = str(profile["id"])
+            if email_service.is_email_configured():
+                code, by_email = _new_signup_code(), True
+            else:
+                code, by_email = get_dev_otp_code(), False
+                if code is None:
+                    raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=RESET_UNAVAILABLE_DETAIL)
+            self.resets.delete_expired()
+            self.resets.save(user_id, _hash_reset_code(user_id, code), (utc_now() + RESET_CODE_TTL).isoformat())
+            if by_email:
+                try:
+                    email_service.send_reset_code(profile["email"].strip(), code, int(RESET_CODE_TTL.total_seconds() // 60))
+                except email_service.EmailSendError:
+                    self.resets.delete(user_id)
+                    raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=RESET_EMAIL_FAILED_DETAIL)
+        return {"success": True, "message": RESET_SENT_MESSAGE}
+
+    def reset_password(self, identifier: str, code: str, new_password: str) -> Dict[str, Any]:
+        """Sets a new password with the emailed code: 10 minutes, 5 tries, works once. Every session then ends."""
+        profile = self._reset_account(identifier)
+        if not profile:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=RESET_EXPIRED_DETAIL)
+        user_id = str(profile["id"])
+
+        row = self.resets.get(user_id)
+        if row and parse_utc(row["expires_at"]) < utc_now():
+            self.resets.delete(user_id)
+            row = None
+        # No code_hash: the code is being used right now, or was just used
+        if not row or not row.get("code_hash"):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=RESET_EXPIRED_DETAIL)
+
+        attempts = int(row.get("attempts") or 0)
+        if attempts >= SIGNUP_CODE_MAX_ATTEMPTS:
+            self.resets.delete(user_id)
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=RESET_TOO_MANY_TRIES_DETAIL)
+        if not self.resets.claim_attempt(user_id, attempts):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=CODE_BUSY_DETAIL)
+
+        code_hash = row["code_hash"]
+        if not hmac.compare_digest(_hash_reset_code(user_id, str(code).strip()), code_hash):
+            tries_left = SIGNUP_CODE_MAX_ATTEMPTS - (attempts + 1)
+            if tries_left <= 0:
+                self.resets.delete(user_id)
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=RESET_TOO_MANY_TRIES_DETAIL)
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=_wrong_code_detail(tries_left))
+
+        # Only one request can use the code
+        if not self.resets.consume_code(user_id, code_hash):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=RESET_EXPIRED_DETAIL)
+
+        try:
+            # The admin API changes the password without touching any session on the shared client
+            self.client.auth.admin.update_user_by_id(user_id, {"password": new_password})
+        except Exception as e:
+            logger.error("Password reset could not change the password (%s)", type(e).__name__)
+            try:
+                self.resets.restore_code(user_id, code_hash)
+            except Exception:
+                pass
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=RESET_FAILED_DETAIL)
+
+        self.resets.delete(user_id)
+        # Every device that was logged in is logged out, in case someone else had the old password
+        try:
+            get_refresh_token_repo().revoke_all_for_user(user_id, "password_reset")
+        except Exception as e:
+            logger.warning("Could not end old sessions after a password reset (%s)", type(e).__name__)
+        return {"success": True, "message": "Password changed. Log in with your new password."}
 
     def delete_user_identity(self, user_id: str) -> bool:
         try:

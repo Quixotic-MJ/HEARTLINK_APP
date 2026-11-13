@@ -1,7 +1,7 @@
 # backend/app/services/email_service.py
 """
 HeartLink Email Service (HL-052).
-Sends the sign-up code, one of two ways:
+Sends the sign-up code and the password reset code, one of two ways:
 - Brevo's email API over HTTPS: BREVO_API_KEY, MAIL_FROM. Works on hosts that block SMTP (Railway below Pro,
   Render free), so this is the one staging and live use. MAIL_FROM must be a sender verified in Brevo.
 - SMTP: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, MAIL_FROM. Port 587 uses STARTTLS (Gmail: smtp.gmail.com
@@ -84,18 +84,37 @@ def _logo_url() -> Optional[str]:
     return f"{base}{LOGO_PATH}" if base.startswith("https://") else None
 
 
-def _signup_code_text(code: str, minutes: int) -> str:
+# The words that differ between the sign-up code email and the password reset code email (the design is the same)
+COPY = {
+    "signup": {
+        "first_line": "Your HeartLink sign-up code is:",
+        "heading": "Your sign-up code",
+        "lead": "Enter this code in the HeartLink app to finish creating your account.",
+        "ignore": "If you didn't try to sign up, you can ignore this email; no account is made without the code.",
+    },
+    "reset": {
+        "first_line": "Your HeartLink password reset code is:",
+        "heading": "Your password reset code",
+        "lead": "Enter this code in the HeartLink app to set a new password.",
+        "ignore": "If you didn't ask to reset your password, you can ignore this email; your password stays the same.",
+    },
+}
+
+
+def _signup_code_text(code: str, minutes: int, kind: str = "signup") -> str:
+    words = COPY[kind]
     return (
-        f"Your HeartLink sign-up code is:\n\n"
+        f"{words['first_line']}\n\n"
         f"    {code}\n\n"
-        f"Enter it in the HeartLink app to finish creating your account. It expires in {minutes} minutes.\n\n"
+        f"{words['lead'][:-1]}. It expires in {minutes} minutes.\n\n"
         f"HeartLink will never ask you for this code by phone, text or chat.\n"
-        f"If you didn't try to sign up, you can ignore this email; no account is made without the code.\n"
+        f"{words['ignore']}\n"
     )
 
 
-def _signup_code_html(code: str, minutes: int, logo_url: Optional[str]) -> str:
+def _signup_code_html(code: str, minutes: int, logo_url: Optional[str], kind: str = "signup") -> str:
     """Table layout with inline styles, which is what email apps (Gmail, Outlook, phone mail) display reliably."""
+    words = {k: html.escape(v) for k, v in COPY[kind].items()}
     code = html.escape(code)
     font = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif"
     logo = (
@@ -124,9 +143,9 @@ def _signup_code_html(code: str, minutes: int, logo_url: Optional[str]) -> str:
       </tr></table>
     </td></tr>
     <tr><td style="padding:24px 32px 0 32px;font-family:{font};">
-      <h1 style="margin:0 0 8px 0;font-size:22px;line-height:28px;font-weight:600;color:{INK};">Your sign-up code</h1>
+      <h1 style="margin:0 0 8px 0;font-size:22px;line-height:28px;font-weight:600;color:{INK};">{words["heading"]}</h1>
       <p style="margin:0;font-size:15px;line-height:22px;color:{SLATE};">
-        Enter this code in the HeartLink app to finish creating your account.
+        {words["lead"]}
       </p>
     </td></tr>
     <tr><td style="padding:20px 32px 0 32px;">
@@ -141,7 +160,7 @@ def _signup_code_html(code: str, minutes: int, logo_url: Optional[str]) -> str:
         <tr><td style="border-top:1px solid {HAIRLINE};padding-top:16px;font-family:{font};font-size:13px;
                        line-height:19px;color:{STEEL};">
           HeartLink will never ask you for this code by phone, text or chat.<br>
-          If you didn't try to sign up, you can ignore this email; no account is made without the code.
+          {words["ignore"]}
         </td></tr>
       </table>
     </td></tr>
@@ -155,13 +174,13 @@ def _signup_code_html(code: str, minutes: int, logo_url: Optional[str]) -> str:
 </html>"""
 
 
-def _signup_code_message(sender: str, to_email: str, code: str, minutes: int) -> EmailMessage:
+def _signup_code_message(sender: str, to_email: str, code: str, minutes: int, kind: str = "signup") -> EmailMessage:
     msg = EmailMessage()
     msg["Subject"] = f"Your HeartLink code: {code}"
     msg["From"] = f"HeartLink <{sender}>"
     msg["To"] = to_email
-    msg.set_content(_signup_code_text(code, minutes))
-    msg.add_alternative(_signup_code_html(code, minutes, _logo_url()), subtype="html")
+    msg.set_content(_signup_code_text(code, minutes, kind))
+    msg.add_alternative(_signup_code_html(code, minutes, _logo_url(), kind), subtype="html")
     return msg
 
 
@@ -185,26 +204,25 @@ def _send_with_brevo(settings: Dict[str, str], msg: EmailMessage) -> None:
             timeout=SMTP_TIMEOUT_SECONDS,
         )
     except httpx.HTTPError as e:
-        logger.error("Sign-up email could not be sent (%s)", type(e).__name__)
+        logger.error("Code email could not be sent (%s)", type(e).__name__)
         raise EmailSendError(type(e).__name__) from e
     if res.status_code >= 300:
         # Brevo's reason (bad key, unverified sender) without the code itself
-        logger.error("Sign-up email could not be sent (Brevo %s: %s)", res.status_code, res.text[:200])
+        logger.error("Code email could not be sent (Brevo %s: %s)", res.status_code, res.text[:200])
         raise EmailSendError(f"Brevo {res.status_code}")
 
 
-def send_signup_code(to_email: str, code: str, minutes: int) -> None:
-    """Emails the sign-up code. Raises EmailSendError if it can't be sent."""
+def _send_code(to_email: str, code: str, minutes: int, kind: str) -> None:
     brevo = _brevo_settings()
     if brevo is not None:
-        _send_with_brevo(brevo, _signup_code_message(brevo["sender"], to_email, code, minutes))
+        _send_with_brevo(brevo, _signup_code_message(brevo["sender"], to_email, code, minutes, kind))
         return
 
     settings = _smtp_settings()
     if settings is None:
         raise EmailSendError("SMTP is not configured")
     port = _smtp_port()
-    msg = _signup_code_message(settings["sender"], to_email, code, minutes)
+    msg = _signup_code_message(settings["sender"], to_email, code, minutes, kind)
 
     try:
         context = ssl.create_default_context()
@@ -219,5 +237,15 @@ def send_signup_code(to_email: str, code: str, minutes: int) -> None:
                 smtp.send_message(msg)
     except (smtplib.SMTPException, OSError) as e:
         # Never log the code or the password; the error type is enough to tell login from network problems
-        logger.error("Sign-up email could not be sent (%s)", type(e).__name__)
+        logger.error("Code email could not be sent (%s)", type(e).__name__)
         raise EmailSendError(type(e).__name__) from e
+
+
+def send_signup_code(to_email: str, code: str, minutes: int) -> None:
+    """Emails the sign-up code. Raises EmailSendError if it can't be sent."""
+    _send_code(to_email, code, minutes, "signup")
+
+
+def send_reset_code(to_email: str, code: str, minutes: int) -> None:
+    """Emails the password reset code. Raises EmailSendError if it can't be sent."""
+    _send_code(to_email, code, minutes, "reset")
