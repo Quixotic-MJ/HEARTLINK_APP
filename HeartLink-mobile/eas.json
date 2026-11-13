@@ -19,6 +19,15 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://heartlink-staging.onrender.com"
       }
+    },
+    "production": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://heartlink-app-b8ba.onrender.com"
+      }
     }
   }
 }
