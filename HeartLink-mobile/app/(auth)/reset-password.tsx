@@ -45,7 +45,7 @@ export default function ResetPasswordScreen() {
   const params = useLocalSearchParams<{ identifier?: string }>();
   const identifier = typeof params.identifier === "string" ? params.identifier : "";
 
-  const { control, handleSubmit, watch, setValue, formState: { isSubmitting } } = useForm<ResetFormValues>({
+  const { control, handleSubmit, watch, setValue, trigger, formState: { isSubmitting, errors } } = useForm<ResetFormValues>({
     resolver: zodResolver(resetSchema),
     defaultValues: { newPassword: "", confirmPassword: "" },
     mode: "onTouched",
@@ -139,12 +139,12 @@ export default function ResetPasswordScreen() {
             icon={<Feather name="check" size={16} color={!canSave || busy ? c.steel : "#FFFFFF"} />}
           />
           <Text style={{ fontSize: 12, color: c.slate, textAlign: "center", marginTop: 4 }}>
-            Codes expire after 10 minutes.
+            The code works for 10 minutes.
           </Text>
         </Animated.View>
       }
     >
-      <Animated.View entering={FadeIn.duration(400)} style={{ marginBottom: 24 }}>
+      <Animated.View entering={FadeIn.duration(400)} style={{ marginBottom: 28 }}>
         <View
           style={{
             width: 48,
@@ -159,15 +159,17 @@ export default function ResetPasswordScreen() {
           <Feather name="mail" size={22} color={c.primary} />
         </View>
         <Text accessibilityRole="header" style={{ fontSize: 28, lineHeight: 36, fontWeight: "700", letterSpacing: -0.6, color: c.ink }}>
-          Enter the code
+          Check your email
         </Text>
         <Text style={{ fontSize: 15, lineHeight: 22, color: c.slate, marginTop: 6 }}>
-          If an account matches <Text style={{ fontWeight: "600", color: c.ink }}>{identifier || "what you entered"}</Text>, we
-          emailed a 6-digit code to its email address.
+          If <Text style={{ fontWeight: "600", color: c.ink }}>{identifier || "what you entered"}</Text> has a HeartLink account,
+          we sent a 6-digit code to its email address.
         </Text>
       </Animated.View>
 
       <Animated.View entering={FadeInDown.delay(120).duration(400)}>
+        {/* ── The code ── */}
+        <Text style={{ fontSize: 14, fontWeight: "500", color: c.ink, marginBottom: 8 }}>Code from the email</Text>
         <CodeBoxes
           digits={code}
           onChange={(next) => {
@@ -178,10 +180,23 @@ export default function ResetPasswordScreen() {
           editable={!busy}
         />
 
-        <View className="flex-row items-center" style={{ gap: 6, marginTop: 12, minHeight: 44 }}>
-          <Text style={{ fontSize: 14, color: c.slate }}>Didn&apos;t get it? Check spam, or</Text>
+        <View className="flex-row items-center justify-between" style={{ marginTop: 10, minHeight: 44, gap: 8 }}>
+          <Text style={{ flexShrink: 1, fontSize: 13.5, lineHeight: 19, color: c.slate }}>Not there? Check your spam folder.</Text>
           {timer > 0 ? (
-            <Text style={{ fontSize: 13, fontWeight: "600", color: c.slate }}>resend in {formatTime(timer)}</Text>
+            <View
+              style={{
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+                borderRadius: 6,
+                backgroundColor: c.surfaceAlt,
+                borderWidth: 1,
+                borderColor: c.hairline,
+              }}
+              accessible={true}
+              accessibilityLabel={`You can resend the code in ${timer} seconds`}
+            >
+              <Text style={{ fontSize: 13, fontWeight: "600", color: c.slate }}>Resend in {formatTime(timer)}</Text>
+            </View>
           ) : isResending ? (
             <ActivityIndicator size="small" color={c.primary} />
           ) : (
@@ -192,12 +207,41 @@ export default function ResetPasswordScreen() {
               accessibilityRole="button"
               accessibilityLabel="Resend code"
             >
-              <Text style={{ fontSize: 14, fontWeight: "600", color: c.primary }}>resend code</Text>
+              <Text style={{ fontSize: 14, fontWeight: "600", color: c.primary }}>Resend code</Text>
             </TouchableOpacity>
           )}
         </View>
 
-        <View style={{ gap: 16, marginTop: 16 }}>
+        {/* Most problems are with the code, so the message sits right under it */}
+        {error && (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 12,
+              padding: 14,
+              borderRadius: 12,
+              backgroundColor: c.rose,
+              borderWidth: 1,
+              borderColor: c.hairline,
+              marginTop: 8,
+            }}
+            accessible={true}
+            accessibilityRole="alert"
+          >
+            <View
+              style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: c.canvas, alignItems: "center", justifyContent: "center" }}
+            >
+              <Feather name="alert-triangle" size={15} color={c.danger} />
+            </View>
+            <Text style={{ flex: 1, fontSize: 13.5, lineHeight: 19, color: c.ink, fontWeight: "500" }}>{error}</Text>
+          </View>
+        )}
+
+        <View style={{ height: 1, backgroundColor: c.hairline, marginTop: 20, marginBottom: 24 }} />
+
+        {/* ── The new password ── */}
+        <View style={{ gap: 20 }}>
           <View>
             <InputField
               look="ds"
@@ -214,7 +258,11 @@ export default function ResetPasswordScreen() {
               returnKeyType="next"
               onSubmitEditing={() => confirmRef.current?.focus()}
               editable={!busy}
-              onChangeText={(text) => setValue("newPassword", text, { shouldDirty: true })}
+              onChangeText={(text) => {
+                // Once a message shows, it updates as the patient types (and clears when fixed)
+                setValue("newPassword", text, { shouldDirty: true, shouldValidate: !!errors.newPassword });
+                if (errors.confirmPassword) trigger("confirmPassword");
+              }}
               rightElement={
                 <TouchableOpacity
                   onPress={() => setShowPassword((v) => !v)}
@@ -234,9 +282,9 @@ export default function ResetPasswordScreen() {
             look="ds"
             control={control}
             name="confirmPassword"
-            label="Type it again"
-            accessibilityLabel="Type the new password again"
-            placeholder="The same new password"
+            label="Confirm new password"
+            accessibilityLabel="Confirm new password"
+            placeholder="Type it again"
             secureTextEntry={!showPassword}
             autoCapitalize="none"
             textContentType="newPassword"
@@ -248,34 +296,11 @@ export default function ResetPasswordScreen() {
               if (canSave) handleSubmit(onSubmit)();
             }}
             editable={!busy}
-            onChangeText={(text) => setValue("confirmPassword", text, { shouldDirty: true })}
+            onChangeText={(text) =>
+              setValue("confirmPassword", text, { shouldDirty: true, shouldValidate: !!errors.confirmPassword })
+            }
           />
         </View>
-
-        {error && (
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 12,
-              padding: 14,
-              borderRadius: 12,
-              backgroundColor: c.rose,
-              borderWidth: 1,
-              borderColor: c.hairline,
-              marginTop: 16,
-            }}
-            accessible={true}
-            accessibilityRole="alert"
-          >
-            <View
-              style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: c.canvas, alignItems: "center", justifyContent: "center" }}
-            >
-              <Feather name="alert-triangle" size={15} color={c.danger} />
-            </View>
-            <Text style={{ flex: 1, fontSize: 13.5, lineHeight: 19, color: c.ink, fontWeight: "500" }}>{error}</Text>
-          </View>
-        )}
       </Animated.View>
     </DsScreen>
   );

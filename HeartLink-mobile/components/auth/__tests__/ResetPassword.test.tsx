@@ -85,7 +85,7 @@ describe("Forgot password, step 2", () => {
     // A whole code pasted or filled in from the email
     await fireEvent.changeText(screen.getByLabelText("Code digit 1 of 6"), "123456");
     await user.type(screen.getByLabelText("New password"), NEW_PASSWORD);
-    await user.type(screen.getByLabelText("Type the new password again"), confirm);
+    await user.type(screen.getByLabelText("Confirm new password"), confirm);
   }
 
   it(
@@ -99,7 +99,7 @@ describe("Forgot password, step 2", () => {
       // A whole code pasted or filled in from the email
     await fireEvent.changeText(screen.getByLabelText("Code digit 1 of 6"), "123456");
       await user.type(screen.getByLabelText("New password"), "short");
-      await user.type(screen.getByLabelText("Type the new password again"), "short");
+      await user.type(screen.getByLabelText("Confirm new password"), "short");
       expect(screen.getByRole("button", { name: "Set new password" })).toBeDisabled();
     },
     SCREEN_TEST_MS
@@ -136,6 +136,25 @@ describe("Forgot password, step 2", () => {
 
       expect(await screen.findByText("The two passwords don't match.")).toBeOnTheScreen();
       expect(apiFetch).not.toHaveBeenCalled();
+    },
+    SCREEN_TEST_MS
+  );
+
+  it(
+    "clears \"don't match\" as soon as the second password matches",
+    async () => {
+      mockParams = { identifier: "patient@example.com" };
+      const user = userEvent.setup();
+      await renderScreen(ResetPasswordScreen);
+
+      await user.type(screen.getByLabelText("New password"), NEW_PASSWORD);
+      // Leaving the second box half typed shows the message
+      await user.type(screen.getByLabelText("Confirm new password"), "A-brand");
+      await fireEvent(screen.getByLabelText("Confirm new password"), "blur");
+      expect(await screen.findByText("The two passwords don't match.")).toBeOnTheScreen();
+
+      await user.type(screen.getByLabelText("Confirm new password"), "-new-password-2026!");
+      await waitFor(() => expect(screen.queryByText("The two passwords don't match.")).not.toBeOnTheScreen());
     },
     SCREEN_TEST_MS
   );

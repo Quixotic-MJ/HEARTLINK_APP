@@ -66,6 +66,8 @@ export default function CodeBoxes({ digits, onChange, hasError = false, editable
             accessibilityLabel={`Code digit ${index + 1} of ${CODE_LENGTH}`}
             style={{
               flex: 1,
+              // Without this a web text box keeps its default width and pushes the other boxes off the row
+              minWidth: 0,
               height: 56,
               borderRadius: 10,
               textAlign: "center",
