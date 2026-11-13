@@ -22,6 +22,7 @@ Run these from `HeartLink-mobile/`.
 | Install packages | `npm install` (no extra flags needed) |
 | Run on a phone | `npx expo start --go`, then scan the QR code with Expo Go (`--go`: with `expo-dev-client` installed, plain `expo start` expects a development build) |
 | Test build for QA (Android) | `npx eas-cli build --profile preview --platform android` (installable APK that talks to the staging backend; see `eas.json`) |
+| Pilot build (Android, live) | `npx eas-cli build --profile production --platform android` (installable APK that talks to the live backend, `heartlink-app-b8ba.onrender.com`, which deploys `main`) |
 | Tests (full suite) | `npx jest` |
 | Lint | `npm run lint` (no errors; GitHub runs it, so keep it that way) |
 | Type check | `npx tsc --noEmit` (no errors; GitHub runs it with the tests and lint) |
