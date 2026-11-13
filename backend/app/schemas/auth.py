@@ -48,3 +48,19 @@ class RefreshRequest(BaseModel):
 
 class LogoutRequest(BaseModel):
     refresh_token: Optional[str] = None
+
+class PasswordResetRequest(BaseModel):
+    """Forgot password on the phone, step 1: the email or phone number of the account."""
+    identifier: str = Field(..., min_length=1, max_length=254)
+
+
+class PasswordResetConfirm(BaseModel):
+    """Forgot password on the phone, step 2: the emailed code and the new password."""
+    identifier: str = Field(..., min_length=1, max_length=254)
+    code: str = Field(..., min_length=6, max_length=6, pattern=r"^\d{6}$")
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password(cls, v: str) -> str:
+        return validate_strong_password(v)

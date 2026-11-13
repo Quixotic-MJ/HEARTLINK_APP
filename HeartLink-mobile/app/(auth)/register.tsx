@@ -25,7 +25,9 @@ import DsButton from "../../components/onboarding/DsButton";
 import SetupHeader from "../../components/onboarding/SetupHeader";
 import { DsScreen } from "../../components/onboarding/QuestionLayout";
 import { apiFetch } from "../../lib/api";
-import { useDs } from "../../components/onboarding/useDs";// ─── Phone number ─────────────────────────────────────────────────────────────
+import { PASSWORD_RULES } from "../../lib/passwordRules";
+import { useDs } from "../../components/onboarding/useDs";
+// ─── Phone number ─────────────────────────────────────────────────────────────
 // People type Philippine mobile numbers as "0912…" or "912…" (and sometimes
 // paste "+63 912…"). Strip the prefix before counting, so no digit gets cut off.
 
@@ -61,16 +63,6 @@ const registerSchema = z.object({
 const HEALTH_DATA_CONSENT = "I agree that HeartLink stores my health information to give me feedback.";
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
-
-// ─── Password rules ───────────────────────────────────────────────────────────
-// Same rules as the schema above, shown as tags that turn green as each is met.
-
-const PASSWORD_RULES: { label: string; test: (pw: string) => boolean }[] = [
-  { label: "16+ characters", test: (pw) => pw.length >= 16 },
-  { label: "Upper & lowercase", test: (pw) => /[A-Z]/.test(pw) && /[a-z]/.test(pw) },
-  { label: "A number", test: (pw) => /\d/.test(pw) },
-  { label: "A symbol (! # $)", test: (pw) => /[^A-Za-z0-9\s]/.test(pw) },
-];
 
 // Same links as Settings → About.
 const openLegal = (path: "terms" | "privacy") => {

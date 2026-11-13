@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, status, HTTPException, Request, Response
 from fastapi.security import HTTPAuthorizationCredentials
 from app.schemas.auth import (
     RegisterRequest, CodeResponse, Login, ResendCodeRequest, WebVerify2FA, ForgotPasswordRequest,
-    RefreshRequest, LogoutRequest,
+    RefreshRequest, LogoutRequest, PasswordResetRequest, PasswordResetConfirm,
 )
 from app.services.auth_service import get_auth_service
 from app.services.session_service import issue_session, refresh_session, revoke_session
@@ -143,3 +143,18 @@ async def logout(
 async def forgot_password(payload: ForgotPasswordRequest, request: Request, response: Response):
     auth_svc = get_auth_service()
     return auth_svc.forgot_password(identifier=payload.identifier)
+
+# Forgot password on the phone: a 6-digit code is emailed (request), then the code and a new password are sent
+# (confirm). The portal's "Forgot password" above is unchanged.
+@router.post("/password-reset/request")
+@limiter.limit("5/minute")
+async def request_password_reset(payload: PasswordResetRequest, request: Request, response: Response):
+    return get_auth_service().request_password_reset(identifier=payload.identifier)
+
+
+@router.post("/password-reset/confirm")
+@limiter.limit("10/minute")
+async def confirm_password_reset(payload: PasswordResetConfirm, request: Request, response: Response):
+    return get_auth_service().reset_password(
+        identifier=payload.identifier, code=payload.code, new_password=payload.new_password
+    )

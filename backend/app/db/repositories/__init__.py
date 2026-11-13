@@ -25,6 +25,7 @@ from app.db.repositories.lab_results import LabResultsRepository, SupabaseLabRes
 from app.db.repositories.premium import PremiumRepository, SupabasePremiumRepository
 from app.db.repositories.family import FamilyRepository, SupabaseFamilyRepository
 from app.db.repositories.meal_plan_changes import MealPlanChangesRepository, SupabaseMealPlanChangesRepository
+from app.db.repositories.password_resets import PasswordResetRepository, SupabasePasswordResetRepository
 
 _profile_repo = None
 _baseline_repo = None
@@ -47,6 +48,7 @@ _patient_notes_repo = None
 _premium_repo = None
 _family_repo = None
 _meal_plan_changes_repo = None
+_password_reset_repo = None
 
 def get_profile_repo() -> ProfileRepository:
     global _profile_repo
@@ -176,3 +178,9 @@ def get_meal_plan_changes_repo() -> MealPlanChangesRepository:
     if _meal_plan_changes_repo is None:
         _meal_plan_changes_repo = SupabaseMealPlanChangesRepository(get_supabase_client())
     return _meal_plan_changes_repo
+
+def get_password_reset_repo() -> PasswordResetRepository:
+    global _password_reset_repo
+    if _password_reset_repo is None:
+        _password_reset_repo = SupabasePasswordResetRepository(get_supabase_client())
+    return _password_reset_repo

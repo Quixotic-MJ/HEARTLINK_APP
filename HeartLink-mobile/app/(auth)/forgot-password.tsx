@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { View, Text } from "react-native";
-import { useToast } from "../../contexts/ToastContext";
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import Animated, {
@@ -36,7 +35,6 @@ type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
-  const { showToast } = useToast();
   const { c } = useDs();
 
   const { control, handleSubmit, setValue, formState: { errors } } = useForm<ForgotPasswordFormValues>({
@@ -76,23 +74,27 @@ export default function ForgotPasswordScreen() {
     const finalIdentifier = normalizeIdentifier(data.identifier);
 
     try {
-      const response = await apiFetch(`/api/auth/forgot-password`, {
+      // Emails a 6-digit code to the account's address; the next screen takes the code and the new password
+      const response = await apiFetch(`/api/auth/password-reset/request`, {
         auth: false,
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier: finalIdentifier }),
       });
-      const resData = await response.json();
+      const resData = await response.json().catch(() => null);
 
       if (response.ok) {
-        showToast({ title: "Link Sent", message: "If this account is registered, you will receive reset instructions shortly.", type: "success" });
-        setTimeout(() => router.back(), 1500);
+        router.push({ pathname: "/(auth)/reset-password", params: { identifier: finalIdentifier } });
+      } else if (response.status === 429) {
+        setGeneralError("Too many tries. Wait a minute, then try again.");
       } else {
-        setGeneralError(resData.detail || "Account not found.");
+        setGeneralError(
+          typeof resData?.detail === "string" ? resData.detail : "Couldn't send the code. Try again in a minute."
+        );
       }
     } catch (err) {
       console.log(err);
-      setGeneralError("An error occurred. Please check your connection.");
+      setGeneralError("Couldn't reach HeartLink. Check your connection and try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -104,7 +106,7 @@ export default function ForgotPasswordScreen() {
       footer={
         <Animated.View entering={FadeInDown.delay(180).duration(400)} style={{ gap: 6 }}>
           <DsButton
-            label="Send reset instructions"
+            label="Send code"
             onPress={handleSubmit(onSubmit)}
             loading={isSubmitting}
             icon={<Feather name="mail" size={16} color="#FFFFFF" />}
@@ -135,7 +137,7 @@ export default function ForgotPasswordScreen() {
           Forgot password?
         </Text>
         <Text style={{ fontSize: 15, lineHeight: 22, color: c.slate, marginTop: 6, marginBottom: 28 }}>
-          Enter your email or phone number and we&apos;ll send you instructions to reset your password.
+          Enter the email or mobile number you log in with. We&apos;ll email you a 6-digit code to set a new password.
         </Text>
       </Animated.View>
 
@@ -193,7 +195,7 @@ export default function ForgotPasswordScreen() {
           }}
         />
 
-        <InfoNote text="If this account is registered, the reset instructions will arrive in a few minutes." />
+        <InfoNote text="The code goes to the email address on your account, even if you enter your mobile number." />
       </Animated.View>
     </DsScreen>
   );
