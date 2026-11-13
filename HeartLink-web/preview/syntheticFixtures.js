@@ -43,11 +43,11 @@ export const exercises = ["Gentle mobility sample", "Seated movement sample", "B
   steps: [{ instruction: "Synthetic movement description for design review only.", mode: "time", duration_seconds: 60 }],
 }));
 
-const states = { total: 4, draft: 2, awaiting_review: 1, changes_requested: 0, approval_recorded: 2,
-  published: 1, archived: 1, unknown_status: 0, published_without_review: 0 };
+const states = { total: 4, draft: 2, awaiting_review: 1, changes_requested: 0, approved_draft: 1, approval_recorded: 2,
+  published: 1, archived: 1, unknown_status: 0, published_without_review: 0, published_without_review_names: [] };
 export const dashboard = {
   accounts: { consumers: 3, staff: 4, active: 5, disabled: 1, archived: 1, unknown_status: 0, unknown_role: 0 },
-  content: { recipes: states, exercises: states }, generated_at: date,
+  content: { recipes: { ...states, published_without_review: 1, published_without_review_names: ["Demo steamed fish"] }, exercises: states }, generated_at: date,
 };
 export const accounts = ["Demo account", "Demo Premium", "Demo disabled"].map((name, index) => ({
   id: `synthetic-account-${index}`, first_name: "Synthetic", last_name: name, role: "patient",
