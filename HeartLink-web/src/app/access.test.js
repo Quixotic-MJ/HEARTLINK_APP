@@ -48,13 +48,15 @@ test("experts land in the part of the portal they own", () => {
   assert.equal(homeFor({ role: "patient" }), "/");
 });
 
-test("patient records are for the care team only; Admins run case review and Model Check (HL-136)", () => {
+test("patient records are for the care team only; everyone reviews cases; Model Check is Admins only", () => {
   for (const path of ["/patients", "/patients/p1"]) {
     assert.equal(canAccess(admin, path), false);
     for (const expert of [cardiologist, dietitian, physicalTherapist]) assert.equal(canAccess(expert, path), true);
   }
-  for (const path of ["/cases", "/cases/round-1", "/calibration"])
+  for (const path of ["/cases", "/cases/round-1"])
     for (const staff of [admin, cardiologist, dietitian, physicalTherapist]) assert.equal(canAccess(staff, path), true);
+  assert.equal(canAccess(admin, "/calibration"), true);
+  for (const expert of [cardiologist, dietitian, physicalTherapist]) assert.equal(canAccess(expert, "/calibration"), false);
   for (const denied of [null, { role: "patient" }]) assert.equal(canAccess(denied, "/patients"), false);
 });
 

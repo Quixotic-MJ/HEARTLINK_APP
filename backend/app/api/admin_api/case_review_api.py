@@ -120,8 +120,9 @@ def submit_exercise_review(round_id: str, payload: dict, current_user: dict = De
 from app.services import model_check as model_check_service
 
 
+# Admins only: reviewers don't see how often they agree with the app, so it can't sway their next review
 @router.get("/model-check")
-def get_model_check(kind: str = "all", current_user: dict = Depends(get_current_admin_user)):
+def get_model_check(kind: str = "all", current_user: dict = Depends(_require_admin)):
     """One row per case round with a Cardiologist review, and agreement measures from clinical reviews only.
     HL-153: `kind` is all, calculated (with lab results) or estimated (machine learning)."""
     return model_check_service.model_check(kind)
