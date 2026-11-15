@@ -13,6 +13,25 @@ SMTP_ENV_VARS = ("SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD", "MAIL_F
 
 
 @pytest.fixture(autouse=True)
+def no_real_portal_notifications(monkeypatch):
+    """
+    Tests never save a portal notification in the real database. Before this, tests that post care-team notes or
+    create staff accounts left over a thousand made-up notifications in the shared bell (2026-11-15), and clicking
+    one opened "This patient could not be found". What would have been saved is kept here for tests to check.
+    """
+    from app.db.repositories.admin import SupabaseAdminRepository
+
+    sent = []
+
+    def keep(self, data):
+        sent.append(dict(data))
+        return {"id": f"test-notification-{len(sent)}", **data}
+
+    monkeypatch.setattr(SupabaseAdminRepository, "create_admin_notification", keep)
+    return sent
+
+
+@pytest.fixture(autouse=True)
 def no_real_email(monkeypatch):
     """HL-052: a local .env may hold real SMTP settings; tests never send email unless they set it up."""
     for name in SMTP_ENV_VARS:
