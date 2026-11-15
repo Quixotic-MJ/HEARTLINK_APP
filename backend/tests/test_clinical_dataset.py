@@ -147,3 +147,15 @@ def test_there_is_no_in_app_retraining(signed_in):
     client = TestClient(app)
     assert client.post("/api/admin/retrain").status_code == 404
     assert client.post("/api/admin/datasets/generate").status_code == 404
+
+
+def test_only_admins_see_model_check(repo, signed_in, monkeypatch):
+    # Reviewers don't see how often they agree with the app, so it can't sway their next review (2026-11-15)
+    monkeypatch.setattr("app.services.model_check.model_check", lambda kind="all": {"kind": kind, "rows": []})
+    client = TestClient(app)
+
+    signed_in("medical_expert")
+    assert client.get("/api/admin/model-check").status_code == 403
+
+    signed_in("admin")
+    assert client.get("/api/admin/model-check").status_code == 200

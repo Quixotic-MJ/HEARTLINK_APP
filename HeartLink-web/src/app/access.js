@@ -26,9 +26,12 @@ export const PAGE_ACCESS = {
   // Own account/password only; this does not grant system or staff management.
   "/settings": ALL_STAFF,
   "/activity-log": ADMINS,
-  // HL-055/056: case review and Model Check (cases show a case code, age and sex, not a name)
+  // HL-055/056: case review (cases show a case code, age and sex, not a name). Every expert has a part: the
+  // Cardiologist the heart check, the Dietitian the food check, the PT the exercise check.
   "/cases": ALL_STAFF,
-  "/calibration": ALL_STAFF,
+  // Model Check is the team's scoreboard of how often the app agrees with the experts; reviewers don't see it,
+  // so it can't sway their next review (2026-11-15)
+  "/calibration": ADMINS,
   // HL-039/040, HL-107/136: patient records and care-team notes are for the care team (experts) only, not Admins
   "/patients": { roles: [], expertTypes: EXPERT_TYPES },
 };
