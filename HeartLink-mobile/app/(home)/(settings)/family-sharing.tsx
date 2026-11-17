@@ -9,7 +9,7 @@ import { Skeleton } from "../../../components/ui/Skeleton";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { Card, PageHeader, PersonRow } from "../../../components/family/FamilyBits";
 import { useToast } from "../../../contexts/ToastContext";
-import { useCreateInvite, useRemoveFollower, useSetNudges, useSharing } from "../../../hooks/useFamily";
+import { useCreateInvite, useRemoveFollower, useSetNudges, useSetReminders, useSharing } from "../../../hooks/useFamily";
 import { Follower, agoLine, expiresLine, inviteMessage, showCode } from "../../../services/family";
 
 // HL-087: the patient's side of family sharing (Premium). Make a one-time code to send, see who follows you, remove
@@ -23,6 +23,7 @@ export default function FamilySharingScreen() {
   const createInvite = useCreateInvite();
   const removeFollower = useRemoveFollower();
   const setNudges = useSetNudges();
+  const setReminders = useSetReminders();
   const [removing, setRemoving] = useState<Follower | null>(null);
 
   const status = sharing.data;
@@ -171,6 +172,30 @@ export default function FamilySharingScreen() {
                     thumbColor={c.onPrimary}
                     ios_backgroundColor={c.hairlineStrong}
                     accessibilityLabel="Tell followers after 2 days without a check-in"
+                    accessibilityRole="switch"
+                  />
+                </View>
+                {/* HL-162 */}
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderTopWidth: 1, borderTopColor: c.hairlineSoft }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>Reminders from your followers</Text>
+                    <Text style={{ fontSize: 14, lineHeight: 20, color: c.slate, marginTop: 2 }}>
+                      Let them send you a reminder to check in, at most once a day each.
+                    </Text>
+                  </View>
+                  <Switch
+                    value={status.reminders_enabled !== false}
+                    disabled={setReminders.isPending}
+                    onValueChange={(on) => {
+                      Haptics.selectionAsync().catch(() => {});
+                      setReminders.mutate(on, {
+                        onError: (e) => showToast({ title: "Couldn't save that", message: e.message, type: "error" }),
+                      });
+                    }}
+                    trackColor={{ false: c.hairlineStrong, true: c.line }}
+                    thumbColor={c.onPrimary}
+                    ios_backgroundColor={c.hairlineStrong}
+                    accessibilityLabel="Let followers send you a reminder to check in"
                     accessibilityRole="switch"
                   />
                 </View>

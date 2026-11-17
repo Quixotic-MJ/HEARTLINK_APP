@@ -15,6 +15,8 @@ export type SharingStatus = {
   max_followers: number;
   // HL-154: followers are told after 2 days without a blood pressure reading (older servers leave it out)
   nudges_enabled?: boolean;
+  // HL-162: followers may send a check-in reminder (older servers leave it out)
+  reminders_enabled?: boolean;
 };
 
 export type SummaryDay = { date: string; systolic: number | null; diastolic: number | null; score: number | null };
@@ -37,6 +39,8 @@ export type FamilySummary =
       medicine?: { today: boolean | null; week: { taken: number; answered: number } };
       // HL-161: the last 7 days as a table (older servers leave it out)
       week?: WeekTable;
+      // HL-162: the "Send a reminder" button (older servers leave it out)
+      reminder?: { allowed: boolean; sent_today: boolean };
     };
 
 // ── HL-161: the last 7 days in plain words, for family members who aren't health workers ─────────────────────────

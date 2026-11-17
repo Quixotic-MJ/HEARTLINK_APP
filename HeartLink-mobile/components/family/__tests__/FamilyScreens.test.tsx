@@ -1,6 +1,6 @@
 import React from "react";
 import { Linking } from "react-native";
-import { render as rtlRender, screen, userEvent, waitFor } from "@testing-library/react-native";
+import { fireEvent, render as rtlRender, screen, userEvent, waitFor } from "@testing-library/react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { apiFetch } from "../../../lib/api";
 import FamilySharingScreen from "../../../app/(home)/(settings)/family-sharing";
@@ -177,5 +177,57 @@ describe("What a follower sees", () => {
     (apiFetch as jest.Mock).mockResolvedValue(reply({ detail: "You don't follow this person." }, 403));
     await renderScreen(<FollowedPersonScreen />);
     expect(await screen.findByText("You don't follow this person.")).toBeOnTheScreen();
+  });
+});
+
+// HL-162: a family member can ask the person they follow to check in, once a day, if that person allows it
+describe("Sending a reminder", () => {
+  beforeEach(() => (apiFetch as jest.Mock).mockReset());
+
+  const SUMMARY = {
+    id: "pat-1",
+    name: "Ana R.",
+    paused: false,
+    latest_bp: null,
+    latest_pulse: null,
+    score: null,
+    last_check_in: null,
+    days: [],
+    open_alerts: [],
+  };
+
+  it("sends one, then says it was sent today", async () => {
+    let sent = false;
+    (apiFetch as jest.Mock).mockImplementation(async (url: string, init?: { method?: string }) => {
+      if (url.endsWith("/remind") && init?.method === "POST") {
+        sent = true;
+        return reply({ sent: true, reminded_today: true });
+      }
+      return reply({ ...SUMMARY, reminder: { allowed: true, sent_today: sent } });
+    });
+    await renderScreen(<FollowedPersonScreen />);
+    await userEvent.setup().press(await screen.findByRole("button", { name: "Remind Ana R. to check in" }));
+    expect(await screen.findByLabelText(/Reminder sent today/)).toBeOnTheScreen();
+    expect(
+      (apiFetch as jest.Mock).mock.calls.some(([url, init]) => url === "/api/family/following/pat-1/remind" && init?.method === "POST")
+    ).toBe(true);
+  });
+
+  it("says so when the person turned reminders off", async () => {
+    (apiFetch as jest.Mock).mockResolvedValue(reply({ ...SUMMARY, reminder: { allowed: false, sent_today: false } }));
+    await renderScreen(<FollowedPersonScreen />);
+    expect(await screen.findByText("Ana R. has turned off reminders from family members.")).toBeOnTheScreen();
+    expect(screen.queryByRole("button", { name: /Remind/ })).toBeNull();
+  });
+
+  it("lets the patient turn reminders off", async () => {
+    (apiFetch as jest.Mock).mockImplementation(async (url: string, init?: { method?: string }) =>
+      init?.method === "PUT" ? reply({ reminders_enabled: false }) : reply({ ...SHARING, reminders_enabled: true })
+    );
+    await renderScreen(<FamilySharingScreen />);
+    await fireEvent(await screen.findByRole("switch", { name: "Let followers send you a reminder to check in" }), "valueChange", false);
+    await waitFor(() =>
+      expect((apiFetch as jest.Mock).mock.calls.some(([url, init]) => url === "/api/family/reminders" && init?.method === "PUT")).toBe(true)
+    );
   });
 });

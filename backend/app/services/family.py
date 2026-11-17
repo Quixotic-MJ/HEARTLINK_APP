@@ -11,7 +11,8 @@ or changes the patient's save or emergency warning.
 """
 import logging
 import secrets
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta, timezone
+from zoneinfo import ZoneInfo
 from typing import Any, Dict, List, Optional
 
 from fastapi import HTTPException, status
@@ -94,6 +95,8 @@ def sharing_status(user_id: str) -> Dict[str, Any]:
         "max_followers": MAX_FOLLOWERS,
         # HL-154: whether followers are told after 2 days without a blood pressure reading
         "nudges_enabled": profile.get("family_nudges_enabled") is not False,
+        # HL-162: whether followers may send a check-in reminder
+        "reminders_enabled": profile.get("family_reminders_enabled") is not False,
     }
 
 
@@ -183,6 +186,71 @@ def set_nudges(user_id: str, enabled: bool) -> Dict[str, Any]:
     return {"nudges_enabled": bool(enabled)}
 
 
+def set_reminders(user_id: str, enabled: bool) -> Dict[str, Any]:
+    """HL-162: the patient's switch for check-in reminders from the people who follow them."""
+    profile = _patient_profile(user_id)
+    if not get_profile_repo().update(profile["id"], {"family_reminders_enabled": bool(enabled)}):
+        raise HTTPException(status_code=500, detail="Couldn't save that. Try again.")
+    return {"reminders_enabled": bool(enabled)}
+
+
+# --- HL-162: a reminder from a family member -------------------------------------------------------------------
+
+REMINDERS_OFF_DETAIL = "{name} has turned off reminders from family members."
+REMINDER_SENT_TODAY_DETAIL = "You already sent {name} a reminder today. You can send another tomorrow."
+REMINDER_FAILED_DETAIL = "The reminder couldn't be sent just now. Try again in a minute."
+
+
+def _start_of_today_utc(now: datetime) -> datetime:
+    """Midnight today, Manila time, as UTC: one reminder per follower per Manila day."""
+    local = to_local_date(now, TZ)
+    return datetime.combine(local, time.min, tzinfo=ZoneInfo(TZ)).astimezone(timezone.utc)
+
+
+def _iso_z(dt: datetime) -> str:
+    """A timestamp the database filter reads safely (UTC, no "+")."""
+    return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+
+
+def reminded_today(link: Optional[Dict[str, Any]], now: Optional[datetime] = None) -> bool:
+    last = parse_utc((link or {}).get("last_reminder_at"))
+    return bool(last and last >= _start_of_today_utc(now or utc_now()))
+
+
+def send_reminder(user_id: str, patient_id: str) -> Dict[str, Any]:
+    """A follower asks the person they follow to check in: a notification (and push) to the patient, at most once a day
+    per follower, only while sharing is on (Premium) and only if the patient allows it. Nothing medical is said."""
+    me = _patient_profile(user_id)
+    repo = get_family_repo()
+    link = repo.get_link(patient_id, me["id"])
+    if not link:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't follow this person.")
+    patient = get_profile_repo().get_by_id(patient_id)
+    name = display_name(patient)
+    if not is_premium(patient):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Sharing with {name} is paused.")
+    if patient.get("family_reminders_enabled") is False:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=REMINDERS_OFF_DETAIL.format(name=name))
+
+    now = utc_now()
+    claimed_at, previous = _iso_z(now), link.get("last_reminder_at")
+    if not repo.claim(link["id"], "last_reminder_at", _iso_z(_start_of_today_utc(now)), claimed_at):
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=REMINDER_SENT_TODAY_DETAIL.format(name=name))
+
+    sender = display_name(me)
+    created = get_notification_repo().create_notification({
+        "user_id": patient_id,
+        "type": "reminder",
+        "scope": "personal",
+        "title": f"{sender} sent you a reminder",
+        "message": f"{sender} asked you to log your blood pressure today. It only takes a minute.",
+    })
+    if not created:
+        repo.release(link["id"], "last_reminder_at", previous, claimed_at)
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=REMINDER_FAILED_DETAIL)
+    return {"sent": True, "reminded_today": True}
+
+
 def _medicine(logs: List[Dict[str, Any]], today: date) -> Dict[str, Any]:
     """HL-154: the patient's own medicine answers: today's latest (None if not answered yet) and the last 7 days."""
     answered = [l for l in logs if l.get("medication_taken") in (True, False)]
@@ -239,7 +307,8 @@ def set_account_kind(user_id: str, kind: str) -> Dict[str, Any]:
 def summary(user_id: str, patient_id: str) -> Dict[str, Any]:
     """What a follower sees. Only with a link; only while the patient is Premium."""
     me = _patient_profile(user_id)
-    if not get_family_repo().get_link(patient_id, me["id"]):
+    link = get_family_repo().get_link(patient_id, me["id"])
+    if not link:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't follow this person.")
     patient = get_profile_repo().get_by_id(patient_id)
     name = display_name(patient)
@@ -291,6 +360,8 @@ def summary(user_id: str, patient_id: str) -> Dict[str, Any]:
         "medicine": _medicine(logs, today),
         # HL-161: the last 7 days as a table, in plain words on the phone
         "week": _week_table(logs, today),
+        # HL-162: the follower's "Send a reminder" button
+        "reminder": {"allowed": patient.get("family_reminders_enabled") is not False, "sent_today": reminded_today(link)},
         "days": [{"date": d.isoformat(), "systolic": v.get("systolic"), "diastolic": v.get("diastolic"), "score": v.get("score")}
                  for d, v in by_day.items()],
         "open_alerts": [

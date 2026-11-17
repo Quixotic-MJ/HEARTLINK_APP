@@ -48,6 +48,26 @@ export function useSetNudges() {
   });
 }
 
+/** HL-162: the patient's switch for reminders from the people who follow them. */
+export function useSetReminders() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (enabled: boolean) =>
+      call<{ reminders_enabled: boolean }>("/api/family/reminders", { method: "PUT", body: JSON.stringify({ enabled }) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["family", "sharing"] }),
+  });
+}
+
+/** HL-162: a follower asks the person they follow to check in (once a day). */
+export function useSendReminder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (patientId: string) =>
+      call<{ sent: boolean }>(`/api/family/following/${patientId}/remind`, { method: "POST" }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["family", "summary"] }),
+  });
+}
+
 export function useRemoveFollower() {
   const queryClient = useQueryClient();
   return useMutation({

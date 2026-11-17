@@ -21,10 +21,11 @@ jest.mock('expo-router', () => ({
 }));
 
 
+// Like the real ones, these return a promise, so screens can write Haptics.selectionAsync().catch(...)
 jest.mock('expo-haptics', () => ({
-  impactAsync: jest.fn(),
-  selectionAsync: jest.fn(),
-  notificationAsync: jest.fn(),
+  impactAsync: jest.fn(() => Promise.resolve()),
+  selectionAsync: jest.fn(() => Promise.resolve()),
+  notificationAsync: jest.fn(() => Promise.resolve()),
   NotificationFeedbackType: {
     Success: 'Success',
     Warning: 'Warning',

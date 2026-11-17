@@ -9,6 +9,9 @@ from app.db.repositories.base import handle_db_error
 
 logger = logging.getLogger(__name__)
 
+# The family_links times that are claimed before a message is sent (HL-154 alerts, HL-162 reminders)
+CLAIM_FIELDS = ("last_nudge_at", "last_digest_at", "last_reminder_at")
+
 INVITES_TABLE = "family_invites"
 LINKS_TABLE = "family_links"
 
@@ -166,7 +169,7 @@ class SupabaseFamilyRepository(FamilyRepository):
             return []
 
     def claim(self, link_id: str, field: str, before: str, now: str) -> bool:
-        if field not in ("last_nudge_at", "last_digest_at"):
+        if field not in CLAIM_FIELDS:
             raise ValueError(field)
         try:
             res = (self.client.table(LINKS_TABLE).update({field: now}).eq("id", link_id)
@@ -177,7 +180,7 @@ class SupabaseFamilyRepository(FamilyRepository):
             return False
 
     def release(self, link_id: str, field: str, previous: Optional[str], claimed_at: str) -> None:
-        if field not in ("last_nudge_at", "last_digest_at"):
+        if field not in CLAIM_FIELDS:
             raise ValueError(field)
         try:
             (self.client.table(LINKS_TABLE).update({field: previous}).eq("id", link_id).eq(field, claimed_at).execute())
