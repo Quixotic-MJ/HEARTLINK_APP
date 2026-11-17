@@ -88,9 +88,29 @@ def is_digest_time(now: datetime) -> bool:
     return bool(local and local.weekday() == DIGEST_WEEKDAY and local.hour >= DIGEST_HOUR)
 
 
-def _notify(user_id: str, title: str, message: str) -> None:
-    get_notification_repo().create_notification(
-        {"user_id": user_id, "type": "info", "scope": "personal", "title": title, "message": message})
+# The notification types the database accepts (patient_notifications_type_check, migration 006). Until 2026-11-17 these
+# alerts used "info", which the database refused, so no nudge or summary ever arrived (HL-161).
+NUDGE_TYPE = "reminder"
+DIGEST_TYPE = "insight"
+
+
+def _notify(user_id: str, kind: str, title: str, message: str) -> bool:
+    """Saves the notification (which also sends the push). False when it wasn't saved."""
+    created = get_notification_repo().create_notification(
+        {"user_id": user_id, "type": kind, "scope": "personal", "title": title, "message": message})
+    return bool(created)
+
+
+def _send(repo, link: Dict[str, Any], field: str, before: str, now: datetime, kind: str, title: str, message: str) -> bool:
+    """Claims the link, then sends. If the message couldn't be saved, the claim is undone so the next run tries again."""
+    claimed_at, previous = _iso(now), link.get(field)
+    if not repo.claim(link["id"], field, before, claimed_at):
+        return False
+    if _notify(link["follower_id"], kind, title, message):
+        return True
+    repo.release(link["id"], field, previous, claimed_at)
+    logger.warning("A family alert couldn't be saved; it will be tried again on the next run")
+    return False
 
 
 def run_once(now: Optional[datetime] = None) -> Dict[str, int]:
@@ -119,8 +139,8 @@ def run_once(now: Optional[datetime] = None) -> Dict[str, int]:
                     since = max(known) if known else None
                     if since and now - since >= timedelta(hours=NUDGE_AFTER_HOURS):
                         # Claimed only if no nudge was sent since that reading (or since the follow started)
-                        if repo.claim(link["id"], "last_nudge_at", _iso(since), _iso(now)):
-                            _notify(link["follower_id"], "No check-in for 2 days", nudge_message(name, last_bp, now))
+                        if _send(repo, link, "last_nudge_at", _iso(since), now, NUDGE_TYPE, "No check-in for 2 days",
+                                 nudge_message(name, last_bp, now)):
                             sent["nudges"] += 1
 
             if digest_now:
@@ -128,8 +148,8 @@ def run_once(now: Optional[datetime] = None) -> Dict[str, int]:
                 week = [l for l in recent if (parse_utc(l.get("logged_at")) or week_start) > week_start]
                 message = digest_message(name, week)
                 for link in links:
-                    if repo.claim(link["id"], "last_digest_at", _iso(now - timedelta(days=DIGEST_EVERY_DAYS)), _iso(now)):
-                        _notify(link["follower_id"], f"{name}'s week", message)
+                    if _send(repo, link, "last_digest_at", _iso(now - timedelta(days=DIGEST_EVERY_DAYS)), now, DIGEST_TYPE,
+                             f"{name}'s week", message):
                         sent["digests"] += 1
         except Exception as e:  # one patient's problem never stops the others
             logger.warning("Family alerts skipped a patient (%s)", type(e).__name__)

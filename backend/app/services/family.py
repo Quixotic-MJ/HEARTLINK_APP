@@ -23,7 +23,7 @@ from app.db.repositories import (
     get_notification_repo,
     get_profile_repo,
 )
-from app.services.health_report import TZ, _day, _live, _local, _number
+from app.services.health_report import TZ, _day, _live, _local, _number, bp_category
 from app.services.heart_risk import summary as risk_summary
 from app.services.premium import PREMIUM_REQUIRED, is_premium
 from app.services.review_rules import FAINTED_SYMPTOM
@@ -194,6 +194,39 @@ def _medicine(logs: List[Dict[str, Any]], today: date) -> Dict[str, Any]:
     }
 
 
+TABLE_DAYS = 7
+
+
+def _bp_of(log: Dict[str, Any]) -> Dict[str, Any]:
+    sys_bp, dia_bp = round(_number(log["systolic_bp"])), round(_number(log["diastolic_bp"]))
+    return {"systolic": sys_bp, "diastolic": dia_bp, "category": bp_category(sys_bp, dia_bp)}
+
+
+def _week_table(logs: List[Dict[str, Any]], today: date) -> Dict[str, Any]:
+    """HL-161: the last 7 days for the family view, newest first, in plain terms. Each day shows its highest blood
+    pressure reading (the one a carer most needs to see) with its AHA category, the last pulse, the medicine answer and
+    whether anything was logged. Only what the patient logged; nothing here diagnoses."""
+    days: List[Dict[str, Any]] = []
+    week_readings: List[Dict[str, Any]] = []
+    for offset in range(TABLE_DAYS):
+        d = today - timedelta(days=offset)
+        day_logs = [l for l in logs if _day(l.get("logged_at")) == d]  # oldest first
+        readings = [l for l in day_logs if _number(l.get("systolic_bp")) and _number(l.get("diastolic_bp"))]
+        top = max(readings, key=lambda r: (_number(r["systolic_bp"]), _number(r["diastolic_bp"]))) if readings else None
+        pulses = [l for l in day_logs if _number(l.get("heart_rate_bpm"))]
+        answers = [l["medication_taken"] for l in day_logs if l.get("medication_taken") in (True, False)]
+        days.append({
+            "date": d.isoformat(),
+            "bp": {**_bp_of(top), "readings": len(readings)} if top else None,
+            "pulse": round(_number(pulses[-1]["heart_rate_bpm"])) if pulses else None,
+            "medicine": answers[-1] if answers else None,
+            "logged": bool(day_logs),
+        })
+        week_readings += [{**_bp_of(r), "date": d.isoformat()} for r in readings]
+    highest = max(week_readings, key=lambda r: (r["systolic"], r["diastolic"])) if week_readings else None
+    return {"days": days, "readings": len(week_readings), "highest": highest}
+
+
 def set_account_kind(user_id: str, kind: str) -> Dict[str, Any]:
     profile = _patient_profile(user_id)
     if kind not in ACCOUNT_KINDS:
@@ -256,6 +289,8 @@ def summary(user_id: str, patient_id: str) -> Dict[str, Any]:
         "last_check_in": latest_log.get("logged_at") if latest_log else None,
         # HL-154: "took medicine today" for carers, only the patient's own answer
         "medicine": _medicine(logs, today),
+        # HL-161: the last 7 days as a table, in plain words on the phone
+        "week": _week_table(logs, today),
         "days": [{"date": d.isoformat(), "systolic": v.get("systolic"), "diastolic": v.get("diastolic"), "score": v.get("score")}
                  for d, v in by_day.items()],
         "open_alerts": [

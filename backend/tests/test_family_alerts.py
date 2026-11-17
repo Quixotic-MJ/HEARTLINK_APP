@@ -54,6 +54,11 @@ class Links:
             return True
         return False
 
+    def release(self, link_id, field, previous, claimed_at):
+        link = next(l for l in self.links if l["id"] == link_id)
+        if link.get(field) == claimed_at:
+            link[field] = previous
+
 
 class Logs:
     def __init__(self, logs):
@@ -63,11 +68,19 @@ class Logs:
         return sorted(self.logs, key=lambda l: l["logged_at"], reverse=True)
 
 
+# The types patient_notifications accepts (migration 006). The old stand-in took any type, which hid HL-161: the alerts
+# used "info", the database refused every one, and nobody was ever told.
+DB_TYPES = {"alert", "insight", "achievement", "reminder", "announcement", "system"}
+
+
 class Notes:
     def __init__(self):
         self.sent = []
+        self.down = False
 
     def create_notification(self, data):
+        if self.down or data.get("type") not in DB_TYPES:
+            return {}  # what the repository returns when the database refuses the row
         self.sent.append(data)
         return data
 
@@ -195,3 +208,21 @@ def test_nudge_switch_is_on_by_default_and_saved(monkeypatch):
     assert family.set_nudges(PAT, False) == {"nudges_enabled": False}
     assert profiles.rows[PAT]["family_nudges_enabled"] is False
     assert family.sharing_status(PAT)["nudges_enabled"] is False
+
+
+# --- HL-161: the alerts really arrive --------------------------------------------------------------------
+
+def test_alerts_use_types_the_database_accepts(world):
+    w = world(SUNDAY_8PM, [reading(SUNDAY_8PM - timedelta(hours=50))])
+    assert fa.run_once(SUNDAY_8PM) == {"nudges": 2, "digests": 2}
+    assert {n["type"] for n in w.notes.sent} == {"reminder", "insight"}
+
+
+def test_an_alert_that_could_not_be_saved_is_tried_again(world):
+    w = world(WEDNESDAY, [reading(WEDNESDAY - timedelta(hours=50))])
+    w.notes.down = True
+    assert fa.run_once(WEDNESDAY) == {"nudges": 0, "digests": 0}
+    assert all(link.get("last_nudge_at") is None for link in w.links.links)
+
+    w.notes.down = False
+    assert fa.run_once(WEDNESDAY + timedelta(hours=1)) == {"nudges": 2, "digests": 0}

@@ -8,7 +8,16 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useUser } from "../../../contexts/UserContext";
 import { useToast } from "../../../contexts/ToastContext";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
-import { DEFAULT_REMINDERS, Reminders, loadReminders, saveReminders, scheduleReminders } from "../../../services/remindersService";
+import {
+  DEFAULT_REMINDERS,
+  Reminders,
+  bedtimeReminderFor,
+  formatTime as formatClock,
+  loadReminders,
+  saveReminders,
+  scheduleReminders,
+} from "../../../services/remindersService";
+import { useUsualBedtime } from "../../../hooks/useUsualBedtime";
 import { useDs } from "../../../components/onboarding/useDs";
 import DsButton from "../../../components/onboarding/DsButton";
 import { SquareIconButton } from "../../../components/exercise/ExerciseBits";
@@ -113,8 +122,13 @@ export default function DailyRemindersScreen() {
     evening: { enabled: false, time: "20:00" },
     activity: { enabled: false, time: "17:00" },
     medicine: DEFAULT_REMINDERS.medicine,
+    bedtime: DEFAULT_REMINDERS.bedtime,
   };
   const [reminders, setReminders] = useState<Reminders>(fallback);
+  // HL-161: suggest a bedtime reminder from the person's own sleep logs
+  const usual = useUsualBedtime().data ?? null;
+  const suggested = usual ? bedtimeReminderFor(usual) : null;
+  const showSuggestion = !!suggested && !(reminders.bedtime.enabled && reminders.bedtime.time === suggested);
   const [initialReminders, setInitialReminders] = useState<Reminders>(fallback);
 
   const [showExitConfirm, setShowExitConfirm] = useState(false);
@@ -265,6 +279,34 @@ export default function DailyRemindersScreen() {
             onToggle={() => toggleReminder("evening")}
             onTimePress={() => setPickerConfig({ visible: true, key: "evening" })}
           />
+          <ReminderToggle
+            title="Bedtime"
+            description="A nudge to start getting ready for bed, so you sleep 7 to 9 hours."
+            mcIcon="bed"
+            iconBg={c.sky}
+            iconColor={c.charcoal}
+            enabled={reminders.bedtime.enabled}
+            time={reminders.bedtime.time}
+            onToggle={() => toggleReminder("bedtime")}
+            onTimePress={() => setPickerConfig({ visible: true, key: "bedtime" })}
+          />
+          {showSuggestion && usual && suggested ? (
+            <View
+              className="mb-4 rounded-lg px-4 py-3"
+              style={{ backgroundColor: c.surface, gap: 8 }}
+              accessible={false}
+            >
+              <Text className="text-[13.5px] leading-[19px] text-ds-charcoal">
+                {`You usually go to bed around ${formatClock(usual)}. A reminder at ${formatClock(suggested)} gives you time to wind down.`}
+              </Text>
+              <DsButton
+                label={`Remind me at ${formatClock(suggested)}`}
+                variant="link"
+                block={false}
+                onPress={() => setReminders((prev) => ({ ...prev, bedtime: { enabled: true, time: suggested } }))}
+              />
+            </View>
+          ) : null}
           <ReminderToggle
             title="Activity Goal"
             description="Get a reminder to stay on track with your movement goal."

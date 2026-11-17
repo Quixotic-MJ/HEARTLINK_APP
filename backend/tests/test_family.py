@@ -209,7 +209,10 @@ def test_followers_see_a_read_only_summary(world):
     assert len(s["days"]) == 30 and s["days"][-2]["systolic"] == 138 and s["days"][-2]["score"] == 71
     assert s["open_alerts"][0]["type"] == "Hypertensive Crisis"
     assert set(s) == {"id", "name", "paused", "latest_bp", "latest_pulse", "score", "heart_risk", "last_check_in", "days",
-                      "open_alerts", "medicine"}
+                      "open_alerts", "medicine", "week"}
+    # HL-161: the last 7 days, newest first; the deleted 200/130 is left out of the table too
+    assert len(s["week"]["days"]) == 7 and s["week"]["readings"] == 2
+    assert (s["week"]["highest"]["systolic"], s["week"]["highest"]["category"]) == (150, "stage_2")
     # HL-154: the patient's own medicine answers for carers (today's, and the last 7 days)
     assert set(s["medicine"]) == {"today", "week"} and set(s["medicine"]["week"]) == {"taken", "answered"}
     assert s["heart_risk"] is None  # these test scores have no Heart risk saved
@@ -360,3 +363,31 @@ def test_an_emergency_save_still_answers_and_followers_hear_after(client, world,
     monkeypatch.setattr(family, "get_family_repo", lambda: (_ for _ in ()).throw(RuntimeError("db down")))
     res = http.post(f"/api/health-logs/{PAT}", json={"systolic_bp": 190, "diastolic_bp": 125}, headers=as_user(PAT))
     assert res.status_code == 200 and res.json()["success"] is True
+
+
+# --- HL-161: the last 7 days for the family view ------------------------------------------------------------
+
+def test_week_table_shows_each_days_highest_reading_in_plain_terms():
+    from datetime import date
+    today = date(2026, 11, 17)
+
+    def at(day, hour):  # Manila time
+        return f"2026-11-{day:02d}T{hour - 8:02d}:00:00+00:00"
+
+    logs = [
+        {"logged_at": at(17, 9), "systolic_bp": 128, "diastolic_bp": 82, "heart_rate_bpm": 70, "medication_taken": True},
+        {"logged_at": at(17, 20), "systolic_bp": 142, "diastolic_bp": 90, "heart_rate_bpm": 75, "medication_taken": False},
+        {"logged_at": at(15, 9), "systolic_bp": 118, "diastolic_bp": 76},
+        {"logged_at": at(14, 9), "sleep_hours": 7},
+        {"logged_at": at(5, 9), "systolic_bp": 190, "diastolic_bp": 100},  # older than 7 days: not in the table
+    ]
+    table = family._week_table(logs, today)
+    days = table["days"]
+    assert [d["date"] for d in days][:2] == ["2026-11-17", "2026-11-16"] and len(days) == 7
+    assert days[0]["bp"] == {"systolic": 142, "diastolic": 90, "category": "stage_2", "readings": 2}
+    assert (days[0]["pulse"], days[0]["medicine"], days[0]["logged"]) == (75, False, True)
+    assert days[1] == {"date": "2026-11-16", "bp": None, "pulse": None, "medicine": None, "logged": False}
+    assert days[2]["bp"]["category"] == "normal"
+    assert days[3]["bp"] is None and days[3]["logged"] is True  # a sleep log only
+    assert table["readings"] == 3 and table["highest"] == {"systolic": 142, "diastolic": 90, "category": "stage_2",
+                                                          "date": "2026-11-17"}
