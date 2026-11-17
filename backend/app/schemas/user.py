@@ -277,3 +277,33 @@ class ThresholdsUpdateRequest(BaseModel):
         return self
 
 
+
+
+_PH_MOBILE = re.compile(r"\+639\d{9}")
+
+
+class StaffAccountUpdate(BaseModel):
+    """A staff member edits their own name and phone in the portal's Settings. The email stays with the Admin: it is the
+    sign-in address and where sign-in codes go."""
+    first_name: str = Field(..., max_length=50)
+    last_name: str = Field("", max_length=50)
+    phone: Optional[str] = None
+
+    @field_validator("first_name", "last_name")
+    @classmethod
+    def tidy_name(cls, v: str, info) -> str:
+        v = " ".join((v or "").split())
+        if info.field_name == "first_name" and not v:
+            raise ValueError("Enter your first name.")
+        return v
+
+    @field_validator("phone")
+    @classmethod
+    def ph_mobile(cls, v: Optional[str]) -> Optional[str]:
+        from app.utils.phone import normalize_e164
+        if v is None or not str(v).strip():
+            return None
+        e164 = normalize_e164(str(v))
+        if not _PH_MOBILE.fullmatch(e164):
+            raise ValueError("Enter a Philippine mobile number, like 0917 123 4567.")
+        return e164

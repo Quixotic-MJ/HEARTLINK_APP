@@ -10,7 +10,9 @@ from app.schemas.auth import (
     RegisterRequest, CodeResponse, Login, ResendCodeRequest, WebVerify2FA, ForgotPasswordRequest,
     RefreshRequest, LogoutRequest, PasswordResetRequest, PasswordResetConfirm,
 )
-from app.services.auth_service import get_auth_service
+from app.services.auth_service import get_auth_service, staff_two_factor_enabled
+from app.schemas.user import StaffAccountUpdate
+from app.utils.activity_helper import record_admin_activity
 from app.services.session_service import issue_session, refresh_session, revoke_session
 from app.utils.rate_limiter import limiter
 from app.utils.security import (
@@ -120,8 +122,38 @@ async def me(current_user: dict = Depends(get_current_admin_user)):
         "last_name": profile.get("last_name", ""),
         "email": profile.get("email", ""),
         "phone": profile.get("phone", ""),
+        # get_current_admin_user already refuses an account that isn't active; Settings shows this as "Active"
+        "account_status": profile.get("account_status"),
+        # The portal's Settings says how this account signs in (the emailed code is on unless STAFF_2FA_ENABLED=false)
+        "two_factor": staff_two_factor_enabled(),
         "must_change_password": bool(profile.get("must_change_password")),
     }
+
+
+PHONE_TAKEN_DETAIL = "That mobile number is already used by another account."
+
+
+@router.put("/me")
+async def update_me(payload: StaffAccountUpdate, current_user: dict = Depends(get_current_admin_user)):
+    """A staff member changes their own name and phone (Settings). Only their own account: the id comes from the session,
+    never from the request. Role, email and status stay with the Admin (Accounts & Staff)."""
+    user_id = current_user["user_id"]
+    repo = get_profile_repo()
+    if payload.phone:
+        other = repo.get_by_identifier(payload.phone)
+        if other and str(other.get("id")) != str(user_id):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=PHONE_TAKEN_DETAIL)
+    changes = {"first_name": payload.first_name, "last_name": payload.last_name, "phone": payload.phone}
+    if not repo.update_profile(user_id, changes):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found.")
+    record_admin_activity(
+        admin_user_id=user_id,
+        action="Updated their own name or phone",
+        target_type="staff",
+        target_id=str(user_id),
+        target_name=f"{payload.first_name} {payload.last_name}".strip(),
+    )
+    return await me(current_user)
 
 @router.post("/logout")
 async def logout(
