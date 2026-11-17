@@ -44,6 +44,7 @@ test("four synthetic identities retain recipe/routine/Admin API scopes", () => {
     assert.equal(request("/api/recipes", { role }).statusCode, ["admin", "dietitian"].includes(role) ? 200 : 403);
     assert.equal(request("/api/exercises/", { role }).statusCode, ["admin", "therapist"].includes(role) ? 200 : 403);
     assert.equal(request("/api/admin/dashboard", { role }).statusCode, role === "admin" ? 200 : 403);
+    assert.equal(request("/api/admin/analytics?period=3months", { role }).statusCode, role === "admin" ? 200 : 403);
     assert.equal(request("/api/admin/notifications", { role }).statusCode, 200);
   }
 });

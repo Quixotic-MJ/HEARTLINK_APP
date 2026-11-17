@@ -43,11 +43,11 @@ export const exercises = ["Gentle mobility sample", "Seated movement sample", "B
   steps: [{ instruction: "Synthetic movement description for design review only.", mode: "time", duration_seconds: 60 }],
 }));
 
-const states = { total: 4, draft: 2, awaiting_review: 1, changes_requested: 0, approved_draft: 1, approval_recorded: 2,
-  published: 1, archived: 1, unknown_status: 0, published_without_review: 0, published_without_review_names: [] };
+const states = { total: 4, draft: 2, awaiting_review: 1, changes_requested: 0, approval_recorded: 2,
+  published: 1, archived: 1, unknown_status: 0, published_without_review: 0 };
 export const dashboard = {
   accounts: { consumers: 3, staff: 4, active: 5, disabled: 1, archived: 1, unknown_status: 0, unknown_role: 0 },
-  content: { recipes: { ...states, published_without_review: 1, published_without_review_names: ["Demo steamed fish"] }, exercises: states }, generated_at: date,
+  content: { recipes: states, exercises: states }, generated_at: date,
 };
 export const accounts = ["Demo account", "Demo Premium", "Demo disabled"].map((name, index) => ({
   id: `synthetic-account-${index}`, first_name: "Synthetic", last_name: name, role: "patient",
@@ -78,10 +78,38 @@ export const premium = {
     kind: "admin_granted", actor_name: "Synthetic Admin", created_at: date, premium_until: "2099-01-01T00:00:00Z" }],
 };
 
+export const analytics = {
+  demographics: {
+    total_signups: 12,
+    signups_growth: null,
+    total_records: 48,
+    records_growth: null,
+    archived_accounts: 1,
+    churn_rate: 0,
+    monthly_dau: [
+      { name: "Sep", dau: 7 },
+      { name: "Oct", dau: 9 },
+      { name: "Nov", dau: 11 },
+    ],
+  },
+  symptoms_frequency: [],
+  activity_over_time: [
+    { name: "Week 1", meals: 8, exercises: 5, sleep: 6 },
+    { name: "Week 2", meals: 10, exercises: 7, sleep: 8 },
+    { name: "Week 3", meals: 9, exercises: 8, sleep: 7 },
+  ],
+  wellness_outcomes: [],
+  content_efficacy: {
+    top_recipes: [{ name: "Synthetic garden rice bowl", completions: 8 }],
+    top_exercises: [{ name: "Synthetic chair mobility", completions: 6 }],
+  },
+  content_distribution: { recipes: {}, exercises: {} },
+};
+
 export function notifications(role) {
   return { items: [{ id: "synthetic-notification", title: "Design preview is ready", type: "system", severity: "info",
     message: "All records are invented. Saves and account changes are intentionally blocked.",
-    created_at: date, read_by: [`synthetic-${role}`], route: roles[role].home }], total: 1, unread_count: 0 };
+    created_at: date, read_by: [`synthetic-${role}`], route: role === "admin" ? "/feedbacks" : roles[role].home }], total: 1, unread_count: 0 };
 }
 
 export function illustration(kind) {

@@ -90,21 +90,21 @@ export default function AdminNotificationDropdown({ userId }) {
   const markAsRead = async (id, route) => {
     setActionError(null);
     const undo = markNotificationsRead(queryClient, BELL_KEY, userId, (n) => n.id === id);
+    const destination = safeNotificationRoute(user, route);
+
+    if (destination) {
+      navigate(destination);
+      setIsOpen(false);
+    } else if (route) {
+      setActionError("This destination is no longer available for your account.");
+    }
 
     try {
       await apiFetch(`/api/admin/notifications/${id}/read`, { method: "PUT" });
-
-      const destination = safeNotificationRoute(user, route);
-      if (destination) {
-        navigate(destination);
-        setIsOpen(false);
-      } else if (route) {
-        setActionError("This destination is no longer available for your account.");
-      }
     } catch (error) {
       console.error("Failed to mark as read:", error);
       undo();
-      setActionError("Unable to mark notification as read.");
+      if (!destination) setActionError("Unable to mark notification as read.");
     }
   };
 
