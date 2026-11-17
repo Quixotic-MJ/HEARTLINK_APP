@@ -96,6 +96,11 @@ export const AuthProvider = ({ children }) => {
     setUser((prev) => (prev ? { ...prev, mustChangePassword: false } : prev));
   };
 
+  // Settings saved a new name or phone: show it everywhere (sidebar, header) without signing in again
+  const updateProfile = (data) => {
+    setUser((prev) => (prev ? { ...prev, first_name: data.first_name || "", last_name: data.last_name || "", phone: data.phone || "" } : prev));
+  };
+
   // The backend already set the session cookie on the login response; only mirror the profile in memory.
   const login = (userId, userData = null) => {
     queryClient.clear();
@@ -105,7 +110,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, userId, isAuthenticated, login, logout, markPasswordChanged, loading }}>
+    <AuthContext.Provider value={{ user, userId, isAuthenticated, login, logout, markPasswordChanged, updateProfile, loading }}>
       {!loading && children}
     </AuthContext.Provider>
   );

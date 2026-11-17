@@ -12,6 +12,8 @@ import {
   Loader2,
   Lock,
   Mail,
+  Pencil,
+  Phone,
   Shield,
   ShieldCheck,
   User,
@@ -152,18 +154,160 @@ function ToggleEye({ shown, onToggle, field }) {
   );
 }
 
+// ─── Edit own name and phone ──────────────────────────────────────────────────
+
+const INPUT =
+  "h-10 w-full rounded-[8px] border border-cal-hairline bg-cal-canvas px-3 text-[13.5px] text-cal-ink placeholder:text-cal-muted-soft focus:border-cal-ink focus:outline-none transition-colors disabled:opacity-50";
+
+// +639171234567 is shown as 0917 123 4567; anything else as it was saved
+function displayPhone(phone) {
+  const m = /^\+63(9\d{2})(\d{3})(\d{4})$/.exec(phone || "");
+  return m ? `0${m[1]} ${m[2]} ${m[3]}` : phone || "";
+}
+
+function errorText(err, fallback) {
+  const detail = err?.data?.detail;
+  const text =
+    typeof detail === "string"
+      ? detail
+      : (Array.isArray(detail) ? detail[0]?.msg : null) || fallback;
+  return text.replace(/^Value error,\s*/i, "");
+}
+
+function DetailsForm({ user, onDone }) {
+  const { updateProfile } = useAuth();
+  const [form, setForm] = useState({
+    first: user?.first_name || "",
+    last: user?.last_name || "",
+    phone: displayPhone(user?.phone),
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const set = (field) => (e) =>
+    setForm((prev) => ({ ...prev, [field]: e.target.value }));
+
+  const save = async (e) => {
+    e.preventDefault();
+    if (saving) return;
+    if (!form.first.trim()) {
+      setError("Enter your first name.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      const result = await apiFetch("/api/auth/me", {
+        method: "PUT",
+        body: JSON.stringify({
+          first_name: form.first,
+          last_name: form.last,
+          phone: form.phone.trim() || null,
+        }),
+      });
+      updateProfile(result || {});
+      toast.success("Details saved");
+      onDone();
+    } catch (err) {
+      setError(errorText(err, "Couldn't save your details. Try again."));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <form
+      onSubmit={save}
+      aria-busy={saving}
+      className="mt-5 space-y-4 rounded-[10px] border border-cal-hairline p-4"
+    >
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <label className="block">
+          <span className="text-[12.5px] font-semibold text-cal-ink">
+            First name
+          </span>
+          <input
+            className={`${INPUT} mt-1.5`}
+            value={form.first}
+            onChange={set("first")}
+            maxLength={50}
+            autoComplete="given-name"
+            disabled={saving}
+            required
+          />
+        </label>
+        <label className="block">
+          <span className="text-[12.5px] font-semibold text-cal-ink">
+            Last name
+          </span>
+          <input
+            className={`${INPUT} mt-1.5`}
+            value={form.last}
+            onChange={set("last")}
+            maxLength={50}
+            autoComplete="family-name"
+            disabled={saving}
+          />
+        </label>
+      </div>
+      <label className="block">
+        <span className="text-[12.5px] font-semibold text-cal-ink">
+          Mobile number{" "}
+          <span className="font-normal text-cal-muted">(optional)</span>
+        </span>
+        <input
+          className={`${INPUT} mt-1.5`}
+          value={form.phone}
+          onChange={set("phone")}
+          placeholder="0917 123 4567"
+          inputMode="tel"
+          autoComplete="tel"
+          disabled={saving}
+        />
+      </label>
+      {error && (
+        <p role="alert" className="text-[13px] text-cal-error">
+          {error}
+        </p>
+      )}
+      <div className="flex flex-wrap gap-3">
+        <button
+          type="submit"
+          disabled={saving}
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-5 text-[13.5px] font-semibold text-cal-on-primary transition-colors cursor-pointer disabled:bg-cal-primary-disabled disabled:text-cal-muted disabled:cursor-not-allowed"
+        >
+          {saving && (
+            <Loader2 size={15} className="animate-spin" aria-hidden="true" />
+          )}
+          {saving ? "Saving…" : "Save details"}
+        </button>
+        <button
+          type="button"
+          onClick={onDone}
+          disabled={saving}
+          className="inline-flex h-10 items-center justify-center rounded-[8px] border border-cal-hairline bg-cal-canvas px-4 text-[13.5px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer disabled:opacity-40"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
+
 // ─── Account & Credentials Panel ──────────────────────────────────────────────
 
 function AccountTab({ user, userId, unavailable }) {
   const role = user?.role;
   const expertType = user?.expert_type;
   const status = unavailable ? null : user?.account_status;
+  // The server says whether sign-in codes are on (STAFF_2FA_ENABLED); older servers don't say, and codes are on by default
+  const twoFactor = user?.two_factor !== false;
   const fullName =
     [user?.first_name, user?.last_name].filter(Boolean).join(" ").trim() ||
     "Staff member";
 
   const avatarInitial =
     fullName !== "—" ? fullName.charAt(0).toUpperCase() : "A";
+  const [editing, setEditing] = useState(false);
 
   // Password change state
   const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
@@ -283,7 +427,7 @@ function AccountTab({ user, userId, unavailable }) {
       {/* ── 1. Profile Information ────────────────────────────────────────── */}
       <SettingsCard
         title="Staff account"
-        subtitle="Read-only identity and access details"
+        subtitle="Your name and contact details, and your access"
         icon={User}
       >
         {/* Profile Banner */}
@@ -305,8 +449,25 @@ function AccountTab({ user, userId, unavailable }) {
             </div>
           </div>
 
-          <StatusBadge status={status} />
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge status={status} />
+            {!editing && (
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                disabled={unavailable}
+                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-[8px] border border-cal-hairline bg-cal-canvas px-3.5 text-[13px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer disabled:opacity-40"
+              >
+                <Pencil size={13} aria-hidden="true" />
+                Edit details
+              </button>
+            )}
+          </div>
         </div>
+
+        {editing && (
+          <DetailsForm user={user} onDone={() => setEditing(false)} />
+        )}
 
         {/* 2-Column Hairline Metadata Grid */}
         <div className="mt-5 grid grid-cols-1 gap-px overflow-hidden rounded-[10px] border border-cal-hairline bg-cal-hairline sm:grid-cols-2">
@@ -349,15 +510,25 @@ function AccountTab({ user, userId, unavailable }) {
               <StatusBadge status={status} />
             </div>
           </div>
+
+          <div className="bg-cal-canvas p-4 sm:col-span-2">
+            <div className="flex items-center gap-2 text-cal-muted">
+              <Phone size={13.5} />
+              <span className="text-[12px] font-medium">Mobile number</span>
+            </div>
+            <p className="mt-1 text-[13.5px] font-semibold tabular-nums text-cal-ink">
+              {displayPhone(user?.phone) || "Not added"}
+            </p>
+          </div>
         </div>
 
         {/* Notice */}
         <div className="mt-5 flex items-start gap-2.5 rounded-[10px] border border-cal-hairline bg-cal-surface-soft p-3.5 text-cal-muted">
           <Info size={15} className="mt-0.5 shrink-0 text-cal-ink" />
           <p className="text-[12.5px] leading-relaxed">
-            These details are read-only here. Only an Admin can manage staff
-            roles and specialties in Accounts &amp; Staff. A staff role does not
-            grant access to other users’ personal health records.
+            You can edit your name and mobile number. Only an Admin can change
+            your email, role or specialty in Accounts &amp; Staff. A staff role
+            does not grant access to other users’ personal health records.
           </p>
         </div>
       </SettingsCard>
@@ -375,7 +546,7 @@ function AccountTab({ user, userId, unavailable }) {
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h4 className="text-[14px] font-semibold text-cal-ink">
-                Email and password
+                {twoFactor ? "Password and emailed code" : "Email and password"}
               </h4>
               <span
                 className={`${PILL} border-cal-success/25 bg-cal-success/10 text-cal-ink`}
@@ -385,14 +556,23 @@ function AccountTab({ user, userId, unavailable }) {
                   className="text-cal-success"
                   aria-hidden="true"
                 />
-                <span>Single-factor</span>
+                <span>{twoFactor ? "Two-step" : "Password only"}</span>
               </span>
             </div>
-            <p className="mt-1 text-[13px] leading-relaxed text-cal-muted">
-              The portal currently uses email and password sign-in. Multi-factor
-              authentication is not enabled in this portal. Do not share your
-              password or use it on another service.
-            </p>
+            {twoFactor ? (
+              <p className="mt-1 text-[13px] leading-relaxed text-cal-muted">
+                Each time you sign in, we email a 6-digit code to{" "}
+                {user?.email || "your email"}. To be asked less often, tick
+                “Remember me” when you sign in: you stay signed in on that
+                computer for 7 days. Never share your password or the code.
+              </p>
+            ) : (
+              <p className="mt-1 text-[13px] leading-relaxed text-cal-muted">
+                Sign-in codes are switched off for now, so you sign in with
+                your password only. Never share your password or use it on
+                another service.
+              </p>
+            )}
           </div>
         </div>
       </SettingsCard>
