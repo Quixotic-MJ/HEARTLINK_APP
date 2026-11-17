@@ -9,6 +9,7 @@ import re
 import hashlib
 import hmac
 import bcrypt
+import jwt
 import secrets
 import random
 import string
@@ -101,6 +102,73 @@ RESET_FAILED_DETAIL = "We couldn't change your password just now. Please try aga
 def _hash_reset_code(user_id: str, code: str) -> str:
     """Same keyed hash as the sign-up code, marked as a reset code so the two can never match each other."""
     return _hash_signup_code(f"reset:{user_id}", code)
+
+
+# Two-factor sign-in for the web portal: after the password, a 6-digit code is emailed to the staff account.
+# It lasts STAFF_CODE_TTL, has SIGNUP_CODE_MAX_ATTEMPTS tries and works once. The code is kept in password_resets
+# (migration 052), one row per account: phone password resets are for patients only (_reset_account), so a staff
+# account never has a reset row, and the hashes are marked differently so a sign-in code can never reset a password.
+STAFF_CODE_TTL = timedelta(minutes=10)
+STAFF_2FA_TOKEN_TYPE = "staff_2fa"
+STAFF_CODE_EXPIRED_DETAIL = "This code has expired or was already used. Go back and sign in again for a new code."
+STAFF_CODE_TOO_MANY_TRIES_DETAIL = "Too many wrong codes. Go back and sign in again for a new code."
+STAFF_CODE_EMAIL_FAILED_DETAIL = "We couldn't email your sign-in code just now. Please try again in a minute."
+STAFF_CODE_UNAVAILABLE_DETAIL = "Sign-in codes can't be sent right now. Please contact the system administrator."
+STAFF_CODE_NO_EMAIL_DETAIL = "This account has no email address for its sign-in code. Please contact the system administrator."
+
+
+def staff_two_factor_enabled() -> bool:
+    """On unless STAFF_2FA_ENABLED is false: an emergency switch in case email stops working and staff are locked out."""
+    return os.getenv("STAFF_2FA_ENABLED", "").strip().lower() not in ("0", "false", "no", "off")
+
+
+def _hash_staff_code(user_id: str, code: str) -> str:
+    return _hash_signup_code(f"staff2fa:{user_id}", code)
+
+
+def _staff_token_key() -> str:
+    """A key of its own, so the waiting-for-code token can never pass as a login token."""
+    key = os.getenv("SECRET_KEY", "")
+    if not key:
+        raise RuntimeError("SECRET_KEY is not set")
+    return f"{key}:{STAFF_2FA_TOKEN_TYPE}"
+
+
+def _new_staff_token(user_id: str) -> str:
+    expires = utc_now() + STAFF_CODE_TTL
+    return jwt.encode(
+        {"user_id": user_id, "typ": STAFF_2FA_TOKEN_TYPE, "exp": int(expires.timestamp())},
+        _staff_token_key(), algorithm="HS256",
+    )
+
+
+def _staff_token_user(token: str) -> str:
+    try:
+        claims = jwt.decode(token or "", _staff_token_key(), algorithms=["HS256"])
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=STAFF_CODE_EXPIRED_DETAIL)
+    if claims.get("typ") != STAFF_2FA_TOKEN_TYPE or not claims.get("user_id"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=STAFF_CODE_EXPIRED_DETAIL)
+    return str(claims["user_id"])
+
+
+def _email_hint(email: str) -> str:
+    """j***@gmail.com: enough for staff to know which inbox to check."""
+    name, _, domain = email.partition("@")
+    return f"{name[:1]}***@{domain}" if domain else "your email"
+
+
+def _staff_info(profile: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "user_id": profile["id"],
+        "role": profile["role"],
+        "expert_type": profile.get("expert_type"),
+        "first_name": profile.get("first_name", ""),
+        "last_name": profile.get("last_name", ""),
+        "email": profile.get("email", ""),
+        "phone": profile.get("phone", ""),
+        "must_change_password": bool(profile.get("must_change_password")),
+    }
 
 
 # HL-051: a login with no profile that is at most this old is the half-finished result of the same
@@ -671,22 +739,84 @@ class SupabaseAuthService(AuthService):
         if profile.get("role") not in ["admin", "medical_expert"]:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access Denied. This portal is strictly for Admins and Medical Experts.")
 
+        if not staff_two_factor_enabled():
+            return {"success": True, "requires_2fa": False, **_staff_info(profile), "token": login_res["token"]}
+
+        # Two-factor: the right password only earns an emailed code. Nothing about the account is returned
+        # and no login token is made until the code is entered (verify_2fa).
+        user_id = str(profile["id"])
+        email = (profile.get("email") or "").strip()
+        if not email:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=STAFF_CODE_NO_EMAIL_DETAIL)
+        if email_service.is_email_configured():
+            code, by_email = _new_signup_code(), True
+        else:
+            code, by_email = get_dev_otp_code(), False
+            if code is None:
+                raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=STAFF_CODE_UNAVAILABLE_DETAIL)
+        self.resets.delete_expired()
+        self.resets.save(user_id, _hash_staff_code(user_id, code), (utc_now() + STAFF_CODE_TTL).isoformat())
+        if by_email:
+            try:
+                email_service.send_staff_login_code(email, code, int(STAFF_CODE_TTL.total_seconds() // 60))
+            except email_service.EmailSendError:
+                self.resets.delete(user_id)
+                raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=STAFF_CODE_EMAIL_FAILED_DETAIL)
         return {
             "success": True,
-            "requires_2fa": False,
-            "user_id": profile["id"],
-            "role": profile["role"],
-            "expert_type": profile.get("expert_type"),
-            "first_name": profile.get("first_name", ""),
-            "last_name": profile.get("last_name", ""),
-            "email": profile.get("email", ""),
-            "phone": profile.get("phone", ""),
-            "must_change_password": bool(profile.get("must_change_password")),
-            "token": login_res["token"]
+            "requires_2fa": True,
+            "token_2fa": _new_staff_token(user_id),
+            "email_hint": _email_hint(email),
         }
 
     def verify_2fa(self, token_2fa: str, code: str) -> Dict[str, Any]:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="2FA handled via Supabase MFA")
+        """The second step of the portal sign-in: the emailed code (10 minutes, 5 tries, works once)."""
+        user_id = _staff_token_user(token_2fa)
+        profile = get_profile_repo().get_by_id(user_id)
+        # Checked again, in case the account was disabled or its role changed after the password step
+        if not profile or profile.get("role") not in ["admin", "medical_expert"] or profile.get("account_status") != "active":
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=STAFF_CODE_EXPIRED_DETAIL)
+
+        self._use_code(
+            user_id, _hash_staff_code(user_id, str(code).strip()),
+            STAFF_CODE_EXPIRED_DETAIL, STAFF_CODE_TOO_MANY_TRIES_DETAIL,
+        )
+        self.resets.delete(user_id)
+        token = create_access_token(data={"user_id": user_id, "role": profile["role"]})
+        return {"success": True, "requires_2fa": False, **_staff_info(profile), "token": token}
+
+    def _use_code(self, user_id: str, entered_hash: str, expired_detail: str, too_many_detail: str) -> str:
+        """
+        Checks an emailed code kept in password_resets and marks it used, so it works once. Every try counts, and the
+        code is deleted after SIGNUP_CODE_MAX_ATTEMPTS. Returns the code's hash (so a failed next step can restore it).
+        """
+        row = self.resets.get(user_id)
+        if row and parse_utc(row["expires_at"]) < utc_now():
+            self.resets.delete(user_id)
+            row = None
+        # No code_hash: the code is being used right now, or was just used
+        if not row or not row.get("code_hash"):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=expired_detail)
+
+        attempts = int(row.get("attempts") or 0)
+        if attempts >= SIGNUP_CODE_MAX_ATTEMPTS:
+            self.resets.delete(user_id)
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=too_many_detail)
+        if not self.resets.claim_attempt(user_id, attempts):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=CODE_BUSY_DETAIL)
+
+        code_hash = row["code_hash"]
+        if not hmac.compare_digest(entered_hash, code_hash):
+            tries_left = SIGNUP_CODE_MAX_ATTEMPTS - (attempts + 1)
+            if tries_left <= 0:
+                self.resets.delete(user_id)
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=too_many_detail)
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=_wrong_code_detail(tries_left))
+
+        # Only one request can use the code
+        if not self.resets.consume_code(user_id, code_hash):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=expired_detail)
+        return code_hash
 
     def verify_credentials(self, user_id: str, password: str) -> bool:
         try:
@@ -792,33 +922,9 @@ class SupabaseAuthService(AuthService):
         if not profile:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=RESET_EXPIRED_DETAIL)
         user_id = str(profile["id"])
-
-        row = self.resets.get(user_id)
-        if row and parse_utc(row["expires_at"]) < utc_now():
-            self.resets.delete(user_id)
-            row = None
-        # No code_hash: the code is being used right now, or was just used
-        if not row or not row.get("code_hash"):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=RESET_EXPIRED_DETAIL)
-
-        attempts = int(row.get("attempts") or 0)
-        if attempts >= SIGNUP_CODE_MAX_ATTEMPTS:
-            self.resets.delete(user_id)
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=RESET_TOO_MANY_TRIES_DETAIL)
-        if not self.resets.claim_attempt(user_id, attempts):
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=CODE_BUSY_DETAIL)
-
-        code_hash = row["code_hash"]
-        if not hmac.compare_digest(_hash_reset_code(user_id, str(code).strip()), code_hash):
-            tries_left = SIGNUP_CODE_MAX_ATTEMPTS - (attempts + 1)
-            if tries_left <= 0:
-                self.resets.delete(user_id)
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=RESET_TOO_MANY_TRIES_DETAIL)
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=_wrong_code_detail(tries_left))
-
-        # Only one request can use the code
-        if not self.resets.consume_code(user_id, code_hash):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=RESET_EXPIRED_DETAIL)
+        code_hash = self._use_code(
+            user_id, _hash_reset_code(user_id, str(code).strip()), RESET_EXPIRED_DETAIL, RESET_TOO_MANY_TRIES_DETAIL,
+        )
 
         try:
             # The admin API changes the password without touching any session on the shared client
