@@ -62,3 +62,28 @@ def test_verify_code_rate_limit(mock_auth_service):
     response = client.post(endpoint, json=payload)
     assert response.status_code == 429
     assert "Retry-After" in response.headers
+
+
+@patch("app.api.auth.auth.get_auth_service")
+def test_too_many_sign_ins_say_so_in_detail(mock_auth_service):
+    # The phone app shows "detail"; slowapi's own answer had none, so it showed "Invalid email or password" (2026-11-17)
+    mock_auth_service.return_value.login.side_effect = HTTPException(status_code=401, detail="Invalid credentials")
+    payload = {"identifier": "someone@example.com", "password": "wrongpassword"}
+    responses = [client.post("/api/auth/login", json=payload, headers={"X-Forwarded-For": "203.0.113.9"}) for _ in range(6)]
+    limited = responses[-1]
+    assert limited.status_code == 429
+    assert limited.json()["detail"] == "Too many attempts. Wait a minute, then try again."
+    assert "Retry-After" in limited.headers
+
+
+def test_on_render_each_person_has_their_own_limit(monkeypatch):
+    import importlib
+    from app.utils import rate_limiter
+    monkeypatch.setenv("RENDER", "true")
+    monkeypatch.delenv("TRUSTED_PROXY_HOPS", raising=False)
+    reloaded = importlib.reload(rate_limiter)
+    try:
+        assert reloaded.TRUSTED_PROXY_HOPS == 1
+    finally:
+        monkeypatch.delenv("RENDER", raising=False)
+        importlib.reload(rate_limiter)

@@ -61,8 +61,9 @@ def svc(monkeypatch):
 def test_a_phone_login_passes_the_delete_check(svc):
     service, _ = svc
     assert service.verify_credentials(USER_ID, PASSWORD) is True
-    # email first (as sign-in does), then the phone in its saved form, then +63
-    assert GoTrue.calls == [{"email": "ana.test@example.com"}, {"phone": "639170000101"}, {"phone": "+639170000101"}]
+    # email first (as sign-in does), then the phone once, in +63 form (2026-11-17: no more repeats in every format,
+    # which used up Supabase's sign-in limit)
+    assert GoTrue.calls == [{"email": "ana.test@example.com"}, {"phone": "+639170000101"}]
 
 
 def test_a_wrong_password_still_fails(svc):
@@ -82,3 +83,62 @@ def test_sign_in_uses_the_same_check(svc, monkeypatch):
     service, _ = svc
     monkeypatch.setattr(auth_service, "get_profile_repo", lambda: SimpleNamespace(get_by_identifier=lambda i: dict(PROFILE)))
     assert service.login("09170000101", PASSWORD)["user_id"] == USER_ID
+
+
+# --- 2026-11-17: sign-in no longer uses up Supabase's limit, and "too many" never reads as a wrong password ---------
+
+class Scripted:
+    """Answers Supabase sign-in requests from a list of status codes, and counts them."""
+    codes = []
+    calls = []
+
+    def __init__(self, *a, **k):
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+    def post(self, url, headers=None, json=None):
+        Scripted.calls.append((headers["apikey"], {k: v for k, v in json.items() if k != "password"}))
+        code = Scripted.codes.pop(0) if Scripted.codes else 400
+        body = {"user": {"id": USER_ID}} if code == 200 else {"error": "x"}
+        return SimpleNamespace(status_code=code, json=lambda: body)
+
+
+@pytest.fixture
+def scripted(monkeypatch, svc):
+    service, _ = svc
+    monkeypatch.setenv("SUPABASE_ANON_KEY", "anon-key")
+    monkeypatch.setattr("httpx.Client", Scripted)
+    Scripted.codes, Scripted.calls = [], []
+    return service
+
+
+def test_a_right_password_takes_one_request(scripted):
+    Scripted.codes = [200]
+    assert scripted.verify_credentials(USER_ID, PASSWORD) is True
+    assert len(Scripted.calls) == 1
+
+
+def test_a_wrong_password_takes_at_most_two_requests(scripted):
+    assert scripted.verify_credentials(USER_ID, "Wrong-password-123!") is False
+    assert [c[1] for c in Scripted.calls] == [{"email": "ana.test@example.com"}, {"phone": "+639170000101"}]
+    assert all(c[0] == "service-key" for c in Scripted.calls)  # the second key only when a key is refused
+
+
+def test_supabase_busy_is_too_many_attempts_not_a_wrong_password(scripted):
+    from fastapi import HTTPException
+    Scripted.codes = [429]
+    with pytest.raises(HTTPException) as exc:
+        scripted.verify_credentials(USER_ID, PASSWORD)
+    assert exc.value.status_code == 429 and "Too many sign-in attempts" in exc.value.detail
+    assert len(Scripted.calls) == 1
+
+
+def test_a_refused_key_tries_the_other_key(scripted):
+    Scripted.codes = [401, 200]
+    assert scripted.verify_credentials(USER_ID, PASSWORD) is True
+    assert [c[0] for c in Scripted.calls] == ["service-key", "anon-key"]

@@ -14,7 +14,7 @@ import secrets
 import random
 import string
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, List, Optional, Tuple
 from fastapi import HTTPException, status
 import logging
 
@@ -90,6 +90,9 @@ def _wrong_code_detail(tries_left: int) -> str:
     return f"That code isn't right. You have {tries_left} {'try' if tries_left == 1 else 'tries'} left."
 
 # Forgot password on the phone (migration 052): the code is emailed, lasts this long, and has SIGNUP_CODE_MAX_ATTEMPTS tries
+# Supabase (or the server) refused a sign-in because of too many attempts, not because of the password
+SIGN_IN_BUSY_DETAIL = "Too many sign-in attempts right now. Wait a minute, then try again."
+
 RESET_CODE_TTL = timedelta(minutes=10)
 RESET_SENT_MESSAGE = "If an account matches, we've emailed a 6-digit code to its email address."
 RESET_EXPIRED_DETAIL = "This code has expired or was already used. Go back and send a new code."
@@ -269,83 +272,74 @@ class SupabaseAuthService(AuthService):
     def _password_matches(self, profile: Dict[str, Any], password: str, identifier: str = "") -> Optional[str]:
         """
         The Supabase Auth user id when the password is right for this profile, else None. Used by sign-in,
-        account deletion and password change, so all three accept a password the same way: the profile's email,
-        then the typed identifier, then the phone number in each Philippine format, with the service key and then
-        the anon key, and finally the SDK. (Deletion and password change used to try only the email with the SDK,
-        so an account that signs in by phone could never be deleted or change its password.)
-        """
-        auth_user_id = None
+        account deletion and password change, so all three accept a password the same way.
 
-        # --- Method 1: Stateless REST authentication via httpx ---
-        # Bypasses supabase-py gotrue client session state issues in multi-request server environments
+        Supabase limits sign-in attempts per address, and every HeartLink sign-in reaches it from the server's one
+        address. This used to try up to 7 requests per sign-in (each login name in three phone formats, with two keys,
+        then the SDK), so a few wrong passwords used up the limit and everyone's right password was then refused as
+        "Invalid Credentials" (2026-11-17). Now: one request when the password is right, at most two when it's wrong
+        (the email, then the phone), the second key only when the first key itself is refused, and a 429 from Supabase
+        is reported as "too many attempts", never as a wrong password.
+        """
         import httpx
         supabase_url = os.getenv("SUPABASE_URL", "").strip()
-        anon_key = os.getenv("SUPABASE_ANON_KEY", "").strip()
-        service_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+        keys = [k for k in (os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip(), os.getenv("SUPABASE_ANON_KEY", "").strip()) if k]
 
-        auth_attempts = []
-        if profile.get("email"):
-            auth_attempts.append({"email": profile["email"].strip().lower()})
-        if "@" in identifier and {"email": identifier.strip().lower()} not in auth_attempts:
-            auth_attempts.append({"email": identifier.strip().lower()})
+        email = (profile.get("email") or "").strip().lower()
+        typed = identifier.strip().lower() if "@" in identifier else ""
+        attempts: List[Dict[str, str]] = []
+        if email:
+            attempts.append({"email": email})
+        if typed and typed != email:
+            attempts.append({"email": typed})
         if profile.get("phone"):
-            p = profile["phone"].strip()
-            auth_attempts.append({"phone": p})
-            if p.startswith("63"):
-                auth_attempts.append({"phone": "+" + p})
-            elif p.startswith("+63"):
-                auth_attempts.append({"phone": p[1:]})
-            elif p.startswith("09"):
-                auth_attempts.append({"phone": "+63" + p[1:]})
+            attempts.append({"phone": normalize_e164(str(profile["phone"]))})
 
-        valid_keys = [k for k in [service_key, anon_key] if k]
-        for key_to_use in valid_keys:
-            if auth_user_id:
-                break
-            for cred in auth_attempts:
+        unreachable = not keys  # no keys set: only the SDK can check the password
+        for cred in attempts:
+            for key in keys:
                 try:
-                    headers = {
-                        "apikey": key_to_use,
-                        "Authorization": f"Bearer {key_to_use}",
-                        "Content-Type": "application/json"
-                    }
                     with httpx.Client(timeout=10.0) as http:
                         resp = http.post(
                             f"{supabase_url}/auth/v1/token?grant_type=password",
-                            headers=headers,
-                            json={**cred, "password": password}
+                            headers={"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                            json={**cred, "password": password},
                         )
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        user_obj = data.get("user") or {}
-                        if user_obj.get("id"):
-                            auth_user_id = str(user_obj["id"])
-                            logger.info("[password check] Signed in through the direct REST call (id=%s)", auth_user_id)
-                            break
-                    else:
-                        logger.warning("[password check] Direct REST attempt failed (%s)", resp.status_code)
                 except Exception as http_err:
-                    logger.warning(f"[password check] httpx auth attempt error: {http_err}")
+                    logger.warning("[password check] Supabase couldn't be reached (%s)", type(http_err).__name__)
+                    unreachable = True
+                    break
+                if resp.status_code == 200:
+                    user_id = (resp.json().get("user") or {}).get("id")
+                    if user_id:
+                        return str(user_id)
+                    break
+                if resp.status_code == 429:
+                    logger.warning("[password check] Supabase's sign-in limit was reached")
+                    raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=SIGN_IN_BUSY_DETAIL)
+                if resp.status_code in (401, 403):
+                    # This key isn't accepted (not the password): try the other key
+                    logger.warning("[password check] A Supabase key was refused (%s)", resp.status_code)
+                    continue
+                if resp.status_code >= 500:
+                    unreachable = True
+                    break
+                break  # 400: not the right password for this login name; the other key won't change that
 
-        # --- Method 2: Fallback to client.auth.sign_in_with_password ---
-        if not auth_user_id:
-            credentials = {"password": password}
-            if profile.get("email"):
-                credentials["email"] = profile["email"]
-            elif profile.get("phone"):
-                credentials["phone"] = profile["phone"]
-            elif "@" in identifier:
-                credentials["email"] = identifier
-            else:
-                credentials["phone"] = identifier
+        if not unreachable:
+            return None
 
-            try:
-                res = self._isolated_auth().sign_in_with_password(credentials)
-                if res and hasattr(res, "user") and res.user:
-                    auth_user_id = str(res.user.id)
-            except Exception as client_err:
-                logger.warning(f"[password check] client.auth fallback error: {client_err}")
-        return auth_user_id
+        # Only when Supabase couldn't be reached over REST: one try through the SDK
+        credentials = {"password": password, **({"email": email} if email else {"phone": normalize_e164(str(profile.get("phone") or identifier))})}
+        try:
+            res = self._isolated_auth().sign_in_with_password(credentials)
+            if res and getattr(res, "user", None):
+                return str(res.user.id)
+        except Exception as client_err:
+            if "rate limit" in str(client_err).lower() or "429" in str(client_err):
+                raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=SIGN_IN_BUSY_DETAIL)
+            logger.warning("[password check] SDK sign-in failed (%s)", type(client_err).__name__)
+        return None
 
     def _find_auth_user(self, email: str, phone: str):
         """
@@ -824,6 +818,8 @@ class SupabaseAuthService(AuthService):
             if not profile:
                 return False
             return bool(self._password_matches(profile, password))
+        except HTTPException:
+            raise
         except Exception:
             return False
 
@@ -833,7 +829,10 @@ class SupabaseAuthService(AuthService):
             if not profile:
                 return False
 
-            auth_user_id = self._password_matches(profile, current_password)
+            try:
+                auth_user_id = self._password_matches(profile, current_password)
+            except HTTPException:
+                raise
             if not auth_user_id:
                 logger.info("[change_password] Current password check failed")
                 return False
