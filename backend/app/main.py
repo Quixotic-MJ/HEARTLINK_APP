@@ -32,8 +32,8 @@ install_log_redaction()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from fastapi.responses import JSONResponse
 from app.utils.rate_limiter import limiter
 
 from app.api.auth import auth
@@ -67,7 +67,14 @@ app = FastAPI(
 )
 
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+def _too_many_requests(request, exc):
+    """slowapi's own answer has no "detail", so the phone app showed "Invalid email or password" for it."""
+    response = JSONResponse(status_code=429, content={"detail": TOO_MANY_REQUESTS_DETAIL})
+    return request.app.state.limiter._inject_headers(response, request.state.view_rate_limit)
+
+
+TOO_MANY_REQUESTS_DETAIL = "Too many attempts. Wait a minute, then try again."
+app.add_exception_handler(RateLimitExceeded, _too_many_requests)
 
 # Added before CORS so CORS stays the outermost layer and its headers reach every reply, a refused upload included.
 from app.utils.http_guards import SecurityHeaders, UploadSizeLimit

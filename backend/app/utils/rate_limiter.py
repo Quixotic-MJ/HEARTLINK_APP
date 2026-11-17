@@ -8,7 +8,11 @@ from starlette.requests import Request
 # (e.g. Railway's edge = 1; Vercel /api rewrite -> Railway = 2). 0 trusts no header and
 # keys on the direct peer address. Only the rightmost entries are written by our own
 # proxies, so entries a client prepends cannot be used to dodge the limit.
-TRUSTED_PROXY_HOPS = max(0, int(os.getenv("TRUSTED_PROXY_HOPS", "0") or 0))
+# On Render (which sets RENDER=true) the app sits behind Render's proxy, so without this every user shared one limit:
+# five sign-ins a minute for everyone, refused with a message the app showed as "Invalid email or password"
+# (2026-11-17). Set TRUSTED_PROXY_HOPS to override.
+_DEFAULT_HOPS = "1" if os.getenv("RENDER", "").lower() == "true" else "0"
+TRUSTED_PROXY_HOPS = max(0, int(os.getenv("TRUSTED_PROXY_HOPS", _DEFAULT_HOPS) or 0))
 
 
 def client_ip_key(request: Request) -> str:
