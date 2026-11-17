@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { contentLibraryLink, dashboardContent } from "./dashboardContent.js";
+import { contentLibraryLink, contentStage, dashboardContent } from "./dashboardContent.js";
 
 const approved = { id: "a", name: "Approved recipe", status: "draft", expert_validated: true, reviewed_by: "synthetic-expert", reviewed_at: "2026-11-15T08:00:00Z", image_url: "/recipe.png" };
 const waiting = { id: "w", name: "Waiting recipe", status: "draft", expert_validated: false, updated_at: "2026-11-16T08:00:00Z", image_url: "/waiting.png" };
@@ -39,4 +39,16 @@ test("invalid list envelopes fail visibly rather than imply an empty queue", () 
 test("content links use the existing library search and safely encode names", () => {
   assert.equal(contentLibraryLink({ kind: "recipes", name: "Soup & rice / lunch?" }), "/foods?search=Soup%20%26%20rice%20%2F%20lunch%3F");
   assert.equal(contentLibraryLink({ kind: "exercises", name: "Seated movement" }), "/exercises?search=Seated%20movement");
+});
+
+// Sent-back items wait for the Admin, not the expert; published ones without an approval are hidden from patients
+test("each card says where its item really is", () => {
+  assert.equal(contentStage("draft", false, null), "waiting");
+  assert.equal(contentStage("draft", false, "Add the sodium per serving"), "changes");
+  assert.equal(contentStage("draft", false, "  "), "waiting");
+  assert.equal(contentStage("published", false, null), "unapproved");
+  assert.equal(contentStage("published", true, null), "published");
+  assert.equal(contentStage("draft", true, null), "approved");
+  const [item] = dashboardContent([{ ...waiting, review_note: "Too salty" }], "recipes");
+  assert.equal(item.stage, "changes");
 });

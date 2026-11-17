@@ -16,6 +16,7 @@ export function dashboardContent(response, kind) {
       kind,
       status: row.status,
       expertValidated,
+      stage: contentStage(row.status, expertValidated, row.review_note),
       reviewedAt: expertValidated ? reviewedAt : null,
       activityAt: expertValidated ? reviewedAt : Number.isFinite(updatedAt) ? updatedAt : 0,
       image: kind === "recipes" ? row.image_url : row.media_url,
@@ -23,6 +24,14 @@ export function dashboardContent(response, kind) {
     return matchesLibraryWorkflow(item, "draft") || matchesLibraryWorkflow(item, "published") ? [item] : [];
   }).sort((a, b) => b.activityAt - a.activityAt || a.name.localeCompare(b.name) || String(a.id).localeCompare(String(b.id)));
 }
+/** Where an item really is, for its card: an expert sent it back (it waits for the Admin, not the expert), it's
+ * published without an approval (patients don't see it), it's approved and published, or it waits for review. */
+export function contentStage(status, expertValidated, reviewNote) {
+  if (expertValidated) return status === "published" ? "published" : "approved";
+  if (status === "published") return "unapproved";
+  return typeof reviewNote === "string" && reviewNote.trim() ? "changes" : "waiting";
+}
+
 export function contentLibraryLink(item) {
   return `${item.kind === "recipes" ? "/foods" : "/exercises"}?search=${encodeURIComponent(item.name)}`;
 }

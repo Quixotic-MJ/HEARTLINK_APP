@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Bell, Check, Dumbbell, RotateCw, ShieldCheck, Users, Utensils } from "lucide-react";
+import { AlertTriangle, ArrowRight, Bell, Check, Dumbbell, RotateCw, ShieldCheck, Users, Utensils } from "lucide-react";
 import AdminLayout from "../../components/layouts/adminLayout.jsx";
 import LoadError from "../../components/ui/loadError.jsx";
 import WorkspaceCalendar from "../../components/ui/workspaceCalendar.jsx";
@@ -19,7 +19,36 @@ const CONTENT_STATES = [
   ["archived", "Archived"],
   ["unknown_status", "Other status"],
 ];
+const ACCOUNT_STATES = [["active", "Active"], ["disabled", "Disabled"], ["archived", "Archived"]];
 const count = (value) => Number.isInteger(value) && value >= 0 ? value.toLocaleString() : "Unknown";
+const listNames = (names) => names.length <= 1 ? names.join("") : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+
+/** A published recipe or exercise no expert approved yet: patients don't see it until one does. Named, so the Admin
+ * knows which ones to open. */
+function UnapprovedNote({ data, singular, expert }) {
+  const n = data.published_without_review;
+  if (!(n > 0)) return null;
+  const names = Array.isArray(data.published_without_review_names) ? data.published_without_review_names : [];
+  const what = n === 1 ? `1 published ${singular}` : `${count(n)} published ${singular}s`;
+  return (
+    <p className="home-library-attention" role="note">
+      <strong><AlertTriangle size={14} aria-hidden="true" /> {`${what} ${n === 1 ? "isn't" : "aren't"} approved yet`}</strong>
+      <span>{names.length ? `${listNames(names)}${n > names.length ? ", and more" : ""}. ` : ""}{`Patients don't see ${n === 1 ? "it" : "them"} until a ${expert} approves ${n === 1 ? "it" : "them"}, or an Admin unpublishes ${n === 1 ? "it" : "them"}.`}</span>
+    </p>
+  );
+}
+
+/** What each content card says, by where the item really is (dashboardContent.contentStage). */
+function cardWords(item) {
+  const expert = item.kind === "recipes" ? "Dietitian" : "Physical Therapist";
+  switch (item.stage) {
+    case "published": return { review: `${expert} approved`, footer: "Published to users" };
+    case "approved": return { review: `${expert} approved`, footer: "Approved, not published yet" };
+    case "unapproved": return { review: "Not approved yet", footer: "Published, but patients don't see it yet" };
+    case "changes": return { review: `${expert} asked for changes`, footer: "Waiting for an Admin to edit it" };
+    default: return { review: `Awaiting ${expert} review`, footer: "Waiting for review" };
+  }
+}
 const selectRecipes = (response) => dashboardContent(response, "recipes");
 const selectExercises = (response) => dashboardContent(response, "exercises");
 
@@ -27,6 +56,7 @@ function ContentCard({ item }) {
   const recipe = item.kind === "recipes";
   const published = item.status === "published" && item.expertValidated;
   const date = published ? item.reviewedAt : item.activityAt;
+  const words = cardWords(item);
   return <article className={`home-content-card home-content-card--${item.kind}`}>
     <Link to={contentLibraryLink(item)} aria-label={`Open ${item.name} in the ${recipe ? "recipe" : "exercise"} library`}>
       <div className="home-content-media">
@@ -35,9 +65,9 @@ function ContentCard({ item }) {
       <div className="home-content-body">
         <span className="home-content-kind">{recipe ? <Utensils size={12} aria-hidden="true" /> : <Dumbbell size={12} aria-hidden="true" />}{recipe ? "Recipe" : "Routine"}</span>
         <h3>{item.name}</h3>
-        <p className="home-content-review"><ShieldCheck size={14} aria-hidden="true" />{published ? `${recipe ? "Dietitian" : "Physical Therapist"} approved` : `Awaiting ${recipe ? "Dietitian" : "Physical Therapist"} review`}</p>
+        <p className="home-content-review"><ShieldCheck size={14} aria-hidden="true" />{words.review}</p>
         {date > 0 && <time dateTime={new Date(date).toISOString()}>{published ? "Approved " : "Updated "}{new Date(date).toLocaleDateString("en-PH", { timeZone: "Asia/Manila", month: "short", day: "numeric", year: "numeric" })}</time>}
-        <div className="home-content-footer"><span>{published ? "Published to users" : "Waiting for review"}</span><ArrowRight size={16} aria-hidden="true" /></div>
+        <div className="home-content-footer"><span>{words.footer}</span><ArrowRight size={16} aria-hidden="true" /></div>
       </div>
     </Link>
   </article>;
@@ -106,11 +136,20 @@ export default function Dashboard() {
                       </div>
                       <dl className="home-library-states">{CONTENT_STATES.map(([state, name]) => <div key={state}><dt>{name}</dt><dd>{count(data.content[key][state])}</dd></div>)}</dl>
                       <dl className="home-library-reviews">{[["awaiting_review", "Awaiting review"], ["changes_requested", "Changes requested"], ["approval_recorded", "Approval on record"]].map(([state, name]) => <div key={state}><dt>{name}</dt><dd>{count(data.content[key][state])}</dd></div>)}</dl>
-                      {data.content[key].published_without_review > 0 && <p className="home-library-attention"><strong>Review details need attention</strong><span>{count(data.content[key].published_without_review)} published {singular} record(s) have incomplete review details. Check the library before making changes.</span></p>}
+                      <UnapprovedNote data={data.content[key]} singular={singular} expert={key === "recipes" ? "Dietitian" : "Physical Therapist"} />
                     </article>
                   ))}
                 </div>
               </section>
+              <section className="home-panel" aria-labelledby="accounts-heading">
+                <div className="home-panel-heading"><div><h2 id="accounts-heading">Account access</h2><p>Patients and staff. Active means the account can sign in, not that it&apos;s being used.</p></div><Link to="/users" className={UI.button.ghost}>Manage <ArrowRight size={14} aria-hidden="true" /></Link></div>
+                <dl className="home-account-states">
+                  {ACCOUNT_STATES.map(([state, label]) => <div key={state}><dt>{label}</dt><dd>{count(data.accounts[state])}</dd></div>)}
+                  {data.accounts.unknown_status > 0 ? <div><dt>Status not recognised</dt><dd>{count(data.accounts.unknown_status)}</dd></div> : null}
+                </dl>
+                {data.accounts.unknown_role > 0 && <p className="home-data-note">{count(data.accounts.unknown_role)} account(s) have a role HeartLink doesn&apos;t recognise. Check them in Accounts &amp; Staff.</p>}
+              </section>
+              <p className="home-updated">{Number.isNaN(new Date(data.generated_at).getTime()) ? "Update time unavailable." : `Updated ${new Date(data.generated_at).toLocaleString("en-PH", { timeZone: "Asia/Manila", dateStyle: "medium", timeStyle: "short" })}`}</p>
             </>}
           </div>
           <aside className="home-overview-rail">

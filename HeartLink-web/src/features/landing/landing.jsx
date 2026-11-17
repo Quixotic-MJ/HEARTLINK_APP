@@ -28,50 +28,54 @@ const navigation = [
   ["#faq", "Questions"],
 ];
 const CONTENT_CHECK =
-  "Explore recipes with ingredients, portions and preparation steps, alongside exercise routines with instructions, timing and equipment details.";
+  "Recipes come with ingredients, portions, preparation steps and sodium per serving, and exercise routines with instructions, timing and equipment. Dietitians approve the recipes and Physical Therapists approve the exercises before anyone sees them. An approval checks the content. It isn't personal medical advice.";
 const PREMIUM =
-  "HeartLink Premium adds 90-day and 1-year trend views, 1- and 3-month PDF summaries, family sharing, and weekly meal plans with shopping lists. Everyday logging and 7-day summaries remain free.";
+  "Safety features, everyday logging and the 7-day Visit summary are free for everyone. Premium adds 90-day and 1-year trends, 1- and 3-month Visit summaries, family sharing with check-in alerts, reminders and a Sunday summary, and a weekly meal plan with a shopping list. Checkout in this capstone uses test mode only.";
 const features = [
   {
     icon: HeartPulse,
-    title: "Keep your readings together",
-    text: "Save your readings and daily check-ins. Return to previous entries by date instead of relying on memory.",
+    title: "Log your blood pressure",
+    text: "Your main check-in. Very high or very low readings show clear steps to get help in person.",
   },
   {
     icon: Utensils,
-    title: "Record everyday habits",
-    text: "Keep meals, movement and sleep in the same place as your daily check-ins.",
+    title: "Eat with less sodium",
+    text: "Recipes with ingredients, portions and sodium per serving, approved by a Dietitian before they appear.",
   },
   {
     icon: Dumbbell,
-    title: "Explore food and movement",
-    text: "Find recipes with clear ingredients and preparation steps, plus exercise routines with easy-to-follow instructions.",
+    title: "Move at a level that suits you",
+    text: "The PAR-Q+ exercise safety check, answered in the app, decides which workouts you see. Breathing exercises are always open.",
   },
   {
     icon: FileText,
-    title: "Keep a summary on hand",
-    text: "Turn your last 7 days of logged information into a PDF you can preview, save or share.",
+    title: "Bring a summary to your checkup",
+    text: "A Visit summary of your last 7 days, free, with every reading by date and time. Share it as a PDF with your doctor or clinic.",
   },
 ];
 const questions = [
   [
     "What is HeartLink?",
-    "HeartLink brings daily readings, meals, movement and sleep into one app. Keep your records organized, explore recipes and exercise routines, and review your entries over time.",
+    "A heart-health companion for adults, including people at risk of heart disease. It brings blood pressure, meals, movement and sleep into one app to help you track your heart health and work on prevention. It's a CTU capstone project.",
   ],
   [
-    "How should I use the information in HeartLink?",
-    "Use HeartLink to record and review your own information. Its content and summaries support personal tracking; they do not replace individual advice from a qualified professional.",
+    "Does HeartLink diagnose or treat a condition?",
+    "No. It doesn't diagnose or treat disease, and it isn't an emergency service. Its heart risk is an estimate to discuss with your doctor. If a reading is very high or very low, the app tells you to get care in person.",
   ],
   [
-    "What can I log?",
-    "You can record your readings, meals, exercise and sleep. Browse previous entries to keep track of what you have logged.",
+    "Do I need a blood pressure monitor?",
+    "It helps, because blood pressure is the main thing HeartLink tracks. You can still log meals, movement and sleep without one.",
+  ],
+  [
+    "How are the heart risk and habits score worked out?",
+    "Your heart risk is the chance of a heart attack or stroke in the next 10 years, from the American Heart Association's PREVENT equations, for ages 30 to 79. Without cholesterol and kidney results, it's estimated from your setup answers. Your habits score is based on the AHA's Life's Essential 8: blood pressure, activity, sleep, nicotine, weight and diet, plus cholesterol and blood sugar if you add lab results.",
   ],
   [
     "Can I save or share my summaries?",
     "Yes. Preview your summary in the app and share it as a PDF. A 7-day summary is included for free; Premium adds 1- and 3-month summaries. Each summary reflects the information you have logged.",
   ],
-  ["What is in the recipe and exercise libraries?", CONTENT_CHECK],
-  ["What is included with Premium?", PREMIUM],
+  ["Who checks the recipes and exercises?", CONTENT_CHECK],
+  ["What is included with Premium?", `${PREMIUM} This website doesn't take payment details.`],
   [
     "When can I download the Android app?",
     APK_URL
@@ -81,6 +85,10 @@ const questions = [
   [
     "Can I choose who I share with?",
     "With Premium family sharing, you can invite someone you trust and remove their access in the app. Sharing is your choice.",
+  ],
+  [
+    "Where are the privacy and support details?",
+    "Public release privacy, retention and support information is still being finalized. Do not send health logs, passwords or personal measurements through general feedback channels.",
   ],
 ];
 
@@ -221,7 +229,7 @@ export default function Landing() {
               to="/login"
               className={`hidden text-[13px] font-medium text-cal-muted no-underline sm:inline-flex ${focus}`}
             >
-              Sign in
+              Staff sign in
             </Link>
             <span className="hidden sm:block"><a href="#download" className={secondary}>
               Android availability <ArrowRight size={15} aria-hidden="true" />
@@ -262,7 +270,7 @@ export default function Landing() {
               onClick={() => setMenuOpen(false)}
               className={`block px-3 py-3 text-[14px] text-cal-muted ${focus}`}
             >
-              Sign in
+              Staff sign in
             </Link>
           </nav>
         )}
@@ -271,14 +279,14 @@ export default function Landing() {
         <section className="landing-hero">
           <div className="landing-hero-copy">
             <p className="landing-update">
-              <HeartPulse size={18} aria-hidden="true" /> Your everyday companion
+              <HeartPulse size={18} aria-hidden="true" /> Heart-health tracking for adults
             </p>
             <h1>
-              Your daily <span className="whitespace-nowrap">check-ins,</span> brought together.
+              Know your numbers. <span className="whitespace-nowrap">Build heart-healthy</span> habits.
             </h1>
             <p className="landing-hero-description">
-              Keep daily readings, meals, movement and sleep together.
-              Explore recipes and routines, review your entries, and share a summary when you need one.
+              Track blood pressure, meals, movement and sleep in one app, and see your heart risk (the American
+              Heart Association&apos;s PREVENT estimate) and a habits score based on its Life&apos;s Essential 8.
             </p>
             <div className="landing-hero-actions">
               <a href="#download" className={primary}>
@@ -504,13 +512,13 @@ export default function Landing() {
             <HeartLogoIcon size={24} /> HeartLink
           </div>
           <p className="text-[13px] text-cal-muted">
-            HeartLink. Everyday records, brought together.
+            HeartLink. Heart-health tracking for adults. A wellness tool, not a diagnosis.
           </p>
           <Link
             to="/login"
             className={`text-[13px] font-medium text-cal-muted underline-offset-4 ${focus}`}
           >
-            Sign in
+            Staff sign in
           </Link>
         </div>
       </footer>
