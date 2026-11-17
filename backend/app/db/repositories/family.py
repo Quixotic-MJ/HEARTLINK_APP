@@ -53,6 +53,10 @@ class FamilyRepository:
         call made the change, so only one server sends the message."""
         raise NotImplementedError
 
+    def release(self, link_id: str, field: str, previous: Optional[str], claimed_at: str) -> None:
+        """Undoes a claim whose message couldn't be sent: puts back the previous value, only if it is still ours."""
+        raise NotImplementedError
+
 
 class SupabaseFamilyRepository(FamilyRepository):
     def __init__(self, client):
@@ -171,3 +175,11 @@ class SupabaseFamilyRepository(FamilyRepository):
         except Exception as e:
             handle_db_error(e)
             return False
+
+    def release(self, link_id: str, field: str, previous: Optional[str], claimed_at: str) -> None:
+        if field not in ("last_nudge_at", "last_digest_at"):
+            raise ValueError(field)
+        try:
+            (self.client.table(LINKS_TABLE).update({field: previous}).eq("id", link_id).eq(field, claimed_at).execute())
+        except Exception as e:
+            logger.warning("Couldn't undo a family alert claim (%s)", type(e).__name__)

@@ -120,6 +120,22 @@ describe("What a follower sees", () => {
     days: [day("2026-10-26"), { date: "2026-10-27", systolic: 138, diastolic: 88, score: 71 }],
     open_alerts: [{ type: "Hypertensive Crisis", severity: "critical", at: new Date().toISOString() }],
   };
+  // HL-161: the last 7 days
+  const iso = (daysAgo: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() - daysAgo);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+  const WEEK = {
+    days: [
+      { date: iso(0), bp: { systolic: 142, diastolic: 90, category: "stage_2", readings: 2 }, pulse: 75, medicine: false, logged: true },
+      { date: iso(1), bp: null, pulse: null, medicine: null, logged: false },
+      { date: iso(2), bp: { systolic: 118, diastolic: 76, category: "normal", readings: 1 }, pulse: null, medicine: true, logged: true },
+      ...[3, 4, 5, 6].map((n) => ({ date: iso(n), bp: null, pulse: null, medicine: null, logged: false })),
+    ],
+    readings: 3,
+    highest: { systolic: 142, diastolic: 90, category: "stage_2", date: iso(0) },
+  };
 
   it("shows the latest readings and an open alert with Call 911", async () => {
     const open = jest.spyOn(Linking, "openURL").mockResolvedValue(true);
@@ -132,6 +148,22 @@ describe("What a follower sees", () => {
     expect(screen.getByText(/isn't a diagnosis/)).toBeOnTheScreen();
     expect((apiFetch as jest.Mock).mock.calls[0][0]).toBe("/api/family/following/pat-1/summary");
     open.mockRestore();
+  });
+
+  it("shows the last 7 days in plain words, with the chart only on request", async () => {
+    (apiFetch as jest.Mock).mockResolvedValue(reply({ ...SUMMARY, open_alerts: [], week: WEEK }));
+    await renderScreen(<FollowedPersonScreen />);
+    expect(await screen.findByText("The last 7 days")).toBeOnTheScreen();
+    expect(screen.getByText(/logged something on 2 of the last 7 days/)).toBeOnTheScreen();
+    expect(screen.getByLabelText(/Today: blood pressure 142 over 90, Very high; medicine not taken/)).toBeOnTheScreen();
+    expect(screen.getAllByLabelText(/nothing logged/).length).toBe(5);
+    expect(screen.getByText(/Normal is under 120\/80/)).toBeOnTheScreen();
+    // each number says what it means
+    expect(screen.getByText(/chance of a heart attack or stroke/)).toBeOnTheScreen();
+    // the 30-day chart is behind a button now
+    expect(screen.queryByText(/Each bar is one day/)).toBeNull();
+    await userEvent.setup().press(screen.getByRole("button", { name: "Show the 30-day blood pressure chart" }));
+    expect(screen.getByText(/Each bar is one day/)).toBeOnTheScreen();
   });
 
   it("says when sharing is paused", async () => {

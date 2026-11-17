@@ -35,7 +35,95 @@ export type FamilySummary =
       open_alerts: { type: string; severity: string | null; at: string }[];
       // HL-154: the patient's own medicine answers (older servers leave it out)
       medicine?: { today: boolean | null; week: { taken: number; answered: number } };
+      // HL-161: the last 7 days as a table (older servers leave it out)
+      week?: WeekTable;
     };
+
+// ── HL-161: the last 7 days in plain words, for family members who aren't health workers ─────────────────────────
+
+/** The American Heart Association categories the server uses (health_report.bp_category). */
+export type BpCategory = "normal" | "elevated" | "stage_1" | "stage_2" | "crisis" | "low";
+
+export type WeekDay = {
+  date: string;
+  /** The day's highest reading */
+  bp: { systolic: number; diastolic: number; category: BpCategory; readings: number } | null;
+  pulse: number | null;
+  medicine: boolean | null;
+  logged: boolean;
+};
+
+export type WeekTable = {
+  days: WeekDay[];
+  readings: number;
+  highest: { systolic: number; diastolic: number; category: BpCategory; date: string } | null;
+};
+
+/** Plain words and colours (design-system tones) for each category. "Emergency" matches the app's own emergency rule:
+ * 180/120 or more, or under 90/60. */
+export const BP_WORDS: Record<BpCategory, { label: string; tone: "mint" | "yellow" | "peach" | "rose"; urgent: boolean }> = {
+  normal: { label: "Normal", tone: "mint", urgent: false },
+  elevated: { label: "A little high", tone: "yellow", urgent: false },
+  stage_1: { label: "High", tone: "peach", urgent: false },
+  stage_2: { label: "Very high", tone: "rose", urgent: false },
+  crisis: { label: "Emergency: very high", tone: "rose", urgent: true },
+  low: { label: "Emergency: too low", tone: "rose", urgent: true },
+};
+
+/** The same rule as the server's bp_category (backend/app/services/health_report.py), most urgent first. */
+export function bpCategory(systolic: number, diastolic: number): BpCategory {
+  if (systolic >= 180 || diastolic >= 120) return "crisis";
+  if (systolic < 90 || diastolic < 60) return "low";
+  if (systolic >= 140 || diastolic >= 90) return "stage_2";
+  if (systolic >= 130 || diastolic >= 80) return "stage_1";
+  if (systolic >= 120) return "elevated";
+  return "normal";
+}
+
+/** One line under the table, so the words mean something. */
+export const BP_LEGEND = "Normal is under 120/80. Emergency is 180/120 or more, or under 90/60.";
+
+/** "Today", "Yesterday", or "Wed, Nov 12". */
+export function weekDayLabel(iso: string, now = new Date()): string {
+  const d = localDate(iso);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const days = Math.round((today.getTime() - d.getTime()) / 86400000);
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+}
+
+/** The week in one or two plain sentences, from what was logged. */
+export function weekSentence(name: string, week: WeekTable, now = new Date()): string {
+  const logged = week.days.filter((d) => d.logged).length;
+  if (!logged) return `${name} didn't log anything in the last 7 days.`;
+  const first = `${name} logged something on ${logged} of the last 7 days.`;
+  const withBp = week.days.filter((d) => d.bp);
+  if (!withBp.length || !week.highest) return `${first} There were no blood pressure readings.`;
+  const counts = new Map<BpCategory, number>();
+  withBp.forEach((d) => counts.set(d.bp!.category, (counts.get(d.bp!.category) ?? 0) + 1));
+  const [common, n] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
+  const label = BP_WORDS[common].label;
+  const pattern =
+    withBp.length === 1
+      ? `Blood pressure on 1 day: ${label}.`
+      : n === withBp.length
+        ? `Blood pressure on ${withBp.length} days, all ${label}.`
+        : n * 2 > withBp.length
+          ? `Blood pressure on ${withBp.length} days, mostly ${label}.`
+          : `Blood pressure on ${withBp.length} days, most often ${label}.`;
+  const h = week.highest;
+  const when = weekDayLabel(h.date, now);
+  return (
+    `${first} ${pattern} ` +
+    `The highest was ${h.systolic}/${h.diastolic} (${BP_WORDS[h.category].label}) ${when === "Today" || when === "Yesterday" ? when.toLowerCase() : `on ${when}`}.`
+  );
+}
+
+/** The medicine column. */
+export function medicineMark(taken: boolean | null): string {
+  return taken === true ? "Taken" : taken === false ? "Not taken" : "Not answered";
+}
 
 /** HL-154: the "Medicine today" tile. */
 export function medicineToday(today: boolean | null | undefined): string {

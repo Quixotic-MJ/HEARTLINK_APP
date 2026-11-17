@@ -10,19 +10,29 @@ import { Skeleton } from "../../components/ui/Skeleton";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { TrendChart } from "../../components/trends/TrendChart";
 import { PageHeader } from "../../components/family/FamilyBits";
+import { BpChip, WeekTable } from "../../components/family/WeekTable";
 import { useToast } from "../../contexts/ToastContext";
 import { useFamilySummary, useStopFollowing } from "../../hooks/useFamily";
-import { agoLine, medicineToday, summaryChart } from "../../services/family";
+import { agoLine, BP_LEGEND, bpCategory, medicineToday, summaryChart, weekSentence } from "../../services/family";
 
-// HL-087: what a follower sees: the latest readings, the last check-in, 30-day charts and any open health alert.
-// Read-only, and only what the patient logged; never a diagnosis.
+// HL-087: what a follower sees: any open health alert, the last 7 days in plain words (HL-161), the latest readings
+// with what each one means, and a 30-day blood pressure chart on request. Read-only, and only what the patient logged;
+// never a diagnosis.
 
-function Tile({ label, value, unit, note }: { label: string; value: string; unit?: string; note: string }) {
+function Tile({ label, value, unit, note, hint, extra }: {
+  label: string;
+  value: string;
+  unit?: string;
+  note: string;
+  /** What the number means, in plain words (HL-161) */
+  hint?: string;
+  extra?: React.ReactNode;
+}) {
   const { c } = useDs();
   return (
     <View
       accessible
-      accessibilityLabel={`${label}: ${value} ${unit ?? ""}, ${note}`}
+      accessibilityLabel={`${label}: ${value} ${unit ?? ""}, ${note}${hint ? `. ${hint}` : ""}`}
       style={{ flex: 1, minWidth: 140, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: c.hairline, gap: 4 }}
     >
       <Text style={{ fontSize: 13, color: c.slate }}>{label}</Text>
@@ -30,8 +40,19 @@ function Tile({ label, value, unit, note }: { label: string; value: string; unit
         <Text style={{ fontSize: 24, fontWeight: "700", color: c.ink, fontVariant: ["tabular-nums"] }}>{value}</Text>
         {unit ? <Text style={{ fontSize: 13, color: c.slate }}>{unit}</Text> : null}
       </View>
+      {extra}
       <Text style={{ fontSize: 12, color: c.steel }}>{note}</Text>
+      {hint ? <Text style={{ fontSize: 12, lineHeight: 17, color: c.slate }}>{hint}</Text> : null}
     </View>
+  );
+}
+
+function SectionTitle({ children }: { children: string }) {
+  const { c } = useDs();
+  return (
+    <Text accessibilityRole="header" style={{ fontSize: 18, fontWeight: "600", color: c.ink }}>
+      {children}
+    </Text>
   );
 }
 
@@ -43,6 +64,7 @@ export default function FollowedPersonScreen() {
   const summary = useFamilySummary(patientId);
   const stop = useStopFollowing();
   const [confirmStop, setConfirmStop] = useState(false);
+  const [showChart, setShowChart] = useState(false);
 
   const s = summary.data;
   const name = s?.name ?? "";
@@ -88,11 +110,11 @@ export default function FollowedPersonScreen() {
 
     const chart = summaryChart(s.days);
     const hasBp = chart.pressure.some((p) => p !== null);
-    const scores = chart.scores.filter((v): v is number => v !== null);
     const alert = s.open_alerts[0];
+    const latestCategory = s.latest_bp ? bpCategory(s.latest_bp.systolic, s.latest_bp.diastolic) : null;
 
     return (
-      <View style={{ gap: 22 }}>
+      <View style={{ gap: 24 }}>
         {alert ? (
           <View accessibilityRole="alert" style={{ padding: 16, borderRadius: 12, backgroundColor: c.rose, gap: 10 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -106,71 +128,85 @@ export default function FollowedPersonScreen() {
           </View>
         ) : null}
 
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
-          <Tile
-            label="Blood pressure"
-            value={s.latest_bp ? `${s.latest_bp.systolic}/${s.latest_bp.diastolic}` : "--"}
-            unit={s.latest_bp ? "mmHg" : undefined}
-            note={s.latest_bp ? agoLine(s.latest_bp.at) : "No readings yet"}
-          />
-          <Tile
-            label="Pulse"
-            value={s.latest_pulse ? String(s.latest_pulse.bpm) : "--"}
-            unit={s.latest_pulse ? "bpm" : undefined}
-            note={s.latest_pulse ? agoLine(s.latest_pulse.at) : "No readings yet"}
-          />
-          {/* HL-145: family followers see the Heart risk too (lower is better) */}
-          <Tile
-            label="Heart risk, 10 years"
-            value={s.heart_risk ? percentText(s.heart_risk.percent) : "--"}
-            note={s.heart_risk ? `${bandLabel(s.heart_risk.band as RiskBand)}${s.heart_risk.kind === "estimated" ? ", estimated" : ""}` : "Not worked out yet"}
-          />
-          <Tile label="Habits score" value={s.score ? String(s.score.value) : "--"} note={s.score ? agoLine(s.score.at) : "No score yet"} />
-          <Tile label="Last check-in" value={agoLine(s.last_check_in)} note="Any check-in" />
-          {/* HL-154: the patient's own answer from their check-in */}
-          {s.medicine ? (
+        {/* HL-161: the week in plain words first, then day by day */}
+        {s.week ? (
+          <View style={{ gap: 12 }}>
+            <SectionTitle>The last 7 days</SectionTitle>
+            <Text style={{ fontSize: 15, lineHeight: 22, color: c.charcoal }}>{weekSentence(s.name, s.week)}</Text>
+            <WeekTable days={s.week.days} />
+          </View>
+        ) : null}
+
+        <View style={{ gap: 12 }}>
+          <SectionTitle>Latest</SectionTitle>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
             <Tile
-              label="Medicine today"
-              value={medicineToday(s.medicine.today)}
-              note={s.medicine.week.answered ? `Taken at ${s.medicine.week.taken} of ${s.medicine.week.answered} check-ins this week` : "No answers this week"}
+              label="Blood pressure"
+              value={s.latest_bp ? `${s.latest_bp.systolic}/${s.latest_bp.diastolic}` : "--"}
+              unit={s.latest_bp ? "mmHg" : undefined}
+              extra={latestCategory ? <BpChip category={latestCategory} /> : null}
+              note={s.latest_bp ? agoLine(s.latest_bp.at) : "No readings yet"}
             />
-          ) : null}
+            <Tile
+              label="Pulse"
+              value={s.latest_pulse ? String(s.latest_pulse.bpm) : "--"}
+              unit={s.latest_pulse ? "bpm" : undefined}
+              note={s.latest_pulse ? agoLine(s.latest_pulse.at) : "No readings yet"}
+              hint="Heartbeats per minute. At rest, 60 to 100 is usual."
+            />
+            {/* HL-145: family followers see the Heart risk too (lower is better) */}
+            <Tile
+              label="Heart risk, 10 years"
+              value={s.heart_risk ? percentText(s.heart_risk.percent) : "--"}
+              note={s.heart_risk ? `${bandLabel(s.heart_risk.band as RiskBand)}${s.heart_risk.kind === "estimated" ? ", estimated" : ""}` : "Not worked out yet"}
+              hint="The chance of a heart attack or stroke in the next 10 years. Lower is better."
+            />
+            <Tile
+              label="Habits score"
+              value={s.score ? String(s.score.value) : "--"}
+              note={s.score ? agoLine(s.score.at) : "No score yet"}
+              hint="Out of 100, from movement, food, sleep and other habits. Higher is better."
+            />
+            <Tile label="Last check-in" value={agoLine(s.last_check_in)} note="Any check-in" />
+            {/* HL-154: the patient's own answer from their check-in */}
+            {s.medicine ? (
+              <Tile
+                label="Medicine today"
+                value={medicineToday(s.medicine.today)}
+                note={s.medicine.week.answered ? `Taken at ${s.medicine.week.taken} of ${s.medicine.week.answered} check-ins this week` : "No answers this week"}
+              />
+            ) : null}
+          </View>
         </View>
 
-        <View style={{ gap: 10 }}>
-          <Text accessibilityRole="header" style={{ fontSize: 18, fontWeight: "600", color: c.ink }}>Blood pressure, last 30 days</Text>
-          {hasBp ? (
-            <TrendChart
-              kind="range"
-              days={chart.days}
-              values={chart.pressure}
-              yMin={40}
-              yMax={200}
-              ticks={[60, 100, 140]}
-              refLine={{ value: 180, label: "180: emergency level", color: c.danger }}
-              accessibilityLabel={`${s.name}'s blood pressure over the last 30 days, each day's last reading.`}
+        {/* HL-161: the 30-day chart is there for anyone who wants it, explained, instead of leading the screen */}
+        {hasBp ? (
+          <View style={{ gap: 10 }}>
+            <DsButton
+              label={showChart ? "Hide the 30-day chart" : "Show the 30-day blood pressure chart"}
+              variant="secondary"
+              onPress={() => setShowChart((v) => !v)}
+              block
             />
-          ) : (
-            <Text style={{ fontSize: 15, color: c.slate }}>No readings in the last 30 days.</Text>
-          )}
-        </View>
-
-        <View style={{ gap: 10 }}>
-          <Text accessibilityRole="header" style={{ fontSize: 18, fontWeight: "600", color: c.ink }}>Habits score, last 30 days</Text>
-          {scores.length ? (
-            <TrendChart
-              kind="line"
-              days={chart.days}
-              values={chart.scores}
-              yMin={Math.max(0, Math.min(60, Math.floor((Math.min(...scores) - 5) / 10) * 10))}
-              yMax={100}
-              ticks={[60, 80, 100]}
-              accessibilityLabel={`${s.name}'s habits score over the last 30 days.`}
-            />
-          ) : (
-            <Text style={{ fontSize: 15, color: c.slate }}>No score in the last 30 days.</Text>
-          )}
-        </View>
+            {showChart ? (
+              <View style={{ gap: 8 }}>
+                <Text style={{ fontSize: 13.5, lineHeight: 20, color: c.slate }}>
+                  {`Each bar is one day's last reading: the top is the upper number, the bottom the lower number. ${BP_LEGEND}`}
+                </Text>
+                <TrendChart
+                  kind="range"
+                  days={chart.days}
+                  values={chart.pressure}
+                  yMin={40}
+                  yMax={200}
+                  ticks={[60, 100, 140]}
+                  refLine={{ value: 180, label: "180: emergency level", color: c.danger }}
+                  accessibilityLabel={`${s.name}'s blood pressure over the last 30 days, each day's last reading.`}
+                />
+              </View>
+            ) : null}
+          </View>
+        ) : null}
 
         <Text style={{ fontSize: 12, lineHeight: 17, color: c.steel }}>
           {`This is what ${s.name} logged in HeartLink. It isn't a diagnosis.`}

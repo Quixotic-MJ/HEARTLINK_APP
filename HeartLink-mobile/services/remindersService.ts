@@ -2,8 +2,8 @@
  * Daily reminders: save them and schedule them on the phone.
  * Used by first-run setup (app/(baseline)/reminders.tsx) and Settings (app/(home)/(settings)/daily-reminders.tsx).
  *
- * Morning, activity and evening are saved to the account. The account has no place for the medicine
- * reminder yet, so it is kept on this phone, per account.
+ * Morning, activity and evening are saved to the account. The account has no place for the medicine and bedtime
+ * reminders yet, so they are kept on this phone, per account.
  */
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { requestNotificationPermissions, scheduleDailyReminder, cancelReminder } from "../utils/notifications";
@@ -20,6 +20,8 @@ export interface Reminders {
   activity: Reminder;
   evening: Reminder;
   medicine: Reminder;
+  /** HL-161: a nudge to start getting ready for bed */
+  bedtime: Reminder;
 }
 
 export const DEFAULT_REMINDERS: Reminders = {
@@ -27,6 +29,7 @@ export const DEFAULT_REMINDERS: Reminders = {
   activity: { enabled: true, time: "17:00" },
   evening: { enabled: false, time: "20:00" },
   medicine: { enabled: false, time: "08:00" },
+  bedtime: { enabled: false, time: "22:00" },
 };
 
 const NOTIFICATION_COPY: Record<keyof Reminders, { id: string; title: string; body: string }> = {
@@ -34,9 +37,27 @@ const NOTIFICATION_COPY: Record<keyof Reminders, { id: string; title: string; bo
   evening: { id: "evening_reminder", title: "Evening Wrap-up", body: "Review your day before bedtime." },
   activity: { id: "activity_reminder", title: "Activity Goal", body: "Get a reminder to stay on track with your movement goal." },
   medicine: { id: "medicine_reminder", title: "Take your medicines", body: "Time to take your medicines as prescribed." },
+  bedtime: {
+    id: "bedtime_reminder",
+    title: "Time to wind down",
+    body: "Getting ready for bed now helps you sleep 7 to 9 hours. Put the screens away and dim the lights.",
+  },
 };
 
-const medicineKey = (userId: string) => `@medicine_reminder_${userId}`;
+/** The reminders kept on this phone (the account has no place for them yet). */
+const PHONE_KEYS = ["medicine", "bedtime"] as const;
+type PhoneKey = (typeof PHONE_KEYS)[number];
+const phoneKey = (key: PhoneKey, userId: string) => `@${key}_reminder_${userId}`;
+
+async function loadPhoneReminder(key: PhoneKey, userId: string): Promise<Reminder> {
+  try {
+    const saved = await AsyncStorage.getItem(phoneKey(key, userId));
+    if (saved) return JSON.parse(saved);
+  } catch {
+    // Keep the default.
+  }
+  return DEFAULT_REMINDERS[key];
+}
 
 /** The account's reminders, or null if they couldn't be loaded. */
 export async function loadReminders(userId: string, token: string): Promise<Reminders | null> {
@@ -46,25 +67,20 @@ export async function loadReminders(userId: string, token: string): Promise<Remi
   if (!response.ok) return null;
   const data = await response.json();
   if (!data) return null;
-  let medicine = DEFAULT_REMINDERS.medicine;
-  try {
-    const saved = await AsyncStorage.getItem(medicineKey(userId));
-    if (saved) medicine = JSON.parse(saved);
-  } catch {
-    // Keep the default.
-  }
   return {
     morning: data.morning || { enabled: false, time: "08:00" },
     evening: data.evening || { enabled: false, time: "20:00" },
     activity: data.activity || { enabled: false, time: "17:00" },
-    medicine,
+    medicine: await loadPhoneReminder("medicine", userId),
+    bedtime: await loadPhoneReminder("bedtime", userId),
   };
 }
 
-/** Saves reminders to the account (the medicine one on the phone). Throws if the server refuses. */
+/** Saves reminders to the account (medicine and bedtime on the phone). Throws if the server refuses. */
 export async function saveReminders(userId: string, token: string, reminders: Reminders): Promise<void> {
-  const { medicine, ...account } = reminders;
-  await AsyncStorage.setItem(medicineKey(userId), JSON.stringify(medicine));
+  const { medicine, bedtime, ...account } = reminders;
+  await AsyncStorage.setItem(phoneKey("medicine", userId), JSON.stringify(medicine));
+  await AsyncStorage.setItem(phoneKey("bedtime", userId), JSON.stringify(bedtime));
   const response = await apiFetch(`/api/users/${userId}/reminders`, {
     method: "PUT",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -98,4 +114,31 @@ export function formatTime(time: string): string {
   const suffix = h >= 12 ? "PM" : "AM";
   const hour = h % 12 === 0 ? 12 : h % 12;
   return `${hour}:${String(m).padStart(2, "0")} ${suffix}`;
+}
+
+// ── HL-161: a bedtime suggestion from the person's own sleep logs ─────────────────────────────────────────────
+
+/** Minutes after noon, so 11 PM and 1 AM average to midnight instead of to noon. */
+const fromNoon = (d: Date) => (d.getHours() * 60 + d.getMinutes() + 720) % 1440;
+const hhmm = (minutes: number) => {
+  const m = ((Math.round(minutes) % 1440) + 1440) % 1440;
+  return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+};
+
+/** The usual time someone goes to bed ("HH:MM", rounded to 15 minutes) from their recent sleep logs' bedtimes, or
+ * null with fewer than 3 nights. */
+export function usualBedtime(bedtimes: (string | null | undefined)[], nights = 7): string | null {
+  const times = bedtimes
+    .map((t) => (t ? new Date(t) : null))
+    .filter((d): d is Date => !!d && !Number.isNaN(d.getTime()))
+    .slice(0, nights);
+  if (times.length < 3) return null;
+  const avg = times.reduce((sum, d) => sum + fromNoon(d), 0) / times.length;
+  return hhmm(Math.round(avg / 15) * 15 - 720);
+}
+
+/** The reminder time for a usual bedtime: 30 minutes before, to wind down. */
+export function bedtimeReminderFor(usual: string): string {
+  const [h, m] = usual.split(":").map(Number);
+  return hhmm(h * 60 + m - 30);
 }

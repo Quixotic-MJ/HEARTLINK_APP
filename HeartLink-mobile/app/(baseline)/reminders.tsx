@@ -16,6 +16,8 @@ const ROWS: { key: keyof Reminders; when: string; title: string; icon: McIcon; t
   { key: "medicine", when: "Medicines", title: "Take your medicines", icon: "pill", tint: "peach" },
   { key: "activity", when: "Afternoon", title: "Time to move", icon: "walk", tint: "mint" },
   { key: "evening", when: "Evening", title: "Look back on your day", icon: "weather-night", tint: "lavender" },
+  // HL-161
+  { key: "bedtime", when: "Bedtime", title: "Time to wind down", icon: "bed", tint: "sky" },
 ];
 
 const toDate = (time: string) => {

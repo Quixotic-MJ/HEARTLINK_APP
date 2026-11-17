@@ -83,3 +83,56 @@ describe("medicine today (HL-154)", () => {
     expect(medicineToday(undefined)).toBe("Not answered");
   });
 });
+
+// HL-161: the last 7 days in plain words for family members
+describe("the week for family members", () => {
+  const { bpCategory, weekSentence, weekDayLabel, BP_WORDS } = jest.requireActual("../family") as typeof import("../family");
+  const NOW = new Date(2026, 10, 17, 12, 0);
+  const day = (date: string, bp: [number, number] | null, medicine: boolean | null = null, logged = !!bp) => ({
+    date,
+    bp: bp ? { systolic: bp[0], diastolic: bp[1], category: bpCategory(bp[0], bp[1]), readings: 1 } : null,
+    pulse: null,
+    medicine,
+    logged,
+  });
+
+  it("uses the same blood pressure categories as the server, including both emergency limits", () => {
+    expect(bpCategory(118, 76)).toBe("normal");
+    expect(bpCategory(124, 78)).toBe("elevated");
+    expect(bpCategory(132, 78)).toBe("stage_1");
+    expect(bpCategory(142, 90)).toBe("stage_2");
+    expect(bpCategory(180, 100)).toBe("crisis");
+    expect(bpCategory(110, 120)).toBe("crisis");
+    expect(bpCategory(88, 70)).toBe("low");
+    expect(BP_WORDS.crisis.urgent && BP_WORDS.low.urgent && !BP_WORDS.stage_2.urgent).toBe(true);
+  });
+
+  it("names the days plainly", () => {
+    expect(weekDayLabel("2026-11-17", NOW)).toBe("Today");
+    expect(weekDayLabel("2026-11-16", NOW)).toBe("Yesterday");
+    expect(weekDayLabel("2026-11-12", NOW)).toBe("Thu, Nov 12");
+  });
+
+  it("sums up the week in a sentence", () => {
+    const days = [
+      day("2026-11-17", [142, 90], false),
+      day("2026-11-16", null),
+      day("2026-11-15", [118, 76], true),
+      day("2026-11-14", [116, 74], true),
+      day("2026-11-13", null, null, true),
+      day("2026-11-12", null),
+      day("2026-11-11", null),
+    ];
+    const week = { days, readings: 3, highest: { systolic: 142, diastolic: 90, category: "stage_2" as const, date: "2026-11-17" } };
+    expect(weekSentence("Ana R.", week, NOW)).toBe(
+      "Ana R. logged something on 4 of the last 7 days. Blood pressure on 3 days, mostly Normal. The highest was 142/90 (Very high) today."
+    );
+  });
+
+  it("says plainly when nothing or no blood pressure was logged", () => {
+    const empty = { days: [day("2026-11-17", null)], readings: 0, highest: null };
+    expect(weekSentence("Ana R.", empty, NOW)).toBe("Ana R. didn't log anything in the last 7 days.");
+    const noBp = { days: [day("2026-11-17", null, true, true)], readings: 0, highest: null };
+    expect(weekSentence("Ana R.", noBp, NOW)).toBe("Ana R. logged something on 1 of the last 7 days. There were no blood pressure readings.");
+  });
+});
