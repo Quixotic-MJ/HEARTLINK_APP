@@ -1,4 +1,4 @@
-import { roles, identity, recipes, exercises, dashboard, accounts, staff, tickets, broadcasts, activity, premium, notifications, illustration } from "./syntheticFixtures.js";
+import { roles, identity, recipes, exercises, dashboard, analytics, accounts, staff, tickets, broadcasts, activity, premium, notifications, illustration } from "./syntheticFixtures.js";
 
 export const origin = "http://127.0.0.1:5181";
 const cookie = "heartlink_synthetic_role";
@@ -76,7 +76,7 @@ export function syntheticMiddleware(req, res, next) {
   if (path === "/api/recipes" && ["admin", "dietitian"].includes(role)) return send(res, 200, recipes);
   if (path === "/api/exercises" && ["admin", "therapist"].includes(role)) return send(res, 200, exercises);
   const adminFixtures = {
-    "/api/admin/dashboard": dashboard, "/api/users": accounts, "/api/admin/staff": staff,
+    "/api/admin/dashboard": dashboard, "/api/admin/analytics": analytics, "/api/users": accounts, "/api/admin/staff": staff,
     "/api/feedback": tickets, "/api/admin/broadcasts": broadcasts, "/api/admin/activity": activity,
     "/api/admin/premium": premium,
   };

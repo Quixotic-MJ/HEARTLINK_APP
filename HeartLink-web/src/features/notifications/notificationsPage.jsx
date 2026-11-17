@@ -292,7 +292,7 @@ const Notifications = () => {
 
   return (
     <AdminLayout>
-      <div className="workspace workspace--operations notifications-workspace mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
+      <div className="workspace workspace--operations workspace--refined workspace--blue notifications-workspace mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
         <WorkspaceHeader
           icon={Bell}
           title="Notifications & alerts"
@@ -533,7 +533,7 @@ const Notifications = () => {
                       {/* Text */}
                       <div className="flex-1 min-w-0 pr-2">
                         <div className="flex flex-wrap items-center gap-2 mb-1">
-                          <h4
+                          <h3
                             className={`text-[13.5px] leading-snug truncate ${
                               isRead
                                 ? "font-semibold text-cal-ink"
@@ -541,7 +541,7 @@ const Notifications = () => {
                             }`}
                           >
                             {n.title}
-                          </h4>
+                          </h3>
                           <span className={`${PILL} ${badge.className}`}>
                             {badge.label}
                           </span>

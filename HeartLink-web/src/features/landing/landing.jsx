@@ -9,7 +9,7 @@ import {
   FileText,
   HeartPulse,
   Menu,
-  ShieldCheck,
+  Moon,
   Utensils,
   X,
 } from "lucide-react";
@@ -28,9 +28,9 @@ const navigation = [
   ["#faq", "Questions"],
 ];
 const CONTENT_CHECK =
-  "Dietitians write and approve recipes, and Physical Therapists write and approve exercises, inside HeartLink. An approval checks the content. It isn't personal medical advice.";
+  "Recipes come with ingredients, portions, preparation steps and sodium per serving, and exercise routines with instructions, timing and equipment. Dietitians approve the recipes and Physical Therapists approve the exercises before anyone sees them. An approval checks the content. It isn't personal medical advice.";
 const PREMIUM =
-  "Safety features are free for everyone. Premium adds long-term trends, longer Visit summaries (1 or 3 months), family sharing with check-in alerts and a Sunday summary, and a weekly meal plan with a shopping list. Checkout in this capstone uses test mode only.";
+  "Safety features, everyday logging and the 7-day Visit summary are free for everyone. Premium adds 90-day and 1-year trends, 1- and 3-month Visit summaries, family sharing with check-in alerts, reminders and a Sunday summary, and a weekly meal plan with a shopping list. Checkout in this capstone uses test mode only.";
 const features = [
   {
     icon: HeartPulse,
@@ -56,7 +56,7 @@ const features = [
 const questions = [
   [
     "What is HeartLink?",
-    "A heart-health companion for adults, including people at risk of heart disease. It helps you track blood pressure and daily habits and work on prevention. It's a CTU capstone project.",
+    "A heart-health companion for adults, including people at risk of heart disease. It brings blood pressure, meals, movement and sleep into one app to help you track your heart health and work on prevention. It's a CTU capstone project.",
   ],
   [
     "Does HeartLink diagnose or treat a condition?",
@@ -68,10 +68,14 @@ const questions = [
   ],
   [
     "How are the heart risk and habits score worked out?",
-    "Your heart risk is the chance of a heart attack or stroke in the next 10 years, from the American Heart Association's PREVENT equations, for ages 30 to 79. Without cholesterol and kidney results, it's estimated from your setup answers. Your habits score is based on the AHA's Life's Essential 8: blood pressure, activity, sleep, nicotine, weight and diet, plus cholesterol and blood sugar if you add lab results. Both use a US national health survey (NHANES 2017–2018).",
+    "Your heart risk is the chance of a heart attack or stroke in the next 10 years, from the American Heart Association's PREVENT equations, for ages 30 to 79. Without cholesterol and kidney results, it's estimated from your setup answers. Your habits score is based on the AHA's Life's Essential 8: blood pressure, activity, sleep, nicotine, weight and diet, plus cholesterol and blood sugar if you add lab results.",
+  ],
+  [
+    "Can I save or share my summaries?",
+    "Yes. Preview your summary in the app and share it as a PDF. A 7-day summary is included for free; Premium adds 1- and 3-month summaries. Each summary reflects the information you have logged.",
   ],
   ["Who checks the recipes and exercises?", CONTENT_CHECK],
-  ["What about Premium?", `${PREMIUM} This website doesn't take payment details.`],
+  ["What is included with Premium?", `${PREMIUM} This website doesn't take payment details.`],
   [
     "When can I download the Android app?",
     APK_URL
@@ -79,8 +83,12 @@ const questions = [
       : "There is no public Android download linked yet. A verified release destination and release information will be added here when available. You do not need to enable installation permissions now.",
   ],
   [
+    "Can I choose who I share with?",
+    "With Premium family sharing, you can invite someone you trust and remove their access in the app. Sharing is your choice.",
+  ],
+  [
     "Where are the privacy and support details?",
-    "Public release privacy, retention and support information is still being finalized. Those details need to be available before public downloads open. Do not send health logs, passwords or personal measurements through general feedback channels.",
+    "Public release privacy, retention and support information is still being finalized. Do not send health logs, passwords or personal measurements through general feedback channels.",
   ],
 ];
 
@@ -89,26 +97,27 @@ function ProductPreview() {
   const food = focusArea === "food";
   return (
     <figure className="landing-preview">
-      <div className="landing-preview-intro">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="landing-preview-heading">
         <span className="flex items-center gap-2 font-semibold">
-          <HeartLogoIcon size={23} /> Everyday, at your pace
+          <HeartLogoIcon size={23} /> Inside HeartLink
         </span>
-        <span className="rounded-full bg-cal-surface-soft px-2.5 py-1 text-[11px] text-cal-muted">
-          Design preview
-        </span>
+        <span className="landing-illustration-label">Illustration</span>
       </div>
-      <p className="mt-7 text-[13px] font-medium text-cal-muted">
-        Choose a focus
-      </p>
+      <div className="landing-preview-logs" aria-hidden="true">
+        <span><HeartPulse size={20} /><span>Readings</span></span>
+        <span><Utensils size={20} /><span>Meals</span></span>
+        <span><Moon size={20} /><span>Sleep</span></span>
+      </div>
+      <div className="landing-preview-intro">
+      <p className="text-[13px] font-medium text-cal-muted">Explore the content</p>
       <div
         role="group"
-        aria-label="Preview wellness focus"
+        aria-label="Preview content library"
         className="landing-preview-options mt-3 flex flex-wrap gap-2"
       >
         {[
-          ["food", "Eat with less sodium"],
-          ["movement", "Move more regularly"],
+          ["food", "Recipes"],
+          ["movement", "Exercise routines"],
         ].map(([value, label]) => (
           <button
             key={value}
@@ -121,14 +130,14 @@ function ProductPreview() {
           </button>
         ))}
       </div>
-      <p className="landing-preview-context">Clear ingredients. Practical instructions. A little more context for everyday choices.</p>
+      <p className="landing-preview-context">Explore the details available in each library.</p>
       </div>
       <div
-        className="landing-preview-details rounded-[14px] bg-cal-surface-soft p-5 sm:p-6"
+        className="landing-preview-details"
         aria-live="polite"
       >
         <div
-          className={`mb-5 flex h-12 w-12 items-center justify-center rounded-[16px] ${food ? "bg-ds-mint" : "bg-ds-lavender"}`}
+          className={`landing-preview-topic ${food ? "bg-ds-mint" : "bg-ds-lavender"}`}
         >
           {food ? (
             <Utensils size={23} aria-hidden="true" />
@@ -139,11 +148,11 @@ function ProductPreview() {
         <p className="mb-2 text-[12px] font-medium text-cal-muted">
           {food ? "Recipe details" : "Routine details"}
         </p>
-        <h3 className="text-[22px] font-semibold leading-snug tracking-[-0.4px]">
+        <h2 className="text-[24px] font-semibold leading-snug tracking-[-0.4px]">
           {food
             ? "Know what goes into your meal"
             : "Know what the routine asks of you"}
-        </h3>
+        </h2>
         <p className="mt-3 text-[14px] leading-relaxed text-cal-body">
           {food
             ? "Complete ingredients, clear portions and practical preparation steps, with nutrition shown on a stated basis."
@@ -156,7 +165,7 @@ function ProductPreview() {
           ).map((label) => (
             <span
               key={label}
-              className="rounded-full bg-cal-canvas px-3 py-1.5 text-[12px] font-medium"
+              className="rounded-[6px] bg-cal-canvas px-3 py-1.5 text-[12px] font-medium"
             >
               {label}
             </span>
@@ -164,7 +173,7 @@ function ProductPreview() {
         </div>
       </div>
       <figcaption className="text-[11px] leading-relaxed text-cal-muted">
-        An illustration with made-up data, not a real person's records.
+        An illustration of content details, not a live app screen or a person's records.
       </figcaption>
     </figure>
   );
@@ -269,22 +278,15 @@ export default function Landing() {
       <main id="main-content" tabIndex={-1}>
         <section className="landing-hero">
           <div className="landing-hero-copy">
-            <p className="landing-update inline-flex items-center gap-2 rounded-full border border-cal-hairline bg-cal-canvas px-3.5 py-2 text-[12px] font-medium text-cal-body">
-              <span
-                className="h-1.5 w-1.5 rounded-full bg-cal-primary"
-                aria-hidden="true"
-              />{" "}
-              Heart-health tracking for adults
+            <p className="landing-update">
+              <HeartPulse size={18} aria-hidden="true" /> Heart-health tracking for adults
             </p>
             <h1>
-              Know your numbers.
-              <br />Build heart-healthy habits.
+              Know your numbers. <span className="whitespace-nowrap">Build heart-healthy</span> habits.
             </h1>
             <p className="landing-hero-description">
-              HeartLink helps adults track blood pressure, meals, movement and
-              sleep, and shows your heart risk (the American Heart
-              Association's PREVENT estimate) and a habits score based on its
-              Life's Essential 8.
+              Track blood pressure, meals, movement and sleep in one app, and see your heart risk (the American
+              Heart Association&apos;s PREVENT estimate) and a habits score based on its Life&apos;s Essential 8.
             </p>
             <div className="landing-hero-actions">
               <a href="#download" className={primary}>
@@ -292,30 +294,25 @@ export default function Landing() {
                 <ArrowRight size={16} aria-hidden="true" />
               </a>
               <a href="#features" className={secondary}>
-                See how it works
+                Explore HeartLink
               </a>
             </div>
             <p className="landing-hero-boundary">
-              A wellness tool, not a diagnosis. For worrying readings or
-              symptoms, see a health professional.
+              For personal tracking. Not a substitute for professional advice.
             </p>
           </div>
           <ProductPreview />
         </section>
         <section
           id="features"
-          className="scroll-mt-24 border-y border-cal-hairline bg-cal-canvas px-5 py-16 sm:px-8 sm:py-20"
+          className="landing-features scroll-mt-24 border-y border-cal-hairline bg-cal-canvas px-5 py-16 sm:px-8 sm:py-20"
         >
           <div className="mx-auto max-w-[1136px]">
-            <p className="text-[13px] font-semibold text-cal-primary">
-              What you track
-            </p>
-            <h2 className="mt-3 max-w-[22ch] text-[30px] font-semibold leading-tight tracking-[-0.7px] sm:text-[38px]">
-              Small daily logs, one clear picture.
+            <h2 className="max-w-[26ch] text-[30px] font-semibold leading-tight tracking-[-0.7px] sm:text-[38px]">
+              Less to keep in your head.
             </h2>
             <p className="mt-4 max-w-[65ch] text-[16px] leading-relaxed text-cal-muted">
-              Blood pressure comes first. Meals, movement and sleep fill in the
-              rest.
+              From a quick check-in to your weekly routine, keep the details that matter to you in one place.
             </p>
             <div className="mt-10 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
               {features.map(({ icon: Icon, title, text }, index) => (
@@ -324,7 +321,7 @@ export default function Landing() {
                   className="border-t border-cal-hairline pt-6"
                 >
                   <span
-                    className={`mb-6 inline-flex h-12 w-12 items-center justify-center rounded-[16px] ${["bg-ds-mint", "bg-ds-lavender", "bg-ds-peach", "bg-ds-sky"][index]}`}
+                    className={`mb-5 inline-flex h-11 w-11 items-center justify-center rounded-[12px] ${["bg-ds-sky", "bg-ds-mint", "bg-ds-lavender", "bg-ds-sky"][index]}`}
                   >
                     <Icon size={23} aria-hidden="true" />
                   </span>
@@ -341,35 +338,32 @@ export default function Landing() {
         </section>
         <section
           id="how"
-          className="mx-auto grid max-w-[1200px] scroll-mt-24 gap-10 px-5 py-16 sm:px-8 sm:py-20 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20"
+          className="landing-process mx-auto grid max-w-[1200px] scroll-mt-24 gap-10 px-5 py-16 sm:px-8 sm:py-20 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20"
         >
           <div>
             <p className="text-[13px] font-semibold text-cal-primary">
               How it works
             </p>
             <h2 className="mt-3 text-[30px] font-semibold leading-tight tracking-[-0.7px] sm:text-[38px]">
-              Your heart.
-              <br />
-              Your own pace.
+              Start with what you know.
             </h2>
             <p className="mt-5 max-w-[40ch] text-[16px] leading-relaxed text-cal-muted">
-              A few minutes a day is enough. Each log adds to a clearer picture
-              of your heart health.
+              You don't have to remember every detail at once. Build your record with everyday check-ins, at your own pace.
             </p>
           </div>
           <ol className="m-0 list-none space-y-7 p-0">
             {[
               [
                 "Answer a few setup questions",
-                "Height, weight, activity, sleep and smoking give you a starting heart risk and habits score.",
+                "Create your profile and add your starting information, so your records have a place of their own.",
               ],
               [
                 "Log what you do",
-                "Each reading, meal, workout and night's sleep updates your habits score, out of 100.",
+                "Save readings, meals, movement and sleep as you go. Your entries become a record you can return to.",
               ],
               [
-                "See what to work on",
-                "Trends show your week, and your habits score shows which habit would help most. Neither number is a diagnosis.",
+                "Review and share",
+                "Look back at your entries and trends, or bring your logged information together in a shareable PDF.",
               ],
             ].map(([title, text], index) => (
               <li key={title} className="flex gap-5">
@@ -386,24 +380,49 @@ export default function Landing() {
             ))}
           </ol>
         </section>
-        <section className="bg-cal-canvas px-5 py-14 sm:px-8">
-          <div className="mx-auto grid max-w-[1136px] gap-7 md:grid-cols-2">
-            <div className="flex items-start gap-4 rounded-[20px] bg-ds-sky p-6">
-              <ShieldCheck
+        <section className="landing-boundaries bg-cal-canvas px-5 py-14 sm:px-8" aria-labelledby="landing-boundaries-title">
+          <div className="mx-auto max-w-[1136px]">
+            <div className="landing-score-note">
+              <div>
+                <h2 id="landing-boundaries-title" className="text-[30px] font-semibold leading-tight tracking-[-0.7px] sm:text-[36px]">More ways to make HeartLink yours.</h2>
+                <p className="mt-4 text-[15px] leading-relaxed text-cal-body">Keep everyday logging free. Choose Premium for a longer view of your records, weekly planning and sharing with people you trust.</p>
+              </div>
+              <div className="landing-score-explanations">
+                <div>
+                  <h3 className="font-semibold">Longer trend views</h3>
+                  <p>Look back over 90 days or a year and compare your logged information over time.</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold">Extended summaries</h3>
+                  <p>Bring 1 or 3 months of entries into a PDF you can preview, save and share.</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold">Weekly meal plans</h3>
+                  <p>Organize breakfast, lunch and dinner across 7 days, with recipes and a shopping list.</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold">Family sharing</h3>
+                  <p>Invite someone you trust to view your shared information, with access you can remove in the app.</p>
+                </div>
+              </div>
+            </div>
+          <div className="landing-service-notes">
+            <div className="flex items-start gap-4">
+              <FileText
                 size={24}
                 className="mt-1 shrink-0"
                 aria-hidden="true"
               />
               <div>
                 <h2 className="text-[20px] font-semibold">
-                  How content is checked
+                  Details before you start
                 </h2>
                 <p className="mt-3 text-[15px] leading-relaxed text-cal-body">
                   {CONTENT_CHECK}
                 </p>
               </div>
             </div>
-            <div className="flex items-start gap-4 rounded-[20px] bg-cal-surface-soft p-6">
+            <div className="flex items-start gap-4">
               <BookOpen
                 size={24}
                 className="mt-1 shrink-0"
@@ -411,23 +430,25 @@ export default function Landing() {
               />
               <div>
                 <h2 className="text-[20px] font-semibold">
-                  Premium stays optional
+                  Find your Premium options
                 </h2>
                 <p className="mt-3 text-[15px] leading-relaxed text-cal-muted">
-                  {PREMIUM}
+                  Open Premium in the app to see the features and options available to your account. Your everyday logging stays free.
                 </p>
               </div>
             </div>
           </div>
+          </div>
         </section>
         <section
           id="faq"
-          className="mx-auto max-w-[880px] scroll-mt-24 px-5 py-16 sm:px-8 sm:py-20"
+          className="landing-faq mx-auto max-w-[1200px] scroll-mt-24 px-5 py-16 sm:px-8 sm:py-20"
         >
-          <h2 className="text-[30px] font-semibold tracking-[-0.7px] sm:text-[38px]">
-            A few things to know.
-          </h2>
-          <div className="mt-8 divide-y divide-cal-hairline border-y border-cal-hairline">
+          <div>
+            <h2 className="text-[30px] font-semibold tracking-[-0.7px] sm:text-[38px]">A few things to know.</h2>
+            <p className="mt-4 max-w-[30ch] text-[15px] leading-relaxed text-cal-muted">A few useful details about your records, content and Premium options.</p>
+          </div>
+          <div className="divide-y divide-cal-hairline border-y border-cal-hairline">
             {questions.map(([question, answer]) => (
               <details key={question} className="group py-5">
                 <summary
@@ -459,7 +480,7 @@ export default function Landing() {
               <h2 className="mt-3 text-[28px] font-semibold leading-tight tracking-[-0.7px] sm:text-[36px]">
                 {APK_URL
                   ? "Android installation link"
-                  : "A little more work before download day."}
+                  : "Android download is not available yet."}
               </h2>
               <p className="mt-4 text-[16px] leading-relaxed text-cal-muted">
                 {APK_URL
@@ -491,7 +512,7 @@ export default function Landing() {
             <HeartLogoIcon size={24} /> HeartLink
           </div>
           <p className="text-[13px] text-cal-muted">
-            HeartLink, a CTU capstone project. Not a medical device.
+            HeartLink. Heart-health tracking for adults. A wellness tool, not a diagnosis.
           </p>
           <Link
             to="/login"

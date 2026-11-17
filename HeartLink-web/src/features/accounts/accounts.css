@@ -19,13 +19,41 @@
   width: fit-content;
   padding: 4px;
   border: 1px solid var(--color-cal-hairline);
-  border-radius: 13px;
-  background: var(--color-cal-canvas);
+  border-radius: 28px;
+  background: var(--color-cal-surface-soft);
+}
+.accounts-workspace .accounts-directory-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+}
+.accounts-directory-heading > p {
+  max-width: 340px;
+  color: var(--color-cal-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.accounts-workspace.workspace--refined .accounts-table td:first-child {
+  min-width: 180px;
+}
+.accounts-workspace.workspace--refined .accounts-table td:first-child > p {
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+.accounts-filter-group {
+  padding: 4px;
+  border: 1px solid var(--color-cal-hairline);
+  border-radius: 28px;
+  background: var(--color-cal-surface-soft);
 }
 .accounts-directory-tabs button,
 .accounts-filter-group button {
-  border-radius: 9px;
-  padding: 9px 13px;
+  min-height: 36px;
+  height: 36px;
+  border-radius: 24px;
+  padding: 7px 12px;
   font-size: 13px;
   font-weight: 550;
   transition: background-color 140ms, color 140ms;

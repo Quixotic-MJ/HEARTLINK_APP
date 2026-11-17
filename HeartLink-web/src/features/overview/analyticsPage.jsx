@@ -20,8 +20,10 @@ import AdminLayout from "../../components/layouts/adminLayout.jsx";
 import { Skeleton } from "../../components/ui/skeleton.jsx";
 import { useApiQuery } from "../../hooks/useApiQuery.js";
 import LoadError from "../../components/ui/loadError.jsx";
-import { UI, FONTS, COLORS } from "../../styles/tokens.js";
-import { PageHeader } from "../../styles/designSystem.jsx";
+import { FONTS, COLORS } from "../../styles/tokens.js";
+import { WorkspaceHeader } from "../../components/ui/workspaceHeader.jsx";
+import { comparisonLabel } from "./analyticsDisplay.js";
+import "../clinical/reviewWorkspace.css";
 
 const TABS = [
   { id: "adoption", label: "User adoption", icon: Users },
@@ -70,7 +72,7 @@ const Analytics = () => {
   if (isError) {
     return (
       <AdminLayout>
-        <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>
+        <div className="workspace workspace--operations workspace--refined workspace--plum analytics-workspace mx-auto" style={{ fontFamily: FONTS.sans }}>
           <LoadError what="analytics" onRetry={refetch} />
         </div>
       </AdminLayout>
@@ -80,7 +82,7 @@ const Analytics = () => {
   if (isPending || !data) {
     return (
       <AdminLayout>
-        <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>
+        <div className="workspace workspace--operations workspace--refined workspace--plum analytics-workspace mx-auto" style={{ fontFamily: FONTS.sans }}>
           {/* Header Skeleton */}
           <div className="flex flex-wrap gap-4 justify-between items-end mb-5">
             <div>
@@ -112,34 +114,33 @@ const Analytics = () => {
 
   return (
     <AdminLayout>
-      <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>
+      <div className="workspace workspace--operations workspace--refined workspace--plum analytics-workspace mx-auto" style={{ fontFamily: FONTS.sans }}>
         {/* ── PAGE HEAD ── */}
-        <PageHeader
-          eyebrow="Totals and averages only"
+        <WorkspaceHeader
+          icon={Activity}
           title="Analytics & reporting"
-          description="How many people use HeartLink, how scores are trending overall, and which content gets used. No single patient's records are shown."
-          actions={
-            <div className="flex items-center gap-2.5">
-              <label htmlFor="period" className="text-[11.5px] font-semibold text-ds-slate">
-                Period
-              </label>
-              <select
-                id="period"
-                value={period}
-                onChange={(e) => setPeriod(e.target.value)}
-                className="border border-ds-hairline bg-ds-canvas rounded-[8px] px-3 py-2 text-[12.5px] font-semibold text-ds-ink outline-none cursor-pointer hover:border-ds-ink transition-colors"
-              >
-                <option value="30days">Last 30 days</option>
-                <option value="3months">Last 3 months</option>
-                <option value="6months">Last 6 months</option>
-                <option value="12months">Last 12 months</option>
-              </select>
-            </div>
-          }
-        />
+          description="Explore account activity, habit trends and content use. Only aggregate information is shown."
+        >
+          <div className="flex items-center gap-2.5">
+            <label htmlFor="period" className="text-[11.5px] font-semibold text-ds-slate">
+              Period
+            </label>
+            <select
+              id="period"
+              value={period}
+              onChange={(e) => setPeriod(e.target.value)}
+              className="border border-ds-hairline bg-ds-canvas rounded-[8px] px-3 py-2 text-[12.5px] font-semibold text-ds-ink outline-none cursor-pointer hover:border-ds-ink transition-colors"
+            >
+              <option value="30days">Last 30 days</option>
+              <option value="3months">Last 3 months</option>
+              <option value="6months">Last 6 months</option>
+              <option value="12months">Last 12 months</option>
+            </select>
+          </div>
+        </WorkspaceHeader>
 
         {/* ── TABS ── */}
-        <div className="relative inline-flex items-center gap-1 bg-cal-canvas border border-cal-hairline rounded-xl p-1 mb-5 select-none shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+        <div className="library-workflow-tabs analytics-tabs" role="group" aria-label="Analytics views">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -148,7 +149,8 @@ const Analytics = () => {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`group relative flex items-center gap-2 px-3.5 py-2 rounded-[7px] text-[12.5px] font-semibold cursor-pointer select-none transition-colors duration-150 ${
+                aria-pressed={isActive}
+                className={`group relative flex items-center gap-2 px-3.5 py-2 rounded-full text-[13px] font-medium cursor-pointer select-none transition-colors duration-150 ${
                   isActive
                     ? "text-white"
                     : "text-cal-muted hover:text-cal-ink hover:bg-cal-surface-soft active:scale-[0.98]"
@@ -158,7 +160,7 @@ const Analytics = () => {
                 {isActive && (
                   <motion.div
                     layoutId="analytics-active-tab"
-                    className="absolute inset-0 rounded-[7px] bg-cal-primary shadow-[0_1px_3px_rgba(59,130,246,0.35)]"
+                    className="absolute inset-0 rounded-full bg-cal-primary"
                     transition={{
                       type: "spring",
                       stiffness: 420,
@@ -193,20 +195,20 @@ const Analytics = () => {
               className="space-y-5"
             >
             {/* Stat Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+            <div className="analytics-summary workspace-stat-grid grid grid-cols-1 md:grid-cols-3 gap-3.5">
               {/* Total Sign-ups */}
               <div className="bg-ds-canvas border border-ds-hairline rounded-xl p-4 sm:p-[18px_18px_16px] ">
                 <div className="flex justify-between items-start mb-3.5">
                   <span className="text-[11px] font-semibold text-ds-slate">Total sign-ups</span>
-                  <div className="w-7 h-7 rounded-[7px] bg-ds-tint text-ds-on-tint flex items-center justify-center">
+                  <div className="analytics-summary-icon w-7 h-7 rounded-[7px] flex items-center justify-center">
                     <Users size={15} />
                   </div>
                 </div>
-                <div className="text-[24px] font-bold text-ds-ink tracking-tight">
+                <div className="analytics-stat-value text-ds-ink tracking-tight">
                   {formatNumber(demographics?.total_signups)}
                 </div>
                 <span className="inline-block mt-2 text-[11px] font-semibold px-2 py-0.5 rounded-[6px] bg-ds-surface border border-ds-hairline text-ds-slate">
-                  {demographics?.signups_growth || "+12%"} from previous period
+                  {comparisonLabel(demographics?.signups_growth, "from previous period")}
                 </span>
               </div>
 
@@ -214,15 +216,15 @@ const Analytics = () => {
               <div className="bg-ds-canvas border border-ds-hairline rounded-xl p-4 sm:p-[18px_18px_16px] ">
                 <div className="flex justify-between items-start mb-3.5">
                   <span className="text-[11px] font-semibold text-ds-slate">Total activity logs</span>
-                  <div className="w-7 h-7 rounded-[7px] bg-ds-mint text-ds-charcoal flex items-center justify-center">
+                  <div className="analytics-summary-icon w-7 h-7 rounded-[7px] flex items-center justify-center">
                     <Activity size={15} />
                   </div>
                 </div>
-                <div className="text-[24px] font-bold text-ds-ink tracking-tight">
+                <div className="analytics-stat-value text-ds-ink tracking-tight">
                   {formatNumber(demographics?.total_records)}
                 </div>
                 <span className="inline-block mt-2 text-[11px] font-semibold px-2 py-0.5 rounded-[6px] bg-ds-surface border border-ds-hairline text-ds-slate">
-                  {demographics?.records_growth || "+8%"} vs last period
+                  {comparisonLabel(demographics?.records_growth, "from previous period")}
                 </span>
               </div>
 
@@ -230,47 +232,51 @@ const Analytics = () => {
               <div className="bg-ds-canvas border border-ds-hairline rounded-xl p-4 sm:p-[18px_18px_16px] ">
                 <div className="flex justify-between items-start mb-3.5">
                   <span className="text-[11px] font-semibold text-ds-slate">Archived accounts</span>
-                  <div className="w-7 h-7 rounded-[7px] bg-ds-rose text-ds-ink flex items-center justify-center">
+                  <div className="analytics-summary-icon w-7 h-7 rounded-[7px] flex items-center justify-center">
                     <Archive size={15} />
                   </div>
                 </div>
-                <div className="text-[24px] font-bold text-ds-ink tracking-tight">
+                <div className="analytics-stat-value text-ds-ink tracking-tight">
                   {formatNumber(demographics?.archived_accounts)}
                 </div>
                 <span className="inline-block mt-2 text-[11px] font-semibold px-2 py-0.5 rounded-[6px] bg-ds-surface border border-ds-hairline text-ds-slate">
-                  {demographics?.churn_rate || "3.1%"} archiving rate
+                  {comparisonLabel(demographics?.churn_rate, "archiving rate")}
                 </span>
               </div>
             </div>
 
             {/* Monthly Active Users Chart */}
-            <div className="bg-ds-canvas border border-ds-hairline rounded-xl p-5 ">
+            <div className="analytics-primary-chart bg-ds-canvas border border-ds-hairline rounded-xl p-5">
               <h3 className="text-[13.5px] font-semibold text-ds-ink mb-0.5">
-                Monthly active users trend
+                Monthly active users
               </h3>
               <div className="text-[12px] text-ds-slate mb-4">
                 Unique users logging at least one event per month
               </div>
               <div className="w-full h-64">
+                {!demographics?.monthly_dau?.length ? (
+                  <div className="analytics-empty-chart">No monthly activity recorded in this period.</div>
+                ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={demographics?.monthly_dau || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={COLORS.line} />
                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: COLORS.inkFaint }} dy={10} />
                     <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: COLORS.inkFaint }} />
-                    <Tooltip content={<CustomLightTooltip />} cursor={{ fill: 'rgba(46,154,232,0.06)' }} />
-                    <Bar dataKey="dau" name="Active users" fill={COLORS.brandLine} radius={[5, 5, 0, 0]} maxBarSize={42} />
+                    <Tooltip content={<CustomLightTooltip />} cursor={{ fill: 'var(--workspace-tint)' }} />
+                    <Bar dataKey="dau" name="Active users" fill="var(--workspace-accent)" radius={[5, 5, 0, 0]} maxBarSize={42} />
                   </BarChart>
                 </ResponsiveContainer>
+                )}
               </div>
             </div>
 
             {/* Symptoms & Activity Volume Side-by-Side */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
+            <div className="analytics-secondary-grid grid grid-cols-1 lg:grid-cols-2 gap-3.5">
               {/* Most Frequently Recorded Symptoms */}
               <div className="bg-ds-canvas border border-ds-hairline rounded-xl p-5 flex flex-col justify-between">
                 <div>
                   <h3 className="text-[13.5px] font-semibold text-ds-ink mb-0.5">
-                    Most frequently recorded symptoms
+                    Frequently recorded symptoms
                   </h3>
                   <div className="text-[12px] text-ds-slate mb-4">
                     Top self-reported symptoms this period
@@ -298,12 +304,15 @@ const Analytics = () => {
               {/* Activity Volume Over Time */}
               <div className="bg-ds-canvas border border-ds-hairline rounded-xl p-5 ">
                 <h3 className="text-[13.5px] font-semibold text-ds-ink mb-0.5">
-                  Activity volume over time
+                  Weekly activity logs
                 </h3>
                 <div className="text-[12px] text-ds-slate mb-4">
                   Meals, exercise, and sleep logs per week
                 </div>
                 <div className="w-full h-52">
+                  {!data.activity_over_time?.length ? (
+                    <div className="analytics-empty-chart">No activity logs recorded in this period.</div>
+                  ) : (
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={data.activity_over_time || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={COLORS.line} />
@@ -311,11 +320,12 @@ const Analytics = () => {
                       <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: COLORS.inkFaint }} />
                       <Tooltip content={<CustomLightTooltip />} />
                       <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', color: COLORS.inkSoft, paddingTop: '10px' }} />
-                      <Area type="monotone" dataKey="meals" name="Meals" stroke={COLORS.brandLine} fill="rgba(46,154,232,0.10)" strokeWidth={2} />
-                      <Area type="monotone" dataKey="exercises" name="Exercise" stroke={COLORS.amber} fill="rgba(121,52,0,0.08)" strokeWidth={2} />
-                      <Area type="monotone" dataKey="sleep" name="Sleep" stroke={COLORS.teal} fill="rgba(26,174,57,0.10)" strokeWidth={2} />
+                      <Area type="monotone" dataKey="meals" name="Meals" stroke="var(--analytics-food)" fill="var(--analytics-food)" fillOpacity={0.08} strokeWidth={2} />
+                      <Area type="monotone" dataKey="exercises" name="Exercise" stroke="var(--analytics-exercise)" fill="var(--analytics-exercise)" fillOpacity={0.08} strokeWidth={2} />
+                      <Area type="monotone" dataKey="sleep" name="Sleep" stroke="var(--workspace-accent)" fill="var(--workspace-accent)" fillOpacity={0.08} strokeWidth={2} />
                     </AreaChart>
                   </ResponsiveContainer>
+                  )}
                 </div>
               </div>
             </div>
@@ -343,6 +353,9 @@ const Analytics = () => {
                 How registered users spread across the habits score levels at the end of each month
               </div>
               <div className="w-full h-72">
+                {!wellness_outcomes.length ? (
+                  <div className="analytics-empty-chart">No habit score history recorded in this period.</div>
+                ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={wellness_outcomes || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={COLORS.line} />
@@ -356,6 +369,7 @@ const Analytics = () => {
                     <Bar dataKey="critical" name="Critical" stackId="s" fill={COLORS.red} />
                   </BarChart>
                 </ResponsiveContainer>
+                )}
               </div>
             </div>
 
@@ -426,12 +440,12 @@ const Analytics = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.22, ease: [0.25, 1, 0.5, 1] }}
-            className="grid grid-cols-1 lg:grid-cols-2 gap-3.5"
+            className="analytics-content-grid grid grid-cols-1 lg:grid-cols-2 gap-3.5"
           >
             {/* Most Logged Recipes */}
-            <div className="bg-ds-canvas border border-ds-hairline rounded-xl p-5 ">
+            <div className="analytics-topic analytics-food bg-ds-canvas border border-ds-hairline rounded-xl p-5">
               <div className="flex items-center gap-2.5 mb-4">
-                <div className="w-[30px] h-[30px] rounded-[8px] bg-ds-tint text-ds-on-tint flex items-center justify-center shrink-0">
+                <div className="analytics-topic-icon w-[30px] h-[30px] rounded-[8px] flex items-center justify-center shrink-0">
                   <Utensils size={15} />
                 </div>
                 <h3 className="text-[13.5px] font-semibold text-ds-ink m-0">
@@ -442,12 +456,12 @@ const Analytics = () => {
               <div className="space-y-2">
                 {content_efficacy?.top_recipes && content_efficacy.top_recipes.length > 0 ? (
                   content_efficacy.top_recipes.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center p-2.5 px-3 border border-ds-hairline rounded-[8px] bg-ds-surface">
+                    <div key={idx} className="analytics-ranked-row flex justify-between items-center p-2.5 px-3 border border-ds-hairline rounded-[8px] bg-ds-surface">
                       <div className="flex items-center gap-2.5 min-w-0 pr-2">
                         <span className="w-[22px] h-[22px] rounded-[6px] bg-ds-canvas border border-ds-hairline flex items-center justify-center text-[11px] font-bold text-ds-primary shrink-0">
                           {idx + 1}
                         </span>
-                        <span className="text-[12.5px] font-semibold text-ds-ink truncate">
+                        <span className="text-[12.5px] font-semibold text-ds-ink break-words">
                           {item.name}
                         </span>
                       </div>
@@ -455,7 +469,7 @@ const Analytics = () => {
                         <div className="text-[13px] font-bold text-ds-ink">
                           {formatNumber(item.completions)}
                         </div>
-                        <div className="text-[11px] uppercase text-ds-steel font-semibold tracking-wide">
+                        <div className="text-[11px] text-ds-slate font-medium">
                           logs
                         </div>
                       </div>
@@ -468,9 +482,9 @@ const Analytics = () => {
             </div>
 
             {/* Most Logged Exercises */}
-            <div className="bg-ds-canvas border border-ds-hairline rounded-xl p-5 ">
+            <div className="analytics-topic analytics-exercise bg-ds-canvas border border-ds-hairline rounded-xl p-5">
               <div className="flex items-center gap-2.5 mb-4">
-                <div className="w-[30px] h-[30px] rounded-[8px] bg-ds-tint text-ds-on-tint flex items-center justify-center shrink-0">
+                <div className="analytics-topic-icon w-[30px] h-[30px] rounded-[8px] flex items-center justify-center shrink-0">
                   <Dumbbell size={15} />
                 </div>
                 <h3 className="text-[13.5px] font-semibold text-ds-ink m-0">
@@ -481,12 +495,12 @@ const Analytics = () => {
               <div className="space-y-2">
                 {content_efficacy?.top_exercises && content_efficacy.top_exercises.length > 0 ? (
                   content_efficacy.top_exercises.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center p-2.5 px-3 border border-ds-hairline rounded-[8px] bg-ds-surface">
+                    <div key={idx} className="analytics-ranked-row flex justify-between items-center p-2.5 px-3 border border-ds-hairline rounded-[8px] bg-ds-surface">
                       <div className="flex items-center gap-2.5 min-w-0 pr-2">
                         <span className="w-[22px] h-[22px] rounded-[6px] bg-ds-canvas border border-ds-hairline flex items-center justify-center text-[11px] font-bold text-ds-primary shrink-0">
                           {idx + 1}
                         </span>
-                        <span className="text-[12.5px] font-semibold text-ds-ink truncate">
+                        <span className="text-[12.5px] font-semibold text-ds-ink break-words">
                           {item.name}
                         </span>
                       </div>
@@ -494,7 +508,7 @@ const Analytics = () => {
                         <div className="text-[13px] font-bold text-ds-ink">
                           {formatNumber(item.completions)}
                         </div>
-                        <div className="text-[11px] uppercase text-ds-steel font-semibold tracking-wide">
+                        <div className="text-[11px] text-ds-slate font-medium">
                           sessions
                         </div>
                       </div>

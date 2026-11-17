@@ -319,31 +319,36 @@
 }
 .workspace-header {
   display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 0;
+  align-items: center;
+  gap: 20px;
+  min-height: 154px;
+  padding: 28px 30px;
+  border: 1px solid var(--workspace-line);
+  border-left: 4px solid var(--workspace-accent);
+  border-radius: 22px;
+  background: var(--workspace-tint);
 }
 .workspace-header-symbol {
   display: grid;
-  width: 44px;
-  height: 44px;
+  width: 60px;
+  height: 60px;
   flex-shrink: 0;
   place-items: center;
-  background: var(--workspace-tint);
+  background: var(--color-cal-canvas);
   color: var(--workspace-accent);
   border: 1px solid var(--workspace-line);
-  border-radius: 13px;
+  border-radius: 18px;
 }
 .workspace-header h2 {
   font-family: var(--font-cal-display);
-  font-size: clamp(24px, 2.2vw, 28px);
-  font-weight: 650;
+  font-size: clamp(26px, 2.6vw, 34px);
+  font-weight: 550;
   line-height: 1.2;
   letter-spacing: -0.6px;
 }
 .workspace-header p {
   margin-top: 6px;
-  max-width: 78ch;
+  max-width: 70ch;
   color: var(--color-cal-muted);
   font-size: 14px;
   line-height: 1.5;
@@ -378,14 +383,62 @@
   border-radius: 16px;
   box-shadow: none;
 }
-.workspace--operations table th {
+.workspace--operations {
+  width: 100%;
+  max-width: 1440px;
+}
+.workspace-stat-grid > div {
+  border-color: var(--workspace-line);
+  border-top: 2px solid var(--workspace-accent);
+  border-radius: 16px;
+  box-shadow: none;
+}
+.workspace-stat-grid .font-cal-display {
+  font-weight: 500;
+}
+.analytics-tabs {
+  margin-block: 20px;
+}
+.analytics-workspace {
+  --analytics-food: #275c45;
+  --analytics-exercise: #803746;
+}
+.analytics-food { --analytics-topic: var(--analytics-food); --analytics-topic-tint: #eaf1e9; }
+.analytics-exercise { --analytics-topic: var(--analytics-exercise); --analytics-topic-tint: #f5e9ec; }
+.analytics-topic { border-top: 2px solid var(--analytics-topic); border-radius: 16px; }
+.analytics-topic .analytics-topic-icon { color: var(--analytics-topic); background: var(--analytics-topic-tint); }
+.analytics-tabs button > .absolute {
+  border-radius: inherit;
+  box-shadow: none;
+}
+.analytics-workspace .analytics-stat-value {
+  font-size: 30px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+/* Recharts assigns series colors inline; keep that color in swatches, not small labels. */
+.analytics-workspace .recharts-legend-item-text {
+  color: var(--color-cal-body) !important;
+}
+.workspace-header-actions :is(button, a, select) {
+  min-height: 44px;
+  border-radius: 12px;
+}
+.activity-workspace .workspace-header-actions button {
+  min-height: 36px;
+}
+.workspace-header-actions :is(button, a, select):focus-visible {
+  outline: 2px solid var(--color-cal-ink);
+  outline-offset: 3px;
+}
+.workspace--operations table:not(.workspace-calendar table) th {
   padding-top: 12px;
   padding-bottom: 12px;
   font-size: 12px;
   text-transform: none;
   letter-spacing: normal;
 }
-.workspace--operations table td {
+.workspace--operations table:not(.workspace-calendar table) td {
   padding-top: 14px;
   padding-bottom: 14px;
 }
@@ -401,7 +454,7 @@
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
-.workspace--operations :is(.workspace-header-actions, .workspace-search-row, .library-toolbar) :is(button:not(.workspace-search button), select),
+.workspace--operations :is(.workspace-search-row, .library-toolbar) :is(button:not(.workspace-search button, .library-workflow-tabs button), select),
 .workspace--operations section > div:last-child button {
   min-height: 40px;
   border-radius: 10px;
@@ -498,7 +551,7 @@
   }
   .workspace-header-actions {
     width: 100%;
-    padding-left: 58px;
+    padding-left: 80px;
   }
   .settings-grid {
     grid-template-columns: minmax(0, 1fr);
@@ -513,10 +566,12 @@
 @media (max-width: 767px) {
   .workspace-header {
     gap: 12px;
+    min-height: 0;
+    padding: 22px 20px;
   }
   .workspace-header-symbol {
-    width: 42px;
-    height: 42px;
+    width: 44px;
+    height: 44px;
     border-radius: 13px;
   }
   .workspace-header-actions {
@@ -575,6 +630,141 @@
   --workspace-deep: #1b465f;
   --workspace-tint: #eaf0f5;
   --workspace-line: #cfdee8;
+}
+/* Opt-in page themes leave the approved content-library designs unchanged. */
+.workspace--refined {
+  --workspace-accent: #434b46;
+  --workspace-deep: #303731;
+  --workspace-tint: #eef0ed;
+  --workspace-line: #dce0da;
+  --color-ds-primary: var(--workspace-accent);
+  --color-ds-primary-pressed: var(--workspace-deep);
+  --color-ds-tint: var(--workspace-tint);
+  --color-ds-on-tint: var(--workspace-deep);
+}
+.workspace--refined.workspace--sage {
+  --workspace-accent: #37614a;
+  --workspace-deep: #294a38;
+  --workspace-tint: #edf2ed;
+  --workspace-line: #d9e2d9;
+}
+.workspace--refined.workspace--plum {
+  --workspace-accent: #67536f;
+  --workspace-deep: #4e3e55;
+  --workspace-tint: #f2eef4;
+  --workspace-line: #e0d9e3;
+}
+.workspace--refined.workspace--graphite {
+  --workspace-accent: #434b46;
+  --workspace-deep: #303731;
+  --workspace-tint: #eef0ed;
+  --workspace-line: #dce0da;
+}
+.workspace--refined.workspace--gold {
+  --workspace-accent: #8a6a2f;
+  --workspace-deep: #6c5123;
+  --workspace-tint: #f7f2e8;
+  --workspace-line: #e8dfcd;
+}
+.workspace--refined.workspace--blue {
+  --workspace-accent: #345f78;
+  --workspace-deep: #284a5e;
+  --workspace-tint: #eaf1f5;
+  --workspace-line: #d3e0e7;
+}
+.workspace--refined.workspace--teal {
+  --workspace-accent: #3f6767;
+  --workspace-deep: #315151;
+  --workspace-tint: #eaf2f1;
+  --workspace-line: #d2e1df;
+}
+.workspace--refined .workspace-header {
+  min-height: 64px;
+  gap: 12px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-cal-ink);
+}
+.workspace--refined .workspace-header-symbol {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--workspace-tint);
+  color: var(--workspace-accent);
+}
+.workspace--refined .workspace-header-symbol svg {
+  width: 20px;
+  height: 20px;
+}
+.workspace--refined .workspace-header h2 {
+  font-size: clamp(25px, 2.1vw, 28px);
+  font-weight: 600;
+  letter-spacing: -0.7px;
+}
+.workspace--refined .workspace-header p {
+  max-width: 66ch;
+  margin-top: 5px;
+  color: var(--color-cal-muted);
+}
+.workspace--refined .workspace-header-actions {
+  padding: 0;
+}
+.workspace--refined:is(.accounts-workspace, .activity-workspace, .support-workspace, .analytics-workspace, .review-workspace, .settings-workspace, .notifications-workspace, .premium-workspace) > .workspace-header {
+  min-height: 154px;
+  gap: 20px;
+  padding: 28px 30px;
+  border-radius: 22px;
+  background: var(--workspace-accent);
+  color: white;
+}
+.workspace--refined:is(.accounts-workspace, .activity-workspace, .support-workspace, .analytics-workspace, .review-workspace, .settings-workspace, .notifications-workspace, .premium-workspace) > .workspace-header .workspace-header-symbol {
+  width: 60px;
+  height: 60px;
+  border: 1px solid #ffffff40;
+  border-radius: 18px;
+  background: transparent;
+  color: white;
+}
+.workspace--refined:is(.accounts-workspace, .activity-workspace, .support-workspace, .analytics-workspace, .review-workspace, .settings-workspace, .notifications-workspace, .premium-workspace) > .workspace-header .workspace-header-symbol svg {
+  width: 24px;
+  height: 24px;
+}
+.workspace--refined:is(.accounts-workspace, .activity-workspace, .support-workspace, .analytics-workspace, .review-workspace, .settings-workspace, .notifications-workspace, .premium-workspace) > .workspace-header h2 {
+  color: white;
+  font-size: clamp(26px, 2.6vw, 36px);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -0.7px;
+}
+.workspace--refined:is(.accounts-workspace, .activity-workspace, .support-workspace, .analytics-workspace, .review-workspace, .settings-workspace, .notifications-workspace, .premium-workspace) > .workspace-header p {
+  max-width: 68ch;
+  color: #ffffffdf;
+}
+.workspace--refined:is(.accounts-workspace, .activity-workspace, .support-workspace, .analytics-workspace, .review-workspace, .settings-workspace, .notifications-workspace, .premium-workspace) > .workspace-header .workspace-header-actions :is(button, select) {
+  border-color: transparent;
+  background: white;
+  color: var(--workspace-deep);
+}
+.workspace--refined:is(.accounts-workspace, .activity-workspace, .support-workspace, .analytics-workspace, .review-workspace, .settings-workspace, .notifications-workspace, .premium-workspace) > .workspace-header .workspace-header-actions :is(button, select):hover {
+  background: #fffffff0;
+}
+.workspace--refined:is(.analytics-workspace) > .workspace-header .workspace-header-actions label {
+  color: #ffffffdf;
+}
+.workspace--refined .workspace-stat-grid > div {
+  border: 1px solid var(--color-cal-hairline);
+}
+@media (max-width: 767px) {
+  .workspace--refined .workspace-header-actions {
+    margin-top: 4px;
+  }
+  .workspace--refined:is(.accounts-workspace, .activity-workspace, .support-workspace, .analytics-workspace, .review-workspace, .settings-workspace, .notifications-workspace, .premium-workspace) > .workspace-header {
+    min-height: 0;
+    padding: 22px;
+  }
 }
 .library-banner {
   display: grid;

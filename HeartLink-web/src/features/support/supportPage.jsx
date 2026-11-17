@@ -25,6 +25,7 @@ import { apiFetch } from "../../lib/api.js";
 import { useApiQuery } from "../../hooks/useApiQuery.js";
 
 import { WorkspaceHeader } from "../../components/ui/workspaceHeader.jsx";
+import "./support.css";
 
 const NO_TICKETS = [];
 
@@ -255,16 +256,57 @@ const Feedback = () => {
 
   return (
     <AdminLayout>
-      <div className="workspace workspace--operations mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
+      <div className="workspace workspace--operations workspace--refined workspace--gold support-workspace mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
         <WorkspaceHeader
           icon={MessageSquare}
           title="Feedback & reports"
-          description="A focused inbox for app issues, account questions and content feedback. Admin notes stay internal; saving a ticket does not send a reply or provide medical advice."
+          description="Review app issues, account questions and suggestions from your community."
         />
 
         {/* ─── 3. FEEDBACK INBOX CARD ────────────────────────────────────────── */}
         <section className="overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
           <div className="library-toolbar">
+            <div className="library-workflow-row">
+              <div
+                role="group"
+                aria-label="Filter tickets by status"
+                className="library-workflow-tabs"
+              >
+                {STATUS_TABS.map((tab) => {
+                  const active = filterStatus === tab.key;
+                  return (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setFilterStatus(tab.key)}
+                    >
+                      {active && (
+                        <motion.div
+                          layoutId="feedback-status-filter-tab"
+                          className="library-workflow-active"
+                          transition={
+                            reduceMotion
+                              ? { duration: 0 }
+                              : {
+                                  type: "spring",
+                                  stiffness: 420,
+                                  damping: 34,
+                                }
+                          }
+                        />
+                      )}
+                      <span className="relative z-10">{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-4 text-[12px] tabular-nums text-cal-muted">
+                <span>{loading || fetchError ? "Ticket count unavailable" : `${filteredTickets.length} ${filteredTickets.length === 1 ? "ticket" : "tickets"}`}</span>
+                <QueryProgress active={ticketsQuery.isFetching} label={loading ? "Loading feedback…" : "Updating feedback…"} />
+              </div>
+            </div>
             <div className="workspace-search-row">
               <div className="workspace-search">
                 <Search size={15} aria-hidden="true" />
@@ -335,47 +377,6 @@ const Feedback = () => {
                 )}
               </div>
             </div>
-            <div className="library-workflow-row">
-              <div
-                role="group"
-                aria-label="Filter tickets by status"
-                className="library-workflow-tabs"
-              >
-                {STATUS_TABS.map((tab) => {
-                  const active = filterStatus === tab.key;
-                  return (
-                    <button
-                      key={tab.key}
-                      type="button"
-                      aria-pressed={active}
-                      onClick={() => setFilterStatus(tab.key)}
-                    >
-                      {active && (
-                        <motion.div
-                          layoutId="feedback-status-filter-tab"
-                          className="library-workflow-active"
-                          transition={
-                            reduceMotion
-                              ? { duration: 0 }
-                              : {
-                                  type: "spring",
-                                  stiffness: 420,
-                                  damping: 34,
-                                }
-                          }
-                        />
-                      )}
-                      <span className="relative z-10">{tab.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="flex flex-wrap items-center gap-4 text-[12px] tabular-nums text-cal-muted">
-                <span>{loading || fetchError ? "Ticket count unavailable" : `${filteredTickets.length} ${filteredTickets.length === 1 ? "ticket" : "tickets"}`}</span>
-                <QueryProgress active={ticketsQuery.isFetching} label={loading ? "Loading feedback…" : "Updating feedback…"} />
-              </div>
-            </div>
           </div>
 
           {/* Error Banner */}
@@ -397,20 +398,17 @@ const Feedback = () => {
             aria-busy={ticketsQuery.isFetching}
             tabIndex={0}
           >
-            <table className="workspace-table w-full min-w-[880px] border-collapse text-left">
+            <table className="workspace-table support-inbox-table w-full min-w-[720px] border-collapse text-left">
               <thead>
                 <tr className="border-b border-cal-hairline bg-cal-surface-soft/70">
                   <th className="px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted">
-                    Ticket ID &amp; Date
+                    Ticket &amp; date
+                  </th>
+                  <th className="w-[50%] px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted">
+                    Message
                   </th>
                   <th className="px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted">
                     Category
-                  </th>
-                  <th className="px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted">
-                    Account ID
-                  </th>
-                  <th className="w-[42%] px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted">
-                    User Message
                   </th>
                   <th className="px-4 py-3 sm:px-5 text-right text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted">
                     Status
@@ -426,13 +424,10 @@ const Feedback = () => {
                         <Skeleton className="h-4 w-28 rounded bg-cal-surface-card" />
                       </td>
                       <td className="px-4 py-3.5 sm:px-5">
-                        <Skeleton className="h-5 w-24 rounded-full bg-cal-surface-card" />
-                      </td>
-                      <td className="px-4 py-3.5 sm:px-5">
-                        <Skeleton className="h-4 w-24 rounded bg-cal-surface-card" />
-                      </td>
-                      <td className="px-4 py-3.5 sm:px-5">
                         <Skeleton className="h-4 w-64 rounded bg-cal-surface-card" />
+                      </td>
+                      <td className="px-4 py-3.5 sm:px-5">
+                        <Skeleton className="h-5 w-24 rounded-full bg-cal-surface-card" />
                       </td>
                       <td className="px-4 py-3.5 sm:px-5 text-right">
                         <Skeleton className="ml-auto h-5 w-20 rounded-full bg-cal-surface-card" />
@@ -464,19 +459,14 @@ const Feedback = () => {
                       </td>
 
                       <td className="px-4 py-3.5 sm:px-5 align-middle">
-                        <FeedbackCategoryBadge category={ticket.category} />
-                      </td>
-
-                      <td className="px-4 py-3.5 sm:px-5 align-middle whitespace-nowrap">
-                        <span className="font-cal-mono text-[12.5px] tabular-nums text-cal-muted">
-                          {ticket.userId || "—"}
-                        </span>
+                        <p className="support-message text-[13.5px] text-cal-ink">
+                          {ticket.fullMessage || "No message provided"}
+                        </p>
+                        <p className="support-account-reference">Account: {ticket.userId || "—"}</p>
                       </td>
 
                       <td className="px-4 py-3.5 sm:px-5 align-middle">
-                        <p className="max-w-[420px] truncate text-[13.5px] text-cal-ink">
-                          {ticket.fullMessage || "No message provided"}
-                        </p>
+                        <FeedbackCategoryBadge category={ticket.category} />
                       </td>
 
                       <td className="px-4 py-3.5 sm:px-5 text-right align-middle whitespace-nowrap">
@@ -486,7 +476,7 @@ const Feedback = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="5" className="py-14 text-center">
+                    <td colSpan="4" className="py-14 text-center">
                       <div className="flex flex-col items-center justify-center gap-2">
                         <div className="flex h-10 w-10 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-soft text-cal-muted">
                           <Inbox size={18} aria-hidden="true" />
@@ -562,7 +552,6 @@ const Feedback = () => {
             </div>
           )}
         </section>
-
         {/* Modal: Ticket Resolution Workspace */}
         <TicketModal
           key={activeTicket?.id || "no-ticket"}

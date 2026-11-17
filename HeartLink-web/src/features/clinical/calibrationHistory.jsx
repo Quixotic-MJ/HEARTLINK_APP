@@ -35,6 +35,7 @@ import {
 } from "./reviewUi.js";
 import { riskBand, riskPercent } from "../careTeam/vitals.js";
 import { WorkspaceHeader } from "../../components/ui/workspaceHeader.jsx";
+import "./reviewWorkspace.css";
 
 // HL-058: Model Check replaces Calibration History. One row per review round with a Cardiologist review;
 // the Dietitian's and PT's checks sit inside that row. Measures count clinical reviews only.
@@ -76,7 +77,8 @@ const day = (iso) =>
 function MeasureCard({ label, value, note, icon: Icon, iconTone, highlight = false }) {
   return (
     <div
-      className={`rounded-[12px] border bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] ${
+      data-attention={highlight || undefined}
+      className={`review-measure rounded-[12px] border bg-cal-canvas p-4 sm:p-5 ${
         highlight ? "border-cal-warning/45" : "border-cal-hairline"
       }`}
     >
@@ -239,11 +241,11 @@ const ModelCheck = () => {
 
   return (
     <AdminLayout>
-      <div className="workspace workspace--operations mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
+      <div className="workspace workspace--operations workspace--refined workspace--graphite review-workspace model-workspace mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
         <WorkspaceHeader
           icon={History}
           title="Model Check"
-          description="How often the app's Heart risk band matches the band a cardiologist gives, and which way it misses. Only reviews by verified clinicians count."
+          description="Compare app results with cardiologist reviews. Measures include verified clinical reviews only."
         >
           {isAdmin && (
             <button
@@ -284,7 +286,7 @@ const ModelCheck = () => {
                   {active && (
                     <motion.div
                       layoutId="model-check-active-tab"
-                      className="absolute inset-0 rounded-full bg-cal-primary shadow-[0_1px_3px_rgba(59,130,246,0.35)]"
+                      className="absolute inset-0 rounded-full bg-cal-primary"
                       transition={{
                         type: "spring",
                         stiffness: 420,
@@ -325,6 +327,17 @@ const ModelCheck = () => {
           </div>
         ) : (
           <>
+            <section className="review-coverage" aria-label="Review sample coverage">
+              <div>
+                <h3>Review coverage</h3>
+                <p>Read the sample alongside the measures. Practice reviews are excluded from clinical comparisons.</p>
+              </div>
+              <dl>
+                <div><dt>Clinical reviews</dt><dd>{clinical.reviews}</dd></div>
+                <div><dt>Practice reviews</dt><dd>{data.practice.reviews}</dd></div>
+                <div><dt>Required sample</dt><dd>{data.min_clinical_reviews}</dd></div>
+              </dl>
+            </section>
             {!clinical.enough_reviews && (
               <div className="flex items-start gap-2.5 rounded-[10px] border border-cal-warning/35 bg-cal-warning/15 px-4 py-3 text-[13.5px] text-cal-ink">
                 <Info
@@ -333,7 +346,7 @@ const ModelCheck = () => {
                   aria-hidden="true"
                 />
                 <p className="leading-relaxed">
-                  <span className="font-semibold">Reference sample only:</span>{" "}
+                  <span className="font-semibold">Limited review sample:</span>{" "}
                   not enough clinical reviews to judge the model yet (
                   <span className="font-cal-mono font-semibold tabular-nums">
                     {clinical.reviews}
@@ -349,7 +362,7 @@ const ModelCheck = () => {
 
             {/* 4-Column Clinical Calibration Strip */}
             <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+              <div className="review-metric-strip workspace-stat-grid grid grid-cols-2 gap-4 xl:grid-cols-4">
                 <MeasureCard
                   label="Agreement"
                   value={pct(clinical.agreement)}
@@ -415,11 +428,11 @@ const ModelCheck = () => {
             </div>
 
             {/* Confusion Matrix Card */}
-            <section className="overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <section className="review-matrix-panel overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cal-hairline px-5 py-4">
                 <div>
                   <h3 className="text-[15px] font-semibold text-cal-ink">
-                    Band by band (clinical reviews)
+                    Band comparison
                   </h3>
                   <p className="mt-0.5 text-[12.5px] text-cal-muted">
                     Rows show the app&apos;s Heart risk band; columns show the band
@@ -515,11 +528,11 @@ const ModelCheck = () => {
             </section>
 
             {/* Reviewed Cases Directory Card */}
-            <section className="overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <section className="review-table-panel overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cal-hairline px-4 py-3.5 sm:px-5">
                 <div className="flex flex-wrap items-center gap-3">
                   <h3 className="text-[15px] font-semibold text-cal-ink">
-                    Reviewed cases
+                    Review history
                   </h3>
                   <div
                     role="group"
