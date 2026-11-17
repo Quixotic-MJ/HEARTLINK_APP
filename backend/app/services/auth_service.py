@@ -270,6 +270,16 @@ class SupabaseAuthService(AuthService):
         return create_client(url, key, options=options).auth
 
     def _password_matches(self, profile: Dict[str, Any], password: str, identifier: str = "") -> Optional[str]:
+        """The password exactly as typed, then (only if that fails and it has spaces at the start or end) without them.
+        New passwords are saved without those spaces (password_policy), while one an older account set with a space
+        still works when typed as it was (2026-11-17)."""
+        user_id = self._password_matches_exactly(profile, password, identifier)
+        trimmed = password.strip()
+        if not user_id and trimmed and trimmed != password:
+            user_id = self._password_matches_exactly(profile, trimmed, identifier)
+        return user_id
+
+    def _password_matches_exactly(self, profile: Dict[str, Any], password: str, identifier: str = "") -> Optional[str]:
         """
         The Supabase Auth user id when the password is right for this profile, else None. Used by sign-in,
         account deletion and password change, so all three accept a password the same way.

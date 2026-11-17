@@ -25,7 +25,7 @@ import DsButton from "../../components/onboarding/DsButton";
 import SetupHeader from "../../components/onboarding/SetupHeader";
 import { DsScreen } from "../../components/onboarding/QuestionLayout";
 import { apiFetch } from "../../lib/api";
-import { PASSWORD_RULES } from "../../lib/passwordRules";
+import { PASSWORD_RULES, cleanPassword } from "../../lib/passwordRules";
 import { useDs } from "../../components/onboarding/useDs";
 // ─── Phone number ─────────────────────────────────────────────────────────────
 // People type Philippine mobile numbers as "0912…" or "912…" (and sometimes
@@ -51,6 +51,7 @@ const registerSchema = z.object({
     ),
   password: z
     .string()
+    .trim() // an invisible space at the start or end isn't part of the password
     .min(16, "Password must be at least 16 characters.")
     .regex(/(?=.*[a-z])/, "Password must contain a lowercase letter.")
     .regex(/(?=.*[A-Z])/, "Password must contain an uppercase letter.")
@@ -115,7 +116,7 @@ export default function RegisterScreen() {
 
   const emailValue = watch("email") || "";
   const phoneValue = watch("phone") || "";
-  const passwordValue = watch("password") || "";
+  const passwordValue = cleanPassword(watch("password") || "");
   const consented = watch("healthDataConsent");
   const rulesMet = PASSWORD_RULES.filter((rule) => rule.test(passwordValue)).length;
 
@@ -171,7 +172,7 @@ export default function RegisterScreen() {
         body: JSON.stringify({
           email: data.email.trim().toLowerCase(),
           phone: normalizedPhone,
-          password: data.password,
+          password: cleanPassword(data.password),
         }),
       });
 

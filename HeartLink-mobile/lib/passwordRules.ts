@@ -8,4 +8,8 @@ export const PASSWORD_RULES: { label: string; test: (pw: string) => boolean }[] 
   { label: "A symbol (! # $)", test: (pw) => /[^A-Za-z0-9\s]/.test(pw) },
 ];
 
-export const meetsPasswordRules = (pw: string) => PASSWORD_RULES.every((rule) => rule.test(pw));
+/** A new password as it will be saved: spaces at the start or end dropped. Phone keyboards often add one after a word,
+ * which nobody can see (the server drops them too, backend/app/utils/password_policy.py). Spaces inside stay. */
+export const cleanPassword = (pw: string) => pw.trim();
+
+export const meetsPasswordRules = (pw: string) => PASSWORD_RULES.every((rule) => rule.test(cleanPassword(pw)));
