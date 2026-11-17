@@ -1,12 +1,13 @@
 import React from "react";
 import { View, Text } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { PASSWORD_RULES } from "../../lib/passwordRules";
+import { PASSWORD_RULES, cleanPassword } from "../../lib/passwordRules";
 import { useDs } from "../onboarding/useDs";
 
 /** The password rules as tags under a new-password field, each turning green once it is met. */
-export default function PasswordRuleTags({ password }: { password: string }) {
+export default function PasswordRuleTags({ password: typed }: { password: string }) {
   const { c } = useDs();
+  const password = cleanPassword(typed);
   const rulesMet = PASSWORD_RULES.filter((rule) => rule.test(password)).length;
 
   return (

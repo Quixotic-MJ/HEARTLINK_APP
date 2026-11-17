@@ -201,23 +201,25 @@ function AccountTab({ user, userId, unavailable }) {
       setPwError("All password fields are required.");
       return;
     }
-    if (pwForm.next.length < 16) {
+    // Spaces at the start or end don't count: they're invisible, and the server drops them too (2026-11-17)
+    const next = pwForm.next.trim();
+    if (next.length < 16) {
       setPwError("New password must be at least 16 characters long.");
       return;
     }
-    if (!/\d/.test(pwForm.next)) {
+    if (!/\d/.test(next)) {
       setPwError("New password must include at least one number.");
       return;
     }
-    if (!/[^A-Za-z0-9\s]/.test(pwForm.next)) {
+    if (!/[^A-Za-z0-9\s]/.test(next)) {
       setPwError("New password must include at least one special character.");
       return;
     }
-    if (pwForm.next !== pwForm.confirm) {
+    if (next !== pwForm.confirm.trim()) {
       setPwError("New password and confirmation do not match.");
       return;
     }
-    if (pwForm.next === pwForm.current) {
+    if (next === pwForm.current.trim()) {
       setPwError("New password must be different from your current password.");
       return;
     }
@@ -230,7 +232,7 @@ function AccountTab({ user, userId, unavailable }) {
         method: "PUT",
         body: JSON.stringify({
           current_password: pwForm.current,
-          new_password: pwForm.next,
+          new_password: next,
         }),
       });
       if (result?.success !== true)
@@ -268,11 +270,12 @@ function AccountTab({ user, userId, unavailable }) {
     setShowPw((prev) => ({ ...prev, [field]: !prev[field] }));
 
   // Dynamic Password Validation
-  const hasMinLength = pwForm.next.length >= 16;
-  const hasNumber = /\d/.test(pwForm.next);
-  const hasSpecial = /[^A-Za-z0-9\s]/.test(pwForm.next);
+  const cleanNext = pwForm.next.trim();
+  const hasMinLength = cleanNext.length >= 16;
+  const hasNumber = /\d/.test(cleanNext);
+  const hasSpecial = /[^A-Za-z0-9\s]/.test(cleanNext);
   const passwordsMatch = Boolean(
-    pwForm.confirm && pwForm.next === pwForm.confirm,
+    pwForm.confirm.trim() && cleanNext === pwForm.confirm.trim(),
   );
 
   return (

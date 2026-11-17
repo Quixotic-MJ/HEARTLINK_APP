@@ -13,6 +13,7 @@ import { useDs } from "../../../components/onboarding/useDs";
 import DsButton from "../../../components/onboarding/DsButton";
 import { SquareIconButton } from "../../../components/exercise/ExerciseBits";
 import { ds } from "../../../constants/theme";
+import { cleanPassword } from "../../../lib/passwordRules";
 
 // Closing an account archives it on the server: signing in stops, and the health records are kept.
 const CONFIRM_WORD = "CLOSE";
@@ -53,10 +54,12 @@ export default function AccountSecurityScreen() {
   };
 
   // Requirement checks
-  const isMinLength = newPassword.length >= 16;
-  const hasNumber = /\d/.test(newPassword);
-  const hasSpecial = /[^A-Za-z0-9\s]/.test(newPassword);
-  const isMatching = newPassword.length > 0 && newPassword === confirmPassword;
+  // Spaces at the start or end don't count: phone keyboards add them unseen (the server drops them too)
+  const cleanNew = cleanPassword(newPassword);
+  const isMinLength = cleanNew.length >= 16;
+  const hasNumber = /\d/.test(cleanNew);
+  const hasSpecial = /[^A-Za-z0-9\s]/.test(cleanNew);
+  const isMatching = cleanNew.length > 0 && cleanNew === cleanPassword(confirmPassword);
   const isCurrentFilled = currentPassword.length > 0;
   const isFormValid = isMinLength && hasNumber && hasSpecial && isMatching && isCurrentFilled;
 
@@ -90,7 +93,7 @@ export default function AccountSecurityScreen() {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${effectiveToken}`,
         },
-        body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+        body: JSON.stringify({ current_password: currentPassword, new_password: cleanNew }),
       });
       const data = await response.json();
       if (!response.ok) {

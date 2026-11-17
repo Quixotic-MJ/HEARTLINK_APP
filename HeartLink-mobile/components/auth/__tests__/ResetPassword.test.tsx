@@ -176,3 +176,26 @@ describe("Forgot password, step 2", () => {
     SCREEN_TEST_MS
   );
 });
+
+// 2026-11-17: a space the keyboard added at the end (which nobody can see) isn't a difference, and isn't saved
+describe("Spaces at the end of a password", () => {
+  it(
+    "match without the space and are sent without it",
+    async () => {
+      mockParams = { identifier: "patient@example.com" };
+      answer(200, { success: true });
+      const user = userEvent.setup();
+      await renderScreen(ResetPasswordScreen);
+
+      await fireEvent.changeText(screen.getByLabelText("Code digit 1 of 6"), "123456");
+      await user.type(screen.getByLabelText("New password"), NEW_PASSWORD);
+      await user.type(screen.getByLabelText("Confirm new password"), `${NEW_PASSWORD} `);
+      await user.press(screen.getByRole("button", { name: "Set new password" }));
+
+      await waitFor(() => expect(mockDismissTo).toHaveBeenCalledWith("/(auth)/login"));
+      expect(screen.queryByText("The two passwords don't match.")).toBeNull();
+      expect(sentBody().new_password).toBe(NEW_PASSWORD);
+    },
+    SCREEN_TEST_MS
+  );
+});

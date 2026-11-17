@@ -15,7 +15,7 @@ import CodeBoxes, { CODE_LENGTH } from "../../components/auth/CodeBoxes";
 import PasswordRuleTags from "../../components/auth/PasswordRuleTags";
 import { useToast } from "../../contexts/ToastContext";
 import { apiFetch } from "../../lib/api";
-import { meetsPasswordRules } from "../../lib/passwordRules";
+import { cleanPassword, meetsPasswordRules } from "../../lib/passwordRules";
 
 // Forgot password, step 2: the 6-digit code from the email and the new password. Step 1 is forgot-password.tsx.
 
@@ -26,7 +26,8 @@ const resetSchema = z
     newPassword: z.string().refine(meetsPasswordRules, "Your new password doesn't meet every rule yet."),
     confirmPassword: z.string().min(1, "Type your new password again."),
   })
-  .refine((v) => v.newPassword === v.confirmPassword, {
+  // An invisible space at the end of one of them doesn't count as a difference
+  .refine((v) => cleanPassword(v.newPassword) === cleanPassword(v.confirmPassword), {
     message: "The two passwords don't match.",
     path: ["confirmPassword"],
   });
@@ -76,7 +77,7 @@ export default function ResetPasswordScreen() {
         auth: false,
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier, code: code.join(""), new_password: data.newPassword }),
+        body: JSON.stringify({ identifier, code: code.join(""), new_password: cleanPassword(data.newPassword) }),
       });
       const body = await res.json().catch(() => null);
       if (res.ok) {

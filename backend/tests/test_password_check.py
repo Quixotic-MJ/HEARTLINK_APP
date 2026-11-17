@@ -142,3 +142,27 @@ def test_a_refused_key_tries_the_other_key(scripted):
     Scripted.codes = [401, 200]
     assert scripted.verify_credentials(USER_ID, PASSWORD) is True
     assert [c[0] for c in Scripted.calls] == ["service-key", "anon-key"]
+
+
+# --- 2026-11-17: an invisible space at the start or end of a password ---------------------------------------------
+
+def test_new_passwords_are_saved_without_spaces_at_the_ends():
+    from app.schemas.auth import PasswordResetConfirm
+    from app.utils.password_policy import validate_strong_password
+    assert validate_strong_password("  A-long-password-2026! ") == "A-long-password-2026!"
+    body = PasswordResetConfirm(identifier="a@example.com", code="123456", new_password="A-long-password-2026! ")
+    assert body.new_password == "A-long-password-2026!"
+    # spaces in the middle are part of the password
+    assert validate_strong_password("A long password 2026!") == "A long password 2026!"
+
+
+def test_a_space_the_keyboard_added_still_signs_in(scripted):
+    # the saved password has no space; the typed one has one at the end: as typed fails, then without it works
+    Scripted.codes = [400, 400, 200]
+    assert scripted.verify_credentials(USER_ID, PASSWORD + " ") is True
+    assert len(Scripted.calls) == 3
+
+
+def test_a_password_without_spaces_is_only_tried_once(scripted):
+    assert scripted.verify_credentials(USER_ID, "Wrong-password-123!") is False
+    assert len(Scripted.calls) == 2  # email and phone, never a second round

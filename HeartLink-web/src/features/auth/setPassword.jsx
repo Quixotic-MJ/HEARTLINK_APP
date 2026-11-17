@@ -70,13 +70,15 @@ export default function SetPassword() {
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (!user?.mustChangePassword) return <Navigate to={homeFor(user)} replace />;
 
+  // Spaces at the start or end don't count: they're invisible, and the server drops them too (2026-11-17)
+  const cleanNext = next.trim();
   const rules = {
-    length: next.length >= 16,
-    number: /\d/.test(next),
-    special: /[^A-Za-z0-9\s]/.test(next),
-    different: next.length > 0 && next !== current,
+    length: cleanNext.length >= 16,
+    number: /\d/.test(cleanNext),
+    special: /[^A-Za-z0-9\s]/.test(cleanNext),
+    different: cleanNext.length > 0 && cleanNext !== current.trim(),
   };
-  const matches = confirm.length > 0 && confirm === next;
+  const matches = confirm.trim().length > 0 && confirm.trim() === cleanNext;
   const valid = current.length > 0 && Object.values(rules).every(Boolean) && matches;
 
   const onSubmit = async (e) => {
@@ -89,7 +91,7 @@ export default function SetPassword() {
     try {
       await apiFetch(`/api/users/${userId}/password`, {
         method: "PUT",
-        body: JSON.stringify({ current_password: current, new_password: next }),
+        body: JSON.stringify({ current_password: current, new_password: cleanNext }),
       });
       setCurrent("");
       setNext("");
