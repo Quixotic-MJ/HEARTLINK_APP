@@ -16,6 +16,7 @@ import {
 import AdminLayout from "../../components/layouts/adminLayout.jsx";
 import LoadError from "../../components/ui/loadError.jsx";
 import { Skeleton } from "../../components/ui/skeleton.jsx";
+import { WorkspaceHeader } from "../../components/ui/workspaceHeader.jsx";
 import { useApiQuery } from "../../hooks/useApiQuery.js";
 
 // Demo history is bounded; recorded amounts are not revenue or payment receipts.
@@ -213,7 +214,7 @@ function ChangesTable({ events = [] }) {
                     {active && (
                       <motion.div
                         layoutId="premium-filter-active-tab"
-                        className="absolute inset-0 rounded-full bg-cal-primary shadow-[0_1px_3px_rgba(59,130,246,0.35)]"
+                        className="absolute inset-0 rounded-full bg-[var(--workspace-accent)]"
                         transition={{
                           type: "spring",
                           stiffness: 420,
@@ -378,24 +379,13 @@ const Premium = () => {
 
   return (
     <AdminLayout>
-      <div className="mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
+      <div className="workspace workspace--operations workspace--refined workspace--gold premium-workspace mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
         {/* ─── 1. EDITORIAL PAGE HEADER ─────────────────────────────────────── */}
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <div className="mb-2.5 inline-flex items-center gap-2 rounded-full border border-cal-hairline bg-cal-canvas px-3 py-1 text-[12px] font-medium text-cal-muted">
-              <Crown size={13.5} className="text-cal-ink" />
-              <span>Operations · Optional Premium access</span>
-            </div>
-            <h2 className="font-cal-display text-[28px] sm:text-[32px] font-semibold tracking-[-0.8px] leading-[1.15] text-cal-ink">
-              HeartLink Premium
-            </h2>
-            <p className="mt-1.5 max-w-[64ch] text-[14px] leading-[1.5] text-cal-muted">
-              Read-only demo configuration and recorded optional entitlements.
-              Account access is managed separately in Accounts &amp; Staff. This
-              is not a payments or revenue dashboard.
-            </p>
-          </div>
-
+        <WorkspaceHeader
+          icon={Crown}
+          title="HeartLink Premium"
+          description="Read-only demo configuration and recorded optional entitlements. Account access is managed separately in Accounts & Staff. This is not a payments or revenue dashboard."
+        >
           <Link
             to="/users"
             className="inline-flex h-10 items-center gap-2 rounded-[8px] border border-cal-hairline bg-cal-canvas px-4 text-[13.5px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors"
@@ -404,7 +394,7 @@ const Premium = () => {
             <span>Accounts &amp; Staff</span>
             <ArrowUpRight size={14} className="text-cal-muted" />
           </Link>
-        </div>
+        </WorkspaceHeader>
 
         {/* ─── 2. BODY: LOADING / ERROR / CONTENT ───────────────────────────── */}
         {overview.isPending ? (

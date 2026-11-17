@@ -729,7 +729,7 @@ const Settings = () => {
 
   return (
     <AdminLayout>
-      <div className="workspace workspace--operations mx-auto w-full max-w-[1280px] space-y-6 font-cal-sans text-cal-ink">
+      <div className="workspace workspace--operations workspace--refined workspace--graphite settings-workspace mx-auto w-full max-w-[1280px] space-y-6 font-cal-sans text-cal-ink">
         <WorkspaceHeader
           icon={User}
           title="Account settings"

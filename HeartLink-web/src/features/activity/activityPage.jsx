@@ -223,18 +223,18 @@ const ActivityLog = () => {
 
   return (
     <AdminLayout>
-      <div className="workspace workspace--operations activity-workspace mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
+      <div className="workspace workspace--operations workspace--refined workspace--plum activity-workspace mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
         <WorkspaceHeader
           icon={Activity}
           title="Activity log"
-          description="Content, account and security events in Asia/Manila. This operational view excludes clinical and unknown history without deleting it; it is not a complete or immutable audit archive."
+          description="Trace content changes, account access and staff activity in one place."
         >
           <div className="flex flex-wrap items-center gap-2.5">
             <button
               type="button"
               onClick={() => refetch()}
               disabled={loading}
-              className="inline-flex h-10 items-center gap-2 rounded-[8px] border border-cal-hairline bg-cal-canvas px-4 text-[13.5px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer disabled:opacity-50"
+              className="inline-flex h-9 items-center gap-2 rounded-[8px] border border-cal-hairline bg-cal-canvas px-3.5 text-[13px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer disabled:opacity-50"
             >
               <RefreshCw
                 size={14.5}
@@ -256,7 +256,7 @@ const ActivityLog = () => {
                 total === 0 ||
                 searchQuery.trim() !== debouncedSearch.trim()
               }
-              className="inline-flex h-10 items-center gap-2 rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-5 text-[13.5px] font-semibold text-cal-on-primary transition-colors cursor-pointer disabled:bg-cal-primary-disabled disabled:text-cal-muted disabled:cursor-not-allowed"
+              className="inline-flex h-9 items-center gap-2 rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-4 text-[13px] font-semibold text-cal-on-primary transition-colors cursor-pointer disabled:bg-cal-primary-disabled disabled:text-cal-muted disabled:cursor-not-allowed"
             >
               {exporting ? (
                 <Loader2
@@ -267,7 +267,7 @@ const ActivityLog = () => {
               ) : (
                 <Download size={15} aria-hidden="true" />
               )}
-              <span>{exporting ? "Exporting…" : "Export audit CSV"}</span>
+              <span>{exporting ? "Exporting…" : "Export CSV"}</span>
             </button>
           </div>
         </WorkspaceHeader>

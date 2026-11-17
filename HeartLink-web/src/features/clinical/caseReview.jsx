@@ -26,6 +26,7 @@ import {
   waitingText,
 } from "./reviewUi.js";
 import { WorkspaceHeader } from "../../components/ui/workspaceHeader.jsx";
+import "./reviewWorkspace.css";
 
 // HL-054 / HL-055: the case review queue. Urgent first, then re-reviews, then the weekly sample.
 const NO_CASES = [];
@@ -106,16 +107,16 @@ const Cases = () => {
   const yourPart = section
     ? `Your assignment: evaluate the ${SECTION_LABELS[section]} section of each open case.`
     : isAdmin
-      ? "Administrative view: monitor multi-disciplinary review progress and draw the weekly sample. Clinical scoring is reserved for verified medical experts."
+      ? "Monitor review progress and draw the weekly sample. Only verified medical experts can submit clinical scoring."
       : "Your account does not have an assigned specialist discipline yet, so cases open in read-only mode.";
 
   return (
     <AdminLayout>
-      <div className="workspace workspace--operations mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
+      <div className="workspace workspace--operations workspace--refined workspace--teal review-workspace case-workspace mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
         <WorkspaceHeader
           icon={ShieldCheck}
           title="Case review"
-          description="Urgent cases first, then re-reviews, then the weekly sample. Names, phone numbers and email addresses are hidden."
+          description="Review urgent cases, re-reviews and the weekly sample. Names and contact details are hidden."
         >
           <div className="flex flex-wrap items-center gap-2.5">
             <button
@@ -143,37 +144,12 @@ const Cases = () => {
         </WorkspaceHeader>
 
         {/* ─── 2. ROLE RESPONSIBILITY BAR & SUMMARY METRICS ─────────────────── */}
-        <div className="flex items-center gap-3 rounded-[12px] border border-cal-hairline bg-cal-canvas px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cal-surface-card text-cal-ink">
-            <Stethoscope size={16} strokeWidth={1.9} />
-          </div>
+        <div className="review-role-context">
+          <Stethoscope size={17} strokeWidth={1.9} aria-hidden="true" />
           <p className="text-[13.5px] font-medium text-cal-body">{yourPart}</p>
         </div>
 
-        {/* HL-153: the steps in short; the full guide is documentation/CASE_REVIEW_GUIDE.md */}
-        <details className="group rounded-[12px] border border-cal-hairline bg-cal-canvas px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-          <summary className="cursor-pointer select-none text-[13.5px] font-semibold text-cal-ink">
-            How case review works
-          </summary>
-          <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-[13px] leading-relaxed text-cal-body">
-            <li>
-              Cases open by themselves: urgent ones (a High Heart risk, a very high or low reading, or a serious symptom)
-              and re-reviews (the Heart risk band changed). Opening this page checks for new ones; so does
-              &ldquo;Check for new cases&rdquo;. Urgent cases should be reviewed within {urgentHours} hours.
-            </li>
-            <li>Once a week, an admin draws the random sample: up to 5 patients from each Heart risk band.</li>
-            <li>
-              The Cardiologist goes first: the Heart risk band they would give, the main reasons, their confidence and
-              whether a checkup is needed. The app&apos;s own Heart risk shows only after they submit.
-            </li>
-            <li>
-              The Dietitian and the Physical Therapist then check the recipes and exercises the app gives this patient.
-              Model Check compares the bands; only reviews by verified clinicians count.
-            </li>
-          </ol>
-        </details>
-
-        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        <div className="review-metric-strip workspace-stat-grid grid grid-cols-2 gap-4 xl:grid-cols-4">
           <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
             <div className="text-[12.5px] font-medium text-cal-muted">Open queue</div>
             <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none text-cal-ink">
@@ -221,7 +197,11 @@ const Cases = () => {
         </div>
 
         {/* ─── 3. QUEUE FILTER BAR & TABLE CARD ─────────────────────────────── */}
-        <section className="overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+        <section className="review-table-panel overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <div className="review-section-heading">
+            <h3>Review queue</h3>
+            <p>Follow the priority lanes and each discipline&apos;s review status.</p>
+          </div>
           {/* Card Header with Cal.com Nav-Pill-Group */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cal-hairline bg-cal-canvas px-4 py-3.5 sm:px-5">
             <div
@@ -287,7 +267,12 @@ const Cases = () => {
           </div>
 
           {/* Queue Data Table */}
-          <div className="w-full overflow-x-auto">
+          <div
+            className="w-full overflow-x-auto focus-visible:outline-2 focus-visible:outline-cal-ink focus-visible:-outline-offset-2"
+            role="region"
+            aria-label="Case review table"
+            tabIndex={0}
+          >
             <table className="w-full min-w-[860px] border-collapse text-left">
               <thead className="border-b border-cal-hairline bg-cal-surface-soft">
                 <tr>
@@ -455,6 +440,25 @@ const Cases = () => {
             </table>
           </div>
         </section>
+
+        <details className="review-guide group rounded-[12px] border border-cal-hairline bg-cal-canvas px-4 py-3">
+          <summary className="cursor-pointer select-none text-[13.5px] font-semibold text-cal-ink">
+            How case review works
+          </summary>
+          <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-[13px] leading-relaxed text-cal-body">
+            <li>
+              Urgent cases and re-reviews open from the app&apos;s review triggers. Use &ldquo;Check for new cases&rdquo; to refresh the queue.
+              Urgent cases should be reviewed within {urgentHours} hours.
+            </li>
+            <li>An admin draws the weekly sample: up to five patients from each Heart risk band.</li>
+            <li>
+              The Cardiologist submits their assessment first. The app&apos;s Heart risk is revealed only after submission.
+            </li>
+            <li>
+              The Dietitian and Physical Therapist check the recommended content. Only reviews by verified clinicians count toward Model Check measures.
+            </li>
+          </ol>
+        </details>
 
         {/* Governance Note */}
         <p className="text-[12.5px] text-cal-muted">

@@ -421,12 +421,12 @@ const Users = () => {
 
   return (
     <AdminLayout>
-      <div className="workspace workspace--operations accounts-workspace mx-auto w-full max-w-[1440px] space-y-5 font-cal-sans text-cal-ink">
+      <div className="workspace workspace--operations workspace--refined workspace--blue accounts-workspace mx-auto w-full max-w-[1440px] space-y-5 font-cal-sans text-cal-ink">
         {/* ─── 1. EDITORIAL PAGE HEADER ─────────────────────────────────────── */}
         <WorkspaceHeader
           icon={ShieldCheck}
           title="Accounts & staff"
-          description="Manage sign-in access, optional Premium and staff permissions. Consumer health records stay outside this workspace."
+          description="Manage app accounts, Premium access and staff permissions."
         >
           <button
             type="button"
@@ -440,6 +440,7 @@ const Users = () => {
         </WorkspaceHeader>
 
         {/* ─── 2. DIRECTORY MODE SWITCHER (CAL.COM NAV-PILL-GROUP) ──────────── */}
+        <div className="accounts-directory-heading">
         <div
           role="tablist"
           aria-label="Directory section"
@@ -521,6 +522,8 @@ const Users = () => {
               </span>
             </button>
           )}
+        </div>
+        <p>Account access only. Personal health records are not part of this directory.</p>
         </div>
 
         {/* ─── 3. TAB CONTENT ───────────────────────────────────────────────── */}
