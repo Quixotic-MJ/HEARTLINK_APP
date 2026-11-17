@@ -47,6 +47,12 @@ def set_nudges(payload: NudgesRequest, user_id: str = Depends(_patient)):
     return family.set_nudges(user_id, payload.enabled)
 
 
+# HL-162: the patient's switch for reminders from family members
+@router.put("/reminders")
+def set_reminders(payload: NudgesRequest, user_id: str = Depends(_patient)):
+    return family.set_reminders(user_id, payload.enabled)
+
+
 @router.delete("/followers/{follower_id}")
 def remove_follower(follower_id: str, user_id: str = Depends(_patient)):
     family.remove_follower(user_id, follower_id)
@@ -69,6 +75,13 @@ def read_following(user_id: str = Depends(_patient)):
 @router.get("/following/{patient_id}/summary")
 def read_summary(patient_id: str, user_id: str = Depends(_patient)):
     return family.summary(user_id, patient_id)
+
+
+# HL-162: a follower asks the person they follow to check in (once a day each)
+@router.post("/following/{patient_id}/remind")
+@limiter.limit("10/minute", key_func=user_or_ip_key)
+def send_reminder(patient_id: str, request: Request, response: Response, user_id: str = Depends(_patient)):
+    return family.send_reminder(user_id, patient_id)
 
 
 @router.delete("/following/{patient_id}")

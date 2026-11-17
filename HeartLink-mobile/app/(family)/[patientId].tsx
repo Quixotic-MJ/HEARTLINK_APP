@@ -2,6 +2,7 @@ import { bandLabel, percentText, RiskBand } from "../../services/heartRisk";
 import React, { useState } from "react";
 import { Linking, Text, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useDs } from "../../components/onboarding/useDs";
 import DsButton from "../../components/onboarding/DsButton";
@@ -12,7 +13,7 @@ import { TrendChart } from "../../components/trends/TrendChart";
 import { PageHeader } from "../../components/family/FamilyBits";
 import { BpChip, WeekTable } from "../../components/family/WeekTable";
 import { useToast } from "../../contexts/ToastContext";
-import { useFamilySummary, useStopFollowing } from "../../hooks/useFamily";
+import { useFamilySummary, useSendReminder, useStopFollowing } from "../../hooks/useFamily";
 import { agoLine, BP_LEGEND, bpCategory, medicineToday, summaryChart, weekSentence } from "../../services/family";
 
 // HL-087: what a follower sees: any open health alert, the last 7 days in plain words (HL-161), the latest readings
@@ -63,6 +64,7 @@ export default function FollowedPersonScreen() {
   const { patientId } = useLocalSearchParams<{ patientId: string }>();
   const summary = useFamilySummary(patientId);
   const stop = useStopFollowing();
+  const remind = useSendReminder();
   const [confirmStop, setConfirmStop] = useState(false);
   const [showChart, setShowChart] = useState(false);
 
@@ -78,6 +80,18 @@ export default function FollowedPersonScreen() {
         router.back();
       },
       onError: (e) => showToast({ title: "Couldn't stop following", message: e.message, type: "error" }),
+    });
+  };
+
+  // HL-162: ask the person to check in (once a day)
+  const sendReminder = () => {
+    if (!patientId) return;
+    remind.mutate(patientId, {
+      onSuccess: () => {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        showToast({ title: "Reminder sent", message: `${name} will get a notification to check in.`, type: "success" });
+      },
+      onError: (e) => showToast({ title: "Couldn't send the reminder", message: e.message, type: "error" }),
     });
   };
 
@@ -126,6 +140,35 @@ export default function FollowedPersonScreen() {
             </Text>
             <DsButton label="Call 911" onPress={() => Linking.openURL("tel:911").catch(() => {})} />
           </View>
+        ) : null}
+
+        {/* HL-162: a reminder to check in, if the person allows it */}
+        {s.reminder ? (
+          s.reminder.allowed ? (
+            s.reminder.sent_today ? (
+              <View
+                accessible
+                accessibilityLabel={`Reminder sent today. You can send ${s.name} another tomorrow.`}
+                style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 14, borderRadius: 12, backgroundColor: c.mint }}
+              >
+                <Feather name="check-circle" size={18} color={c.success} />
+                <Text style={{ flex: 1, fontSize: 14, lineHeight: 20, color: c.charcoal }}>
+                  {`Reminder sent today. You can send ${s.name} another tomorrow.`}
+                </Text>
+              </View>
+            ) : (
+              <DsButton
+                label={`Remind ${s.name} to check in`}
+                variant="secondary"
+                icon={<Feather name="bell" size={16} color={c.primary} />}
+                loading={remind.isPending}
+                onPress={sendReminder}
+                block
+              />
+            )
+          ) : (
+            <Text style={{ fontSize: 13.5, lineHeight: 19, color: c.slate }}>{`${s.name} has turned off reminders from family members.`}</Text>
+          )
         ) : null}
 
         {/* HL-161: the week in plain words first, then day by day */}

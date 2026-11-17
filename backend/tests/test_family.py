@@ -78,9 +78,22 @@ class FamilyRepo:
         return next((l for l in self.links if l["patient_id"] == patient_id and l["follower_id"] == follower_id), None)
 
     def add_link(self, patient_id, follower_id):
-        row = {"patient_id": patient_id, "follower_id": follower_id, "created_at": utc_now().isoformat()}
+        row = {"id": f"link{len(self.links)}", "patient_id": patient_id, "follower_id": follower_id,
+               "created_at": utc_now().isoformat()}
         self.links.append(row)
         return row
+
+    def claim(self, link_id, field, before, now):
+        link = next(l for l in self.links if l["id"] == link_id)
+        if link.get(field) is None or link[field] < before:
+            link[field] = now
+            return True
+        return False
+
+    def release(self, link_id, field, previous, claimed_at):
+        link = next(l for l in self.links if l["id"] == link_id)
+        if link.get(field) == claimed_at:
+            link[field] = previous
 
     def delete_link(self, patient_id, follower_id):
         before = len(self.links)
@@ -91,8 +104,11 @@ class FamilyRepo:
 class Notes:
     def __init__(self):
         self.sent = []
+        self.down = False
 
     def create_notification(self, data):
+        if self.down:
+            return {}
         self.sent.append(data)
         return data
 
@@ -209,7 +225,8 @@ def test_followers_see_a_read_only_summary(world):
     assert len(s["days"]) == 30 and s["days"][-2]["systolic"] == 138 and s["days"][-2]["score"] == 71
     assert s["open_alerts"][0]["type"] == "Hypertensive Crisis"
     assert set(s) == {"id", "name", "paused", "latest_bp", "latest_pulse", "score", "heart_risk", "last_check_in", "days",
-                      "open_alerts", "medicine", "week"}
+                      "open_alerts", "medicine", "week", "reminder"}
+    assert s["reminder"] == {"allowed": True, "sent_today": False}
     # HL-161: the last 7 days, newest first; the deleted 200/130 is left out of the table too
     assert len(s["week"]["days"]) == 7 and s["week"]["readings"] == 2
     assert (s["week"]["highest"]["systolic"], s["week"]["highest"]["category"]) == (150, "stage_2")
@@ -391,3 +408,57 @@ def test_week_table_shows_each_days_highest_reading_in_plain_terms():
     assert days[3]["bp"] is None and days[3]["logged"] is True  # a sleep log only
     assert table["readings"] == 3 and table["highest"] == {"systolic": 142, "diastolic": 90, "category": "stage_2",
                                                           "date": "2026-11-17"}
+
+
+# --- HL-162: a reminder from a family member ----------------------------------------------------------------
+
+def test_a_follower_can_send_one_reminder_a_day(world):
+    linked(world)
+    assert family.send_reminder(FAM, PAT) == {"sent": True, "reminded_today": True}
+    note = world.notes.sent[-1]
+    assert note["user_id"] == PAT and note["type"] == "reminder"
+    assert note["title"] == "Ben R. sent you a reminder"
+    assert "log your blood pressure" in note["message"]
+    assert family.summary(FAM, PAT)["reminder"] == {"allowed": True, "sent_today": True}
+
+    with pytest.raises(HTTPException) as e:
+        family.send_reminder(FAM, PAT)
+    assert e.value.status_code == 429 and "already sent Ana R. a reminder today" in e.value.detail
+    assert len([n for n in world.notes.sent if n["type"] == "reminder"]) == 1
+
+
+def test_a_reminder_from_yesterday_allows_another_today(world):
+    linked(world)
+    world.repo.links[0]["last_reminder_at"] = (utc_now() - timedelta(days=1, hours=1)).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+    assert family.send_reminder(FAM, PAT)["sent"] is True
+
+
+def test_the_patient_can_turn_reminders_off(world):
+    linked(world)
+    assert family.sharing_status(PAT)["reminders_enabled"] is True
+    assert family.set_reminders(PAT, False) == {"reminders_enabled": False}
+    assert family.summary(FAM, PAT)["reminder"]["allowed"] is False
+    with pytest.raises(HTTPException) as e:
+        family.send_reminder(FAM, PAT)
+    assert e.value.status_code == 409 and "turned off reminders" in e.value.detail
+
+
+def test_only_followers_of_a_premium_patient_can_remind(world):
+    linked(world)
+    with pytest.raises(HTTPException) as e:
+        family.send_reminder(OTHER, PAT)
+    assert e.value.status_code == 403
+    world.profiles.rows[PAT]["premium_until"] = ago(days=1)
+    with pytest.raises(HTTPException) as e:
+        family.send_reminder(FAM, PAT)
+    assert e.value.status_code == 409
+
+
+def test_a_reminder_that_could_not_be_saved_can_be_sent_again(world):
+    linked(world)
+    world.notes.down = True
+    with pytest.raises(HTTPException) as e:
+        family.send_reminder(FAM, PAT)
+    assert e.value.status_code == 503
+    world.notes.down = False
+    assert family.send_reminder(FAM, PAT)["sent"] is True
