@@ -357,6 +357,7 @@ function ForgotPasswordModal({ isOpen, onClose }) {
 export default function HeartLinkAdminLogin() {
   const [step, setStep] = useState("login"); // "login" | "2fa"
   const [temp2faToken, setTemp2faToken] = useState(null);
+  const [codeSentTo, setCodeSentTo] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const [structuredError, setStructuredError] = useState(null);
@@ -443,9 +444,10 @@ export default function HeartLinkAdminLogin() {
 
       if (response.requires_2fa || response.token_2fa) {
         setTemp2faToken(response.token_2fa);
+        setCodeSentTo(response.email_hint || "");
         setStep("2fa");
-        toast.info("Additional verification required", {
-          description: "Use the verification method configured for this account.",
+        toast.info("Check your email", {
+          description: "We sent a 6-digit sign-in code to your email.",
         });
       } else if (response.success !== false && (response.user_id || response.success)) {
         toast.success("Signed in");
@@ -671,7 +673,9 @@ export default function HeartLinkAdminLogin() {
                   Enter your verification code
                 </h1>
                 <p className="mt-2 mb-0 text-[15px] leading-[1.5] text-cal-muted">
-                  Enter the code from the verification method configured for your account.
+                  We emailed a 6-digit code to{" "}
+                  <span className="font-medium text-cal-ink">{codeSentTo || "your email"}</span>. It
+                  expires in 10 minutes.
                 </p>
 
                 <form onSubmit={handle2FASubmit(onVerify2FA)} className="mt-8 space-y-5" noValidate>
@@ -724,6 +728,7 @@ export default function HeartLinkAdminLogin() {
                       <ArrowLeft size={15} />
                       Back
                     </button>
+                    <span className="text-cal-muted">No email? Check spam, or go back and sign in again.</span>
                   </div>
                 </form>
               </motion.div>

@@ -98,6 +98,13 @@ COPY = {
         "lead": "Enter this code in the HeartLink app to set a new password.",
         "ignore": "If you didn't ask to reset your password, you can ignore this email; your password stays the same.",
     },
+    # Two-factor sign-in for the web portal (Administrators and Medical Experts)
+    "staff_login": {
+        "first_line": "Your HeartLink portal sign-in code is:",
+        "heading": "Your sign-in code",
+        "lead": "Enter this code on the HeartLink portal to finish signing in.",
+        "ignore": "If you didn't just sign in, someone may know your password. Change it in the portal's Settings.",
+    },
 }
 
 
@@ -249,3 +256,8 @@ def send_signup_code(to_email: str, code: str, minutes: int) -> None:
 def send_reset_code(to_email: str, code: str, minutes: int) -> None:
     """Emails the password reset code. Raises EmailSendError if it can't be sent."""
     _send_code(to_email, code, minutes, "reset")
+
+
+def send_staff_login_code(to_email: str, code: str, minutes: int) -> None:
+    """Emails the web portal's two-factor sign-in code. Raises EmailSendError if it can't be sent."""
+    _send_code(to_email, code, minutes, "staff_login")

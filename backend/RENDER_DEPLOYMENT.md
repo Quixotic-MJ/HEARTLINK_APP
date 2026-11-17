@@ -43,6 +43,7 @@ Configure these variables in the **Environment** tab of the Render dashboard. Ne
 | `MAIL_FROM` | Server-Only | Low | Needed for sign-up email | Sender address shown on the email; for Gmail, the same Gmail address. |
 | `DEV_OTP_ENABLED` | Server-Only | Non-Sensitive | Optional | Only used when the `SMTP_*` settings are missing: `true` (the default outside production) lets every sign-up use the shared `DEV_OTP_CODE`. Never works when `ENVIRONMENT=production`. |
 | `DEV_OTP_CODE` | Server-Only | Non-Sensitive | Optional | The shared 6-digit test code (default `123456`). |
+| `STAFF_2FA_ENABLED` | Server-Only | Non-Sensitive | Optional | Portal two-factor sign-in: after the password, a 6-digit code is emailed to the staff account. On by default. Set `false` only in an emergency (for example, email stops working and staff are locked out), then Deploy. Every staff account needs a real email inbox. |
 
 ### 2.1 Sign-up code email (HL-052)
 

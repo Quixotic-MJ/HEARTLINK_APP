@@ -85,7 +85,7 @@ async def web_login(payload: Login, request: Request, response: Response):
     return result
 
 @router.post("/web-login/verify-2fa")
-@limiter.limit("3/minute")
+@limiter.limit("10/minute")  # each code also has only 5 tries (auth_service.verify_2fa)
 async def web_login_verify_2fa(payload: WebVerify2FA, request: Request, response: Response):
     auth_svc = get_auth_service()
     result = auth_svc.verify_2fa(token_2fa=payload.token_2fa, code=payload.code)
