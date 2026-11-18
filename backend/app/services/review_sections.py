@@ -84,8 +84,33 @@ def recommendations_for(rc: Dict[str, Any]) -> Dict[str, List[Dict[str, Any]]]:
         routines = [r for r in content.list_routines() if is_visible_to_patients(r) and r.get("hss_tier") == tier]
     else:
         routines = [r for r in content.list_routines() if is_visible_to_patients(r) and exercise_screening.allows(check, r)]
-    pick = lambda rows, n: [{"id": str(r["id"]), "name": r.get("name")} for r in sorted(rows, key=lambda r: r.get("name") or "")[:n]]
-    return {"recipes": pick(recipes, RECIPES_SHOWN), "exercises": pick(routines, EXERCISES_SHOWN)}
+    first = lambda rows, n: sorted(rows, key=lambda r: r.get("name") or "")[:n]
+    # 2026-11-18: what the expert needs to judge each one, not only its name
+    return {
+        "recipes": [{"id": str(r["id"]), "name": r.get("name"), "sodium_mg": r.get("sodium_mg"),
+                     "calories": r.get("calories"), "saturated_fat_g": r.get("saturated_fat_g"),
+                     "category": r.get("category_other") or r.get("category"), "image_url": r.get("image_url") or None}
+                    for r in first(recipes, RECIPES_SHOWN)],
+        "exercises": [{"id": str(r["id"]), "name": r.get("name"), "type": r.get("type"),
+                       "intensity": r.get("intensity"), "duration_minutes": r.get("duration_minutes"),
+                       "position": r.get("position"), "image_url": r.get("media_url") or None}
+                      for r in first(routines, EXERCISES_SHOWN)],
+    }
+
+
+# 2026-11-18: the logged food and exercise in a case, for the experts whose part it is (PORTAL_ROLES.md: the Dietitian
+# sees meals, the Physical Therapist exercise, the Cardiologist both). Admins never see health records, only the counts.
+LOG_TYPES_FOR = {"Cardiologist": {"Meal", "Exercise"}, "Dietitian": {"Meal"}, "Physical Therapist": {"Exercise"}}
+DETAILED_LOG_TYPES = {"Meal", "Exercise"}
+
+
+def timeline_for(timeline: List[Dict[str, Any]], role: Optional[str], expert_type: Optional[str]) -> List[Dict[str, Any]]:
+    allowed = LOG_TYPES_FOR.get(expert_type or "", set()) if role == "medical_expert" else set()
+    return [t for t in timeline if t.get("type") not in DETAILED_LOG_TYPES or t.get("type") in allowed]
+
+
+def log_counts(timeline: List[Dict[str, Any]]) -> Dict[str, int]:
+    return {kind: sum(1 for t in timeline if t.get("type") == kind) for kind in ("Meal", "Exercise", "Sleep")}
 
 
 def _viewer(current_user: Dict[str, Any], rc: Dict[str, Any]) -> Dict[str, Any]:
@@ -118,6 +143,8 @@ def case_detail(round_id: str, current_user: Dict[str, Any]) -> Dict[str, Any]:
     hours = max(0, int((now - opened).total_seconds() // 3600))
     cardiology_done = "cardiology" in sections
     recommendations = recommendations_for(rc)
+    viewer = _viewer(current_user, rc)
+    timeline = snap.get("timeline") or []
     return {
         "id": rc["id"],
         "case_code": rc.get("case_code"),
@@ -131,7 +158,8 @@ def case_detail(round_id: str, current_user: Dict[str, Any]) -> Dict[str, Any]:
                     "height_cm": snap.get("height_cm"), "weight_kg": snap.get("weight_kg")},
         "onboarding": snap.get("onboarding") or {},
         "clinical": snap.get("clinical") or {},
-        "timeline": snap.get("timeline") or [],
+        "timeline": timeline_for(timeline, viewer["role"], viewer["expert_type"]),
+        "log_counts": log_counts(timeline),
         "recommendations": recommendations,
         # 2026-11-12: what the PAR-Q+ allows today, shown with the Physical Therapist's exercise list
         "exercise_check": exercise_check_for(rc),
@@ -145,7 +173,7 @@ def case_detail(round_id: str, current_user: Dict[str, Any]) -> Dict[str, Any]:
                 "risk": {"band": rc.get("app_risk_band"), "percent": rc.get("app_risk_percent"),
                          "kind": rc.get("app_risk_kind")} if rc.get("app_risk_band") else None,
                 } if cardiology_done else None,
-        "viewer": _viewer(current_user, rc),
+        "viewer": viewer,
     }
 
 

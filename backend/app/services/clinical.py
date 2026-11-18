@@ -137,7 +137,14 @@ def get_recent_telemetry_timeline(user_id: str, limit_days: int = 30) -> list:
                 "data": {
                     "meal_name": m.get("meal_name"),
                     "calories": m.get("calories"),
-                    "sodium_mg": m.get("sodium_mg")
+                    "sodium_mg": m.get("sodium_mg"),
+                    # 2026-11-18: the detail the Dietitian and Cardiologist see in case review
+                    "portion": m.get("portion"),
+                    "saturated_fat_g": m.get("saturated_fat_g"),
+                    "fiber_g": m.get("fiber_g"),
+                    "cholesterol_mg": m.get("cholesterol_mg"),
+                    "time_of_meal": m.get("time_of_meal"),
+                    "from_recipe": bool(m.get("recipe_id")),
                 }
             })
             
@@ -151,7 +158,11 @@ def get_recent_telemetry_timeline(user_id: str, limit_days: int = 30) -> list:
                 "data": {
                     "routine_name": e.get("routine_name"),
                     "duration_minutes": e.get("duration_minutes"),
-                    "status": e.get("status")
+                    "status": e.get("status"),
+                    # 2026-11-18: the detail the Physical Therapist and Cardiologist see in case review
+                    "duration_seconds": e.get("duration_seconds"),
+                    "planned_duration_minutes": e.get("planned_duration_minutes"),
+                    "effort_rating": e.get("effort_rating"),
                 }
             })
             

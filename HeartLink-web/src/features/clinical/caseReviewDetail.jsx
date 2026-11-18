@@ -25,6 +25,8 @@ import {
   labelOf,
   waitingText,
 } from "./reviewUi.js";
+import { ExerciseLogPanel, FoodLogPanel } from "./caseReviewLogPanels.jsx";
+import { itemFacts } from "./caseReviewLogs.js";
 
 // HL-055 / HL-056: one review round. Every reviewer sees the same anonymized snapshot; each expert
 // answers only their own section. HL-153: the Cardiologist gives the Heart risk band they would give; the app's Heart
@@ -70,9 +72,10 @@ function Snapshot({ data }) {
     (ob.walk_bike_transport ? (ob.walk_bike_days || 0) * (ob.walk_bike_minutes || 0) : 0);
   const vitals = (data.timeline || []).filter((t) => t.type === "Vitals").slice(0, 7);
   const symptoms = (data.timeline || []).filter((t) => t.type === "Symptoms").slice(0, 5);
+  // The server counts every log, including the ones this reviewer's role doesn't see in detail (2026-11-18)
   const counts = ["Meal", "Exercise", "Sleep"].map((type) => [
     type,
-    (data.timeline || []).filter((t) => t.type === type).length,
+    data.log_counts?.[type] ?? (data.timeline || []).filter((t) => t.type === type).length,
   ]);
   const p = data.patient || {};
 
@@ -607,7 +610,24 @@ function ItemsSection({ caseId, section, items, saved, canSubmit, onSaved }) {
             className="flex flex-col gap-3 rounded-[10px] border border-cal-hairline bg-cal-surface-soft p-4"
           >
             <div className="flex flex-wrap items-center justify-between gap-2.5">
-              <span className="text-[14px] font-semibold text-cal-ink">{it.name}</span>
+              <div className="flex min-w-0 items-center gap-3">
+                {it.image_url ? (
+                  <img
+                    src={it.image_url}
+                    alt=""
+                    className="h-12 w-12 shrink-0 rounded-[8px] border border-cal-hairline object-cover"
+                    loading="lazy"
+                  />
+                ) : null}
+                <div className="min-w-0">
+                  <span className="text-[14px] font-semibold text-cal-ink">{it.name}</span>
+                  {itemFacts(it, section === "nutrition" ? "recipe" : "exercise").length ? (
+                    <p className="mt-0.5 text-[12.5px] text-cal-muted">
+                      {itemFacts(it, section === "nutrition" ? "recipe" : "exercise").join(", ")}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
               {showForm ? (
                 <div
                   role="group"
@@ -915,30 +935,36 @@ const CaseReviewDetail = () => {
                     ))}
 
                   {tab === "nutrition" && (
-                    <ItemsSection
-                      key="nutrition"
-                      caseId={data.id}
-                      section="nutrition"
-                      items={data.recommendations?.recipes || []}
-                      saved={data.sections?.nutrition}
-                      canSubmit={viewer.can_submit?.nutrition}
-                      onSaved={onSaved}
-                    />
+                    <div className="flex flex-col gap-6">
+                      <FoodLogPanel timeline={data.timeline} count={data.log_counts?.Meal ?? 0} />
+                      <ItemsSection
+                        key="nutrition"
+                        caseId={data.id}
+                        section="nutrition"
+                        items={data.recommendations?.recipes || []}
+                        saved={data.sections?.nutrition}
+                        canSubmit={viewer.can_submit?.nutrition}
+                        onSaved={onSaved}
+                      />
+                    </div>
                   )}
 
                   {tab === "exercise" && (
-                    <>
-                      {data.exercise_check && <ExerciseCheckLine check={data.exercise_check} />}
-                      <ItemsSection
-                        key="exercise"
-                        caseId={data.id}
-                        section="exercise"
-                        items={data.recommendations?.exercises || []}
-                        saved={data.sections?.exercise}
-                        canSubmit={viewer.can_submit?.exercise}
-                        onSaved={onSaved}
-                      />
-                    </>
+                    <div className="flex flex-col gap-6">
+                      <ExerciseLogPanel timeline={data.timeline} count={data.log_counts?.Exercise ?? 0} />
+                      <div>
+                        {data.exercise_check && <ExerciseCheckLine check={data.exercise_check} />}
+                        <ItemsSection
+                          key="exercise"
+                          caseId={data.id}
+                          section="exercise"
+                          items={data.recommendations?.exercises || []}
+                          saved={data.sections?.exercise}
+                          canSubmit={viewer.can_submit?.exercise}
+                          onSaved={onSaved}
+                        />
+                      </div>
+                    </div>
                   )}
                 </div>
               </section>
