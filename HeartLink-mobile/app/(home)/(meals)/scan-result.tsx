@@ -13,7 +13,7 @@ import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import DsButton from "../../../components/onboarding/DsButton";
 import { useDs } from "../../../components/onboarding/useDs";
 import { AmountStepper, FoodHeader, ImpactNote, NutrientField, SourceTag } from "../../../components/food/FoodBits";
-import { parseAmount } from "../../../services/foodLogging";
+import { asMealTime, mealTimeForHour, parseAmount } from "../../../services/foodLogging";
 
 type ScannedProduct = {
   product_name: string;
@@ -97,6 +97,8 @@ export default function ScanResultScreen() {
       saturated_fat_g: calc.fat,
       fiber_g: calc.fiber,
       image_url: "",
+      // The meal chosen in Add food (2026-11-18), else the clock's
+      time_of_meal: asMealTime(params.meal) ?? mealTimeForHour(new Date().getHours()),
     };
 
     await logMealAndGetToast(

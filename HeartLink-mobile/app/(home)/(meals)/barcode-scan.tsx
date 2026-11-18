@@ -12,7 +12,7 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
-import { useRouter, useFocusEffect } from "expo-router";
+import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useToast } from "../../../contexts/ToastContext";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import AnimatedButton from "../../../components/ui/AnimatedButton";
@@ -42,6 +42,8 @@ type LookupProblem = "missing" | "slow" | null;
 export default function BarcodeScanScreen() {
   const { c, isDark } = useDs();
   const router = useRouter();
+  // The meal chosen in Add food (2026-11-18), passed on to the product check and Estimate a meal
+  const { meal } = useLocalSearchParams<{ meal?: string }>();
   const { showToast } = useToast();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
@@ -159,7 +161,7 @@ export default function BarcodeScanScreen() {
 
         router.push({
           pathname: "/(home)/(meals)/scan-result",
-          params: { product: JSON.stringify(parsedProduct) }
+          params: { product: JSON.stringify(parsedProduct), ...(meal ? { meal } : {}) }
         });
 
         // Reset scanner after a short delay so they can scan again if they go back
@@ -354,7 +356,7 @@ export default function BarcodeScanScreen() {
         onConfirm={() => {
           setProblem(null);
           resetScanner();
-          router.push("/(home)/(meals)/estimate-meal");
+          router.push({ pathname: "/(home)/(meals)/estimate-meal", params: meal ? { meal } : {} });
         }}
       />
     </SafeAreaView>

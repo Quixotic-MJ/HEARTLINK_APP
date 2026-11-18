@@ -124,7 +124,7 @@ class SupabaseMealsRepository(MealsRepository):
             allowed_cols = {
                 "id", "user_id", "recipe_id", "meal_name", "barcode",
                 "portion", "calories", "sodium_mg", "saturated_fat_g",
-                "fiber_g", "cholesterol_mg", "image_url", "logged_at", "created_at"
+                "fiber_g", "cholesterol_mg", "image_url", "logged_at", "created_at", "time_of_meal"
             }
             payload = {k: v for k, v in raw_payload.items() if k in allowed_cols}
             payload = serialize_for_db(payload)

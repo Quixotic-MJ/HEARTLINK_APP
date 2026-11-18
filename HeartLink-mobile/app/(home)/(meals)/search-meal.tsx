@@ -3,7 +3,7 @@ import { ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useUser } from "../../../contexts/UserContext";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import AnimatedButton from "../../../components/ui/AnimatedButton";
@@ -11,14 +11,66 @@ import DsButton from "../../../components/onboarding/DsButton";
 import { useDs } from "../../../components/onboarding/useDs";
 import { FoodHeader, OutlineButton, TickBox } from "../../../components/food/FoodBits";
 import { FoodWarning } from "../../../components/explore/ExploreBits";
-import { FoodItem, FoodSource, SOURCE_ORDER, SOURCE_RULES, formatMg } from "../../../services/foodLogging";
+import {
+  FoodItem,
+  FoodSource,
+  MEAL_TIMES,
+  MealTime,
+  SOURCE_ORDER,
+  SOURCE_RULES,
+  asMealTime,
+  formatMg,
+  mealTimeForHour,
+  recipesForMeal,
+} from "../../../services/foodLogging";
 import { fetchRecentMeals, fetchRecipes, searchPackagedFoods } from "../../../services/foodSearch";
 
 // HL-032: one search over the patient's recent meals, HeartLink recipes and packaged
 // foods (Open Food Facts). Tapping a row picks it; one button takes the picks to review.
+// 2026-11-18: the patient chooses the meal (the clock's by default, e.g. Breakfast logged in the evening), its
+// recipes come first, and the choice goes on to review, barcode scan and Estimate a meal.
 
 type Results = Record<FoodSource, FoodItem[]>;
 const EMPTY: Results = { recent: [], recipe: [], packaged: [] };
+
+type Group = { key: string; source: FoodSource; title: string; items: FoodItem[] };
+
+function MealChoice({ meal, onChange }: { meal: MealTime; onChange: (meal: MealTime) => void }) {
+  const { c } = useDs();
+  return (
+    <View style={{ gap: 6 }}>
+      <Text nativeID="meal-choice-label" style={{ fontSize: 13, fontWeight: "500", color: c.slate }}>
+        Which meal is this?
+      </Text>
+      <View accessibilityRole="radiogroup" accessibilityLabelledBy="meal-choice-label" className="flex-row" style={{ gap: 8 }}>
+        {MEAL_TIMES.map((m) => {
+          const on = m === meal;
+          return (
+            <AnimatedButton
+              key={m}
+              onPress={() => onChange(m)}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: on, checked: on }}
+              accessibilityLabel={m}
+              style={{
+                flex: 1,
+                height: 40,
+                borderRadius: 9999,
+                borderWidth: 1,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: on ? c.ink : c.canvas,
+                borderColor: on ? c.ink : c.hairline,
+              }}
+            >
+              <Text style={{ fontSize: 14, fontWeight: "500", color: on ? c.canvas : c.charcoal }}>{m}</Text>
+            </AnimatedButton>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
 
 function FoodRow({ item, on, onToggle, onViewRecipe }: { item: FoodItem; on: boolean; onToggle: () => void; onViewRecipe?: () => void }) {
   const { c } = useDs();
@@ -74,6 +126,8 @@ export default function SearchMealScreen() {
   const { c, isDark } = useDs();
   const router = useRouter();
   const { userId, token } = useUser();
+  const params = useLocalSearchParams<{ meal?: string }>();
+  const [meal, setMeal] = useState<MealTime>(() => asMealTime(params.meal) ?? mealTimeForHour(new Date().getHours()));
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Results>(EMPTY);
@@ -125,8 +179,18 @@ export default function SearchMealScreen() {
       ...results,
       recent: q ? recent.filter((f) => f.name.toLowerCase().includes(q)) : recent,
     };
-    return SOURCE_ORDER.map((source) => ({ source, items: all[source] })).filter((g) => g.items.length > 0);
-  }, [results, recent, q]);
+    const list: Group[] = [];
+    for (const source of SOURCE_ORDER) {
+      if (source === "recipe") {
+        const { forMeal, others } = recipesForMeal(all.recipe, meal);
+        if (forMeal.length) list.push({ key: "recipe-meal", source, title: `${meal} recipes`, items: forMeal });
+        list.push({ key: "recipe", source, title: forMeal.length ? "More recipes" : SOURCE_RULES.recipe.group, items: others });
+      } else {
+        list.push({ key: source, source, title: SOURCE_RULES[source].group, items: all[source] });
+      }
+    }
+    return list.filter((g) => g.items.length > 0);
+  }, [results, recent, q, meal]);
 
   // A new search shows the loading placeholders until its results arrive.
   const changeQuery = (text: string) => {
@@ -176,9 +240,10 @@ export default function SearchMealScreen() {
             </AnimatedButton>
           ) : null}
         </View>
+        <MealChoice meal={meal} onChange={setMeal} />
         <View className="flex-row" style={{ gap: 8 }}>
-          <OutlineButton label="Scan barcode" icon="camera" onPress={() => router.push("/(home)/(meals)/barcode-scan")} />
-          <OutlineButton label="Estimate a meal" icon="edit-3" onPress={() => router.push("/(home)/(meals)/estimate-meal")} />
+          <OutlineButton label="Scan barcode" icon="camera" onPress={() => router.push({ pathname: "/(home)/(meals)/barcode-scan", params: { meal } })} />
+          <OutlineButton label="Estimate a meal" icon="edit-3" onPress={() => router.push({ pathname: "/(home)/(meals)/estimate-meal", params: { meal } })} />
         </View>
       </View>
 
@@ -192,10 +257,10 @@ export default function SearchMealScreen() {
         ) : null}
 
         {groups.map((group) => (
-          <View key={group.source} style={{ paddingTop: 24 }}>
+          <View key={group.key} style={{ paddingTop: 24 }}>
             <View className="flex-row items-baseline justify-between" style={{ marginBottom: 10, gap: 12 }}>
               <Text accessibilityRole="header" style={{ fontSize: 17, fontWeight: "600", color: c.ink }}>
-                {SOURCE_RULES[group.source].group}
+                {group.title}
               </Text>
               <Text style={{ fontSize: 13, color: c.steel }}>{groupNote(group.source)}</Text>
             </View>
@@ -237,7 +302,7 @@ export default function SearchMealScreen() {
         <DsButton
           label={count === 0 ? "Pick foods to log" : `Review ${count === 1 ? "1 food" : `${count} foods`}`}
           disabled={count === 0}
-          onPress={() => router.push({ pathname: "/(home)/(meals)/multi-log-review", params: { items: JSON.stringify(pickedList) } })}
+          onPress={() => router.push({ pathname: "/(home)/(meals)/multi-log-review", params: { items: JSON.stringify(pickedList), meal } })}
         />
       </View>
     </SafeAreaView>
