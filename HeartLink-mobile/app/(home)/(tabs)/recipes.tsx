@@ -26,6 +26,7 @@ import { useExploreScore } from "../../../hooks/useExploreData";
 import { foodWarnings, suitsTier } from "../../../services/explore";
 import { FoodWarning } from "../../../components/explore/ExploreBits";
 import { SquareIconButton } from "../../../components/exercise/ExerciseBits";
+import { MEAL_FILTERS, matchesMeal } from "../../../services/recipeFilters";
 
 export interface Recipe {
   id: string;
@@ -35,6 +36,8 @@ export interface Recipe {
   servings: number;
   difficulty: "Easy" | "Medium" | "Hard";
   image: string;
+  /** The meal it's for (Breakfast, Lunch, Dinner), as the portal saves it. */
+  category?: string;
   tags: string[];
   heartBenefit: string;
   nutrition: {
@@ -203,9 +206,10 @@ export default function RecipesScreen({
   const savedRecipesKey = userId ? `@saved_recipes_${userId}` : "@saved_recipes";
   const recipesCacheKey = userId ? `@recipes_cache_${userId}` : "@recipes_cache";
 
-  const cachedRecipes = queryClient.getQueryData<Recipe[]>(["recipes"]);
+  // "with-category": a copy saved on the phone before the meal filter used the category has none, so it isn't reused
+  const cachedRecipes = queryClient.getQueryData<Recipe[]>(["recipes", "with-category"]);
   const { data: recipesList = [], refetch: refetchRecipes } = useQuery({
-    queryKey: ["recipes"],
+    queryKey: ["recipes", "with-category"],
     initialData: cachedRecipes,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
@@ -220,6 +224,7 @@ export default function RecipesScreen({
         servings: r.servings || 1,
         difficulty: r.difficulty || "Easy",
         image: r.image_url || "",
+        category: r.category || "",
         tags: r.tags || [],
         heartBenefit: r.heart_benefit || "",
         tier: r.hss_tier || "",
@@ -265,7 +270,7 @@ export default function RecipesScreen({
     setRefreshing(false);
   }, [refetchRecipes, refetchSaved]);
 
-  const filters = ["All", "Breakfast", "Lunch", "Dinner"];
+  const filters = MEAL_FILTERS;
 
   const saveMutation = useMutation({
     mutationFn: async ({ id, isSaved }: { id: string; isSaved: boolean }) => {
@@ -297,7 +302,7 @@ export default function RecipesScreen({
   const filteredRecipes = useMemo(() => {
     let results = recipesList;
     if (activeFilter !== "All") {
-      results = results.filter((r) => (r.tags || []).includes(activeFilter));
+      results = results.filter((r) => matchesMeal(r, activeFilter));
     }
     return results;
   }, [activeFilter, recipesList]);
@@ -470,7 +475,7 @@ export default function RecipesScreen({
               No recipes found
             </Text>
             <Text style={{ fontSize: 13, color: c.slate, textAlign: "center" }}>
-              No meals match the &quot;{activeFilter}&quot; tag yet. Try selecting &quot;All&quot;.
+              No {activeFilter.toLowerCase()} recipes yet. Try &quot;All&quot;.
             </Text>
           </View>
         }
