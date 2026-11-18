@@ -7,7 +7,9 @@ export const LIBRARY_WORKFLOW = [
 ];
 
 export function matchesLibraryWorkflow(item, filter) {
-  if (filter === "all") return true;
+  // "All" is the working library: archived items live only under Archived (2026-11-18). Unknown older statuses stay
+  // under All so nothing disappears.
+  if (filter === "all") return item.status !== "archived";
   if (filter === "draft")
     return ["draft", "published"].includes(item.status) && !item.expertValidated;
   if (filter === "approved")
