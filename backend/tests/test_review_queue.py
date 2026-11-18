@@ -248,6 +248,21 @@ def test_sample_spreads_across_heart_risk_bands_and_respects_cooldown(world):
     assert all("app says" not in r["reason"] for r in opened)
 
 
+
+def test_archived_rounds_do_not_block_the_sample(world):
+    """An archived round (taken out of the review) doesn't count as a recent review; a real one still does."""
+    world["profiles"] = Profiles([patient("archived-only"), patient("reviewed")])
+    world["hss"] = Hss({"archived-only": with_risk("low", 1.5), "reviewed": with_risk("low", 1.5)})
+    recent = iso(NOW - timedelta(days=2))
+    world["cases"].rounds.append({"id": "a", "patient_id": "archived-only", "status": "archived", "lane": "sample",
+                                  "created_at": recent})
+    world["cases"].rounds.append({"id": "b", "patient_id": "reviewed", "status": "complete", "lane": "sample",
+                                  "created_at": recent})
+
+    opened = review_queue.draw_sample("admin-1", NOW, random.Random(7))
+
+    assert {r["patient_id"] for r in opened} == {"archived-only"}
+
 # --- queue listing -----------------------------------------------------------------------------------
 
 def test_queue_order_progress_and_blinding(world):
