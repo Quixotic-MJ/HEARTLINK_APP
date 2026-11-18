@@ -147,8 +147,8 @@ export default function Exercises() {
           title={canReview ? "Routine review" : "Exercise library"}
           description={
             canReview
-              ? "Check the movement, timing and instructions. Patients only see a routine after you approve it."
-              : "Movement with a clear purpose. Build beginner routines; a Physical Therapist approves each one before patients see it."
+              ? "Check the movement, timing and instructions. Users only see a routine after you approve it."
+              : "Movement with a clear purpose. Build beginner routines; a Physical Therapist approves each one before users see it."
           }
           unavailable={query.isPending || query.isError}
           stats={[
@@ -442,7 +442,7 @@ export default function Exercises() {
             }).then((result) => {
               toast.success(
                 data.decision === "approve"
-                  ? "Approved: patients can now see it"
+                  ? "Approved: users can now see it"
                   : "Sent back with your note",
               );
               return result;

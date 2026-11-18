@@ -334,8 +334,8 @@ const Foods = () => {
           title={canReview ? "Recipe review" : "Recipe library"}
           description={
             canReview
-              ? "A closer look at every ingredient. Patients only see a recipe after you approve it."
-              : "Thoughtful recipes, ready for review. Build a recipe and refine the details; a Dietitian approves it before patients see it."
+              ? "A closer look at every ingredient. Users only see a recipe after you approve it."
+              : "Thoughtful recipes, ready for review. Build a recipe and refine the details; a Dietitian approves it before users see it."
           }
           unavailable={loading || recipesQuery.isError}
           stats={[
@@ -812,7 +812,7 @@ const Foods = () => {
                   description:
                     editingRecipe.expertValidated &&
                     saved?.expert_validated === false
-                      ? `"${formData.name}" is hidden from patients until a Dietitian approves the changes.`
+                      ? `"${formData.name}" is hidden from users until a Dietitian approves the changes.`
                       : `"${formData.name}" was saved successfully.`,
                 });
               } else {
@@ -856,7 +856,7 @@ const Foods = () => {
                 {
                   description:
                     decision === "approve"
-                      ? `Patients can now see "${editingRecipe.name}".`
+                      ? `Users can now see "${editingRecipe.name}".`
                       : `Your note was sent back with "${editingRecipe.name}".`,
                 },
               );

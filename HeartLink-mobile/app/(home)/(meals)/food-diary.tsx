@@ -27,6 +27,7 @@ import { useUser } from "../../../contexts/UserContext";
 import { useToast } from "../../../contexts/ToastContext";
 import { useSodiumBudget } from "../../../hooks/useSodiumBudget";
 import { formatMg, mealOfLog } from "../../../services/foodLogging";
+import { satFatLine } from "../../../services/dailyLimits";
 import { apiFetch } from "../../../lib/api";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -66,8 +67,8 @@ const FOOD_LOG_OPTIONS = [
   },
 ];
 
-// Daily guides shown next to the diary totals (unchanged from the earlier design).
-const SAT_FAT_GUIDE_G = 20;
+// The fibre guide shown next to the diary total. Saturated fat uses the patient's own limit (2026-11-19: it was a fixed
+// 20 g, which didn't match Goals & limits).
 const FIBRE_GUIDE_G = 30;
 
 /** "1 serving", "1.5 servings"; packaged food already says its grams in the name. */
@@ -83,7 +84,7 @@ export default function DailyDiaryScreen() {
   const { c, isDark } = useDs();
   const { userId, token } = useUser();
   // The patient's own daily sodium limit (Goals & thresholds), 2,000 mg if not set
-  const { limitMg: sodiumLimit } = useSodiumBudget();
+  const { limitMg: sodiumLimit, satFatLimitG } = useSodiumBudget();
   const { showToast } = useToast();
 
   const [meals, setMeals] = useState<MealLog[]>([]);
@@ -239,7 +240,7 @@ export default function DailyDiaryScreen() {
 
   const smallStats = [
     { label: "Calories", value: `${formatMg(totalCalories)} kcal` },
-    { label: "Saturated fat", value: `${Math.round(totalSatFat * 10) / 10} of ${SAT_FAT_GUIDE_G} g` },
+    { label: "Saturated fat", value: satFatLine(totalSatFat, satFatLimitG) },
     { label: "Fibre", value: `${Math.round(totalFiber * 10) / 10} of ${FIBRE_GUIDE_G} g` },
   ];
 

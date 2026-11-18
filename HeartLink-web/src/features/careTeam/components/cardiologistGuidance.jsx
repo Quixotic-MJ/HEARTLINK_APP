@@ -23,7 +23,7 @@ export default function CardiologistGuidance({ limit = 3 }) {
         </h4>
       </div>
       <p className="text-[13px] text-cal-muted mb-3.5">
-        Check this before approving. Open a patient to see all of their guidance.
+        Check this before approving. Open a user to see all of their guidance.
       </p>
 
       {guidance.isError ? (

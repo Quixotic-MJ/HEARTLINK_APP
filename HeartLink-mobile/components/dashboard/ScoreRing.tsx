@@ -85,7 +85,9 @@ const HEART =
   "M120 195 C120 195 30 140 30 82 C30 52 52 32 80 32 C96 32 110 40 120 52 C130 40 144 32 160 32 C188 32 210 52 210 82 C210 140 120 195 120 195 Z";
 
 const VIEWBOX_SIZE = 240;
-const PATH_LEN = 460; // approximate heart path length in viewBox units
+// The heart path's length in viewBox units, measured: 550.0 (2026-11-19). It was 460, so a score of 100 left a gap at the
+// end of the outline and every score showed less fill than it should. Rounded up so 100 always closes the heart.
+const PATH_LEN = 552;
 
 const PARTICLES: { x: number; y: number; delay: number; size: number }[] = [
   { x: 85, y: 60, delay: 100, size: 5 },

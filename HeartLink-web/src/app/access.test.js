@@ -48,7 +48,7 @@ test("experts land in the part of the portal they own", () => {
   assert.equal(homeFor({ role: "patient" }), "/");
 });
 
-test("patient records are for the care team only; everyone reviews cases; Model Check is Admins only", () => {
+test("user records are for the care team only; everyone reviews cases; Model Check is Admins only", () => {
   for (const path of ["/patients", "/patients/p1"]) {
     assert.equal(canAccess(admin, path), false);
     for (const expert of [cardiologist, dietitian, physicalTherapist]) assert.equal(canAccess(expert, path), true);

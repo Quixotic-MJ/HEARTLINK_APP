@@ -34,7 +34,7 @@ export function BulkApproveBar({ selected, noun, approve, onClear, onDone }) {
     const ok = count - failed;
     if (ok) {
       toast.success(`${ok} ${ok === 1 ? noun : `${noun}s`} approved`, {
-        description: "Patients can see them now.",
+        description: "Users can see them now.",
       });
     }
     if (failed) {
@@ -77,7 +77,7 @@ export function BulkApproveBar({ selected, noun, approve, onClear, onDone }) {
           className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[10px] bg-cal-primary px-4 text-[13px] font-semibold text-cal-on-primary transition-colors hover:bg-cal-primary-active"
         >
           <ShieldCheck size={15} aria-hidden="true" />
-          <span>Approve for patients</span>
+          <span>Approve for users</span>
         </button>
       </div>
 
@@ -87,7 +87,7 @@ export function BulkApproveBar({ selected, noun, approve, onClear, onDone }) {
         onClose={() => setConfirmOpen(false)}
         onConfirm={run}
         title={`Approve ${count} ${nouns}?`}
-        description="Have you checked each of these? Patients see them as soon as they're approved, and each one records you as the approver."
+        description="Have you checked each of these? Users see them as soon as they're approved, and each one records you as the approver."
         confirmText={`Yes, approve ${count}`}
         cancelText="Go back"
         variant="primary"

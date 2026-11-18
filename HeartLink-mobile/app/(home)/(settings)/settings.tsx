@@ -320,7 +320,7 @@ export default function SettingsScreen() {
               <SettingsRow
                 icon="target"
                 label="Health targets and limits"
-                subtitle="Sodium, fluid, movement, BP target"
+                subtitle="Daily limits and movement goal"
                 iconBg={isDark ? "rgba(16, 185, 129, 0.16)" : "#ECFDF5"}
                 iconColor={isDark ? "#34D399" : "#059669"}
                 onPress={() => router.push("/(home)/(health)/goals-thresholds")}

@@ -80,7 +80,7 @@ const Cases = () => {
       toast.success(
         res.opened
           ? `Added ${res.opened} cases to the sample lane.`
-          : "No patients are due for sampling right now."
+          : "No users are due for sampling right now."
       );
     } catch (e) {
       toast.error(e?.data?.detail || "Couldn't draw the sample.");
@@ -327,7 +327,7 @@ const Cases = () => {
                       </p>
                       <p className="mt-1 text-[13px] text-cal-muted">
                         {items.length === 0
-                          ? "Urgent cases open automatically from patient telemetry; administrators can also draw the weekly sample."
+                          ? "Urgent cases open automatically from user telemetry; administrators can also draw the weekly sample."
                           : "Switch lanes above or clear your active filter to view other cases."}
                       </p>
                     </td>
@@ -450,7 +450,7 @@ const Cases = () => {
               Urgent cases and re-reviews open from the app&apos;s review triggers. Use &ldquo;Check for new cases&rdquo; to refresh the queue.
               Urgent cases should be reviewed within {urgentHours} hours.
             </li>
-            <li>An admin draws the weekly sample: up to five patients from each Heart risk band.</li>
+            <li>An admin draws the weekly sample: up to five users from each Heart risk band.</li>
             <li>
               The Cardiologist submits their assessment first. The app&apos;s Heart risk is revealed only after submission.
             </li>

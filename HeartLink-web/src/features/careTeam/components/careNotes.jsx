@@ -230,7 +230,7 @@ export default function CareNotes({ patientId, expertType }) {
             )}
           </div>
           <p className="mt-1.5 text-[13px] leading-[1.45] text-cal-muted">
-            Overall feedback on this patient. Dietitians and physical therapists see it when they approve recipes and exercises.
+            Overall feedback on this user. Dietitians and physical therapists see it when they approve recipes and exercises.
           </p>
         </div>
 
@@ -285,8 +285,8 @@ export default function CareNotes({ patientId, expertType }) {
           </div>
           <p className="mt-1.5 text-[13px] leading-[1.45] text-cal-muted">
             {isThreadMember
-              ? "A shared thread with the other dietitians and physical therapists on this patient."
-              : "Dietitians and physical therapists coordinate on this patient here. Read-only for your role."}
+              ? "A shared thread with the other dietitians and physical therapists on this user."
+              : "Dietitians and physical therapists coordinate on this user here. Read-only for your role."}
           </p>
         </div>
 

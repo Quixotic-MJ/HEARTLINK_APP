@@ -191,7 +191,7 @@ export default function HealthReportScreen() {
   const [sharing, setSharing] = useState(false);
   const report = useHealthReport(days);
   const premiumRequired = report.error instanceof PremiumRequiredError;
-  const name = [user?.first_name, user?.last_name].filter(Boolean).join(" ") || "HeartLink patient";
+  const name = [user?.first_name, user?.last_name].filter(Boolean).join(" ") || "HeartLink user";
 
   // Opening it counts as seeing this week's "Your visit summary is ready" banner on the Dashboard
   useEffect(() => {
