@@ -219,7 +219,8 @@ def refresh_queue(now=None) -> Dict[str, List[str]]:
 
 
 def draw_sample(created_by: Optional[str], now=None, rng: Optional[random.Random] = None) -> List[Dict[str, Any]]:
-    """HL-153: a random pick across the four Heart risk bands, Low included, skipping anyone reviewed recently.
+    """HL-153: a random pick across the four Heart risk bands, Low included, skipping anyone reviewed recently
+    (archived rounds don't count).
     Patients without a Heart risk (under 30, over 79) have nothing to compare, so they aren't sampled."""
     now = now or utc_now()
     rng = rng or random.SystemRandom()
@@ -228,7 +229,9 @@ def draw_sample(created_by: Optional[str], now=None, rng: Optional[random.Random
 
     by_band: Dict[str, List] = {band: [] for band in rules.RISK_BANDS}
     for profile in _eligible_patients():
-        rounds = repo.list_patient_cases(profile["id"])
+        # An archived round was taken out of the review (a test case, or one opened before HL-153), so it doesn't
+        # count as a recent review (2026-11-18)
+        rounds = [r for r in repo.list_patient_cases(profile["id"]) if r.get("status") != "archived"]
         if any(r.get("status") == "open" for r in rounds):
             continue
         if any((parse_utc(r.get("created_at")) or cooldown) > cooldown for r in rounds):
