@@ -11,14 +11,19 @@ import { Routine, checklistFor } from "../../services/exerciseSession";
 // Before the countdown: a few quick ticks so the patient sets up safely, built from the exercise
 // itself (its equipment, its position, the expert's reasons to skip it), and the signs to stop.
 // The list is also read out loud. (Wording to be checked by the adviser.)
+// 2026-11-18: after the first time for an exercise (`checkedBefore`), a short version: the reasons to skip it and the
+// signs to stop, no ticks, and the full list one tap away (services/beforeYouStart.ts).
 
 /** The warning signs shown for every exercise; the expert can add more per exercise. */
 export const STANDARD_STOP_SIGNS = ["Chest pain or tightness", "Feeling dizzy or faint", "Not being able to catch your breath"];
 
 export interface BeforeYouStartProps {
   routine: Pick<Routine, "title" | "requirements" | "position" | "skipIf" | "stopIf">;
-  onReady: () => void;
+  /** `fullList`: the patient ticked the whole list this time (so it can be shortened next time). */
+  onReady: (done: { fullList: boolean }) => void;
   onBack: () => void;
+  /** The patient ticked the full list for this exercise before: show the short reminder first. */
+  checkedBefore?: boolean;
   /** Spoken instructions. */
   say: (text: string) => void;
 }
@@ -36,22 +41,31 @@ function Bullets({ items, color }: { items: string[]; color: string }) {
   );
 }
 
-export function BeforeYouStart({ routine, onReady, onBack, say }: BeforeYouStartProps) {
+export function BeforeYouStart({ routine, onReady, onBack, say, checkedBefore = false }: BeforeYouStartProps) {
   const { c } = useDs();
   const insets = useSafeAreaInsets();
   const items = checklistFor(routine);
   const [ticked, setTicked] = useState<string[]>([]);
-  const left = items.filter((i) => !ticked.includes(i.value)).length;
+  const [short, setShort] = useState(checkedBefore);
+  const left = short ? 0 : items.filter((i) => !ticked.includes(i.value)).length;
   const stopSigns = [...STANDARD_STOP_SIGNS, ...routine.stopIf];
 
-  const readOut = useRef({ say, labels: items.filter((i) => i.value !== "skip").map((i) => i.label.toLowerCase()), skip: routine.skipIf });
+  const readOut = useRef({
+    say,
+    labels: items.filter((i) => i.value !== "skip").map((i) => i.label.toLowerCase()),
+    skip: routine.skipIf,
+    stopSigns,
+  });
   useEffect(() => {
-    const { say: speak, labels, skip } = readOut.current;
+    const { say: speak, labels, skip, stopSigns: signs } = readOut.current;
+    const skipLine = skip.length ? ` Skip this exercise today if: ${skip.join(", ")}.` : "";
+    if (short) {
+      speak(`Before you start.${skipLine} Stop right away if you have: ${signs.join(", ").toLowerCase()}.`);
+      return;
+    }
     const list = labels.length > 1 ? `${labels.slice(0, -1).join(", ")}, and ${labels[labels.length - 1]}` : labels[0] ?? "";
-    speak(
-      `Before you start, check that you have ${list}.${skip.length ? ` Skip this exercise today if: ${skip.join(", ")}.` : ""} Tap each one when it's ready.`,
-    );
-  }, []);
+    speak(`Before you start, check that you have ${list}.${skipLine} Tap each one when it's ready.`);
+  }, [short]);
 
   const toggle = (value: string) => setTicked((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]));
 
@@ -69,7 +83,11 @@ export function BeforeYouStart({ routine, onReady, onBack, say }: BeforeYouStart
           <Text accessibilityRole="header" style={{ fontSize: 26, lineHeight: 32, fontWeight: "600", color: c.ink }}>
             Before you start
           </Text>
-          <Text style={{ fontSize: 16, lineHeight: 23, color: c.slate }}>{"A quick check so you can exercise safely. Tap each one when it's ready."}</Text>
+          <Text style={{ fontSize: 16, lineHeight: 23, color: c.slate }}>
+            {short
+              ? "You've checked your setup for this exercise before. Read the signs to stop, then start."
+              : "A quick check so you can exercise safely. Tap each one when it's ready."}
+          </Text>
         </View>
 
         {routine.skipIf.length > 0 ? (
@@ -80,7 +98,11 @@ export function BeforeYouStart({ routine, onReady, onBack, say }: BeforeYouStart
           </View>
         ) : null}
 
-        <CheckList options={items} selected={ticked} onToggle={toggle} accessibilityLabel="Before you start checklist" />
+        {short ? (
+          <DsButton label="Show the full checklist" variant="link" onPress={() => setShort(false)} style={{ alignSelf: "flex-start" }} />
+        ) : (
+          <CheckList options={items} selected={ticked} onToggle={toggle} accessibilityLabel="Before you start checklist" />
+        )}
 
         <View className="flex-row" style={{ backgroundColor: c.rose, borderRadius: 12, padding: 16, gap: 12 }}>
           <Feather name="alert-triangle" size={22} color={c.danger} style={{ marginTop: 1 }} />
@@ -93,7 +115,7 @@ export function BeforeYouStart({ routine, onReady, onBack, say }: BeforeYouStart
       </ScrollView>
 
       <View className="px-5" style={{ paddingTop: 12, paddingBottom: Math.max(insets.bottom, 16) + 8, borderTopWidth: 1, borderTopColor: c.hairlineSoft }}>
-        <DsButton label={left === 0 ? "I'm ready" : `Tick ${left} more to start`} disabled={left > 0} onPress={onReady} />
+        <DsButton label={left === 0 ? "I'm ready" : `Tick ${left} more to start`} disabled={left > 0} onPress={() => onReady({ fullList: !short })} />
       </View>
     </View>
   );

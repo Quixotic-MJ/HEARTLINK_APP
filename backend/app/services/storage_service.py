@@ -31,7 +31,8 @@ BUCKET_CONFIGS = {
     },
     BUCKET_EXERCISES: {
         "max_bytes": 20 * 1024 * 1024, # 20 MB
-        "allowed_mimes": {"image/jpeg", "image/png", "image/webp", "video/mp4"},
+        # GIFs show a moving guide on the exercise screens (2026-11-18); the phone's expo-image plays them
+        "allowed_mimes": {"image/jpeg", "image/png", "image/webp", "image/gif", "video/mp4"},
         "allowed_roles": {"admin", "medical_expert"}
     }
 }
@@ -42,9 +43,10 @@ FILE_TYPE_EXTENSIONS = {
     "image/jpeg": ".jpg",
     "image/png": ".png",
     "image/webp": ".webp",
+    "image/gif": ".gif",
     "video/mp4": ".mp4",
 }
-FILE_TYPE_LABELS = {"image/jpeg": "JPG", "image/png": "PNG", "image/webp": "WebP", "video/mp4": "MP4"}
+FILE_TYPE_LABELS = {"image/jpeg": "JPG", "image/png": "PNG", "image/webp": "WebP", "image/gif": "GIF", "video/mp4": "MP4"}
 
 # HEIC photos and QuickTime (.mov) files also start with an "ftyp" box, so only these brands count as MP4
 MP4_BRANDS = {b"isom", b"iso2", b"iso4", b"iso5", b"iso6", b"mp41", b"mp42", b"avc1", b"M4V ", b"dash", b"MSNV"}
@@ -59,6 +61,8 @@ def detect_file_type(file_bytes: bytes) -> Optional[str]:
         return "image/png"
     if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
         return "image/webp"
+    if head[:6] in (b"GIF87a", b"GIF89a"):
+        return "image/gif"
     if head[4:8] == b"ftyp" and head[8:12] in MP4_BRANDS:
         return "video/mp4"
     return None

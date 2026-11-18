@@ -10,6 +10,8 @@ JPG = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00" + b"\x00" * 64
 PNG = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR" + b"\x00" * 64
 WEBP = b"RIFF\x24\x00\x00\x00WEBPVP8 " + b"\x00" * 64
 MP4 = b"\x00\x00\x00\x18ftypmp42\x00\x00\x00\x00" + b"\x00" * 64
+GIF = b"GIF89a\x01\x00\x01\x00\x80\x00\x00" + b"\x00" * 64
+GIF87 = b"GIF87a\x01\x00\x01\x00\x80\x00\x00" + b"\x00" * 64
 HEIC = b"\x00\x00\x00\x18ftypheic\x00\x00\x00\x00" + b"\x00" * 64
 HTML = b"<html><script>alert(1)</script></html>"
 TEXT = b"just some notes, not a picture"
@@ -27,7 +29,7 @@ def upload(file_bytes, filename, content_type, bucket="recipes"):
 
 
 @pytest.mark.parametrize("data, kind", [(JPG, "image/jpeg"), (PNG, "image/png"), (WEBP, "image/webp"),
-                                        (MP4, "video/mp4"), (HEIC, None), (HTML, None), (TEXT, None), (b"", None)])
+                                        (GIF, "image/gif"), (GIF87, "image/gif"), (MP4, "video/mp4"), (HEIC, None), (HTML, None), (TEXT, None), (b"", None)])
 def test_detects_type_from_bytes(data, kind):
     assert detect_file_type(data) == kind
 
@@ -51,7 +53,7 @@ def test_spoofed_file_with_an_image_name_is_rejected(data):
 def test_heic_renamed_to_mp4_is_rejected():
     with pytest.raises(HTTPException) as exc:
         upload(HEIC, "clip.mp4", "video/mp4", bucket="exercises")
-    assert exc.value.detail == "This file isn't a supported type. Allowed: JPG, PNG, WebP, MP4."
+    assert exc.value.detail == "This file isn't a supported type. Allowed: JPG, PNG, WebP, GIF, MP4."
 
 
 def test_video_is_only_allowed_where_videos_belong():
@@ -65,3 +67,15 @@ def test_name_and_label_follow_the_real_content():
     res, sent = upload(PNG, "dish.jpg", "image/jpeg")
     assert res["path"].endswith("_dish.png")
     assert sent["file_options"] == {"content-type": "image/png"}
+
+
+def test_gif_guide_images_are_allowed_for_exercises_only():
+    """Moving guide pictures (2026-11-18): exercises take GIFs; recipes and avatars stay still images."""
+    res, sent = upload(GIF, "squat.gif", "image/gif", bucket="exercises")
+    assert res["path"].endswith("_squat.gif")
+    assert sent["file_options"] == {"content-type": "image/gif"}
+    for bucket in ("recipes", "avatars"):
+        with pytest.raises(HTTPException) as exc:
+            upload(GIF, "dish.gif", "image/gif", bucket=bucket)
+        assert exc.value.status_code == 400
+        assert "GIF" not in exc.value.detail
