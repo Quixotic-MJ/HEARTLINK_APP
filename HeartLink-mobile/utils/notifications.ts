@@ -60,6 +60,20 @@ export async function requestNotificationPermissions() {
 }
 
 /**
+ * Whether this phone already lets HeartLink show notifications. Never asks: used when reminders are set again
+ * quietly at sign-in (2026-11-18). Always false in Expo Go, where reminders aren't scheduled.
+ */
+export async function notificationsAllowed(): Promise<boolean> {
+  if (isExpoGo || !Notifications) return false;
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    return status === 'granted';
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Schedule a daily recurring local notification
  */
 export async function scheduleDailyReminder(

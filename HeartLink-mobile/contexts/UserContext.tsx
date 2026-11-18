@@ -7,6 +7,8 @@ import { syncOfflineAll } from "../services/SyncService";
 import { SessionTokens, storeSession, refreshSession, msUntilRefresh } from "../services/SessionService";
 import { API_BASE_URL, apiFetch, setSessionEndedHandler } from "../lib/api";
 import { registerForPush, unregisterPush } from "../services/pushNotifications";
+import { clearReminders, restoreReminders } from "../services/remindersService";
+import { isFamilyAccount } from "../services/family";
 
 type UserContextType = {
   userId: string | null;
@@ -325,7 +327,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (userId && hasProfile) registerForPush();
   }, [userId, hasProfile]);
 
+  // 2026-11-18: the account's daily reminders, set again on this phone at sign-in and app start (a reinstall or a new
+  // phone lost them). Only once setup is done, when the reminders were chosen; family-only accounts have none.
+  const setupDone = user?.onboarding_status === "complete" && !isFamilyAccount(user);
+  useEffect(() => {
+    if (userId && setupDone) restoreReminders(userId, token);
+  }, [userId, setupDone]); // eslint-disable-line react-hooks/exhaustive-deps -- a new token isn't a reason to set them again
+
   const logout = async () => {
+    // The next person on this phone doesn't get this account's reminders
+    await clearReminders();
     // While the session still works: this phone stops getting this account's pushes
     await unregisterPush();
     try {

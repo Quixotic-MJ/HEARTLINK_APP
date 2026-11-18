@@ -2,18 +2,22 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   DEFAULT_REMINDERS,
   bedtimeReminderFor,
+  clearReminders,
   loadReminders,
+  restoreReminders,
   saveReminders,
   scheduleReminders,
   usualBedtime,
 } from '../remindersService';
-import { scheduleDailyReminder, cancelReminder } from '../../utils/notifications';
+import { scheduleDailyReminder, cancelReminder, cancelAllReminders, notificationsAllowed, requestNotificationPermissions } from '../../utils/notifications';
 
 jest.mock('../../lib/secureTokenStore', () => ({ getToken: jest.fn(async () => 'token-123') }));
 jest.mock('../../utils/notifications', () => ({
   requestNotificationPermissions: jest.fn(async () => true),
   scheduleDailyReminder: jest.fn(),
   cancelReminder: jest.fn(),
+  notificationsAllowed: jest.fn(async () => true),
+  cancelAllReminders: jest.fn(async () => undefined),
 }));
 
 const ACCOUNT = {
@@ -99,5 +103,48 @@ describe('bedtime suggestion from sleep logs', () => {
   it('suggests the reminder 30 minutes before the usual bedtime', () => {
     expect(bedtimeReminderFor('23:00')).toBe('22:30');
     expect(bedtimeReminderFor('00:15')).toBe('23:45');
+  });
+});
+
+
+// 2026-11-18: a reinstall or a new phone lost the reminders until Daily reminders was saved again
+describe('setting the reminders again at sign-in', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (notificationsAllowed as jest.Mock).mockResolvedValue(true);
+  });
+
+  it("schedules the account's saved reminders without asking for permission", async () => {
+    expect(await restoreReminders('user-1', 'token-123')).toBe(true);
+    expect(requestNotificationPermissions).not.toHaveBeenCalled();
+    expect(scheduleDailyReminder).toHaveBeenCalledWith('morning_reminder', expect.any(String), expect.any(String), '07:30');
+    expect(scheduleDailyReminder).toHaveBeenCalledWith('activity_reminder', expect.any(String), expect.any(String), '17:00');
+    expect(cancelReminder).toHaveBeenCalledWith('evening_reminder');
+  });
+
+  it('includes the reminders kept on this phone', async () => {
+    await AsyncStorage.setItem('@bedtime_reminder_user-1', JSON.stringify({ enabled: true, time: '21:30' }));
+    await restoreReminders('user-1', 'token-123');
+    expect(scheduleDailyReminder).toHaveBeenCalledWith('bedtime_reminder', expect.any(String), expect.any(String), '21:30');
+  });
+
+  it('does nothing when notifications are not allowed', async () => {
+    (notificationsAllowed as jest.Mock).mockResolvedValue(false);
+    expect(await restoreReminders('user-1', 'token-123')).toBe(false);
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(scheduleDailyReminder).not.toHaveBeenCalled();
+  });
+
+  it("does nothing when the account's reminders can't be loaded", async () => {
+    global.fetch = jest.fn(async () => ({ ok: false, status: 500, json: async () => ({}) })) as jest.Mock;
+    expect(await restoreReminders('user-1', 'token-123')).toBe(false);
+    expect(scheduleDailyReminder).not.toHaveBeenCalled();
+  });
+
+  it('clears every reminder at sign-out, and never throws', async () => {
+    await clearReminders();
+    expect(cancelAllReminders).toHaveBeenCalledTimes(1);
+    (cancelAllReminders as jest.Mock).mockRejectedValueOnce(new Error('refused'));
+    await expect(clearReminders()).resolves.toBeUndefined();
   });
 });
