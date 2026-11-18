@@ -16,6 +16,7 @@ type RawRecipe = {
   fiber_g?: number | null;
   cholesterol_mg?: number | null;
   warnings?: unknown;
+  category?: string | null;
 };
 
 type RawMealLog = {
@@ -114,6 +115,7 @@ export async function fetchRecipes(query: string, token: string | null, signal?:
       recipe_id: String(r.id),
       recommended: recommended.has(String(r.id)),
       warnings: foodWarnings(r.warnings),
+      category: r.category ?? undefined,
       base: {
         sodium_mg: n(r.sodium_mg),
         calories: n(r.calories),

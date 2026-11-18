@@ -13,7 +13,7 @@ import AnimatedButton from "../../../components/ui/AnimatedButton";
 import DsButton from "../../../components/onboarding/DsButton";
 import { useDs } from "../../../components/onboarding/useDs";
 import { AmountStepper, FoodHeader, ImpactNote, NutrientField } from "../../../components/food/FoodBits";
-import { mealTimeForHour } from "../../../services/foodLogging";
+import { asMealTime, mealTimeForHour } from "../../../services/foodLogging";
 import { EstimateHelper } from "../../../components/meals/EstimateHelper";
 import { EstimateSelection, describe, estimateTotals } from "../../../services/mealEstimate";
 import { InfoNote } from "../../../components/onboarding/QuestionLayout";
@@ -48,7 +48,7 @@ export default function ManualMealLogScreen() {
 
   const { userId, token } = useUser();
   const { showToast } = useToast();
-  const params = useLocalSearchParams<{ plan_date?: string; plan_meal?: string }>();
+  const params = useLocalSearchParams<{ plan_date?: string; plan_meal?: string; meal?: string }>();
   const planMeal = (["Breakfast", "Lunch", "Dinner"] as const).find((m) => m === params.plan_meal) as MealName | undefined;
   const planMode = !!params.plan_date && !!planMeal;
   const planTitle = planMode && planMeal ? mealTitle(params.plan_date!, planMeal) : "";
@@ -144,7 +144,8 @@ export default function ManualMealLogScreen() {
       source: "manual_entry",
       image_url: null,
       // The Food Diary files meals by the time they're logged (see services/foodLogging.ts).
-      time_of_meal: mealTimeForHour(new Date().getHours()),
+      // The meal chosen in Add food (2026-11-18), else the clock's
+      time_of_meal: asMealTime(params.meal) ?? mealTimeForHour(new Date().getHours()),
     };
 
     await logMealAndGetToast(

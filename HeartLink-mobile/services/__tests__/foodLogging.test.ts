@@ -2,10 +2,13 @@ import {
   FoodItem,
   SOURCE_RULES,
   amountLabel,
+  asMealTime,
   eaten,
   loggedSodiumLine,
+  mealOfLog,
   mealTimeForHour,
   parseAmount,
+  recipesForMeal,
   reviewSodiumLine,
   sodiumSummary,
   stepAmount,
@@ -101,5 +104,45 @@ describe("sodium summary", () => {
     const s = sodiumSummary(1800, 900, 2000);
     expect(s.earlierShare + s.mealShare).toBeCloseTo(1);
     expect(sodiumSummary(2500, 300, 2000).mealShare).toBe(0);
+  });
+});
+
+// 2026-11-18: the patient chooses the meal; that meal's recipes come first, and the diary keeps the choice
+describe("Choosing the meal", () => {
+  it("reads a meal name from a screen or the server", () => {
+    expect(asMealTime("Lunch")).toBe("Lunch");
+    expect(asMealTime("breakfast")).toBe("Breakfast");
+    expect(asMealTime("Brunch")).toBeNull();
+    expect(asMealTime(undefined)).toBeNull();
+  });
+
+  it("puts the chosen meal's recipes first and keeps every other recipe after them, in order", () => {
+    const recipes = [
+      { id: "a", category: "Dinner" },
+      { id: "b", category: "Lunch" },
+      { id: "c", category: "Breakfast" },
+      { id: "d", category: " lunch " },
+      { id: "e" },
+    ];
+    const { forMeal, others } = recipesForMeal(recipes, "Lunch");
+    expect(forMeal.map((r) => r.id)).toEqual(["b", "d"]);
+    expect(others.map((r) => r.id)).toEqual(["a", "c", "e"]);
+  });
+
+  it("moves nothing for a snack", () => {
+    const recipes = [{ id: "a", category: "Dinner" }];
+    expect(recipesForMeal(recipes, "Snack")).toEqual({ forMeal: [], others: recipes });
+  });
+
+  it("files a log under the chosen meal, and an older log under its clock time", () => {
+    const evening = new Date(2026, 10, 18, 19, 30).toISOString();
+    expect(mealOfLog({ time_of_meal: "Breakfast", logged_at: evening })).toBe("Breakfast");
+    expect(mealOfLog({ time_of_meal: null, logged_at: evening })).toBe("Dinner");
+    expect(mealOfLog({ logged_at: new Date(2026, 10, 18, 8, 0).toISOString() })).toBe("Breakfast");
+  });
+
+  it("sends the chosen meal with the log", () => {
+    const item: FoodItem = { id: "r1", source: "recipe", name: "Arroz caldo", recipe_id: "r1", base: { sodium_mg: 400, calories: 300, saturated_fat_g: 1, fiber_g: 1 } };
+    expect(toMealPayload(item, item.base, 1, "Breakfast").time_of_meal).toBe("Breakfast");
   });
 });

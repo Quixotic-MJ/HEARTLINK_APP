@@ -16,6 +16,7 @@ import {
   Nutrition,
   SOURCE_RULES,
   amountLabel,
+  asMealTime,
   eaten,
   formatMg,
   mealTimeForHour,
@@ -92,7 +93,8 @@ export default function MultiLogReviewScreen() {
   const logAll = async () => {
     if (!userId || items.length === 0) return;
     setSubmitting(true);
-    const meal = mealTimeForHour(new Date().getHours());
+    // The meal chosen in Add food (2026-11-18), else the clock's
+    const meal = asMealTime(params.meal) ?? mealTimeForHour(new Date().getHours());
     const payloads = items.map((item) => toMealPayload(item, baseFor(item), amounts[item.id], meal));
     const result = await logMeals(userId, token, payloads);
     queryClient.invalidateQueries({ queryKey: ["dashboard"] });
@@ -120,7 +122,7 @@ export default function MultiLogReviewScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.canvas }} edges={["top", "bottom"]}>
       <StatusBar style={isDark ? "light" : "dark"} />
-      <FoodHeader title="Review your meal" onBack={() => router.back()} backLabel="Back to search" />
+      <FoodHeader title={`Review your ${(asMealTime(params.meal) ?? mealTimeForHour(new Date().getHours())).toLowerCase()}`} onBack={() => router.back()} backLabel="Back to search" />
 
       <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={{ padding: 20, paddingTop: 8, gap: 16 }}>
         {/* Sodium today: what was eaten earlier, what this meal adds, against the patient's own limit */}

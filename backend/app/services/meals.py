@@ -24,9 +24,23 @@ def meal_cholesterol(data: Dict[str, Any], recipe: Optional[Dict[str, Any]]) -> 
     servings = float(data.get("calories") or 0) / recipe_calories if recipe_calories > 0 else 1.0
     return round(per_serving * servings, 1)
 
+# 2026-11-18: the meal the patient chose (the Food Diary groups by it). Anything else is dropped, and the diary falls
+# back to the time the meal was logged.
+MEAL_TIMES = ("Breakfast", "Lunch", "Dinner", "Snack")
+
+
+def meal_time_of(value: Any) -> Optional[str]:
+    text = str(value or "").strip().capitalize()
+    return text if text in MEAL_TIMES else None
+
+
 def create_meal_log(user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
     recipe = get_content_repo().get_recipe(str(data["recipe_id"])) if data.get("recipe_id") else None
-    return get_meals_repo().create_meal(user_id, {**data, "cholesterol_mg": meal_cholesterol(data, recipe)})
+    return get_meals_repo().create_meal(user_id, {
+        **data,
+        "cholesterol_mg": meal_cholesterol(data, recipe),
+        "time_of_meal": meal_time_of(data.get("time_of_meal")),
+    })
 
 def search_meals(query: str) -> List[Dict[str, Any]]:
     query = query.lower()

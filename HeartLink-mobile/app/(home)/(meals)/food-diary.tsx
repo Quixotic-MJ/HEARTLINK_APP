@@ -26,7 +26,7 @@ import { FoodHeader } from "../../../components/food/FoodBits";
 import { useUser } from "../../../contexts/UserContext";
 import { useToast } from "../../../contexts/ToastContext";
 import { useSodiumBudget } from "../../../hooks/useSodiumBudget";
-import { formatMg } from "../../../services/foodLogging";
+import { formatMg, mealOfLog } from "../../../services/foodLogging";
 import { apiFetch } from "../../../lib/api";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -41,6 +41,8 @@ type MealLog = {
   fiber_g?: number;
   image_url?: string;
   logged_at: string;
+  /** The meal chosen when it was logged (2026-11-18); older logs have none. */
+  time_of_meal?: string | null;
 };
 
 const FOOD_LOG_OPTIONS = [
@@ -220,7 +222,7 @@ export default function DailyDiaryScreen() {
   const sodiumOver = sodiumLeft < 0;
   const sodiumShare = Math.min(1, totalSodium / sodiumLimit);
 
-  // Categorize meals by time of day
+  // Group by the meal chosen when logging (2026-11-18); older logs by the time they were logged
   const mealGroups = [
     { name: "Breakfast", icon: "coffee", items: [] as MealLog[], cals: 0 },
     { name: "Lunch", icon: "sun", items: [] as MealLog[], cals: 0 },
@@ -229,11 +231,7 @@ export default function DailyDiaryScreen() {
   ];
 
   meals.forEach(meal => {
-    const hr = new Date(meal.logged_at).getHours();
-    let index = 3; // snacks
-    if (hr >= 4 && hr < 11) index = 0; // breakfast
-    else if (hr >= 11 && hr < 16) index = 1; // lunch
-    else if (hr >= 16 && hr < 22) index = 2; // dinner
+    const index = { Breakfast: 0, Lunch: 1, Dinner: 2, Snack: 3 }[mealOfLog(meal)];
 
     mealGroups[index].items.push(meal);
     mealGroups[index].cals += meal.calories || 0;

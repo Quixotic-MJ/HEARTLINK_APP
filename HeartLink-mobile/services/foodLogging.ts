@@ -10,6 +10,31 @@ export type FoodSource = "recent" | "recipe" | "packaged";
 
 export type MealTime = "Breakfast" | "Lunch" | "Dinner" | "Snack";
 
+/** The meals a log can belong to, in the Food Diary's order (2026-11-18: the patient chooses one when logging). */
+export const MEAL_TIMES: MealTime[] = ["Breakfast", "Lunch", "Dinner", "Snack"];
+
+/** A meal name from a screen parameter or the server, or null when it isn't one. */
+export function asMealTime(value: unknown): MealTime | null {
+  const text = String(value ?? "").trim().toLowerCase();
+  return MEAL_TIMES.find((m) => m.toLowerCase() === text) ?? null;
+}
+
+/** The meal a logged food belongs to: the one chosen when it was logged, else the clock time (older logs). */
+export function mealOfLog(log: { time_of_meal?: string | null; logged_at: string }): MealTime {
+  return asMealTime(log.time_of_meal) ?? mealTimeForHour(new Date(log.logged_at).getHours());
+}
+
+/**
+ * Add food (2026-11-18): the chosen meal's recipes first (their category, as the portal saves it), then every other
+ * recipe, each keeping its order (recommended first). A snack has no recipe category, so nothing moves.
+ */
+export function recipesForMeal<T extends { category?: string }>(recipes: T[], meal: MealTime): { forMeal: T[]; others: T[] } {
+  if (meal === "Snack") return { forMeal: [], others: recipes };
+  const wanted = meal.toLowerCase();
+  const forMeal = recipes.filter((r) => (r.category ?? "").trim().toLowerCase() === wanted);
+  return { forMeal, others: recipes.filter((r) => !forMeal.includes(r)) };
+}
+
 /** Nutrition for one base amount: per serving (recipes, recent meals) or per 100 g (packaged). */
 export type Nutrition = {
   sodium_mg: number;
@@ -32,6 +57,8 @@ export type FoodItem = {
   recommended?: boolean;
   /** HeartLink recipes: what clashes with the patient's allergies or diet (from the server). */
   warnings?: string[];
+  /** HeartLink recipes: the meal it's for (Breakfast, Lunch, Dinner), as the portal saves it. */
+  category?: string;
   base: Nutrition;
 };
 
