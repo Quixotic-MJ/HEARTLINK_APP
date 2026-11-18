@@ -5,7 +5,7 @@ import {
   matchesLibraryWorkflow,
 } from "./libraryWorkflow.js";
 
-test("library workflow: waiting for approval, approved, published and archived, without hiding unknown history", () => {
+test("library workflow: waiting for approval, approved, published and archived; All leaves out archived but keeps unknown history", () => {
   const items = [
     { status: "draft", expertValidated: false },
     { status: "draft", expertValidated: true },
@@ -15,7 +15,7 @@ test("library workflow: waiting for approval, approved, published and archived, 
     { status: "legacy", expertValidated: true },
   ];
   assert.deepEqual(libraryWorkflowCounts(items), {
-    all: 6,
+    all: 5,
     draft: 2,
     approved: 1,
     published: 1,
@@ -26,7 +26,7 @@ test("library workflow: waiting for approval, approved, published and archived, 
       (key) => matchesLibraryWorkflow(item, key),
     );
     assert.equal(buckets.length, item.status === "legacy" ? 0 : 1);
-    assert.equal(matchesLibraryWorkflow(item, "all"), true);
+    assert.equal(matchesLibraryWorkflow(item, "all"), item.status !== "archived");
   }
   assert.deepEqual(libraryWorkflowCounts([]), {
     all: 0,
