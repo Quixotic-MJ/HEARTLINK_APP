@@ -6,7 +6,13 @@
  * reminders yet, so they are kept on this phone, per account.
  */
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { requestNotificationPermissions, scheduleDailyReminder, cancelReminder } from "../utils/notifications";
+import {
+  cancelAllReminders,
+  cancelReminder,
+  notificationsAllowed,
+  requestNotificationPermissions,
+  scheduleDailyReminder,
+} from "../utils/notifications";
 import { apiFetch } from "../lib/api";
 
 export interface Reminder {
@@ -98,6 +104,12 @@ export async function saveReminders(userId: string, token: string, reminders: Re
 export async function scheduleReminders(reminders: Reminders): Promise<boolean> {
   const allowed = await requestNotificationPermissions();
   if (!allowed) return false;
+  await applyReminders(reminders);
+  return true;
+}
+
+/** Schedules the enabled reminders on this phone and cancels the others. Doesn't ask for permission. */
+async function applyReminders(reminders: Reminders): Promise<void> {
   for (const key of Object.keys(NOTIFICATION_COPY) as (keyof Reminders)[]) {
     const copy = NOTIFICATION_COPY[key];
     if (reminders[key].enabled) {
@@ -106,7 +118,33 @@ export async function scheduleReminders(reminders: Reminders): Promise<boolean> 
       await cancelReminder(copy.id);
     }
   }
-  return true;
+}
+
+/**
+ * At sign-in and app start (2026-11-18): sets this account's saved reminders again on this phone. Reminders live in
+ * the phone's own scheduler, so a reinstall or a new phone lost them until the patient saved Daily reminders again.
+ * Never asks for permission (that stays with setup and Settings), and does nothing when the reminders can't be loaded.
+ * Returns true when they were set.
+ */
+export async function restoreReminders(userId: string, token: string | null): Promise<boolean> {
+  try {
+    if (!(await notificationsAllowed())) return false;
+    const reminders = await loadReminders(userId, token ?? "");
+    if (!reminders) return false;
+    await applyReminders(reminders);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** At sign-out (2026-11-18): the next person on this phone doesn't get this account's reminders. */
+export async function clearReminders(): Promise<void> {
+  try {
+    await cancelAllReminders();
+  } catch {
+    // Nothing scheduled, or the phone refused: nothing to clear.
+  }
 }
 
 export function formatTime(time: string): string {
