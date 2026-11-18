@@ -36,6 +36,26 @@ class ProfileUpdate(BaseModel):
             raise ValueError("first_name cannot be empty or whitespace only")
         return v.strip()
 
+    @field_validator("date_of_birth")
+    @classmethod
+    def adults_only(cls, v: date) -> date:
+        """HeartLink is for adults (Terms of Service, 2026-11-18): 18 to 120 years old on today's date in Manila."""
+        age = age_on(v, to_local_date(utc_now()))
+        if age < MIN_AGE:
+            raise ValueError(UNDER_AGE_DETAIL)
+        if age > MAX_AGE:
+            raise ValueError("Please check the year of your date of birth.")
+        return v
+
+
+MIN_AGE = 18
+MAX_AGE = 120
+UNDER_AGE_DETAIL = "You need to be 18 or older to use HeartLink."
+
+
+def age_on(born: date, today: date) -> int:
+    return today.year - born.year - ((today.month, today.day) < (born.month, born.day))
+
 
 # HL-093: the pre-exercise safety check
 class ExerciseScreeningRequest(BaseModel):

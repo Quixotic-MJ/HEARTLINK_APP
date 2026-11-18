@@ -84,6 +84,9 @@ function RootLayoutNav() {
       firstSegment === "(baseline)" && !!secondSegment && AFTER_SCORE.includes(secondSegment);
     if (isAfterScore) return;
 
+    // The Terms and Privacy Policy open from sign-up (signed out) and from About (signed in), so no redirect
+    if (firstSegment === "legal") return;
+
     const inAuthGroup = firstSegment === "(auth)";
     const inOnboarding = firstSegment === "onboarding";
     const inBaseline = firstSegment === "(baseline)";

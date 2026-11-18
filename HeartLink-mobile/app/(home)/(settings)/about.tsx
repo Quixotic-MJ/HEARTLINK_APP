@@ -118,24 +118,24 @@ export default function AboutScreen() {
         {/* Legal Links */}
         <View className="bg-ds-canvas rounded-xl border border-ds-hairline px-4 mb-6">
           <TouchableOpacity 
-            onPress={() => openURL("terms")}
+            onPress={() => router.push({ pathname: "/legal", params: { doc: "terms" } })}
             accessible={true}
             accessibilityRole="link"
-            accessibilityLabel="Terms of Service, opens in browser"
+            accessibilityLabel="Terms of Service"
             className="flex-row items-center justify-between py-4 border-b border-ds-hairline-soft"
           >
             <Text className="text-[15px] font-medium text-ds-ink">Terms of Service</Text>
-            <Feather name="external-link" size={16} color={c.slate} />
+            <Feather name="chevron-right" size={16} color={c.slate} />
           </TouchableOpacity>
           <TouchableOpacity 
-            onPress={() => openURL("privacy")}
+            onPress={() => router.push({ pathname: "/legal", params: { doc: "privacy" } })}
             accessible={true}
             accessibilityRole="link"
-            accessibilityLabel="Privacy Policy, opens in browser"
+            accessibilityLabel="Privacy Policy"
             className="flex-row items-center justify-between py-4 border-b border-ds-hairline-soft"
           >
             <Text className="text-[15px] font-medium text-ds-ink">Privacy Policy</Text>
-            <Feather name="external-link" size={16} color={c.slate} />
+            <Feather name="chevron-right" size={16} color={c.slate} />
           </TouchableOpacity>
           <TouchableOpacity 
             onPress={() => openURL("licenses")}

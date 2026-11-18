@@ -19,6 +19,7 @@ import { useProfileDetails, type ProfileDetails } from "../../../hooks/useProfil
 import { useRefetchOnFocus } from "../../../hooks/useRefetchOnFocus";
 import { sharePdf } from "../../../services/sharePdf";
 import { ds } from "../../../constants/theme";
+import { UNDER_AGE_MESSAGE, dobProblem } from "../../../constants/setupQuestions";
 
 // The patient's profile: their details, latest readings and a few shortcuts. Built on the design system (DESIGN.md
 // with HEARTLINK.md). The data comes from useProfileDetails (saved on the phone, retried, refreshed on every visit), so
@@ -270,6 +271,22 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
   }, [query]);
 
   const handleUpdateData = async (newData: EditData) => {
+    // HeartLink is for adults (Terms of Service, 2026-11-18); the server checks the same
+    const dob = newData.birthdate.trim();
+    if (dob && dobProblem(dob) !== null) {
+      const problem = dobProblem(dob);
+      showToast({
+        title: "Couldn't save",
+        message:
+          problem === "under_age"
+            ? UNDER_AGE_MESSAGE
+            : problem === "too_old"
+              ? "Please check the year of your date of birth."
+              : "Enter your date of birth as year-month-day, for example 1985-06-15.",
+        type: "error",
+      });
+      return;
+    }
     try {
       const names = newData.name.trim().split(/\s+/);
       const height = Number.parseFloat(newData.height);
@@ -289,7 +306,11 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
       });
       const resData = await response.json().catch(() => ({}));
       if (!response.ok) {
-        showToast({ title: "Couldn't save", message: resData.detail || "Your changes weren't saved. Try again.", type: "error" });
+        // A refused field comes back as a list; show its message, not the list
+        const detail = Array.isArray(resData.detail)
+          ? String(resData.detail[0]?.msg ?? "").replace(/^Value error,\s*/i, "")
+          : resData.detail;
+        showToast({ title: "Couldn't save", message: detail || "Your changes weren't saved. Try again.", type: "error" });
         return;
       }
       showToast({ title: "Profile updated", message: "Your details are saved.", type: "success" });
