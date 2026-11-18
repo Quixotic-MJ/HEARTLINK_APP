@@ -1,6 +1,7 @@
 // HL-016 / HL-017 / HL-156: the daily limits, as the server works them out (backend/app/services/nutrition_targets.py).
 // The Cardiologist asked for strict daily sodium and cholesterol limits: they come from the guidelines, a patient can't
-// raise them, and only the care team can set a stricter one.
+// raise them. The server lets an expert set a stricter one, but no portal screen does that yet, so the app doesn't
+// promise it (2026-11-19).
 
 export type DailyTarget = { value: number; source: string; why: string };
 
@@ -18,7 +19,7 @@ export const SODIUM_LIMIT_MG = 1500;
 export const CHOLESTEROL_LIMIT_MG = 200;
 
 export const LIMITS_NOTE =
-  "These follow the latest evidence-based guidelines from accredited health organizations (American Heart Association, Philippine Heart Association). Your care team can set a stricter limit for you.";
+  "These follow the latest evidence-based guidelines from accredited health organizations (American Heart Association, Philippine Heart Association). They're fixed so they can't be raised.";
 
 export const MOVEMENT_GOAL = { min: 10, max: 120, step: 5, fallback: 30 };
 
@@ -36,4 +37,11 @@ export function limitRows(t: DailyTargets): { label: string; value: string; targ
 export function clampGoal(minutes: number): number {
   const { min, max, step } = MOVEMENT_GOAL;
   return Math.min(max, Math.max(min, Math.round(minutes / step) * step));
+}
+
+/** The food diary's saturated fat line: today's total against the patient's own limit, or the total alone until the
+ * limit has loaded (2026-11-19: it was "of 20 g" for everyone, which didn't match Goals & limits). */
+export function satFatLine(totalG: number, limitG: number | null | undefined): string {
+  const total = Math.round(totalG * 10) / 10;
+  return limitG && limitG > 0 ? `${total} of ${Math.round(limitG)} g` : `${total} g`;
 }

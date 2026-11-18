@@ -17,7 +17,8 @@ import { CHOLESTEROL_LIMIT_MG, SODIUM_LIMIT_MG } from "../../services/dailyLimit
 
 const mapSleepHours = (val: string) => {
   switch (val) {
-    case "5": return 5.0;
+    // "Less than 5 hours": 4.5, so it scores in the AHA's 4-to-5-hour row (20 points). As 5.0 it scored like 5 to 6 hours (2026-11-18).
+    case "5": return 4.5;
     case "5-6": return 5.5;
     case "7-8": return 7.5;
     case "9": return 9.0;
@@ -408,7 +409,7 @@ function SetupLimits() {
       {row("Cholesterol from food", `${CHOLESTEROL_LIMIT_MG} mg`)}
       <Text style={{ fontSize: 12.5, lineHeight: 18, color: c.steel }}>
         From the American Heart Association and the Philippine Heart Association guidelines. HeartLink checks your meals
-        against them. Your care team can set a stricter limit for you.
+        against them. They&apos;re fixed so they can&apos;t be raised.
       </Text>
     </View>
   );

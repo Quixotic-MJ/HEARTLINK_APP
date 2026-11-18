@@ -33,7 +33,7 @@ function UnapprovedNote({ data, singular, expert }) {
   return (
     <p className="home-library-attention" role="note">
       <strong><AlertTriangle size={14} aria-hidden="true" /> {`${what} ${n === 1 ? "isn't" : "aren't"} approved yet`}</strong>
-      <span>{names.length ? `${listNames(names)}${n > names.length ? ", and more" : ""}. ` : ""}{`Patients don't see ${n === 1 ? "it" : "them"} until a ${expert} approves ${n === 1 ? "it" : "them"}, or an Admin unpublishes ${n === 1 ? "it" : "them"}.`}</span>
+      <span>{names.length ? `${listNames(names)}${n > names.length ? ", and more" : ""}. ` : ""}{`Users don't see ${n === 1 ? "it" : "them"} until a ${expert} approves ${n === 1 ? "it" : "them"}, or an Admin unpublishes ${n === 1 ? "it" : "them"}.`}</span>
     </p>
   );
 }
@@ -44,7 +44,7 @@ function cardWords(item) {
   switch (item.stage) {
     case "published": return { review: `${expert} approved`, footer: "Published to users" };
     case "approved": return { review: `${expert} approved`, footer: "Approved, not published yet" };
-    case "unapproved": return { review: "Not approved yet", footer: "Published, but patients don't see it yet" };
+    case "unapproved": return { review: "Not approved yet", footer: "Published, but users don't see it yet" };
     case "changes": return { review: `${expert} asked for changes`, footer: "Waiting for an Admin to edit it" };
     default: return { review: `Awaiting ${expert} review`, footer: "Waiting for review" };
   }
@@ -142,7 +142,7 @@ export default function Dashboard() {
                 </div>
               </section>
               <section className="home-panel" aria-labelledby="accounts-heading">
-                <div className="home-panel-heading"><div><h2 id="accounts-heading">Account access</h2><p>Patients and staff. Active means the account can sign in, not that it&apos;s being used.</p></div><Link to="/users" className={UI.button.ghost}>Manage <ArrowRight size={14} aria-hidden="true" /></Link></div>
+                <div className="home-panel-heading"><div><h2 id="accounts-heading">Account access</h2><p>Users and staff. Active means the account can sign in, not that it&apos;s being used.</p></div><Link to="/users" className={UI.button.ghost}>Manage <ArrowRight size={14} aria-hidden="true" /></Link></div>
                 <dl className="home-account-states">
                   {ACCOUNT_STATES.map(([state, label]) => <div key={state}><dt>{label}</dt><dd>{count(data.accounts[state])}</dd></div>)}
                   {data.accounts.unknown_status > 0 ? <div><dt>Status not recognised</dt><dd>{count(data.accounts.unknown_status)}</dd></div> : null}

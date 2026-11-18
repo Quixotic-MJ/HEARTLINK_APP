@@ -113,7 +113,7 @@ export default function SubmitTicketScreen() {
     if (!description.trim()) {
       showToast({
         title: "Description Required",
-        message: "Please provide details so our clinical engineering team can assist you.",
+        message: "Please provide details so our team can help you.",
         type: "error",
       });
       return;
@@ -141,7 +141,7 @@ export default function SubmitTicketScreen() {
             model: "Mobile Device",
             appVersion: Constants.expoConfig?.version || "1.0.0",
           },
-          user: user?.displayName || user?.name || "Patient User",
+          user: user?.displayName || user?.name || "HeartLink user",
           userEmail: user?.email || "Not Provided",
           userId: userId || "N/A",
         }),
@@ -154,7 +154,7 @@ export default function SubmitTicketScreen() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
         showToast({
           title: "Feedback Received",
-          message: "Thank you for helping us refine HeartLink for all patients.",
+          message: "Thank you for helping us make HeartLink better for everyone.",
           type: "success",
         });
         router.back();
@@ -292,7 +292,7 @@ export default function SubmitTicketScreen() {
                 color: c.slate,
               }}
             >
-              Your suggestions and issue reports go directly to our engineering and clinical team to make HeartLink better.
+              Your suggestions and issue reports go directly to the HeartLink team to make the app better.
             </Text>
           </View>
 
@@ -532,7 +532,7 @@ export default function SubmitTicketScreen() {
                 Diagnostic Metadata Included
               </Text>
               <Text style={{ fontSize: 12, lineHeight: 17, color: c.slate }}>
-                Platform: {Platform.OS} • App: v{Constants.expoConfig?.version || "1.0.0"} • Account: {user?.email || "Patient User"}
+                Platform: {Platform.OS} • App: v{Constants.expoConfig?.version || "1.0.0"} • Account: {user?.email || "HeartLink user"}
               </Text>
               <Text style={{ fontSize: 11.5, color: c.steel, marginTop: 2 }}>
                 Device diagnostic info is automatically attached to help resolve issues quickly.

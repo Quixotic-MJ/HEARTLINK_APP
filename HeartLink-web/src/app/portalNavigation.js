@@ -26,7 +26,7 @@ const PAGES = [
   },
   {
     path: "/patients",
-    label: "Patients",
+    label: "App users",
     section: "Expert workspace",
     icon: HeartPulse,
   },

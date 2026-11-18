@@ -171,7 +171,7 @@ const labResult = (r) => {
 
 const TABLES = {
   lab_results: {
-    empty: "This patient hasn't added any lab results.",
+    empty: "This user hasn't added any lab results.",
     columns: [
       ["test", "Test", (r) => <span className="font-semibold text-cal-ink">{LAB_NAME[r.kind] || r.kind}</span>],
       ["date", "Test date", (r) => <span className="whitespace-nowrap font-cal-mono text-[12px] text-cal-muted">{r.test_date}</span>],
@@ -496,7 +496,7 @@ export default function PatientDetail() {
             className="inline-flex h-9 items-center gap-1.5 rounded-[8px] border border-cal-hairline bg-cal-canvas px-3.5 text-[13px] font-medium text-cal-body hover:bg-cal-surface-card hover:text-cal-ink transition-colors cursor-pointer"
           >
             <ArrowLeft size={14.5} />
-            <span>All patients</span>
+            <span>All app users</span>
           </button>
         </div>
 
@@ -506,7 +506,7 @@ export default function PatientDetail() {
               <AlertTriangle size={18} aria-hidden="true" />
             </div>
             <h2 className="font-cal-display text-[20px] font-semibold tracking-[-0.4px] text-cal-ink">
-              This patient could not be found
+              This user could not be found
             </h2>
             <p className="mx-auto mt-1 max-w-sm text-[13.5px] text-cal-muted">
               Verify the reference code or return to the care-team roster.
@@ -516,12 +516,12 @@ export default function PatientDetail() {
               onClick={() => navigate("/patients")}
               className="mt-5 inline-flex h-10 items-center justify-center rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-5 text-[14px] font-semibold text-cal-on-primary transition-colors cursor-pointer"
             >
-              Back to patients
+              Back to app users
             </button>
           </div>
         ) : logs.isError ? (
           <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-            <LoadError what="this patient's record" onRetry={logs.refetch} />
+            <LoadError what="this user's record" onRetry={logs.refetch} />
           </div>
         ) : (
           <>
@@ -530,7 +530,7 @@ export default function PatientDetail() {
               <div>
                 <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-cal-hairline bg-cal-surface-soft px-2.5 py-0.5 text-[11.5px] font-medium text-cal-muted">
                   <ShieldCheck size={12.5} className="text-cal-ink" />
-                  <span>Anonymized patient profile</span>
+                  <span>Anonymized user profile</span>
                 </div>
                 <h1 className="font-cal-display text-[28px] sm:text-[32px] font-semibold tracking-[-0.8px] leading-[1.1] text-cal-ink">
                   {ref}

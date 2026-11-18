@@ -230,3 +230,18 @@ export function parseAmount(text: string): number {
   const n = parseFloat(text.replace(/[^0-9.]/g, ""));
   return Number.isFinite(n) && n >= 0 ? n : 0;
 }
+
+/** A recipe's nutrients for the servings eaten, as a meal log saves them (fibre included: 2026-11-19, logs from the
+ * dashboard's picks saved it as 0). */
+export function recipeServingNutrients(
+  r: { calories: number; sodium: number; satFat: number; cholesterol: number; fiber: number },
+  servings: number,
+) {
+  return {
+    calories: Math.round(r.calories * servings),
+    sodium_mg: Math.round(r.sodium * servings),
+    saturated_fat_g: Math.round(r.satFat * servings * 10) / 10,
+    cholesterol_mg: Math.round(r.cholesterol * servings),
+    fiber_g: Math.round(r.fiber * servings * 10) / 10,
+  };
+}

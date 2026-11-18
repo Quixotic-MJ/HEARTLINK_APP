@@ -41,6 +41,11 @@ export function useLogSleep(userId: string | null | undefined, token: string | n
         if (!response.ok) {
           const error: any = new Error(`Server error: ${response.status}`);
           error.status = response.status;
+          // 2026-11-19: the server refuses a night already logged, and says which one
+          if (response.status === 409) {
+            const body = await response.json().catch(() => null);
+            if (typeof body?.detail === "string") error.detail = body.detail;
+          }
           throw error;
         }
         return await response.json();
@@ -121,6 +126,13 @@ export function useLogSleep(userId: string | null | undefined, token: string | n
             type: "info",
           });
         }
+      } else if (err.status === 409) {
+        showToast({
+          title: "Already logged",
+          message: err.detail || "You already logged sleep for this time.",
+          type: "info",
+          duration: 6000,
+        });
       } else {
         showToast({
           title: "Error logging sleep",
@@ -133,6 +145,7 @@ export function useLogSleep(userId: string | null | undefined, token: string | n
       const isQueued = err && (err.status >= 500 || err.isNetworkError);
       if (!isQueued) {
         queryClient.invalidateQueries({ queryKey: ['dashboard', userId] });
+        queryClient.invalidateQueries({ queryKey: ['sleepLogs', userId] });
       }
     },
   });

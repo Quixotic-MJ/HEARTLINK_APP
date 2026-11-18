@@ -81,7 +81,7 @@ function Snapshot({ data }) {
 
   return (
     <section
-      aria-label="Patient snapshot"
+      aria-label="User snapshot"
       className="flex flex-col gap-5 rounded-[12px] border border-cal-hairline bg-cal-canvas p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
     >
       <div>
@@ -364,7 +364,7 @@ function CardiologyForm({ caseId, existing, onSaved }) {
           ))}
         </div>
         <p className="mt-2 text-[12px] text-cal-muted">
-          Recorded now. Patient reminders remain switched off until clinical wording is approved.
+          Recorded now. User reminders remain switched off until clinical wording is approved.
         </p>
       </fieldset>
 
@@ -482,7 +482,7 @@ function CardiologyResult({ section, app, canEdit, onEdit }) {
         <dt className="font-medium text-cal-muted">Checkup</dt>
         <dd className="m-0 text-cal-ink">
           <span className="font-medium">{labelOf(CHECKUP, section.checkup_flag)}</span>{" "}
-          <span className="text-cal-muted">(patient reminders are off for now)</span>
+          <span className="text-cal-muted">(user reminders are off for now)</span>
         </dd>
 
         <dt className="font-medium text-cal-muted">Counts as</dt>
@@ -595,7 +595,7 @@ function ItemsSection({ caseId, section, items, saved, canSubmit, onSaved }) {
     <div className="flex flex-col gap-3.5">
       <p className="text-[13.5px] text-cal-muted">
         {showForm
-          ? `Evaluate whether each ${noun} recommended by the app is suitable for this patient:`
+          ? `Evaluate whether each ${noun} recommended by the app is suitable for this user:`
           : saved
             ? `Checked by ${saved.reviewer_name} · ${saved.is_clinical ? "clinical" : "practice"} review`
             : `Waiting for the ${SECTION_EXPERT[section]}.`}

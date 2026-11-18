@@ -14,6 +14,8 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useToast } from "../../contexts/ToastContext";
 import { useLogSleep } from "../../hooks/useLogSleep";
+import { useSleepLogs } from "../../hooks/useSleepLogs";
+import { overlapMessage, overlappingSleep } from "../../services/sleepOverlap";
 import { useDs } from "../onboarding/useDs";
 
 /* ─── Collapsible body ─── */
@@ -92,6 +94,7 @@ export function SleepQuickForm({
   const { showToast } = useToast();
   
   const logSleepMutation = useLogSleep(userId ?? null, token ?? null);
+  const savedSleep = useSleepLogs(userId);
 
   const defaultWake = new Date();
   const defaultBed = new Date(defaultWake);
@@ -104,7 +107,9 @@ export function SleepQuickForm({
   const [showBedPicker, setShowBedPicker] = useState(false);
   const [showWakePicker, setShowWakePicker] = useState(false);
 
-  const [quality, setQuality] = useState("Good");
+  // 2026-11-19: nothing is picked for the patient. It used to start on "Good", so a night nobody rated reached the
+  // experts as a real "Good". Saving waits for a tap.
+  const [quality, setQuality] = useState<string | null>(null);
 
   // Calculate duration in hours
   let diffMs = wakeTime.getTime() - bedTime.getTime();
@@ -137,19 +142,30 @@ export function SleepQuickForm({
       showToast({ title: "Not signed in", message: "Please sign in to log sleep.", type: "error" });
       return;
     }
+    if (!quality) {
+      showToast({ title: "How rested do you feel?", message: "Tap Poor, Fair, Good or Great, then save.", type: "info" });
+      return;
+    }
     if (durationHours < 1 || durationHours > 14) {
       showToast({ title: "Invalid Duration", message: "Please check your AM/PM times. Sleep must be between 1 and 14 hours.", type: "error" });
       return;
     }
-    
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    
+
     // Fix cross-midnight bug for the payload:
     const actualBedTime = new Date(bedTime);
     if (wakeTime.getTime() - bedTime.getTime() < 0) {
       actualBedTime.setDate(actualBedTime.getDate() - 1);
     }
     
+    // 2026-11-19: the same night can't be logged twice (a nap at another time still adds up)
+    const clash = overlappingSleep(actualBedTime, wakeTime, savedSleep.data);
+    if (clash) {
+      showToast({ title: "Already logged", message: overlapMessage(clash), type: "info", duration: 6000 });
+      return;
+    }
+
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
     const payload = { 
       duration_hours: durationHours, 
       quality,
@@ -404,6 +420,7 @@ export function SleepQuickForm({
         activeOpacity={0.85}
         accessibilityRole="button"
         accessibilityLabel="Save Sleep Log"
+        accessibilityHint={quality ? undefined : "Pick how rested you feel first"}
         style={{
           marginTop: 6,
           height: 48,
@@ -413,7 +430,7 @@ export function SleepQuickForm({
           justifyContent: "center",
           flexDirection: "row",
           gap: 8,
-          opacity: logSleepMutation.isPending ? 0.7 : 1,
+          opacity: logSleepMutation.isPending || !quality ? 0.5 : 1,
         }}
       >
         <Feather name="check" size={16} color={c.onPrimary} />

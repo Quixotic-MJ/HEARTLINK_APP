@@ -23,6 +23,7 @@ import { DsColors } from "../../constants/theme";
 import { useDs } from "../onboarding/useDs";
 import DsButton from "../onboarding/DsButton";
 import { Skeleton } from "../ui/Skeleton";
+import { recipeServingNutrients } from "../../services/foodLogging";
 
 /**
  * Bottom sheet for a dashboard recommendation. A meal shows what it adds to today's sodium,
@@ -59,6 +60,7 @@ type RecipeDetail = {
   calories: number;
   cholesterol: number;
   satFat: number;
+  fiber: number;
   heartBenefit: string;
 };
 
@@ -173,6 +175,7 @@ export function RecommendationModal({
           calories: Number(data.calories) || 0,
           cholesterol: Number(data.cholesterol_mg) || 0,
           satFat: Number(data.saturated_fat_g) || 0,
+          fiber: Number(data.fiber_g) || 0,
           heartBenefit: data.heart_benefit || "",
         });
       } else {
@@ -220,11 +223,8 @@ export function RecommendationModal({
       recipe_id: rec.id,
       meal_name: rec.title,
       portion: servings,
-      calories: Math.round(detail.calories * servings),
-      sodium_mg: Math.round(detail.sodium * servings),
-      saturated_fat_g: Math.round(detail.satFat * servings * 10) / 10,
-      cholesterol_mg: Math.round(detail.cholesterol * servings),
-      fiber_g: 0,
+      // 2026-11-19: with the recipe's own fibre (it was always saved as 0, so the food diary's fibre came out too low)
+      ...recipeServingNutrients(detail, servings),
       image_url: detail.image || null,
       source: "recommendation",
     });

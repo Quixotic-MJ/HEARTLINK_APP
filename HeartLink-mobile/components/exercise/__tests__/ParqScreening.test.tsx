@@ -55,6 +55,29 @@ describe("Exercise safety check: the whole PAR-Q+ in the app (2026-11-12)", () =
     expect(sent).toMatchObject({ pregnant: false, unwell: false, declared: true });
   }, 20000);
 
+  it("doesn't ask a man whether he's pregnant, and sends No for him (2026-11-18)", async () => {
+    const user = userEvent.setup();
+    await render(<ExerciseScreening onDone={jest.fn()} sex="male" />);
+    await page1(user);
+    await user.press(next());
+    expect(screen.queryByLabelText("Are you pregnant?")).not.toBeOnTheScreen();
+    expect(screen.getByText("One quick question, then the PAR-Q+ declaration.")).toBeOnTheScreen();
+    await user.press(within(screen.getByLabelText(/Are you ill right now/)).getByText("No"));
+    await user.press(screen.getByText("I filled in the PAR-Q+ myself, read it fully and answered honestly."));
+    await user.press(screen.getByRole("button", { name: "Save my answers" }));
+    await waitFor(() => expect(mockMutate).toHaveBeenCalledTimes(1));
+    expect(mockMutate.mock.calls[0][0]).toMatchObject({ pregnant: false, unwell: false, declared: true });
+  }, 20000);
+
+  it("still asks a woman whether she's pregnant", async () => {
+    const user = userEvent.setup();
+    await render(<ExerciseScreening onDone={jest.fn()} sex="female" />);
+    await page1(user);
+    await user.press(next());
+    expect(screen.getByLabelText("Are you pregnant?")).toBeOnTheScreen();
+    expect(screen.getByText("Two quick questions, then the PAR-Q+ declaration.")).toBeOnTheScreen();
+  }, 20000);
+
   it("a YES on page 1 asks the condition sections, and a condition's follow-ups only when it's present", async () => {
     const user = userEvent.setup();
     await render(<ExerciseScreening onDone={jest.fn()} />);

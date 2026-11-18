@@ -104,10 +104,10 @@ export default function AboutScreen() {
 
           <View className="gap-2">
             <Text className="text-[13px] text-ds-slate leading-relaxed">
-              • <Text className="font-semibold text-ds-ink">Patient Ownership:</Text> Your health logs, blood pressure records, and dietary entries belong solely to your account.
+              • <Text className="font-semibold text-ds-ink">Your data:</Text> Your health logs, blood pressure records, and dietary entries belong solely to your account.
             </Text>
             <Text className="text-[13px] text-ds-slate leading-relaxed">
-              • <Text className="font-semibold text-ds-ink">On-Device Export:</Text> Exported clinical summary reports are generated on your device and shared only with your explicit action.
+              • <Text className="font-semibold text-ds-ink">On-Device Export:</Text> Exported health summary reports are generated on your device and shared only with your explicit action.
             </Text>
             <Text className="text-[13px] text-ds-slate leading-relaxed">
               • <Text className="font-semibold text-ds-ink">Private Contacts:</Text> Care team and emergency contacts are stored securely and never shared with third parties.
@@ -150,7 +150,7 @@ export default function AboutScreen() {
         </View>
 
         <Text className="text-[13px] text-ds-steel text-center px-4 leading-relaxed">
-          HeartLink empowers patients to actively track vitals, monitor symptoms, and collaborate with their clinical care team.
+          HeartLink helps people track their blood pressure, symptoms and habits, and share their readings with their own doctor.
         </Text>
         <Text className="text-[12px] text-ds-steel text-center mt-4 mb-8">
           © 2026 HeartLink Inc. All rights reserved.

@@ -72,13 +72,20 @@ export function ExerciseScreening({
   header,
   doneLabel = "Done",
   onDone,
+  onBack,
   reason,
+  sex,
 }: {
-  header?: React.ReactNode;
+  /** A header, or a function that gets the back action for the page showing (setup's header uses it). */
+  header?: React.ReactNode | ((back: (() => void) | undefined) => React.ReactNode);
+  /** Back from page 1: leaves the check. The later pages go back to the page before. */
+  onBack?: () => void;
   doneLabel?: string;
   onDone: () => void;
   /** Why it's being asked again, if it is. */
   reason?: string | null;
+  /** Sex at birth from setup or the profile: "male" skips the pregnancy question (2026-11-18). */
+  sex?: string | null;
 }) {
   const { c } = useDs();
   const { showToast } = useToast();
@@ -88,6 +95,9 @@ export function ExerciseScreening({
   const [sections, setSections] = useState<Record<string, ParqSection>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [pregnant, setPregnant] = useState<boolean | undefined>(undefined);
+  // Asked unless the person said Male at birth; then it's answered No for them
+  const asksPregnant = String(sex ?? "").trim().toLowerCase() !== "male";
+  const pregnantAnswer = asksPregnant ? pregnant : false;
   const [unwell, setUnwell] = useState<boolean | undefined>(undefined);
   const [declared, setDeclared] = useState(false);
   const [result, setResult] = useState<ScreeningStatus | null>(null);
@@ -95,8 +105,18 @@ export function ExerciseScreening({
   const anyYes = PAGE_ONE.some((q) => page1[q] === true);
   const page1Done = page1Schema.safeParse(page1).success;
   const sectionsDone = sectionsSchema.safeParse(sections).success;
-  const finishDone = finishSchema.safeParse({ pregnant, unwell, declared }).success;
+  const finishDone = finishSchema.safeParse({ pregnant: pregnantAnswer, unwell, declared }).success;
   const followUpYes = SECTIONS.some(({ n }) => sections[n]?.present && Object.values(sections[n].answers).some((v) => v === true));
+
+  // Back steps through the check's own pages first; after saving there is no going back
+  const back = result
+    ? undefined
+    : step === "finish"
+      ? () => setStep(anyYes ? "follow_ups" : "page1")
+      : step === "follow_ups"
+        ? () => setStep("page1")
+        : onBack;
+  const top = typeof header === "function" ? header(back) : header;
 
   const setSection = (n: string, change: Partial<ParqSection>) =>
     setSections((all) => {
@@ -120,7 +140,7 @@ export function ExerciseScreening({
       notes: Object.fromEntries(Object.entries(notes).filter(([, v]) => v.trim())),
     };
     save.mutate(
-      { parq_form: form, pregnant: !!pregnant, unwell: !!unwell, declared: true },
+      { parq_form: form, pregnant: !!pregnantAnswer, unwell: !!unwell, declared: true },
       {
         onSuccess: setResult,
         onError: () => showToast({ title: "Couldn't save", message: "Check your connection and try again.", type: "error" }),
@@ -133,7 +153,7 @@ export function ExerciseScreening({
     // The form's own recommendations for this outcome (page 1 if all NO, page 4 after the follow-ups)
     const official = !anyYes ? parqText("p1.all_no") : followUpYes ? parqText("p4.any_yes") : parqText("p4.all_no");
     return (
-      <DsScreen header={header} footer={<DsButton label={doneLabel} onPress={onDone} />}>
+      <DsScreen header={top} footer={<DsButton label={doneLabel} onPress={onDone} />}>
         <View style={{ gap: 14 }}>
           <View style={{ width: 52, height: 52, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: text.ok ? c.mint : c.rose }}>
             <Feather name={text.ok ? "check" : "alert-triangle"} size={24} color={c.charcoal} />
@@ -154,7 +174,7 @@ export function ExerciseScreening({
     return (
       <DsScreen
         key="page1"
-        header={header}
+        header={top}
         footer={<DsButton label="Next" onPress={() => setStep(anyYes ? "follow_ups" : "finish")} disabled={!page1Done} />}
       >
         <View style={{ gap: 22 }}>
@@ -192,7 +212,7 @@ export function ExerciseScreening({
     return (
       <DsScreen
         key="follow_ups"
-        header={header}
+        header={top}
         footer={
           <View style={{ gap: 8 }}>
             <DsButton label="Next" onPress={() => setStep("finish")} disabled={!sectionsDone} />
@@ -240,7 +260,7 @@ export function ExerciseScreening({
   return (
     <DsScreen
       key="finish"
-      header={header}
+      header={top}
       footer={
         <View style={{ gap: 8 }}>
           <DsButton label="Save my answers" onPress={submit} disabled={!finishDone} loading={save.isPending} />
@@ -249,12 +269,14 @@ export function ExerciseScreening({
       }
     >
       <View style={{ gap: 22 }}>
-        <Heading title="Almost done" sub="Two quick questions, then the PAR-Q+ declaration." />
+        <Heading title="Almost done" sub={`${asksPregnant ? "Two quick questions" : "One quick question"}, then the PAR-Q+ declaration.`} />
         <InfoNote text={parqText(anyYes ? "p4.delay" : "delay")} icon="clock" />
-        <View style={{ gap: 10 }}>
-          <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>{PREGNANT_QUESTION}</Text>
-          <YesNo value={pregnant} onChange={setPregnant} accessibilityLabel={PREGNANT_QUESTION} />
-        </View>
+        {asksPregnant ? (
+          <View style={{ gap: 10 }}>
+            <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>{PREGNANT_QUESTION}</Text>
+            <YesNo value={pregnant} onChange={setPregnant} accessibilityLabel={PREGNANT_QUESTION} />
+          </View>
+        ) : null}
         <View style={{ gap: 10 }}>
           <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>{UNWELL_QUESTION}</Text>
           <YesNo value={unwell} onChange={setUnwell} accessibilityLabel={UNWELL_QUESTION} />

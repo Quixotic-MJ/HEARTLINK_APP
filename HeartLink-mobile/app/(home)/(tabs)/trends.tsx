@@ -183,7 +183,7 @@ export default function TrendsTabScreen() {
         ${row("Sodium", s.sodium.daysLogged ? `${s.sodium.perDay.toLocaleString()} mg a day; over the ${sodiumLimit.toLocaleString()} mg limit on ${s.sodium.daysOver} of ${s.sodium.daysLogged} days` : "No meals logged")}
         ${row("Movement", `${s.movement.perDay} min a day; goal of ${movementGoal} reached on ${s.movement.daysAtGoal} days`)}
         ${row("Sleep", s.sleep.nightsLogged ? `${s.sleep.perNight} h a night over ${s.sleep.nightsLogged} nights` : "No sleep logged")}
-        <p class="note">From what the patient logged in HeartLink. It is not a diagnosis.</p>
+        <p class="note">From what the user logged in HeartLink. It is not a diagnosis.</p>
       </body></html>`;
     try {
       const result = await sharePdf(html, `HeartLink_trends_${period}_days`, "Share your report");

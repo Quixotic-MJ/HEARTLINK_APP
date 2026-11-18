@@ -25,6 +25,8 @@ import {
   isSymptomEmergency,
 } from "../../../services/vitalsCheck";
 import { apiFetch } from "../../../lib/api";
+import { loadHeartAnswers } from "../../../services/heartScore";
+import { startsWithNoMedicines } from "../../../services/medicineDefault";
 
 // Wait, buzz 0.5 s, pause 0.25 s, three times (Android follows the pattern; iPhones give one long buzz).
 const EMERGENCY_BUZZ = [0, 500, 250, 500, 250, 500];
@@ -154,15 +156,24 @@ export default function LogSymptomsScreen() {
     };
   }, [userId, token]);
 
-  // Someone who said they take no regular medicines isn't asked again each day.
+  // Someone who said they take no regular medicines isn't asked again each day. Before they've answered here, setup's
+  // answers decide (no BP or cholesterol medicine, no diabetes): the question starts on "I don't take any" (2026-11-19).
   useEffect(() => {
-    if (!noMedsKey) return;
-    AsyncStorage.getItem(noMedsKey)
-      .then((v) => {
-        if (v === "true") setMedicine((m) => m ?? "none");
-      })
-      .catch(() => {});
-  }, [noMedsKey]);
+    if (!noMedsKey || !userId) return;
+    let alive = true;
+    (async () => {
+      try {
+        const saved = await AsyncStorage.getItem(noMedsKey);
+        const answers = saved === null ? await loadHeartAnswers(userId).catch(() => null) : null;
+        if (alive && startsWithNoMedicines(saved, answers)) setMedicine((m) => m ?? "none");
+      } catch {
+        // The question just starts unanswered.
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [noMedsKey, userId]);
 
   useEffect(() => {
     if (fromExercise && symptomsY > 0) {
@@ -705,7 +716,8 @@ export default function LogSymptomsScreen() {
             <View style={{ backgroundColor: c.canvas, borderRadius: 12, padding: 16, marginBottom: 16, gap: 6 }}>
               <Text style={{ fontSize: 14, fontWeight: "600", color: c.ink }}>While you wait</Text>
               <Text style={{ fontSize: 14, lineHeight: 20, color: c.charcoal }}>
-                Sit or lie down. Stay calm. If prescribed, take aspirin only if advised by a doctor to do so. Do not drive yourself.
+                {/* 2026-11-19: the aspirin line was removed; it showed for very low blood pressure and fainting too */}
+                Sit or lie down. Stay calm. Do not drive yourself.
               </Text>
             </View>
             <AnimatedButton

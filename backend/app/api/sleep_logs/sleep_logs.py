@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, status
 from typing import List, Dict, Any
 from app.services.heart_score import try_recalculate
-from app.services.sleep_logs import get_sleep_logs, create_sleep_log, delete_sleep_log
+from app.services.sleep_logs import get_sleep_logs, create_sleep_log, delete_sleep_log, find_overlap, overlap_message
 from app.utils.security import get_current_user, verify_user_access, check_expert_permission
 
 router = APIRouter(prefix="/api/sleep-logs", tags=["Sleep Logs"])
@@ -51,6 +51,12 @@ def add_sleep_log(user_id: str, data: Dict[str, Any], current_user: dict = Depen
         data["quality"] = canonical_quality
     else:
         data["quality"] = "Good"
+
+    # 2026-11-19: the same night can't be logged twice (a nap at another time still adds up)
+    if data.get("bedtime") and data.get("wake_time"):
+        clash = find_overlap(user_id, data["bedtime"], data["wake_time"])
+        if clash:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=overlap_message(clash))
 
     log = create_sleep_log(user_id, data)
     try_recalculate(user_id, "sleep_log")

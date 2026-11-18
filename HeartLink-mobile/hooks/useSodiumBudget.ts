@@ -2,8 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import { useUser } from "../contexts/UserContext";
 import { getToken } from "../lib/secureTokenStore";
 import { apiFetch } from "../lib/api";
-import { DEFAULT_SODIUM_LIMIT_MG } from "../services/foodLogging";type DashboardSodium = {
-  nutrition_budget?: { sodium?: { consumed_mg?: number | null; limit_mg?: number | null } };
+import { DEFAULT_SODIUM_LIMIT_MG } from "../services/foodLogging";
+type DashboardSodium = {
+  nutrition_budget?: {
+    sodium?: { consumed_mg?: number | null; limit_mg?: number | null };
+    sat_fat?: { limit_g?: number | null };
+  };
   today_activity?: { total_sodium_mg?: number | null };
 };
 
@@ -27,9 +31,12 @@ export function useSodiumBudget() {
     },
   });
   const sodium = query.data?.nutrition_budget?.sodium;
+  const satFatLimit = query.data?.nutrition_budget?.sat_fat?.limit_g;
   return {
     consumedMg: sodium?.consumed_mg ?? query.data?.today_activity?.total_sodium_mg ?? 0,
     limitMg: sodium?.limit_mg && sodium.limit_mg > 0 ? sodium.limit_mg : DEFAULT_SODIUM_LIMIT_MG,
+    // The patient's own saturated fat limit (6% of their calories), as in Goals & limits; null until loaded (2026-11-19)
+    satFatLimitG: satFatLimit && satFatLimit > 0 ? Math.round(satFatLimit) : null,
     isLoading: query.isLoading,
   };
 }

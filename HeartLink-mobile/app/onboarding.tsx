@@ -8,7 +8,6 @@ import Animated, {
   Easing,
   FadeIn,
   FadeInDown,
-  FadeInLeft,
   ZoomIn,
   useAnimatedStyle,
   useReducedMotion,
@@ -22,94 +21,15 @@ import "../global.css";
 import HeartLogo from "../components/ui/HeartLogo";
 import DsButton from "../components/onboarding/DsButton";
 import { useDs } from "../components/onboarding/useDs";
-import type { DsColors } from "../constants/theme";
 
-// ─── A day with HeartLink ─────────────────────────────────────────────────────
-// The features are told as one example day, ending at the heart (the score).
-// The whole screen fits without scrolling: the timeline stretches to fill spare height.
+// ─── Welcome ──────────────────────────────────────────────────────────────────
+// 2026-11-18: a plain welcome (logo, name, one line) instead of the list of features, which promised things not
+// every user gets (the 10-year heart risk is for ages 30 to 79 only). What the app does is shown later, in setup.
 
-interface DayMoment {
-  when: string;
-  title: string;
-  body: string;
-  icon: "activity" | "sun" | "zap";
-  badgeBg: string;
-  borderColor: string;
-  iconColor: string;
-}
-
-// Colours are design-system tokens, so the cards follow light and dark mode
-const DAY = (c: DsColors): DayMoment[] => [
-  {
-    when: "Morning",
-    title: "Log your blood pressure",
-    body: "Unusual readings are flagged right away.",
-    icon: "activity",
-    badgeBg: c.tint, // Primary blue tint
-    borderColor: c.hairline,
-    iconColor: c.line, // Primary blue
-  },
-  {
-    when: "Midday",
-    title: "Pick a heart-friendly lunch",
-    body: "Every recipe shows its sodium and heart impact.",
-    icon: "sun",
-    badgeBg: c.mint, // Emerald tint
-    borderColor: c.hairline,
-    iconColor: c.success,
-  },
-  {
-    when: "Evening",
-    title: "Move at your own pace",
-    body: "Workouts match your current stamina.",
-    icon: "zap",
-    badgeBg: c.lavender, // Violet tint
-    borderColor: c.hairline,
-    iconColor: c.charcoal,
-  },
-];
-
-// One orchestrated sequence: headline, then each moment of the day in turn,
-// the line growing between them, ending with the heart starting to beat.
-const START_MS = 450;
-const STEP_MS = 420;
-const FINAL_MS = START_MS + 3 * STEP_MS;
-
-// Below this height the supporting lines are dropped so nothing needs scrolling.
+// Below this height the logo is smaller so nothing needs scrolling.
 const COMPACT_HEIGHT = 700;
 
-// ─── Line segment (grows downward once) ───────────────────────────────────────
-
-function Segment({ color, delay }: { color: string; delay: number }) {
-  const reduceMotion = useReducedMotion();
-  const progress = useSharedValue(reduceMotion ? 1 : 0);
-
-  useEffect(() => {
-    if (reduceMotion) return;
-    progress.value = withDelay(delay, withTiming(1, { duration: STEP_MS, easing: Easing.out(Easing.cubic) }));
-  }, [delay, progress, reduceMotion]);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scaleY: progress.value }],
-  }));
-
-  return (
-    <Animated.View
-      style={[
-        {
-          flex: 1,
-          width: 1.5,
-          marginTop: 6,
-          backgroundColor: color,
-          transformOrigin: "top",
-        },
-        animatedStyle,
-      ]}
-    />
-  );
-}
-
-// ─── Heart at the end of the line (beats once the day is complete) ────────────
+// ─── The logo, beating slowly ─────────────────────────────────────────────────
 
 function BeatingHeart({ size, delay }: { size: number; delay: number }) {
   const reduceMotion = useReducedMotion();
@@ -122,9 +42,9 @@ function BeatingHeart({ size, delay }: { size: number; delay: number }) {
       delay,
       withRepeat(
         withSequence(
-          withTiming(1.18, { duration: 140, easing: Easing.out(Easing.quad) }),
+          withTiming(1.12, { duration: 140, easing: Easing.out(Easing.quad) }),
           withTiming(1, { duration: 160 }),
-          withTiming(1.1, { duration: 120, easing: Easing.out(Easing.quad) }),
+          withTiming(1.06, { duration: 120, easing: Easing.out(Easing.quad) }),
           withTiming(1, { duration: 220 }),
           withTiming(1, { duration: 1300 })
         ),
@@ -144,21 +64,14 @@ function BeatingHeart({ size, delay }: { size: number; delay: number }) {
   );
 }
 
-// ─── Onboarding Screen ────────────────────────────────────────────────────────
+// ─── Welcome Screen ───────────────────────────────────────────────────────────
 
 export default function OnboardingScreen() {
   const router = useRouter();
   const { height } = useWindowDimensions();
   const compact = height < COMPACT_HEIGHT;
   const { c, isDark } = useDs();
-
-  const headline = {
-    fontSize: compact ? 29 : 34,
-    lineHeight: compact ? 34 : 39,
-    fontWeight: "700" as const,
-    letterSpacing: -0.8,
-    color: c.ink,
-  };
+  const logoSize = compact ? 64 : 84;
 
   // No server pre-check here: registration reports connection errors on submit,
   // so a slow or sleeping server never blocks a new user at the first tap.
@@ -170,130 +83,60 @@ export default function OnboardingScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: c.canvas }} edges={["top", "bottom"]}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      <View className="flex-1 px-6">
-        {/* ── Brand Logo Bar ── */}
+      {/* ── Logo, name and one line, in the middle of the screen ── */}
+      <View className="flex-1 items-center justify-center px-8">
         <Animated.View
-          entering={FadeIn.duration(400)}
-          className={compact ? "flex-row items-center pt-3 mb-4" : "flex-row items-center pt-4 mb-6"}
-        >
-          <View className="flex-row items-center">
-            <HeartLogo size={26} />
-            <Text style={{ marginLeft: 10, fontSize: 18, fontWeight: "700", letterSpacing: -0.3, color: c.ink }}>
-              HeartLink
-            </Text>
-          </View>
-        </Animated.View>
-
-        {/* ── Headline ── */}
-        <View accessible={true} accessibilityRole="header" accessibilityLabel="Your heart, one day at a time." className="mb-2">
-          <Animated.Text entering={FadeInDown.delay(80).duration(500).easing(Easing.out(Easing.cubic))} style={headline}>
-            Your heart,
-          </Animated.Text>
-          <Animated.Text entering={FadeInDown.delay(220).duration(500).easing(Easing.out(Easing.cubic))} style={headline}>
-            one day at a time.
-          </Animated.Text>
-        </View>
-        <Animated.Text
-          entering={FadeIn.delay(360).duration(500)}
+          entering={ZoomIn.duration(500).springify().damping(14).stiffness(140)}
           style={{
-            fontSize: compact ? 14.5 : 15.5,
-            lineHeight: compact ? 21 : 23,
-            color: c.slate,
-            marginBottom: compact ? 18 : 26,
+            width: logoSize + 44,
+            height: logoSize + 44,
+            borderRadius: (logoSize + 44) / 2,
+            backgroundColor: c.tint,
+            alignItems: "center",
+            justifyContent: "center",
+            marginBottom: compact ? 24 : 32,
           }}
         >
-          Small daily check-ins, one clear picture of your heart.
-        </Animated.Text>
+          <BeatingHeart size={logoSize} delay={900} />
+        </Animated.View>
 
-        {/* ── Example day: stretches to fill the remaining height ── */}
-        <View className="flex-1">
-          {DAY(c).map((moment, i) => {
-            const at = START_MS + i * STEP_MS;
-            return (
-              <View key={moment.when} className="flex-row flex-grow">
-                {/* Timeline node & vertical track */}
-                <View className="w-8 items-center">
-                  <Animated.View
-                    entering={ZoomIn.delay(at).springify().damping(12).stiffness(160)}
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: 8,
-                      backgroundColor: moment.badgeBg,
-                      borderWidth: 1,
-                      borderColor: moment.borderColor,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      marginTop: 2,
-                    }}
-                  >
-                    <Feather name={moment.icon} size={14} color={moment.iconColor} />
-                  </Animated.View>
-                  <Segment color={c.hairline} delay={at + 120} />
-                </View>
+        {/* The animation sits on a wrapper, not on the Text: on Android an animated Text that wraps is measured as
+            one line, so the second line ("HeartLink") was cut off. The title is two set lines for the same reason. */}
+        <Animated.View
+          entering={FadeInDown.delay(150).duration(500).easing(Easing.out(Easing.cubic))}
+          accessible={true}
+          accessibilityRole="header"
+          accessibilityLabel="Welcome to HeartLink"
+        >
+          {["Welcome to", "HeartLink"].map((line) => (
+            <Text
+              key={line}
+              style={{
+                fontSize: compact ? 28 : 32,
+                lineHeight: compact ? 34 : 38,
+                fontWeight: "700",
+                letterSpacing: -0.8,
+                color: c.ink,
+                textAlign: "center",
+              }}
+            >
+              {line}
+            </Text>
+          ))}
+        </Animated.View>
 
-                {/* Timeline content */}
-                <Animated.View
-                  entering={FadeInLeft.delay(at).duration(380).easing(Easing.out(Easing.cubic))}
-                  className="flex-1 pl-3.5 pb-4"
-                  accessible={true}
-                  accessibilityLabel={`${moment.when}. ${moment.title}. ${moment.body}`}
-                >
-                  <Text style={{ fontSize: 11, fontWeight: "700", color: c.steel, textTransform: "uppercase", letterSpacing: 0.6 }}>
-                    {moment.when}
-                  </Text>
-                  <Text style={{ fontSize: 15.5, fontWeight: "600", color: c.ink, marginTop: 2, letterSpacing: -0.2 }}>
-                    {moment.title}
-                  </Text>
-                  {!compact && (
-                    <Text style={{ fontSize: 13.5, lineHeight: 19, color: c.slate, marginTop: 2 }}>
-                      {moment.body}
-                    </Text>
-                  )}
-                </Animated.View>
-              </View>
-            );
-          })}
-
-          {/* ── End of the day: the score ── */}
-          <View
-            className="flex-row pb-3"
-            accessible={true}
-            accessibilityLabel="By tonight. Your heart risk and habits score. Your 10-year heart risk, plus a habits score that moves as you log."
+        <Animated.View entering={FadeIn.delay(350).duration(500)} style={{ marginTop: 10, maxWidth: 300 }}>
+          <Text
+            style={{
+              fontSize: compact ? 15 : 16,
+              lineHeight: compact ? 22 : 24,
+              color: c.slate,
+              textAlign: "center",
+            }}
           >
-            <View className="w-8 items-center">
-              <Animated.View
-                entering={ZoomIn.delay(FINAL_MS).springify().damping(10).stiffness(140)}
-                style={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: 9,
-                  backgroundColor: c.tint,
-                  borderWidth: 1,
-                  borderColor: c.hairline,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginTop: -2,
-                }}
-              >
-                <BeatingHeart size={20} delay={FINAL_MS + 400} />
-              </Animated.View>
-            </View>
-            <Animated.View entering={FadeInLeft.delay(FINAL_MS).duration(380).easing(Easing.out(Easing.cubic))} className="flex-1 pl-3.5">
-              <Text style={{ fontSize: 11, fontWeight: "700", color: c.primary, textTransform: "uppercase", letterSpacing: 0.6 }}>
-                By tonight
-              </Text>
-              <Text style={{ fontSize: 15.5, fontWeight: "600", color: c.ink, marginTop: 2, letterSpacing: -0.2 }}>
-                Your heart risk and habits score
-              </Text>
-              {!compact && (
-                <Text style={{ fontSize: 13.5, lineHeight: 19, color: c.slate, marginTop: 2 }}>
-                  Your 10-year heart risk, plus a habits score that moves as you log.
-                </Text>
-              )}
-            </Animated.View>
-          </View>
-        </View>
+            Small daily habits for a healthier heart.
+          </Text>
+        </Animated.View>
       </View>
 
       {/* ── Actions (Fixed Footer) ── */}
@@ -303,11 +146,12 @@ export default function OnboardingScreen() {
           paddingHorizontal: 24,
           paddingTop: compact ? 12 : 16,
           paddingBottom: compact ? 12 : 20,
-          borderTopWidth: 1,
-          borderTopColor: c.hairlineSoft,
           gap: 6,
         }}
       >
+        <Text style={{ fontSize: 12.5, lineHeight: 18, color: c.steel, textAlign: "center", marginBottom: 8 }}>
+          For tracking and prevention. Not a diagnosis.
+        </Text>
         <DsButton
           label="Get started"
           onPress={handleGetStarted}

@@ -828,7 +828,7 @@ const ExerciseFormModal = ({
                     Before you start
                   </h4>
                   <p className="mb-3 text-[12.5px] text-cal-muted">
-                    Patients tick these off in the mobile app.
+                    Users tick these off in the mobile app.
                   </p>
                   {(v.requirements || []).length ? (
                     <div className="flex flex-wrap gap-1.5">
@@ -1639,8 +1639,8 @@ const ExerciseFormModal = ({
                       approvedOn ? ` on ${approvedOn}` : ""
                     }.`
                   : isPT
-                    ? "Patients only see this routine after you approve it."
-                    : "Patients can't see this until a Physical Therapist approves it."}
+                    ? "Users only see this routine after you approve it."
+                    : "Users can't see this until a Physical Therapist approves it."}
               </p>
               {isPT && !approved && status !== "archived" && (
                 <button
@@ -1650,7 +1650,7 @@ const ExerciseFormModal = ({
                   className={primaryBtn}
                 >
                   <ShieldCheck size={15} />
-                  <span>{saving ? "Saving…" : "Approve for patients"}</span>
+                  <span>{saving ? "Saving…" : "Approve for users"}</span>
                 </button>
               )}
               {canAuthor && (
@@ -1680,10 +1680,10 @@ const ExerciseFormModal = ({
                 {exercise?.status === "published"
                   ? isPT
                     ? "Your saved changes stay approved."
-                    : "Saving content changes hides this routine from patients until a Physical Therapist approves it again."
+                    : "Saving content changes hides this routine from users until a Physical Therapist approves it again."
                   : isPT
-                    ? "Save it, then approve it for patients."
-                    : "Save it, then a Physical Therapist approves it for patients."}
+                    ? "Save it, then approve it for users."
+                    : "Save it, then a Physical Therapist approves it for users."}
               </p>
               <button
                 type="button"

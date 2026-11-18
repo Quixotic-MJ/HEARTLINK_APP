@@ -14,6 +14,8 @@ interface SetupHeaderProps {
   /** Where the bar starts when the screen opens, so it fills forward from the last screen. */
   fromProgress?: number;
   title?: string;
+  /** After the four parts (the exercise safety check): the bar stays, full, with `title` as the label. */
+  allPartsDone?: boolean;
   onBack?: () => void;
   onFinishLater?: () => void;
 }
@@ -32,12 +34,14 @@ function SegmentFill({ from, to, color }: { from: number; to: number; color: str
 
 // Top of every set-up screen: back, "Part N of 4 · Name", Finish later, and one
 // progress bar that runs across all four parts.
-export default function SetupHeader({ part, partName, progress = 0, fromProgress, title, onBack, onFinishLater }: SetupHeaderProps) {
+export default function SetupHeader({ part, partName, progress = 0, fromProgress, title, allPartsDone, onBack, onFinishLater }: SetupHeaderProps) {
   const { c } = useDs();
-  const label = part ? `Part ${part} of ${SETUP_PARTS} · ${partName ?? ""}` : title ?? "";
+  const label = part && !allPartsDone ? `Part ${part} of ${SETUP_PARTS} · ${partName ?? ""}` : title ?? "";
   const clamp = (v: number) => Math.max(0, Math.min(1, v));
-  const clamped = clamp(progress);
-  const start = clamp(fromProgress ?? progress);
+  const clamped = allPartsDone ? 1 : clamp(progress);
+  const start = allPartsDone ? 1 : clamp(fromProgress ?? progress);
+  // With every part done, the bar shows all four parts full
+  const barPart = allPartsDone ? SETUP_PARTS : part;
 
   return (
     <View className="px-6 pt-3">
@@ -71,18 +75,18 @@ export default function SetupHeader({ part, partName, progress = 0, fromProgress
         )}
       </View>
 
-      {part ? (
+      {barPart ? (
         <View
           className="flex-row"
           style={{ gap: 4 }}
           accessible
           accessibilityRole="progressbar"
-          accessibilityLabel={`Set-up progress: part ${part} of ${SETUP_PARTS}`}
+          accessibilityLabel={allPartsDone ? "Set-up progress: all parts done" : `Set-up progress: part ${part} of ${SETUP_PARTS}`}
         >
           {Array.from({ length: SETUP_PARTS }, (_, i) => {
             const n = i + 1;
-            const fill = n < part ? 1 : n === part ? clamped : 0;
-            const from = n === part ? start : fill;
+            const fill = n < barPart ? 1 : n === barPart ? clamped : 0;
+            const from = n === barPart ? start : fill;
             return (
               <View key={n} style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: c.hairlineSoft, overflow: "hidden" }}>
                 <SegmentFill from={from} to={fill} color={c.line} />

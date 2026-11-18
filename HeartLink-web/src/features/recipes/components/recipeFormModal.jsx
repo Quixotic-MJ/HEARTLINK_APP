@@ -1104,8 +1104,8 @@ const FoodFormModal = ({
                   : approved
                   ? `Approved by a dietitian${approvedOn ? ` on ${approvedOn}` : ""}.`
                   : isDietitian
-                    ? "Patients only see this recipe after you approve it."
-                    : "Patients can't see this until a Dietitian approves it."}
+                    ? "Users only see this recipe after you approve it."
+                    : "Users can't see this until a Dietitian approves it."}
               </p>
               {isDietitian && !approved && status !== "archived" ? (
                 <>
@@ -1116,7 +1116,7 @@ const FoodFormModal = ({
                     className={primaryBtn}
                   >
                     <ShieldCheck size={15} />
-                    <span>Approve for patients</span>
+                    <span>Approve for users</span>
                   </button>
                 </>
               ) : canEdit ? (
@@ -1140,10 +1140,10 @@ const FoodFormModal = ({
                 {recipe && isDietitian
                   ? "Your saved changes stay approved."
                   : recipe
-                    ? "Saving content changes hides this recipe from patients until a Dietitian approves it again."
+                    ? "Saving content changes hides this recipe from users until a Dietitian approves it again."
                     : isDietitian
-                      ? "Save it, then approve it for patients."
-                      : "A Dietitian approves this recipe before patients see it."}
+                      ? "Save it, then approve it for users."
+                      : "A Dietitian approves this recipe before users see it."}
               </p>
               <button type="button" onClick={onClose} disabled={busy} className={secondaryBtn}>
                 Cancel

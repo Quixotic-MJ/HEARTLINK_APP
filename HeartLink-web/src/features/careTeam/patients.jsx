@@ -95,11 +95,11 @@ export default function Patients() {
       <div className="workspace workspace--operations mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
         <WorkspaceHeader
           icon={HeartPulse}
-          title={isCardiologist ? "Cardiologist dashboard" : "Patients"}
+          title={isCardiologist ? "Cardiologist dashboard" : "App users"}
           description={
             isCardiologist
-              ? "Every patient's latest blood pressure, heart risk, habits score and open alerts. Open a patient to read their logs and leave guidance for the dietitians and physical therapists."
-              : "Open a patient to read the cardiologist's guidance and coordinate in the shared care-team thread."
+              ? "Every user's latest blood pressure, heart risk, habits score and open alerts. Open a user to read their logs and leave guidance for the dietitians and physical therapists."
+              : "Open a user to read the cardiologist's guidance and coordinate in the shared care-team thread."
           }
         />
 
@@ -117,7 +117,7 @@ export default function Patients() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[12.5px] font-medium text-cal-muted">Patients</span>
+              <span className="text-[12.5px] font-medium text-cal-muted">App users</span>
               <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-soft text-cal-ink">
                 <Users size={14.5} aria-hidden="true" />
               </span>
@@ -167,7 +167,7 @@ export default function Patients() {
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cal-hairline bg-cal-canvas px-4 py-3.5 sm:px-5">
             <div
               role="group"
-              aria-label="Filter patients"
+              aria-label="Filter users"
               className="relative inline-flex flex-wrap items-center gap-1 rounded-[16px] sm:rounded-full border border-cal-hairline/80 bg-cal-surface-soft p-1"
             >
               {FILTERS.map(([key, label]) => {
@@ -206,7 +206,7 @@ export default function Patients() {
 
             <div className="relative w-full sm:w-64">
               <label htmlFor="patient-ref-search" className="sr-only">
-                Find a patient by reference
+                Find a user by reference
               </label>
               <Search
                 size={14.5}
@@ -240,7 +240,7 @@ export default function Patients() {
               <thead className="border-b border-cal-hairline bg-cal-surface-soft">
                 <tr>
                   <th scope="col" className="px-5 py-3 text-[12px] font-medium text-cal-muted">
-                    Patient
+                    User
                   </th>
                   <th scope="col" className="px-5 py-3 text-[12px] font-medium text-cal-muted">
                     Latest blood pressure
@@ -275,7 +275,7 @@ export default function Patients() {
                 ) : patients.isError ? (
                   <tr>
                     <td colSpan={6}>
-                      <LoadError what="patients" onRetry={patients.refetch} className="py-12" />
+                      <LoadError what="app users" onRetry={patients.refetch} className="py-12" />
                     </td>
                   </tr>
                 ) : shown.length === 0 ? (
@@ -283,14 +283,14 @@ export default function Patients() {
                     <td colSpan={6} className="px-5 py-14 text-center">
                       <p className="text-[14px] font-semibold text-cal-ink">
                         {rows.length === 0
-                          ? "No patients yet"
+                          ? "No users yet"
                           : needle
-                            ? `No patient matches ${needle}`
-                            : "No patients match this filter"}
+                            ? `No user matches ${needle}`
+                            : "No users match this filter"}
                       </p>
                       <p className="mt-1 text-[13px] text-cal-muted">
                         {rows.length === 0
-                          ? "Anonymized patient profiles will appear here once mobile accounts register."
+                          ? "Anonymized user profiles will appear here once mobile accounts register."
                           : "Try switching back to All or clearing the reference search."}
                       </p>
                       {rows.length > 0 && (filter !== "all" || needle) && (
