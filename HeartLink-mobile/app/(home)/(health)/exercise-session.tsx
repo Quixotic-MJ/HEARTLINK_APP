@@ -29,6 +29,7 @@ import { SessionScreenProps, WORKOUT } from "../../../components/exercise/Exerci
 import { RoutineApi, exerciseKind, needsScreening, pauseReason, toRoutine } from "../../../services/exerciseSession";
 import { useExerciseScreening } from "../../../hooks/useExerciseScreening";
 import { useSavedExercises } from "../../../hooks/useExploreData";
+import { checkedBefore as wasCheckedBefore, rememberChecked } from "../../../services/beforeYouStart";
 
 // A guided exercise, start to finish: details → get ready → the "during" screen for its type →
 // how do you feel → saved. "I feel unwell" (always on screen) saves what was done as stopped
@@ -73,6 +74,19 @@ export default function ExerciseSessionScreen() {
     select: toRoutine,
   });
   const routine = routineQuery.data;
+
+  // "Before you start": the full list the first time for this exercise, then the short reminder (2026-11-18)
+  const [checkedBefore, setCheckedBefore] = useState(false);
+  useEffect(() => {
+    if (!userId || !id) return;
+    let live = true;
+    wasCheckedBefore(userId, id).then((done) => {
+      if (live) setCheckedBefore(done);
+    });
+    return () => {
+      live = false;
+    };
+  }, [userId, id]);
 
   const [phase, setPhase] = useState<Phase>("overview");
   const [sheet, setSheet] = useState<Sheet>(null);
@@ -278,7 +292,20 @@ export default function ExerciseSessionScreen() {
       ) : null}
 
       {phase === "check" ? (
-        <BeforeYouStart routine={routine} say={say} onBack={() => setPhase("overview")} onReady={() => setPhase("ready")} />
+        <BeforeYouStart
+          key={checkedBefore ? "short" : "full"}
+          routine={routine}
+          say={say}
+          checkedBefore={checkedBefore}
+          onBack={() => setPhase("overview")}
+          onReady={({ fullList }) => {
+            if (fullList && userId && id) {
+              rememberChecked(userId, id);
+              setCheckedBefore(true);
+            }
+            setPhase("ready");
+          }}
+        />
       ) : null}
 
       {phase === "ready" ? (
