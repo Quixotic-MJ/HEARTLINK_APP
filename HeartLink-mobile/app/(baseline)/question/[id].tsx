@@ -22,9 +22,12 @@ import { useDs } from "../../../components/onboarding/useDs";
 import { BaselineData, useBaseline } from "../../../contexts/BaselineContext";
 import {
   SetupQuestion,
+  UNDER_AGE_MESSAGE,
   ageFrom,
+  dobProblem,
   formatDob,
   isAnswered,
+  latestBirthDate,
   parseYMD,
   partOf,
   questionById,
@@ -32,12 +35,17 @@ import {
   visibleQuestions,
 } from "../../../constants/setupQuestions";
 
-function errorFor(q: SetupQuestion): string {
+function errorFor(q: SetupQuestion, d: BaselineData): string {
   switch (q.kind) {
     case "name":
       return "Please enter your first name.";
-    case "dob":
+    case "dob": {
+      // HeartLink is for adults (Terms of Service, 2026-11-18)
+      const problem = dobProblem(d.date_of_birth);
+      if (problem === "under_age") return UNDER_AGE_MESSAGE;
+      if (problem === "too_old") return "Please check the year of your date of birth.";
       return "Please choose your date of birth.";
+    }
     case "body":
       return "Enter a height between 50 and 300 cm and a weight between 20 and 400 kg.";
     case "allergies":
@@ -185,7 +193,7 @@ export default function QuestionScreen() {
                 value={parseYMD(data.date_of_birth) ?? new Date(1990, 0, 1)}
                 mode="date"
                 display="default"
-                maximumDate={new Date()}
+                maximumDate={latestBirthDate()}
                 onValueChange={(_event, date) => {
                   setShowPicker(false);
                   // Local date, not toISOString(): that is UTC and saved the day before in the Philippines.
@@ -345,7 +353,7 @@ export default function QuestionScreen() {
           >
             <Feather name="alert-circle" size={17} color={c.danger} />
             <Text style={{ flex: 1, fontSize: 13.5, fontWeight: "500", color: c.ink }}>
-              {errorFor(q)}
+              {errorFor(q, data)}
             </Text>
           </Animated.View>
         ) : null}

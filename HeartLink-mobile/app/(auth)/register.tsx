@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   TextInput,
-  Linking,
 } from "react-native";
 import { useRouter } from "expo-router";
 import Animated, {
@@ -65,10 +64,8 @@ const HEALTH_DATA_CONSENT = "I agree that HeartLink stores my health information
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
-// Same links as Settings → About.
-const openLegal = (path: "terms" | "privacy") => {
-  Linking.openURL(`https://heartlink.com/${path}`);
-};
+// Same pages as Settings → About: inside the app (app/legal.tsx), so they open without a website (2026-11-18)
+const legalRoute = (doc: "terms" | "privacy") => ({ pathname: "/legal" as const, params: { doc } });
 
 // ─── Register Screen ──────────────────────────────────────────────────────────
 
@@ -268,18 +265,18 @@ export default function RegisterScreen() {
             By continuing you agree to our{" "}
             <Text
               style={{ color: c.primary, fontWeight: "600" }}
-              onPress={() => openLegal("terms")}
+              onPress={() => router.push(legalRoute("terms"))}
               accessibilityRole="link"
-              accessibilityLabel="Terms, opens in browser"
+              accessibilityLabel="Terms of Service"
             >
               Terms of Service
             </Text>
             {" "}and{" "}
             <Text
               style={{ color: c.primary, fontWeight: "600" }}
-              onPress={() => openLegal("privacy")}
+              onPress={() => router.push(legalRoute("privacy"))}
               accessibilityRole="link"
-              accessibilityLabel="Privacy Policy, opens in browser"
+              accessibilityLabel="Privacy Policy"
             >
               Privacy Policy
             </Text>

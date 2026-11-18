@@ -446,6 +446,25 @@ export function ageFrom(value: string): number | null {
   return age;
 }
 
+/** HeartLink is for adults (Terms of Service, 2026-11-18); the server checks the same ages. */
+export const MIN_AGE = 18;
+export const MAX_AGE = 120;
+export const UNDER_AGE_MESSAGE = "You need to be 18 or older to use HeartLink.";
+
+/** The latest birth date the date picker allows: today, 18 years ago. */
+export function latestBirthDate(now: Date = new Date()): Date {
+  return new Date(now.getFullYear() - MIN_AGE, now.getMonth(), now.getDate());
+}
+
+/** What's wrong with a birth date, if anything. */
+export function dobProblem(value: string): "missing" | "under_age" | "too_old" | null {
+  const age = ageFrom(value);
+  if (age === null || age < 0) return "missing";
+  if (age < MIN_AGE) return "under_age";
+  if (age > MAX_AGE) return "too_old";
+  return null;
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 export function isShown(q: SetupQuestion, d: BaselineData): boolean {
@@ -478,10 +497,8 @@ export function isAnswered(q: SetupQuestion, d: BaselineData): boolean {
   switch (q.kind) {
     case "name":
       return d.first_name.trim().length > 0;
-    case "dob": {
-      const age = ageFrom(d.date_of_birth);
-      return age !== null && age >= 0 && age <= 120;
-    }
+    case "dob":
+      return dobProblem(d.date_of_birth) === null;
     case "body":
       return validHeight(d.height_cm) && validWeight(d.weight_kg);
     case "choice":
