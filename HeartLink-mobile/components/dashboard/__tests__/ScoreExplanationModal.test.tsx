@@ -62,7 +62,7 @@ describe("ScoreExplanationModal", () => {
 
   it("says plainly what isn't reviewed or validated", async () => {
     await show(FACTORS);
-    expect(screen.getByText(/waiting for expert review/)).toBeOnTheScreen();
+    expect(screen.getByText(/HeartLink's own rules/)).toBeOnTheScreen();
     expect(screen.getByText(/hasn't been validated/)).toBeOnTheScreen();
   });
 

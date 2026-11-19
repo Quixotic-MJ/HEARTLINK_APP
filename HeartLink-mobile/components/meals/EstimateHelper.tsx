@@ -137,7 +137,7 @@ export function EstimateHelper({
 
       <InfoNote
         icon="info"
-        text="An estimate from USDA FoodData Central values (US foods and recipes), pending Dietitian review. Use a food label when you have one."
+        text="An estimate from USDA FoodData Central values (US foods and recipes). Use a food label when you have one."
       />
     </View>
   );

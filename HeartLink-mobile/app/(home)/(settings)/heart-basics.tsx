@@ -26,7 +26,7 @@ export default function HeartBasicsScreen() {
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 80, gap: 28 }} showsVerticalScrollIndicator={false}>
         <Text style={{ fontSize: 14, lineHeight: 20, color: c.slate }}>
-          {REVIEWED_BY ? `${REVIEWED_BY}. ` : "Draft, waiting for expert review. "}
+          {REVIEWED_BY ? `${REVIEWED_BY}. ` : ""}
           General information, not medical advice.
         </Text>
 

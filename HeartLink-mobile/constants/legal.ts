@@ -23,7 +23,6 @@ export interface LegalDoc {
   sections: LegalSection[];
 }
 
-export const LEGAL_STATUS = "Draft, pending our adviser's review";
 
 const UPDATED = "18 November 2026";
 
