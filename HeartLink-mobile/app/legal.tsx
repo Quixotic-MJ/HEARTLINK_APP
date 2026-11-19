@@ -5,7 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useDs } from "../components/onboarding/useDs";
 import { SquareIconButton } from "../components/exercise/ExerciseBits";
-import { LEGAL_STATUS, legalDoc } from "../constants/legal";
+import { legalDoc } from "../constants/legal";
 
 // The Terms of Service (?doc=terms) and Privacy Policy (?doc=privacy), inside the app so they open without a website
 // (2026-11-18). Reachable signed in or out: sign-up links here, and so does Settings › About HeartLink.
@@ -31,7 +31,7 @@ export default function LegalScreen() {
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 48, gap: 24 }} showsVerticalScrollIndicator={false}>
         <View style={{ gap: 8 }}>
           <Text style={{ fontSize: 13, color: c.slate }}>
-            {`Last updated ${page.updated} · ${LEGAL_STATUS}`}
+            {`Last updated ${page.updated}`}
           </Text>
           <Text style={{ fontSize: 16, lineHeight: 24, color: c.charcoal }}>{page.intro}</Text>
         </View>

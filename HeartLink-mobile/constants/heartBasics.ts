@@ -1,7 +1,8 @@
 /**
  * HL-100: short heart-health topics. General education only: no diagnosis or treatment advice. The emergency numbers
  * must stay the same as the app's emergency rule (log-symptoms.tsx, companionService.ts).
- * After an expert approves the text, set REVIEWED_BY (for example "Reviewed by our Cardiologist") and the draft line goes.
+ * After an expert approves the text, set REVIEWED_BY (for example "Reviewed by our Cardiologist") and it shows at the top.
+ * Until then nothing is said about a review (2026-11-19: the "Draft, waiting for expert review" line was removed).
  */
 export const REVIEWED_BY: string | null = null;
 

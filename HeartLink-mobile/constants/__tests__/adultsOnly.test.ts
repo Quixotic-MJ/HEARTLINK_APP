@@ -1,5 +1,5 @@
 import { dobProblem, isAnswered, latestBirthDate, questionById, toYMD } from "../setupQuestions";
-import { LEGAL_STATUS, TERMS } from "../legal";
+import { TERMS } from "../legal";
 import type { BaselineData } from "../../contexts/BaselineContext";
 
 // HeartLink is for adults aged 18 and over (Terms of Service, 2026-11-18): setup refuses a younger birth date.
@@ -40,6 +40,5 @@ describe("Date of birth: adults only", () => {
 
   it("says the same in the Terms", () => {
     expect(TERMS.sections.find((s) => s.heading === "Your account")?.bullets).toContain("You must be 18 or older.");
-    expect(LEGAL_STATUS).toMatch(/Draft/);
   });
 });

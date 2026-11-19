@@ -269,7 +269,7 @@ export function ScoreExplanationModal({
                   Where the points come from
                 </Text>
                 <Text style={{ fontSize: 14, lineHeight: 20, color: c.charcoal }}>
-                  {"The points for blood pressure, activity, sleep, nicotine, body weight, cholesterol and blood sugar come from the American Heart Association's Life's Essential 8. The diet points and the limits on your score are HeartLink's own, and they're waiting for expert review. Lab results are what you entered, not checked by HeartLink."}
+                  {"The points for blood pressure, activity, sleep, nicotine, body weight, cholesterol and blood sugar come from the American Heart Association's Life's Essential 8. The diet points and the limits on your score are HeartLink's own rules. Lab results are what you entered, not checked by HeartLink."}
                 </Text>
                 <Text style={{ fontSize: 14, lineHeight: 20, color: c.charcoal }}>
                   {"Your first score, before any logs, is a machine learning model's estimate of a Life's Essential 8 score. It was trained on a US health survey of 3,703 adults (NHANES 2017-2018)."}

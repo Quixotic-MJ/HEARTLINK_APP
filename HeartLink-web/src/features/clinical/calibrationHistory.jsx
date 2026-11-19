@@ -401,8 +401,7 @@ const ModelCheck = () => {
               {/* Practice & Score Gap Footnote Bar */}
               <div className="flex flex-wrap items-center justify-between gap-2 rounded-[10px] border border-cal-hairline bg-cal-surface-soft px-4 py-2.5 text-[12.5px] text-cal-muted">
                 <span>
-                  Practice reviews (by experts not yet verified as clinicians,
-                  excluded above):{" "}
+                  Practice reviews (excluded above):{" "}
                   <span className="font-cal-mono font-semibold tabular-nums text-cal-ink">
                     {data.practice.reviews}
                   </span>

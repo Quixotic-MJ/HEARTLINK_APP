@@ -364,7 +364,7 @@ function CardiologyForm({ caseId, existing, onSaved }) {
           ))}
         </div>
         <p className="mt-2 text-[12px] text-cal-muted">
-          Recorded now. User reminders remain switched off until clinical wording is approved.
+          Recorded with this review.
         </p>
       </fieldset>
 
@@ -481,8 +481,7 @@ function CardiologyResult({ section, app, canEdit, onEdit }) {
 
         <dt className="font-medium text-cal-muted">Checkup</dt>
         <dd className="m-0 text-cal-ink">
-          <span className="font-medium">{labelOf(CHECKUP, section.checkup_flag)}</span>{" "}
-          <span className="text-cal-muted">(user reminders are off for now)</span>
+          <span className="font-medium">{labelOf(CHECKUP, section.checkup_flag)}</span>
         </dd>
 
         <dt className="font-medium text-cal-muted">Counts as</dt>
@@ -702,7 +701,7 @@ function ItemsSection({ caseId, section, items, saved, canSubmit, onSaved }) {
             {saving ? "Submitting…" : `Submit ${SECTION_LABELS[section].toLowerCase()}`}
           </button>
           <span className="text-[12px] text-cal-muted">
-            Not-suitable items are recorded for this patient; hiding them in the app comes later.
+            Not-suitable items are recorded for this user.
           </span>
         </div>
       ) : canSubmit && saved ? (

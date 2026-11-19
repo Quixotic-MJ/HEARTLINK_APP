@@ -30,10 +30,11 @@ beforeEach(() => {
 });
 
 describe("Terms of Service and Privacy Policy", () => {
-  it("shows the Terms by default, marked as a draft, with every section", async () => {
+  it("shows the Terms by default, with the date and every section", async () => {
     await renderScreen();
     expect(screen.getByRole("header", { name: "Terms of Service" })).toBeOnTheScreen();
-    expect(screen.getByText(/pending our adviser's review/)).toBeOnTheScreen();
+    expect(screen.getByText(/^Last updated /)).toBeOnTheScreen();
+    expect(screen.queryByText(/Draft|pending/)).not.toBeOnTheScreen();
     for (const section of TERMS.sections) {
       expect(screen.getByRole("header", { name: section.heading })).toBeOnTheScreen();
     }
