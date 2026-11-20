@@ -14,7 +14,7 @@ from typing import Any, Dict, Optional
 from fastapi import HTTPException, status
 
 from app.db.repositories import get_profile_repo, get_refresh_token_repo
-from app.utils.security import STAFF_ROLES, access_token_lifetime, create_access_token
+from app.utils.security import APP_ROLE, STAFF_ROLES, access_token_lifetime, create_access_token
 from app.utils.time import parse_utc, utc_now
 
 logger = logging.getLogger(__name__)
@@ -51,6 +51,8 @@ def issue_session(user_id: str, role: str, client: str, remember: bool = True,
     """Creates an access token and a new refresh token for this user and app (web or mobile)."""
     if client not in CLIENTS:
         raise ValueError(f"Unknown client: {client}")
+    if client == "mobile":
+        role = APP_ROLE  # the app is always a user of their own data, staff accounts included (security.APP_ROLE)
     repo = get_refresh_token_repo()
     repo.delete_expired()
 
@@ -98,7 +100,7 @@ def refresh_session(raw: Optional[str], client: str) -> Dict[str, Any]:
         repo.revoke(row["id"], "account_inactive")
         raise _expired()
 
-    role = profile.get("role") or "patient"
+    role = APP_ROLE if client == "mobile" else (profile.get("role") or "patient")
     repo.revoke(row["id"], "rotated")
     keep_end = expires_at if role in STAFF_ROLES else None
     return issue_session(row["user_id"], role, client, remember=row.get("remember", True), expires_at=keep_end)

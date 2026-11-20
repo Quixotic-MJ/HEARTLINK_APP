@@ -213,9 +213,13 @@ def test_giving_premium_needs_a_sensible_number_of_days(client, body):
     assert http.put("/api/admin/users/pat/plan", json=body, headers=as_user("boss", "admin")).status_code == 400
 
 
-def test_premium_is_for_patients_only(client):
+def test_premium_reaches_staff_who_use_the_app(client):
+    """2026-11-20: Admins and experts can use the app for their own health (security.APP_ROLE), so their account can
+    hold Premium like any user's; an unknown account still can't."""
     http, as_user = client
     res = http.put("/api/admin/users/doc/plan", json={"premium": True, "days": 30}, headers=as_user("boss", "admin"))
+    assert res.status_code == 200
+    res = http.put("/api/admin/users/nobody/plan", json={"premium": True, "days": 30}, headers=as_user("boss", "admin"))
     assert res.status_code == 404
 
 

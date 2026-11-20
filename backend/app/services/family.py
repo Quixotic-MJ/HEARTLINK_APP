@@ -44,8 +44,9 @@ ACCOUNT_KINDS = ("patient", "family")
 # --- helpers ----------------------------------------------------------------------------------------------
 
 def _patient_profile(user_id: str) -> Dict[str, Any]:
+    """The account using the app. 2026-11-20: Admins and experts who use the app for their own health count too."""
     profile = get_profile_repo().get_by_id(user_id)
-    if not profile or profile.get("role") != "patient":
+    if not profile or profile.get("account_status", "active") != "active":
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found.")
     return profile
 
