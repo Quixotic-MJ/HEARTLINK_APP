@@ -23,6 +23,11 @@ ALGORITHM = os.getenv("ALGORITHM", "HS256")
 # HL-047: short-lived access tokens; a refresh token (session_service) quietly gets a new one.
 # The *_MINUTES variables are for local testing only (e.g. 1 minute to watch a refresh happen).
 STAFF_ROLES = {"admin", "medical_expert"}
+# 2026-11-20: every session made by the mobile app acts as a user of their own data, whatever the account's role. An
+# Admin or expert can use the app with the same email and password as the portal, for their own health only; their
+# staff powers stay in the portal, behind its emailed code. (Before this, an app login gave staff a staff token that
+# could reach portal endpoints without that code.)
+APP_ROLE = "patient"
 STAFF_ACCESS_TOKEN_MINUTES = 60
 PATIENT_ACCESS_TOKEN_MINUTES = 24 * 60
 
