@@ -1,4 +1,7 @@
-import { BRISK_STEPS_PER_MINUTE, briskPeriods, isStepTrackingAvailable, lastDays, manilaDay, manilaDayBounds } from "../stepTracker";
+import Constants, { ExecutionEnvironment } from "expo-constants";
+import {
+  BRISK_STEPS_PER_MINUTE, briskPeriods, isStepTrackingAvailable, lastDays, manilaDay, manilaDayBounds, showsSampleSteps,
+} from "../stepTracker";
 
 // HL-163: which stretches of walking count as brisk (100+ steps a minute, at least a minute long), cut to the Manila
 // day and joined where they touch.
@@ -64,4 +67,16 @@ describe("Manila days", () => {
 
 it("isn't available without the Health Connect native part (Expo Go, iPhone, tests)", () => {
   expect(isStepTrackingAvailable()).toBe(false);
+});
+
+it("shows sample steps only in Expo Go, never in an installed app", () => {
+  const original = Constants.executionEnvironment;
+  try {
+    Object.defineProperty(Constants, "executionEnvironment", { value: ExecutionEnvironment.StoreClient, configurable: true });
+    expect(showsSampleSteps()).toBe(true);
+    Object.defineProperty(Constants, "executionEnvironment", { value: ExecutionEnvironment.Standalone, configurable: true });
+    expect(showsSampleSteps()).toBe(false);
+  } finally {
+    Object.defineProperty(Constants, "executionEnvironment", { value: original, configurable: true });
+  }
 });

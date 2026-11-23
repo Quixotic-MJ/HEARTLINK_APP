@@ -1,6 +1,7 @@
 import { Linking, NativeModules, Platform, TurboModuleRegistry } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useState } from "react";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 import type * as HealthConnect from "react-native-health-connect";
 
 /**
@@ -106,6 +107,14 @@ function hc(): typeof HealthConnect | null {
 /** False in Expo Go and on iPhones. */
 export function isStepTrackingAvailable(): boolean {
   return nativeModulePresent();
+}
+
+/**
+ * Expo Go can't read steps, so the dashboard shows the Steps page with sample numbers there (owner's choice
+ * 2026-11-23), clearly marked as sample, to show what the page looks like. Never in the installed app.
+ */
+export function showsSampleSteps(): boolean {
+  return Constants.executionEnvironment === ExecutionEnvironment.StoreClient && !isStepTrackingAvailable();
 }
 
 export type HealthConnectState = "unavailable" | "needs_install" | "needs_update" | "ready";

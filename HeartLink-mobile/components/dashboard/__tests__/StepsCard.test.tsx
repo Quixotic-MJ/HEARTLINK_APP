@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen, userEvent } from "@testing-library/react-native";
-import { StepsPage, StepsInvite, briskLine, goalShare, weekdayLetter } from "../StepsCard";
+import { StepsPage, StepsInvite, briskLine, goalShare, sampleStepWeek, weekdayLetter } from "../StepsCard";
 import type { StepWeek } from "../../../hooks/useSteps";
 
 // HL-163: the Steps page of the dashboard's score card, and the invite shown while step tracking is off.
@@ -38,6 +38,18 @@ describe("Steps page of the score card", () => {
     expect(screen.queryByText(/to go/)).not.toBeOnTheScreen();
     await user.press(screen.getByRole("button", { name: "See your steps this week" }));
     expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it("marks sample numbers in Expo Go, which can't read steps", async () => {
+    const week = sampleStepWeek(new Date("2026-11-23T04:00:00Z"));
+    expect(week.days.map((d) => d.day)).toEqual([
+      "2026-11-17", "2026-11-18", "2026-11-19", "2026-11-20", "2026-11-21", "2026-11-22", "2026-11-23",
+    ]);
+    await render(<StepsPage week={week} loading={false} onOpen={jest.fn()} sample />);
+    expect(screen.getByText("Sample")).toBeOnTheScreen();
+    expect(screen.getByText("Real steps need the installed Android app")).toBeOnTheScreen();
+    expect(screen.getByText("4,870")).toBeOnTheScreen();
+    expect(screen.queryByText(/From Health Connect/)).not.toBeOnTheScreen();
   });
 
   it("fills the ring toward the goal, never past it", () => {

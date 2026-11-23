@@ -52,9 +52,9 @@ import { riskOf } from "../../../services/heartRisk";
 import { ScoreExplanationModal } from "../../../components/dashboard/ScoreExplanationModal";
 import { TodayCard, ScorePage, HabitsPage, sleepText } from "../../../components/dashboard/TodayCard";
 import { CheckinGrid, type CheckinTile, type MedicineStatus } from "../../../components/dashboard/TodayTiles";
-import { StepsPage, StepsInvite } from "../../../components/dashboard/StepsCard";
+import { StepsPage, StepsInvite, sampleStepWeek } from "../../../components/dashboard/StepsCard";
 import { useStepSync, useStepTracking, useStepWeek } from "../../../hooks/useSteps";
-import { hideStepInvite } from "../../../services/stepTracker";
+import { hideStepInvite, showsSampleSteps } from "../../../services/stepTracker";
 import { PressureWeek } from "../../../components/dashboard/PressureWeek";
 import { useWeekTrends } from "../../../hooks/useWeekTrends";
 import { playSound } from "../../../services/sounds";
@@ -373,6 +373,8 @@ export default function DashboardScreen() {
   const stepWeek = useStepWeek(stepTracking.on === true);
   const showStepsCard = stepTracking.available && stepTracking.on === true;
   const showStepsInvite = stepTracking.available && stepTracking.on === false && stepTracking.inviteHidden === false;
+  // Expo Go can't read steps, so it shows the Steps page with sample numbers (marked "Sample")
+  const sampleSteps = showsSampleSteps();
   const movementGoal = (data as any)?.thresholds?.active_minutes_goal || 30;
 
   const [showQuickLogModal, setShowQuickLogModal] = useState(false);
@@ -890,15 +892,16 @@ export default function DashboardScreen() {
                   ),
                 },
                 // HL-163: today's steps, right after the score, when step tracking is on
-                ...(showStepsCard
+                ...(showStepsCard || sampleSteps
                   ? [
                       {
                         key: "steps",
                         label: "Steps today",
                         content: (
                           <StepsPage
-                            week={stepWeek.data}
-                            loading={stepWeek.isPending}
+                            week={sampleSteps ? sampleStepWeek() : stepWeek.data}
+                            loading={!sampleSteps && stepWeek.isPending}
+                            sample={sampleSteps}
                             onOpen={() => safeNavigate("/(home)/(health)/steps")}
                           />
                         ),
