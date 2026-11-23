@@ -3,6 +3,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUser } from './UserContext';
 
 export type BaselineData = {
+  // HL-164: "Before we start" and the health check, before Part 1
+  agreed_notice: boolean;
+  health_check_done: boolean;
+  health_conditions: string[];
+  doctor_cleared: boolean;
+
   // Part 1: About you
   first_name: string;
   last_name: string;
@@ -10,6 +16,8 @@ export type BaselineData = {
   sex: 'male' | 'female' | '';
   height_cm: string;
   weight_kg: string;
+  /** HL-164: the main goal (services/setupScreening.ts MAIN_GOALS) */
+  main_goal: string;
 
   // Part 2: Movement
   vigorous_activity: boolean;
@@ -54,7 +62,8 @@ export type BaselineData = {
 };
 
 const defaultData: BaselineData = {
-  first_name: '', last_name: '', date_of_birth: '', sex: '', height_cm: '', weight_kg: '',
+  agreed_notice: false, health_check_done: false, health_conditions: [], doctor_cleared: false,
+  first_name: '', last_name: '', date_of_birth: '', sex: '', height_cm: '', weight_kg: '', main_goal: '',
   vigorous_activity: false, moderate_activity: false, walk_bike_transport: false, sedentary_hours: '',
   sleep_hours: '', ever_smoked: false,
   ever_drank: false,

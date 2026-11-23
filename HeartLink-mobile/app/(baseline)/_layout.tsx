@@ -13,6 +13,7 @@ export default function BaselineLayout() {
       }}
     >
       <Stack.Screen name="start" />
+      <Stack.Screen name="health-check" />
       <Stack.Screen name="plan" />
       <Stack.Screen name="question/[id]" />
       <Stack.Screen name="part-done" />

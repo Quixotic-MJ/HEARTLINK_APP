@@ -10,6 +10,7 @@ from app.schemas.user import (
     RemindersUpdateRequest,
     CareTeamContactRequest,
     BaselineOnboardingRequest,
+    HEALTH_CHECK_ANSWERS,
     HeartAnswersUpdate,
     KidneyResult,
     RISK_ANSWERS,
@@ -328,6 +329,9 @@ async def complete_baseline_onboarding(
     if not onboarding_data.get("smoke_quit_when"):
         onboarding_data.pop("smoke_quit_when", None)
     for key in RISK_ANSWERS:  # HL-140: an older app doesn't send them
+        if onboarding_data.get(key) is None:
+            onboarding_data.pop(key, None)
+    for key in HEALTH_CHECK_ANSWERS:  # HL-164: nor these; the database defaults apply
         if onboarding_data.get(key) is None:
             onboarding_data.pop(key, None)
 

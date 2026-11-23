@@ -41,6 +41,22 @@ async function renderScreen() {
 describe("Health targets and limits (HL-156)", () => {
   beforeEach(() => (apiFetch as jest.Mock).mockReset());
 
+  it("saves a new main goal (HL-164)", async () => {
+    (apiFetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ targets: TARGETS, thresholds: { active_minutes_goal: 30, main_goal: "lower_bp" } }),
+    });
+    const user = userEvent.setup();
+    await renderScreen();
+    expect(await screen.findByRole("radio", { name: /Lower my blood pressure/ })).toBeChecked();
+    expect(screen.getByRole("button", { name: "Save goals" })).toBeDisabled();
+    await user.press(screen.getByRole("radio", { name: /Sleep better/ }));
+    await user.press(screen.getByRole("button", { name: "Save goals" }));
+    const put = (apiFetch as jest.Mock).mock.calls.find((call) => call[1]?.method === "PUT");
+    expect(JSON.parse(put[1].body)).toEqual({ main_goal: "sleep_better" });
+  });
+
   it("shows the daily limits read-only, with their sources", async () => {
     (apiFetch as jest.Mock).mockResolvedValue({
       ok: true,

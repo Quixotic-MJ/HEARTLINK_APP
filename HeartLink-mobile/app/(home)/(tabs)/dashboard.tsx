@@ -55,6 +55,7 @@ import { CheckinGrid, type CheckinTile, type MedicineStatus } from "../../../com
 import { StepsPage, StepsInvite, sampleStepWeek } from "../../../components/dashboard/StepsCard";
 import { useStepSync, useStepTracking, useStepWeek } from "../../../hooks/useSteps";
 import { hideStepInvite, showsSampleSteps } from "../../../services/stepTracker";
+import { goalLabel } from "../../../services/setupScreening";
 import { PressureWeek } from "../../../components/dashboard/PressureWeek";
 import { useWeekTrends } from "../../../hooks/useWeekTrends";
 import { playSound } from "../../../services/sounds";
@@ -376,6 +377,8 @@ export default function DashboardScreen() {
   // Expo Go can't read steps, so it shows the Steps page with sample numbers (marked "Sample")
   const sampleSteps = showsSampleSteps();
   const movementGoal = (data as any)?.thresholds?.active_minutes_goal || 30;
+  // HL-164: the main goal from setup or Health targets and limits
+  const mainGoal = goalLabel((data as any)?.thresholds?.main_goal);
 
   const [showQuickLogModal, setShowQuickLogModal] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -512,6 +515,7 @@ export default function DashboardScreen() {
   const { tour, start: startTour } = useDashboardTour({
     // The recommendations only show when there are some and the score isn't critical.
     shown: {
+      goal: !!mainGoal,
       score: true,
       note: !!data?.insight,
       missions: true,
@@ -849,6 +853,30 @@ export default function DashboardScreen() {
           </Text>
           <Text style={{ fontSize: 14, color: c.slate }}>{todayLabel}</Text>
         </View>
+
+        {/* ── HL-164: the main goal; tap to change it ── */}
+        {mainGoal ? (
+          <TourSpot target="goal" tour={tour}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => {
+                Haptics.selectionAsync();
+                safeNavigate("/(home)/(health)/goals-thresholds");
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={`Your goal: ${mainGoal}. Tap to change it.`}
+              style={{ flexDirection: "row", alignItems: "center", gap: 8, alignSelf: "flex-start", minHeight: 44, marginBottom: -10 }}
+            >
+              <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: c.tint, alignItems: "center", justifyContent: "center" }}>
+                <Feather name="flag" size={14} color={c.primary} />
+              </View>
+              <Text style={{ fontSize: 14.5, color: c.slate }}>
+                Your goal: <Text style={{ fontWeight: "700", color: c.ink }}>{mainGoal}</Text>
+              </Text>
+              <Feather name="chevron-right" size={16} color={c.steel} />
+            </TouchableOpacity>
+          </TourSpot>
+        ) : null}
 
         <Reanimated.View entering={FadeInDown.delay(100).duration(260)}>
           <TourSpot target="score" tour={tour}>

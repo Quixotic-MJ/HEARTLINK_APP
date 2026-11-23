@@ -7,6 +7,7 @@
 import type { BaselineData } from "../contexts/BaselineContext";
 import type { BadgeTint, McIcon } from "../components/onboarding/QuestionLayout";
 import type { ChoiceOption } from "../components/onboarding/Controls";
+import { MAIN_GOALS } from "../services/setupScreening";
 
 export type PartNumber = 1 | 2 | 3 | 4;
 
@@ -42,6 +43,7 @@ type BooleanField =
   | "has_diabetes"
   | "cholesterol_medicine";
 type ChoiceField =
+  | "main_goal"
   | "sex"
   | "sedentary_hours"
   | "sleep_hours"
@@ -93,6 +95,18 @@ const drinks = (d: BaselineData) => d.ever_drank === true;
 export const SETUP_QUESTIONS: SetupQuestion[] = [
   // ── Part 1 · About you ──
   { id: "name", part: 1, kind: "name", icon: "account-outline", title: "What should we call you?", subtitle: "Your first name is enough." },
+  {
+    // HL-164 (panel revision): the patient's main goal; shown on the dashboard, changed in Goals & limits
+    id: "goal",
+    part: 1,
+    kind: "choice",
+    field: "main_goal",
+    icon: "flag-outline",
+    title: "What's your main goal?",
+    subtitle: "What do you most want HeartLink to help with?",
+    note: "You can change it any time in Settings › Health targets and limits.",
+    options: MAIN_GOALS,
+  },
   {
     id: "dob",
     part: 1,

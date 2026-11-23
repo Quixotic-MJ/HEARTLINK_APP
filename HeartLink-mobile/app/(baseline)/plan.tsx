@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, BackHandler, Text, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
@@ -17,6 +17,7 @@ import {
   visibleQuestions,
   isAnswered,
 } from "../../constants/setupQuestions";
+import { needsScreening } from "../../services/setupScreening";
 
 // Set-up map: the four parts, which are done, and where to carry on.
 export default function PlanScreen() {
@@ -24,6 +25,13 @@ export default function PlanScreen() {
   const { c } = useDs();
   const { data, loaded } = useBaseline();
   const [finishLater, setFinishLater] = useState(false);
+
+  // HL-164: the notice and the health check come first. Reopening the app halfway through setup lands here, so send
+  // anyone who hasn't done them on this phone back to "Before we start".
+  const mustScreen = loaded && needsScreening(data);
+  useEffect(() => {
+    if (mustScreen) router.replace("/(baseline)/start");
+  }, [mustScreen, router]);
 
   // This is the first set-up screen, so Android back opens "Finish later" instead of leaving.
   useFocusEffect(

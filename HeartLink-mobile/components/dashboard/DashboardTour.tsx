@@ -15,10 +15,16 @@ import { useDs } from "../onboarding/useDs";
  * update TOUR_STEPS here and the <TourSpot> wrappers in app/(home)/(tabs)/dashboard.tsx.
  */
 
-export type TourTarget = "score" | "note" | "missions" | "steps" | "vitals" | "summary" | "care";
+export type TourTarget = "goal" | "score" | "note" | "missions" | "steps" | "vitals" | "summary" | "care";
 export type TourStep = { target: TourTarget; title: string; body: string };
 
 export const TOUR_STEPS: TourStep[] = [
+  {
+    // HL-164: only when a goal is set (people who set up before it was asked have none until they pick one)
+    target: "goal",
+    title: "Your goal",
+    body: "The main goal you picked. Tap it to change it in Health targets and limits.",
+  },
   {
     target: "score",
     title: "Your heart health habits",

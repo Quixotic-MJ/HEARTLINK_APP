@@ -102,6 +102,10 @@ def save_baseline_onboarding(user_id: str, data: dict, profile_data: dict) -> di
     prof_update = {**profile_data, "onboarding_status": "complete"}
     profile_repo.update(user_id, prof_update)
 
+    # HL-164: the main goal lives with the other goals (Goals & limits), not with the setup answers
+    data = dict(data)
+    main_goal = data.pop("main_goal", None)
+
     # 2. Save detailed onboarding responses
     saved_onb = baseline_repo.save_baseline(user_id, data)
 
@@ -112,8 +116,11 @@ def save_baseline_onboarding(user_id: str, data: dict, profile_data: dict) -> di
             "sodium_limit_mg": 1500,
             "active_minutes_goal": 30,
             "systolic_threshold": 120,
-            "diastolic_threshold": 80
+            "diastolic_threshold": 80,
+            **({"main_goal": main_goal} if main_goal else {}),
         })
+    elif main_goal:
+        baseline_repo.update_thresholds(user_id, {"main_goal": main_goal})
 
     return saved_onb
 

@@ -3,7 +3,7 @@ import { Text, View } from "react-native";
 import { render, screen, userEvent } from "@testing-library/react-native";
 import { TourSpot, TourTarget, useDashboardTour } from "../DashboardTour";
 
-const TARGETS: TourTarget[] = ["score", "missions", "steps", "note", "vitals", "summary", "care"];
+const TARGETS: TourTarget[] = ["goal", "score", "missions", "steps", "note", "vitals", "summary", "care"];
 
 // A stand-in dashboard: seven sections, and the tour starts straight away. A critical score hides the picks, as
 // the real dashboard does; care tools stay.
@@ -11,15 +11,17 @@ function Dashboard({
   critical = false,
   hasNote = true,
   hasSteps = false,
+  hasGoal = false,
   onFinish = jest.fn(),
 }: {
   critical?: boolean;
   hasNote?: boolean;
   hasSteps?: boolean;
+  hasGoal?: boolean;
   onFinish?: () => void;
 }) {
   const { tour, start } = useDashboardTour({
-    shown: { score: true, note: hasNote, missions: true, steps: hasSteps, vitals: true, summary: !critical, care: true },
+    shown: { goal: hasGoal, score: true, note: hasNote, missions: true, steps: hasSteps, vitals: true, summary: !critical, care: true },
     onFinish,
     onShown: jest.fn(),
   });
@@ -36,6 +38,12 @@ function Dashboard({
 }
 
 describe("Dashboard tour", () => {
+  it("starts on the main goal when one is set (HL-164)", async () => {
+    await render(<Dashboard hasGoal hasSteps />);
+    expect(screen.getByText("1 of 8")).toBeOnTheScreen();
+    expect(screen.getByText("Your goal")).toBeOnTheScreen();
+  });
+
   it("explains the step tracking invite after the check-ins when it's on the dashboard (HL-163)", async () => {
     const user = userEvent.setup();
     await render(<Dashboard hasSteps />);

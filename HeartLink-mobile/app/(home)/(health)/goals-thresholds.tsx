@@ -13,6 +13,8 @@ import { DsScreen, InfoNote } from "../../../components/onboarding/QuestionLayou
 import { PageHeader } from "../../../components/family/FamilyBits";
 import AnimatedButton from "../../../components/ui/AnimatedButton";
 import { Skeleton } from "../../../components/ui/Skeleton";
+import { ChoiceList } from "../../../components/onboarding/Controls";
+import { MAIN_GOALS, goalLabel } from "../../../services/setupScreening";
 import { DailyTargets, GoalRange, LIMITS_NOTE, MOVEMENT_GOAL, STEPS_GOAL, clampGoal, limitRows } from "../../../services/dailyLimits";
 
 // HL-016 / HL-017, HL-156: Settings › Health targets and limits. The daily limits are read-only: they come from the
@@ -22,7 +24,7 @@ import { DailyTargets, GoalRange, LIMITS_NOTE, MOVEMENT_GOAL, STEPS_GOAL, clampG
 
 type Analytics = {
   targets?: DailyTargets | null;
-  thresholds?: { active_minutes_goal?: number | null; daily_steps_goal?: number | null } | null;
+  thresholds?: { active_minutes_goal?: number | null; daily_steps_goal?: number | null; main_goal?: string | null } | null;
 };
 
 function LimitsCard({ targets }: { targets: DailyTargets }) {
@@ -101,6 +103,7 @@ export default function GoalsThresholdsScreen() {
   // The saved goal, until the patient changes it here
   const [edited, setEdited] = useState<number | null>(null);
   const [editedSteps, setEditedSteps] = useState<number | null>(null);
+  const [editedMain, setEditedMain] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const data = useQuery({
@@ -117,7 +120,10 @@ export default function GoalsThresholdsScreen() {
   const goal = edited ?? savedGoal;
   const savedSteps = clampGoal(Number(data.data?.thresholds?.daily_steps_goal) || STEPS_GOAL.fallback, STEPS_GOAL);
   const stepsGoal = editedSteps ?? savedSteps;
-  const changed = goal !== savedGoal || stepsGoal !== savedSteps;
+  // HL-164: the main goal from setup (empty for people who set up before it was asked)
+  const savedMain = data.data?.thresholds?.main_goal ?? null;
+  const mainGoal = editedMain ?? savedMain;
+  const changed = goal !== savedGoal || stepsGoal !== savedSteps || mainGoal !== savedMain;
 
   const save = async () => {
     setSaving(true);
@@ -127,6 +133,7 @@ export default function GoalsThresholdsScreen() {
         body: JSON.stringify({
           ...(goal !== savedGoal ? { active_minutes_goal: goal } : {}),
           ...(stepsGoal !== savedSteps ? { daily_steps_goal: stepsGoal } : {}),
+          ...(mainGoal && mainGoal !== savedMain ? { main_goal: mainGoal } : {}),
         }),
       });
       if (!res.ok) {
@@ -136,12 +143,13 @@ export default function GoalsThresholdsScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       showToast({
         title: "Goals saved",
-        message: `${goal} active minutes and ${stepsGoal.toLocaleString("en-US")} steps a day`,
+        message: `${goalLabel(mainGoal) ? `${goalLabel(mainGoal)}, ` : ""}${goal} active minutes and ${stepsGoal.toLocaleString("en-US")} steps a day`,
         type: "success",
       });
       await queryClient.invalidateQueries({ queryKey: ["healthTargets", userId] });
       setEdited(null);
       setEditedSteps(null);
+      setEditedMain(null);
       queryClient.invalidateQueries({ queryKey: ["dashboard", userId] });
       queryClient.invalidateQueries({ queryKey: ["steps", "week", userId] });
     } catch (e) {
@@ -189,6 +197,24 @@ export default function GoalsThresholdsScreen() {
           ) : null}
 
           <InfoNote icon="shield" text={LIMITS_NOTE} />
+
+          <View>
+            <Text accessibilityRole="header" style={{ fontSize: 18, fontWeight: "600", color: c.ink }}>
+              Your main goal
+            </Text>
+            <Text style={{ fontSize: 14, lineHeight: 20, color: c.slate, marginTop: 4, marginBottom: 14 }}>
+              What you most want HeartLink to help with. It shows at the top of your Dashboard.
+            </Text>
+            <ChoiceList
+              options={MAIN_GOALS}
+              value={mainGoal ?? undefined}
+              onChange={(v) => {
+                Haptics.selectionAsync();
+                setEditedMain(v);
+              }}
+              accessibilityLabel="Your main goal"
+            />
+          </View>
 
           <View>
             <Text accessibilityRole="header" style={{ fontSize: 18, fontWeight: "600", color: c.ink }}>

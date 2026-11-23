@@ -123,6 +123,11 @@ class RiskAnswersUpdate(BaseModel):
 
 RISK_ANSWERS = ("bp_medicine", "has_diabetes", "cholesterol_medicine")
 
+# HL-164: the conditions HeartLink isn't made for (asked before setup), and the main goals a patient can pick
+HealthCondition = Literal["heart_disease", "stroke", "kidney_disease", "pregnancy"]
+MainGoal = Literal["lower_bp", "heart_healthy", "move_more", "less_salt", "sleep_better", "healthy_weight", "quit_smoking"]
+HEALTH_CHECK_ANSWERS = ("health_conditions", "doctor_cleared")
+
 
 # HL-114: the Heart score answers that can change after setup
 class HeartAnswersUpdate(BaseModel):
@@ -189,6 +194,11 @@ class BaselineOnboardingRequest(BaseModel):
     allergies: List[str] = []
     dietary_practice: str = "None"
 
+    # HL-164: the health check and the main goal. Optional, so an older app can still finish setup
+    health_conditions: Optional[List[HealthCondition]] = Field(default=None, max_length=4)
+    doctor_cleared: Optional[bool] = None
+    main_goal: Optional[MainGoal] = None
+
     @model_validator(mode="before")
     @classmethod
     def sanitize_conditional_fields(cls, data: Any) -> Any:
@@ -236,6 +246,11 @@ class BaselineOnboardingRequest(BaseModel):
             if self.drink_frequency != "Never":
                 if not self.drinks_per_occasion or not self.binge_drinking_freq:
                     raise ValueError("drinks_per_occasion and binge_drinking_freq are required when drinking frequency is not Never")
+        # HL-164: someone with a condition HeartLink isn't made for can only set up with their doctor's OK
+        if self.health_conditions:
+            self.health_conditions = list(dict.fromkeys(self.health_conditions))
+            if self.doctor_cleared is not True:
+                raise ValueError("A doctor's OK is needed to use HeartLink with these conditions")
         return self
 
 
@@ -284,6 +299,7 @@ class ThresholdsUpdateRequest(BaseModel):
     fluid_limit_ml: Optional[int] = Field(default=None, ge=500, le=5000)
     active_minutes_goal: Optional[int] = Field(default=None, ge=0, le=300)
     daily_steps_goal: Optional[int] = Field(default=None, ge=1000, le=30000)  # HL-163: encouragement only
+    main_goal: Optional[MainGoal] = None  # HL-164
     systolic_threshold: Optional[int] = Field(default=None, ge=80, le=200)
     diastolic_threshold: Optional[int] = Field(default=None, ge=40, le=130)
 
