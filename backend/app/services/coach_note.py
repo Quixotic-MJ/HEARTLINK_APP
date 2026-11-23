@@ -11,6 +11,7 @@ import zoneinfo
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
+from app.services.step_minutes import brisk_minutes_by_day
 from app.utils.time import parse_utc, to_local_date, utc_now
 
 LOCAL_TZ = "Asia/Manila"
@@ -43,6 +44,7 @@ def day_facts(
     sodium_limit: float,
     movement_goal: float,
     exercise_paused: bool = False,
+    step_days: Optional[List[dict]] = None,
     now: datetime | None = None,
 ) -> Dict[str, Any]:
     """What the note may talk about: today's numbers, the latest meal and exercise, and the last two weeks."""
@@ -58,8 +60,12 @@ def day_facts(
     def sodium_on(d):
         return sum((m.get("sodium_mg") or 0) for m in meals if _day(m.get("logged_at")) == d)
 
+    # HL-163: brisk walking from the phone's steps counts too, as in the Habit score
+    phone = brisk_minutes_by_day(step_days or [], exercises)
+
     def minutes_on(d):
-        return sum((e.get("duration_minutes") or 0) for e in exercises if _day(e.get("logged_at")) == d)
+        logged = sum((e.get("duration_minutes") or 0) for e in exercises if _day(e.get("logged_at")) == d)
+        return logged + phone.get(d, 0.0)
 
     def meal_days(days):
         return [d for d in days if any(_day(m.get("logged_at")) == d for m in meals)]

@@ -17,7 +17,10 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.heartlink.app",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "android.permission.health.READ_STEPS"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -56,6 +59,15 @@
         {
           "recordAudioAndroid": false,
           "enableBackgroundPlayback": false
+        }
+      ],
+      "react-native-health-connect",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 26
+          }
         }
       ]
     ],

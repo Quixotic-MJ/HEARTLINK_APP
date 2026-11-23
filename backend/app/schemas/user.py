@@ -283,6 +283,7 @@ class ThresholdsUpdateRequest(BaseModel):
     sodium_limit_mg: Optional[int] = Field(default=None, ge=500, le=5000)
     fluid_limit_ml: Optional[int] = Field(default=None, ge=500, le=5000)
     active_minutes_goal: Optional[int] = Field(default=None, ge=0, le=300)
+    daily_steps_goal: Optional[int] = Field(default=None, ge=1000, le=30000)  # HL-163: encouragement only
     systolic_threshold: Optional[int] = Field(default=None, ge=80, le=200)
     diastolic_threshold: Optional[int] = Field(default=None, ge=40, le=130)
 

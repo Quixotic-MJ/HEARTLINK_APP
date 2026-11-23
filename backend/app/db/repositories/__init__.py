@@ -26,6 +26,7 @@ from app.db.repositories.premium import PremiumRepository, SupabasePremiumReposi
 from app.db.repositories.family import FamilyRepository, SupabaseFamilyRepository
 from app.db.repositories.meal_plan_changes import MealPlanChangesRepository, SupabaseMealPlanChangesRepository
 from app.db.repositories.password_resets import PasswordResetRepository, SupabasePasswordResetRepository
+from app.db.repositories.step_days import StepDaysRepository, SupabaseStepDaysRepository
 
 _profile_repo = None
 _baseline_repo = None
@@ -49,6 +50,7 @@ _premium_repo = None
 _family_repo = None
 _meal_plan_changes_repo = None
 _password_reset_repo = None
+_step_days_repo = None
 
 def get_profile_repo() -> ProfileRepository:
     global _profile_repo
@@ -184,3 +186,9 @@ def get_password_reset_repo() -> PasswordResetRepository:
     if _password_reset_repo is None:
         _password_reset_repo = SupabasePasswordResetRepository(get_supabase_client())
     return _password_reset_repo
+
+def get_step_days_repo() -> StepDaysRepository:
+    global _step_days_repo
+    if _step_days_repo is None:
+        _step_days_repo = SupabaseStepDaysRepository(get_supabase_client())
+    return _step_days_repo

@@ -3,6 +3,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 from app.services import coach_note, exercise_screening, heart_score
 from app.services.review_rules import FAINTED_SYMPTOM
+from app.services.step_minutes import brisk_minutes_by_day, load_step_days, steps_by_day
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 from app.services.exercises import is_visible_to_patients, calories_burned
 from app.services.nutrition_targets import compute_targets
@@ -504,6 +505,10 @@ def _get_today_activity(user_id: str) -> dict:
     total_fiber = sum((m.get("fiber_g") or 0) for m in meals_today)
     
     total_exercise_min = sum((e.get("duration_minutes") or 0) for e in exercises_today)
+    # HL-163: steps from the phone. The step total is only shown; brisk minutes join the movement minutes.
+    step_days = load_step_days(user_id)
+    steps_today = steps_by_day(step_days).get(today, 0)
+    brisk_today = round(brisk_minutes_by_day(step_days, exercise_logs).get(today, 0.0))
     # HL-015: net calories = eaten - burned by today's exercises.
     burned, not_counted = calories_burned(exercises_today, get_content_repo().list_routines()) if exercises_today else (0, 0)
     total_sleep_hours = sum((s.get("duration_hours") or 0) for s in sleeps_today)
@@ -539,6 +544,10 @@ def _get_today_activity(user_id: str) -> dict:
         "total_cholesterol_mg": round(total_cholesterol),
         "total_fiber_g": total_fiber,
         "total_exercise_minutes": total_exercise_min,
+        "steps_today": steps_today,
+        "steps_synced": bool(step_days),
+        "brisk_minutes_today": brisk_today,
+        "total_movement_minutes": round(total_exercise_min + brisk_today),
         "total_sleep_hours": total_sleep_hours,
         "medication_taken": meds_taken,
         "medication_status": medication_status,
@@ -547,7 +556,8 @@ def _get_today_activity(user_id: str) -> dict:
         "latest_blood_sugar": blood_sugar,
         "streak_data": _calculate_streak_data(meal_logs, exercise_logs, daily_health_logs, sleep_logs),
         # For Today's note (coach_note.day_facts); taken out before the dashboard is sent
-        "_logs": {"meals": meal_logs, "exercises": exercise_logs, "vitals": daily_health_logs, "sleep": sleep_logs},
+        "_logs": {"meals": meal_logs, "exercises": exercise_logs, "vitals": daily_health_logs, "sleep": sleep_logs,
+                  "steps": step_days},
     }
 
 
@@ -713,6 +723,7 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
             sleep_hours=today_activity.get("total_sleep_hours") or 0,
             sodium_limit=sodium_limit,
             movement_goal=(threshold or {}).get("active_minutes_goal") or 30,
+            step_days=logs.get("steps", []),
             exercise_paused=bool(resting or screening["state"] not in exercise_screening.OPEN_STATES),
         )
     except Exception as e:  # the plain note still works without the extra facts

@@ -15,7 +15,7 @@ import { useDs } from "../onboarding/useDs";
  * update TOUR_STEPS here and the <TourSpot> wrappers in app/(home)/(tabs)/dashboard.tsx.
  */
 
-export type TourTarget = "score" | "note" | "missions" | "vitals" | "summary" | "care";
+export type TourTarget = "score" | "note" | "missions" | "steps" | "vitals" | "summary" | "care";
 export type TourStep = { target: TourTarget; title: string; body: string };
 
 export const TOUR_STEPS: TourStep[] = [
@@ -28,6 +28,11 @@ export const TOUR_STEPS: TourStep[] = [
     target: "missions",
     title: "Today's check-ins",
     body: "Blood pressure (with your medicine answer), meals, movement and sleep. Each tile shows where it stands today; tap one to log it.",
+  },
+  {
+    target: "steps",
+    title: "Steps today",
+    body: "On Android, HeartLink can read the steps your phone already counts (Health Connect). The bar shows today against your step goal. Brisk walking, about 100 steps a minute, adds movement minutes to your Habit score; the step total is for your own tracking.",
   },
   {
     target: "note",

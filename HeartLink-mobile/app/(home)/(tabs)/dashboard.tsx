@@ -52,6 +52,9 @@ import { riskOf } from "../../../services/heartRisk";
 import { ScoreExplanationModal } from "../../../components/dashboard/ScoreExplanationModal";
 import { TodayCard, ScorePage, HabitsPage, sleepText } from "../../../components/dashboard/TodayCard";
 import { CheckinGrid, type CheckinTile, type MedicineStatus } from "../../../components/dashboard/TodayTiles";
+import { StepsCard, StepsInvite } from "../../../components/dashboard/StepsCard";
+import { useStepSync, useStepTracking, useStepWeek } from "../../../hooks/useSteps";
+import { hideStepInvite } from "../../../services/stepTracker";
 import { PressureWeek } from "../../../components/dashboard/PressureWeek";
 import { useWeekTrends } from "../../../hooks/useWeekTrends";
 import { playSound } from "../../../services/sounds";
@@ -360,7 +363,16 @@ export default function DashboardScreen() {
   const sodiumTodayMg = data?.nutrition_budget?.sodium?.consumed_mg ?? data?.today_activity?.total_sodium_mg ?? 0;
   // The patient's own daily limit (Goals & thresholds), 2,000 mg when not set
   const sodiumLimitMg = data?.nutrition_budget?.sodium?.limit_mg || DEFAULT_SODIUM_LIMIT_MG;
-  const movementMins = data?.today_activity?.total_exercise_minutes || 0;
+  // HL-163: logged exercise plus brisk walking from the phone's steps (older servers send only the exercise minutes)
+  const movementMins = data?.today_activity?.total_movement_minutes ?? data?.today_activity?.total_exercise_minutes ?? 0;
+
+  // HL-163: steps from Health Connect (installed Android app only). The card shows when tracking is on; the invite
+  // shows in its place until the patient turns it on or hides it.
+  useStepSync();
+  const stepTracking = useStepTracking();
+  const stepWeek = useStepWeek(stepTracking.on === true);
+  const showStepsCard = stepTracking.available && stepTracking.on === true;
+  const showStepsInvite = stepTracking.available && stepTracking.on === false && stepTracking.inviteHidden === false;
   const movementGoal = (data as any)?.thresholds?.active_minutes_goal || 30;
 
   const [showQuickLogModal, setShowQuickLogModal] = useState(false);
@@ -501,6 +513,7 @@ export default function DashboardScreen() {
       score: true,
       note: !!data?.insight,
       missions: true,
+      steps: showStepsCard || showStepsInvite,
       vitals: true,
       summary: !isCritical && (data?.recommendations?.length ?? 0) > 0,
       care: true,
@@ -966,6 +979,28 @@ export default function DashboardScreen() {
             />
           </TourSpot>
         </Reanimated.View>
+
+        {/* ── HL-163: Steps today (or the invite to turn step tracking on) ── */}
+        {showStepsCard || showStepsInvite ? (
+          <Reanimated.View entering={FadeInDown.delay(200).duration(260)}>
+            <TourSpot target="steps" tour={tour}>
+              {showStepsCard ? (
+                <StepsCard
+                  week={stepWeek.data}
+                  loading={stepWeek.isPending}
+                  onPress={() => safeNavigate("/(home)/(health)/steps")}
+                />
+              ) : (
+                <StepsInvite
+                  onTurnOn={() => safeNavigate("/(home)/(health)/steps")}
+                  onHide={() => {
+                    if (userId) hideStepInvite(userId);
+                  }}
+                />
+              )}
+            </TourSpot>
+          </Reanimated.View>
+        ) : null}
 
         {/* Today's note: what changed in the score and one step to take */}
         {data?.insight ? (
