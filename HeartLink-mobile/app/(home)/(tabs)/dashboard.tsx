@@ -52,7 +52,7 @@ import { riskOf } from "../../../services/heartRisk";
 import { ScoreExplanationModal } from "../../../components/dashboard/ScoreExplanationModal";
 import { TodayCard, ScorePage, HabitsPage, sleepText } from "../../../components/dashboard/TodayCard";
 import { CheckinGrid, type CheckinTile, type MedicineStatus } from "../../../components/dashboard/TodayTiles";
-import { StepsCard, StepsInvite } from "../../../components/dashboard/StepsCard";
+import { StepsPage, StepsInvite } from "../../../components/dashboard/StepsCard";
 import { useStepSync, useStepTracking, useStepWeek } from "../../../hooks/useSteps";
 import { hideStepInvite } from "../../../services/stepTracker";
 import { PressureWeek } from "../../../components/dashboard/PressureWeek";
@@ -513,7 +513,8 @@ export default function DashboardScreen() {
       score: true,
       note: !!data?.insight,
       missions: true,
-      steps: showStepsCard || showStepsInvite,
+      // When step tracking is on, the steps are a page of the score card, which the "score" step covers
+      steps: showStepsInvite,
       vitals: true,
       summary: !isCritical && (data?.recommendations?.length ?? 0) > 0,
       care: true,
@@ -888,6 +889,22 @@ export default function DashboardScreen() {
                     </ScorePage>
                   ),
                 },
+                // HL-163: today's steps, right after the score, when step tracking is on
+                ...(showStepsCard
+                  ? [
+                      {
+                        key: "steps",
+                        label: "Steps today",
+                        content: (
+                          <StepsPage
+                            week={stepWeek.data}
+                            loading={stepWeek.isPending}
+                            onOpen={() => safeNavigate("/(home)/(health)/steps")}
+                          />
+                        ),
+                      },
+                    ]
+                  : []),
                 {
                   key: "habits",
                   label: "Today's habits",
@@ -980,24 +997,16 @@ export default function DashboardScreen() {
           </TourSpot>
         </Reanimated.View>
 
-        {/* ── HL-163: Steps today (or the invite to turn step tracking on) ── */}
-        {showStepsCard || showStepsInvite ? (
+        {/* ── HL-163: the invite to turn step tracking on (when it's on, the steps are a page of the score card) ── */}
+        {showStepsInvite ? (
           <Reanimated.View entering={FadeInDown.delay(200).duration(260)}>
             <TourSpot target="steps" tour={tour}>
-              {showStepsCard ? (
-                <StepsCard
-                  week={stepWeek.data}
-                  loading={stepWeek.isPending}
-                  onPress={() => safeNavigate("/(home)/(health)/steps")}
-                />
-              ) : (
-                <StepsInvite
-                  onTurnOn={() => safeNavigate("/(home)/(health)/steps")}
-                  onHide={() => {
-                    if (userId) hideStepInvite(userId);
-                  }}
-                />
-              )}
+              <StepsInvite
+                onTurnOn={() => safeNavigate("/(home)/(health)/steps")}
+                onHide={() => {
+                  if (userId) hideStepInvite(userId);
+                }}
+              />
             </TourSpot>
           </Reanimated.View>
         ) : null}

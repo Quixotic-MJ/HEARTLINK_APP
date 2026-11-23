@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { Text, View } from "react-native";
-import { Feather } from "@expo/vector-icons";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import Svg, { Circle } from "react-native-svg";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import AnimatedButton from "../ui/AnimatedButton";
@@ -9,8 +10,10 @@ import { IconBadge } from "../onboarding/QuestionLayout";
 import { Skeleton } from "../ui/Skeleton";
 import { useDs } from "../onboarding/useDs";
 import type { StepDay, StepWeek } from "../../hooks/useSteps";
+import { light, dark } from "../../constants/theme";
+import { PageTitle } from "./TodayCard";
 
-// HL-163: the dashboard's "Steps today" card, under the check-ins. The step total is for the patient's own tracking
+// HL-163: "Steps today", a page of the dashboard's swipe card (owner's choice 2026-11-23, was a card under the check-ins). The step total is for the patient's own tracking
 // (a goal they set, 7,000 by default); brisk walking is what adds movement minutes to the Habit score.
 
 const WEEKDAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"];
@@ -40,10 +43,10 @@ function WeekBars({ days, goal }: { days: StepDay[]; goal: number }) {
         const isToday = d.day === today;
         return (
           <View key={d.day} style={{ flex: 1, alignItems: "center", gap: 4 }}>
-            <View style={{ height: 36, width: "100%", justifyContent: "flex-end" }}>
+            <View style={{ height: 28, width: "100%", justifyContent: "flex-end" }}>
               <View
                 style={{
-                  height: Math.max(3, Math.round((d.steps / top) * 36)),
+                  height: Math.max(3, Math.round((d.steps / top) * 28)),
                   borderRadius: 3,
                   backgroundColor: reached ? c.primary : isDark ? c.surfaceAlt : c.tint,
                   borderWidth: isToday && !reached ? 1.5 : 0,
@@ -61,13 +64,68 @@ function WeekBars({ days, goal }: { days: StepDay[]; goal: number }) {
   );
 }
 
-/** Tracking is on: today's steps, the goal bar, brisk minutes and the week. */
-export function StepsCard({ week, loading, onPress }: { week?: StepWeek; loading: boolean; onPress: () => void }) {
+/** How full the ring is, 0 to 1. */
+export function goalShare(steps: number, goal: number): number {
+  return goal > 0 ? Math.max(0, Math.min(1, steps / goal)) : 0;
+}
+
+function StepRing({ steps, goal, size }: { steps: number; goal: number; size: number }) {
   const { c, isDark } = useDs();
+  const strokeWidth = 12;
+  const r = (size - strokeWidth) / 2;
+  const center = size / 2;
+  const circ = 2 * Math.PI * r;
+  const share = goalShare(steps, goal);
+  const full = share >= 1;
+  return (
+    <View style={{ width: size, height: size }}>
+      <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <Circle cx={center} cy={center} r={r} fill="none" stroke={isDark ? c.surfaceAlt : c.tint} strokeWidth={strokeWidth} />
+        {full ? (
+          <Circle cx={center} cy={center} r={r} fill="none" stroke={c.primary} strokeWidth={strokeWidth} />
+        ) : share > 0 ? (
+          <Circle
+            cx={center}
+            cy={center}
+            r={r}
+            fill="none"
+            stroke={c.primary}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeDasharray={`${Math.max(1, share * circ)} ${circ}`}
+            transform={`rotate(-90 ${center} ${center})`}
+          />
+        ) : null}
+      </Svg>
+      <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center", paddingHorizontal: 18 }}>
+        <MaterialCommunityIcons name="walk" size={20} color={c.primary} />
+        <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.7}
+          maxFontSizeMultiplier={1.2}
+          style={{ fontSize: 34, fontWeight: "700", letterSpacing: -0.8, color: c.ink, fontVariant: ["tabular-nums"] }}
+        >
+          {stepsText(steps)}
+        </Text>
+        <Text maxFontSizeMultiplier={1.2} style={{ fontSize: 13, color: c.slate }}>{`of ${stepsText(goal)} steps`}</Text>
+      </View>
+    </View>
+  );
+}
+
+/**
+ * Tracking is on: a page of the dashboard's swipe card (after the habits score). Today's steps as a ring toward the
+ * goal, what's left, the brisk minutes that count toward the Habit score, and the week's bars.
+ */
+export function StepsPage({ week, loading, onOpen }: { week?: StepWeek; loading: boolean; onOpen: () => void }) {
+  const { c, isDark } = useDs();
+  const t = isDark ? dark : light;
   const today = week?.days[week.days.length - 1];
   const goal = week?.goal ?? 7000;
   const steps = today?.steps ?? 0;
   const reached = steps >= goal;
+  const brisk = today?.brisk_minutes ?? 0;
 
   // A light buzz the first time today's steps pass the goal
   useEffect(() => {
@@ -82,47 +140,55 @@ export function StepsCard({ week, loading, onPress }: { week?: StepWeek; loading
       .catch(() => {});
   }, [today, reached]);
 
-  if (loading && !week) return <Skeleton style={{ height: 172, borderRadius: 18 }} />;
-
   return (
-    <AnimatedButton
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`Steps today: ${stepsText(steps)} of ${stepsText(goal)}. ${reached ? "Goal reached. " : ""}${briskLine(today?.brisk_minutes ?? 0)}. Tap to see your week.`}
-      style={{
-        backgroundColor: isDark ? c.surface : c.canvas,
-        borderWidth: 1,
-        borderColor: c.hairline,
-        borderRadius: 18,
-        padding: 16,
-        gap: 12,
-      }}
-    >
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-        <Text style={{ fontSize: 14, fontWeight: "600", color: c.slate }}>Steps today</Text>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-          {reached ? <Text style={{ fontSize: 13, fontWeight: "600", color: c.primary }}>Goal reached</Text> : null}
-          <Feather name="chevron-right" size={18} color={c.steel} />
+    <View style={{ flex: 1, gap: 10 }}>
+      <PageTitle
+        title="Steps today"
+        right={
+          <AnimatedButton
+            onPress={onOpen}
+            accessibilityRole="button"
+            accessibilityLabel="See your steps this week"
+            style={{ flexDirection: "row", alignItems: "center", gap: 2, minHeight: 44, marginVertical: -8, marginRight: -6, paddingLeft: 8 }}
+          >
+            <Text style={{ fontSize: 14, fontWeight: "600", color: c.primary }}>This week</Text>
+            <Feather name="chevron-right" size={18} color={c.primary} />
+          </AnimatedButton>
+        }
+      />
+      {loading && !week ? (
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 12 }}>
+          <Skeleton style={{ width: 150, height: 150, borderRadius: 75 }} />
+          <Skeleton style={{ width: 180, height: 14, borderRadius: 7 }} />
         </View>
-      </View>
-
-      <View style={{ gap: 8 }}>
-        <View style={{ flexDirection: "row", alignItems: "baseline", gap: 6 }}>
-          <Text style={{ fontSize: 30, fontWeight: "700", letterSpacing: -0.6, color: c.ink }}>{stepsText(steps)}</Text>
-          <Text style={{ fontSize: 15, color: c.slate }}>{`of ${stepsText(goal)} steps`}</Text>
+      ) : (
+        <View style={{ flex: 1, justifyContent: "center", gap: 12 }}>
+          <View
+            accessible
+            accessibilityLabel={`${stepsText(steps)} of ${stepsText(goal)} steps today. ${reached ? "Goal reached." : `${stepsText(goal - steps)} to go.`}`}
+            style={{ alignItems: "center", gap: 8 }}
+          >
+            <StepRing steps={steps} goal={goal} size={150} />
+            {reached ? (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 5, paddingVertical: 4, paddingHorizontal: 12, borderRadius: 999, backgroundColor: t.successTint }}>
+                <Feather name="check-circle" size={14} color={t.successText} />
+                <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 14, fontWeight: "700", color: t.successText }}>Goal reached</Text>
+              </View>
+            ) : (
+              <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 15, fontWeight: "600", color: c.charcoal }}>
+                {`${stepsText(goal - steps)} steps to go`}
+              </Text>
+            )}
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingHorizontal: 8 }}>
+            <Feather name="zap" size={14} color={c.primary} />
+            <Text style={{ flexShrink: 1, fontSize: 13, lineHeight: 18, color: c.charcoal, textAlign: "center" }}>{briskLine(brisk)}</Text>
+          </View>
+          {week ? <WeekBars days={week.days} goal={goal} /> : null}
         </View>
-        <View style={{ height: 8, borderRadius: 4, backgroundColor: isDark ? c.surfaceAlt : c.hairlineSoft, overflow: "hidden" }}>
-          <View style={{ height: 8, borderRadius: 4, width: `${Math.min(100, (steps / goal) * 100)}%`, backgroundColor: c.primary }} />
-        </View>
-      </View>
-
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-        <Feather name="zap" size={14} color={c.primary} />
-        <Text style={{ flex: 1, fontSize: 13, lineHeight: 18, color: c.charcoal }}>{briskLine(today?.brisk_minutes ?? 0)}</Text>
-      </View>
-
-      {week ? <WeekBars days={week.days} goal={goal} /> : null}
-    </AnimatedButton>
+      )}
+      <Text style={{ fontSize: 12, color: c.steel, textAlign: "center" }}>From Health Connect · The step total isn&apos;t scored</Text>
+    </View>
   );
 }
 
