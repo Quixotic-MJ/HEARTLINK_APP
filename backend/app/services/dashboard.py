@@ -806,6 +806,12 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
         "has_recent_severe_symptom": has_recent_severe_symptom,
         "exercise_screening": screening,
         "emergency_reading_pause": reading_pause,
+        # The patient's own goals (Health targets and limits). The app read thresholds.active_minutes_goal but it was
+        # never sent, so the Movement goal always showed 30; HL-164 adds the main goal.
+        "thresholds": {
+            "active_minutes_goal": (threshold or {}).get("active_minutes_goal"),
+            "main_goal": (threshold or {}).get("main_goal"),
+        },
     }
 
 

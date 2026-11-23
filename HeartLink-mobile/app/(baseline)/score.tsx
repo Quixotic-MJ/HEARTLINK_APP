@@ -83,6 +83,10 @@ async function submitBaseline(data: BaselineData, userId: string, token: string)
       ...(data.answered?.bp_medicine ? { bp_medicine: !!data.bp_medicine } : {}),
       ...(data.answered?.has_diabetes ? { has_diabetes: !!data.has_diabetes } : {}),
       ...(data.answered?.cholesterol_medicine ? { cholesterol_medicine: !!data.cholesterol_medicine } : {}),
+      // HL-164: the health check and the main goal
+      health_conditions: data.health_conditions ?? [],
+      ...(data.health_conditions?.length ? { doctor_cleared: data.doctor_cleared === true } : {}),
+      ...(data.main_goal ? { main_goal: data.main_goal } : {}),
     }),
   });
   if (!baselineRes.ok) {

@@ -8,6 +8,8 @@ import AnimatedButton from "../../components/ui/AnimatedButton";
 import DsButton from "../../components/onboarding/DsButton";
 import { DsScreen } from "../../components/onboarding/QuestionLayout";
 import { useDs } from "../../components/onboarding/useDs";
+import { useBaseline } from "../../contexts/BaselineContext";
+import GetHelpNote from "../../components/onboarding/GetHelpNote";
 
 const POINTS: { yes: boolean; title: string; body: string }[] = [
   { yes: true, title: "Made for everyday heart health", body: "For adults who want to look after their heart, or who may be at risk of high blood pressure." },
@@ -15,6 +17,12 @@ const POINTS: { yes: boolean; title: string; body: string }[] = [
   { yes: true, title: "Already have high blood pressure?", body: "You can use it to keep track. Keep following your doctor's plan." },
   { yes: true, title: "Shows your week as a score", body: "One number, based on your last 7 days of logs." },
   { yes: false, title: "It isn't a diagnosis", body: "It doesn't replace your doctor or your medicine." },
+  // HL-164 (panel revision)
+  {
+    yes: false,
+    title: "It can make mistakes",
+    body: "Its scores, limits and suggestions are estimates and can be wrong. Used carelessly, or instead of your doctor's advice, it could make a health problem worse.",
+  },
   { yes: false, title: "Not a care plan for heart conditions", body: "If you've been diagnosed with heart disease or had a stroke, ask your doctor before following its exercise or food suggestions." },
 ];
 
@@ -22,7 +30,8 @@ const POINTS: { yes: boolean; title: string; body: string }[] = [
 export default function StartScreen() {
   const router = useRouter();
   const { c } = useDs();
-  const [agreed, setAgreed] = useState(false);
+  const { data, updateData } = useBaseline();
+  const [agreed, setAgreed] = useState(data.agreed_notice);
 
   return (
     <DsScreen
@@ -39,8 +48,11 @@ export default function StartScreen() {
           <DsButton
             label="Continue"
             disabled={!agreed}
-            onPress={() => router.replace("/(baseline)/plan")}
-            accessibilityHint="Opens the set-up questions"
+            onPress={() => {
+              updateData({ agreed_notice: true });
+              router.replace("/(baseline)/health-check");
+            }}
+            accessibilityHint="Opens the health check"
             icon={<Feather name="arrow-right" size={16} color={!agreed ? c.steel : "#FFFFFF"} />}
           />
         </Animated.View>
@@ -107,46 +119,13 @@ export default function StartScreen() {
           ))}
         </View>
 
-        <View
-          accessibilityRole="alert"
-          className="flex-row"
-          style={{
-            gap: 12,
-            marginTop: 16,
-            padding: 16,
-            borderRadius: 14,
-            backgroundColor: c.rose,
-            borderWidth: 1,
-            borderColor: c.hairline,
-          }}
-        >
-          <View
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 16,
-              backgroundColor: c.canvas,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Feather name="alert-triangle" size={16} color={c.danger} />
-          </View>
-          <View className="flex-1">
-            <Text style={{ fontSize: 14.5, fontWeight: "700", color: c.ink }}>
-              When to get help right away
-            </Text>
-            <Text style={{ fontSize: 13.5, lineHeight: 20, color: c.charcoal, marginTop: 4 }}>
-              A reading of 180/120 or higher, chest pain, trouble breathing, fainting or sudden weakness. Call 911 or go to the nearest hospital.
-            </Text>
-          </View>
-        </View>
+        <GetHelpNote style={{ marginTop: 16 }} />
 
         <AnimatedButton
           onPress={() => setAgreed((v) => !v)}
           accessibilityRole="checkbox"
           accessibilityState={{ checked: agreed }}
-          accessibilityLabel="I understand HeartLink supports healthy habits and isn't medical advice"
+          accessibilityLabel="I understand HeartLink can make mistakes and isn't medical advice, and I'll use it alongside my doctor's care"
           style={{
             flexDirection: "row",
             alignItems: "center",
@@ -176,7 +155,8 @@ export default function StartScreen() {
             {agreed ? <Feather name="check" size={14} color="#ffffff" /> : null}
           </View>
           <Text style={{ flex: 1, fontSize: 13.5, lineHeight: 20, color: c.ink }}>
-            I understand HeartLink supports healthy habits and isn&apos;t medical advice.
+            I understand HeartLink can make mistakes and isn&apos;t medical advice, and I&apos;ll use it alongside my
+            doctor&apos;s care.
           </Text>
         </AnimatedButton>
       </Animated.View>
