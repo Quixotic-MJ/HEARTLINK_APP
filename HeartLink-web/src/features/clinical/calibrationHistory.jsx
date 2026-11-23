@@ -262,6 +262,16 @@ const ModelCheck = () => {
           )}
         </WorkspaceHeader>
 
+        {/* HL-165: only cases the Cardiologist approved go into the export */}
+        {isAdmin && data?.dataset ? (
+          <p className="-mt-3 text-[13px] text-cal-muted">
+            For the dataset:{" "}
+            <span className="font-medium text-cal-ink">{data.dataset.approved} approved</span> by the Cardiologist,{" "}
+            {data.dataset.waiting} waiting for approval
+            {data.dataset.left_out ? `, ${data.dataset.left_out} left out` : ""}. Only approved cases are exported.
+          </p>
+        ) : null}
+
         {/* ─── 2. HEART RISK KIND SWITCHER (HL-153) ─────────────────────────── */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div

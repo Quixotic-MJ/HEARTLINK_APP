@@ -10,6 +10,7 @@ own: they say whether recommendations are safe for the patient, not whether the 
 Measures use clinical reviews only (reviewers verified as clinicians at submit time); practice reviews are
 summarised separately.
 """
+import logging
 from typing import Any, Dict, List, Optional
 
 from app.db.repositories import get_case_review_repo
@@ -176,4 +177,15 @@ def model_check(kind: str = "all") -> Dict[str, Any]:
         "clinical": measures(clinical),
         "practice": {"reviews": practice_measures["reviews"], "agreement": practice_measures["agreement"]},
         "rows": rows,
+        # HL-165: how many cases the Cardiologist approved for the dataset export
+        "dataset": _dataset_counts(),
     }
+
+
+def _dataset_counts() -> Dict[str, int]:
+    from app.services.clinical_dataset import approval_counts
+    try:
+        return approval_counts()
+    except Exception as e:  # never stops Model Check
+        logging.getLogger(__name__).warning("Dataset approval counts unavailable (%s)", type(e).__name__)
+        return {"approved": 0, "waiting": 0, "left_out": 0}

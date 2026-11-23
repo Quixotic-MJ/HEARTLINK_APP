@@ -12,6 +12,11 @@ recipes at the patient's level or "Stable", without ones that clash with their a
 exercise safety check (PAR-Q+) result, never by the score (HL-123). The PAR-Q+ result is shown with the exercise list.
 
 A review counts as clinical only if the reviewer is a verified clinician when they submit it.
+
+HL-165 (panel revision): before a case can be used as a dataset, a verified Cardiologist approves it (or leaves it out,
+with a reason) once every part is in: their own review and the Dietitian's and PT's checks (when there was anything to
+check). A part that changes afterwards sends the case back to waiting. This only affects the dataset; feedback to the
+patient (hidden items, the checkup reminder) works as before.
 """
 import logging
 from typing import Any, Dict, List, Optional
@@ -36,6 +41,8 @@ VERDICTS = {"nutrition": ("ok", "no"), "exercise": ("ok", "changes", "no")}
 RECIPES_SHOWN = 2
 EXERCISES_SHOWN = 3
 MAX_NOTE = 2000
+DATASET_DECISIONS = {"approve": "approved", "leave_out": "left_out"}
+SECTION_REVIEWER = {"nutrition": "the Dietitian", "exercise": "the Physical Therapist"}
 
 
 def _bad(detail: str) -> HTTPException:
@@ -174,7 +181,76 @@ def case_detail(round_id: str, current_user: Dict[str, Any]) -> Dict[str, Any]:
                          "kind": rc.get("app_risk_kind")} if rc.get("app_risk_band") else None,
                 } if cardiology_done else None,
         "viewer": viewer,
+        # HL-165: whether the case may be used for the dataset, and who can decide
+        "dataset": dataset_view(rc, sections, recommendations, viewer),
     }
+
+
+# --- HL-165: the Cardiologist approves a case for the dataset -------------------------------------------------------
+
+def dataset_waiting_for(rc: Dict[str, Any], sections: Dict[str, Any], recommendations: Dict[str, List]) -> Optional[str]:
+    """What the approval still waits for, or None when every part is in."""
+    progress = section_progress(rc, set(sections), recommendations)
+    if progress["cardiology"] != "done":
+        return "the Cardiologist's review"
+    waiting = [SECTION_REVIEWER[s] for s in ("nutrition", "exercise") if progress[s] == "waiting"]
+    return " and ".join(waiting) or None
+
+
+def dataset_view(rc: Dict[str, Any], sections: Dict[str, Any], recommendations: Dict[str, List],
+                 viewer: Dict[str, Any]) -> Dict[str, Any]:
+    waiting_for = dataset_waiting_for(rc, sections, recommendations)
+    cardio = sections.get("cardiology") or {}
+    decided_by = rc.get("dataset_decided_by")
+    decider = (get_profile_repo().get_by_id(decided_by) or {}) if decided_by else {}
+    name = f"{decider.get('first_name', '')} {decider.get('last_name', '')}".strip() or None
+    can_decide = (viewer.get("expert_type") == "Cardiologist" and viewer.get("role") == "medical_expert"
+                  and viewer.get("verified_clinician") and rc.get("status") == "complete"
+                  and bool(cardio.get("is_clinical")) and waiting_for is None)
+    return {
+        "status": rc.get("dataset_status") or "waiting",
+        "note": rc.get("dataset_note"),
+        "decided_at": rc.get("dataset_decided_at"),
+        "decided_by_name": name,
+        "waiting_for": waiting_for,
+        "practice": bool(sections.get("cardiology")) and not cardio.get("is_clinical"),
+        "can_decide": bool(can_decide),
+    }
+
+
+def _reopen_dataset(rc: Dict[str, Any]) -> None:
+    """A review part changed after the Cardiologist decided: the case waits for a new decision."""
+    if (rc.get("dataset_status") or "waiting") != "waiting":
+        get_case_review_repo().update_review_case(rc["id"], {
+            "dataset_status": "waiting", "dataset_note": None, "dataset_decided_at": None, "dataset_decided_by": None})
+
+
+def decide_dataset(round_id: str, payload: Dict[str, Any], current_user: Dict[str, Any]) -> Dict[str, Any]:
+    rc = get_round_or_404(round_id)
+    profile = _require_section_reviewer("cardiology", current_user, rc)
+    if not profile.get("is_verified_clinician"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Only a verified Cardiologist can approve cases for the dataset.")
+    decision = DATASET_DECISIONS.get(payload.get("decision"))
+    if not decision:
+        raise _bad("Choose to approve the case or leave it out.")
+    if rc.get("status") != "complete":
+        raise _bad("Give your own review first.")
+    sections = {s["section"]: s for s in get_case_review_repo().list_sections(review_case_id=rc["id"])}
+    if not (sections.get("cardiology") or {}).get("is_clinical"):
+        raise _bad("A practice review can't be used for the dataset.")
+    waiting_for = dataset_waiting_for(rc, sections, recommendations_for(rc))
+    if waiting_for:
+        raise _bad(f"Waiting for {waiting_for}.")
+    note = _clean_note(payload.get("note"))
+    if decision == "left_out" and not note:
+        raise _bad("Say why this case is left out of the dataset.")
+    return get_case_review_repo().update_review_case(rc["id"], {
+        "dataset_status": decision,
+        "dataset_note": note or None,
+        "dataset_decided_at": utc_now().isoformat(),
+        "dataset_decided_by": profile.get("id"),
+    }) or {}
 
 
 def _require_section_reviewer(section: str, current_user: Dict[str, Any], rc: Dict[str, Any]) -> Dict[str, Any]:
@@ -252,6 +328,7 @@ def submit_cardiology(round_id: str, payload: Dict[str, Any], current_user: Dict
     }
     repo = get_case_review_repo()
     saved = repo.save_section(rc["id"], "cardiology", data)
+    _reopen_dataset(rc)  # HL-165
     if rc.get("status") == "open":
         repo.update_review_case(rc["id"], {"status": "complete", "completed_at": utc_now().isoformat()})
     review_feedback.notify_checkup(rc, checkup)  # HL-057: only while the setting is on
@@ -282,5 +359,6 @@ def submit_items(section: str, round_id: str, payload: Dict[str, Any], current_u
     data = {**_reviewer_fields(profile), "item_verdicts": verdicts,
             "notes": _clean_note(payload.get("notes")), "status": "submitted"}
     saved = get_case_review_repo().save_section(rc["id"], section, data)
+    _reopen_dataset(rc)  # HL-165
     review_feedback.record_not_suitable(rc, verdicts)  # HL-056 records; HL-057 hides them once switched on
     return saved

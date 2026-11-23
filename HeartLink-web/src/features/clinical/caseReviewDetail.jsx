@@ -26,6 +26,7 @@ import {
   waitingText,
 } from "./reviewUi.js";
 import { ExerciseLogPanel, FoodLogPanel } from "./caseReviewLogPanels.jsx";
+import { datasetStatusView, verdictSummary } from "./caseDataset.js";
 import { itemFacts } from "./caseReviewLogs.js";
 
 // HL-055 / HL-056: one review round. Every reviewer sees the same anonymized snapshot; each expert
@@ -968,6 +969,9 @@ const CaseReviewDetail = () => {
                 </div>
               </section>
             </div>
+
+            {/* HL-165: the Cardiologist approves the case before it joins the dataset (once the Cardiologist has reviewed) */}
+            {cardio ? <DatasetPanel data={data} onSaved={onSaved} /> : null}
           </div>
         )}
       </div>
@@ -975,6 +979,136 @@ const CaseReviewDetail = () => {
   );
 };
 
+
+// HL-165 (panel revision): the Cardiologist approves a case before it can be used as a dataset. They see what would go
+// in (the setup answers on the left, the app's Heart risk, their own band, and the Dietitian's and PT's checks), then
+// approve it or leave it out with a reason. Everyone else sees the status. Feedback to the patient is not affected.
+const DATASET_TONE = {
+  done: "border-cal-success/25 bg-cal-success/10",
+  out: "border-cal-hairline bg-cal-surface-soft",
+  waiting: "border-cal-warning/30 bg-cal-warning/10",
+};
+
+function DatasetPanel({ data, onSaved }) {
+  const dataset = data.dataset || {};
+  const view = datasetStatusView(dataset);
+  const [leaving, setLeaving] = useState(false);
+  const [note, setNote] = useState("");
+  const [saving, setSaving] = useState(false);
+  const cardio = data.sections?.cardiology;
+  const appRisk = data.app?.risk;
+  const food = verdictSummary(data.sections?.nutrition);
+  const exercise = verdictSummary(data.sections?.exercise);
+
+  const decide = async (decision) => {
+    if (decision === "leave_out" && !note.trim()) {
+      toast.error("Say why this case is left out.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await apiFetch(`/api/admin/review-queue/${data.id}/dataset`, {
+        method: "POST",
+        body: JSON.stringify({ decision, note: decision === "leave_out" ? note.trim() : "" }),
+      });
+      toast.success(decision === "approve" ? "Approved for the dataset." : "Left out of the dataset.");
+      setLeaving(false);
+      setNote("");
+      onSaved(res.case);
+    } catch (e) {
+      toast.error(e?.data?.detail || "Couldn't save your decision.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const rows = [
+    ["Your Heart risk band", cardio?.expert_risk_band ? `${labelOf(RISK_BANDS, cardio.expert_risk_band)}${cardio.expert_risk_percent != null ? ` (${cardio.expert_risk_percent}%)` : ""}` : "Not given"],
+    ["The app's Heart risk", appRisk ? `${labelOf(RISK_BANDS, appRisk.band)}${appRisk.percent != null ? ` (${appRisk.percent}%)` : ""}` : "None (outside ages 30 to 79)"],
+    ["Food check (Dietitian)", food || (data.progress?.nutrition === "not_needed" ? "Nothing to check" : "Not done yet")],
+    ["Exercise check (Physical Therapist)", exercise || (data.progress?.exercise === "not_needed" ? "Nothing to check" : "Not done yet")],
+  ];
+
+  return (
+    <section
+      aria-label="Use for the dataset"
+      className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-[16px] font-semibold text-cal-ink">Use for the dataset</h2>
+        <span className={`${TAG} ${DATASET_TONE[view.tone]}`}>{view.label}</span>
+      </div>
+      <p className="mt-1.5 text-[13.5px] text-cal-muted">{view.detail}</p>
+
+      {dataset.can_decide ? (
+        <div className="mt-4 flex flex-col gap-4">
+          <p className="text-[13.5px] text-cal-body">
+            Check the data and every reviewer&apos;s feedback before this case is used to check or train the app&apos;s
+            estimate. The setup answers are on the left.
+          </p>
+          <dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
+            {rows.map(([k, v]) => (
+              <div key={k} className="flex flex-col">
+                <dt className="text-[12px] text-cal-muted">{k}</dt>
+                <dd className="text-[14px] font-medium text-cal-ink">{v}</dd>
+              </div>
+            ))}
+          </dl>
+
+          {leaving ? (
+            <div className="flex flex-col gap-2">
+              <label htmlFor="dataset-note" className="text-[12.5px] font-semibold text-cal-ink">
+                Why should this case be left out?
+              </label>
+              <textarea
+                id="dataset-note"
+                rows={3}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                className={textareaClass}
+              />
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => decide("leave_out")}
+                  disabled={saving}
+                  className="inline-flex h-10 items-center justify-center rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-5 text-[14px] font-semibold text-cal-on-primary transition-colors cursor-pointer disabled:bg-cal-primary-disabled disabled:text-cal-muted"
+                >
+                  {saving ? "Saving…" : "Leave it out"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLeaving(false)}
+                  className="inline-flex h-10 items-center justify-center rounded-[8px] border border-cal-hairline bg-cal-canvas px-4 text-[13.5px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => decide("approve")}
+                disabled={saving}
+                className="inline-flex h-10 items-center justify-center rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-5 text-[14px] font-semibold text-cal-on-primary transition-colors cursor-pointer disabled:bg-cal-primary-disabled disabled:text-cal-muted"
+              >
+                {saving ? "Saving…" : view.status === "approved" ? "Approve again" : "Approve for the dataset"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setLeaving(true)}
+                className="inline-flex h-10 items-center justify-center rounded-[8px] border border-cal-hairline bg-cal-canvas px-4 text-[13.5px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer"
+              >
+                Leave it out
+              </button>
+            </div>
+          )}
+        </div>
+      ) : null}
+    </section>
+  );
+}
 
 // 2026-11-12: the patient's exercise safety check (PAR-Q+) today. The exercises listed below are the ones it allows,
 // as in the app (HL-123): the result decides, never the score.

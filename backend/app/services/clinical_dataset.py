@@ -9,6 +9,9 @@ HL-153: the Cardiologist now gives a Heart risk band, so the label comes from th
 Heart risk when the round opened. `scripts/train_heart_risk.py --clinical-export <file>` checks the machine learning
 estimate against it. Retraining from it is switched off until the adviser and the cardiologist approve the labels.
 Older reviews (a habits-style level) are left out.
+
+HL-165 (panel revision): only cases a verified Cardiologist approved for the dataset are used; the rest are listed as
+waiting for approval or left out, with the Cardiologist's reason.
 """
 import math
 import os
@@ -81,7 +84,25 @@ def _exclusion(rc: Dict[str, Any], cardio: Dict[str, Any]) -> Optional[str]:
         return "Practice review (reviewer not a verified clinician)"
     if cardio.get("expert_risk_band") not in rules.RISK_BANDS:
         return "Older review (habits level, before HL-153)" if cardio.get("expert_tier") else "No Heart risk band given"
+    decision = rc.get("dataset_status") or "waiting"
+    if decision == "left_out":
+        return f"Left out by the Cardiologist: {rc.get('dataset_note') or 'no reason given'}"
+    if decision != "approved":
+        return "Waiting for the Cardiologist's approval"
     return None
+
+
+def approval_counts() -> Dict[str, int]:
+    """HL-165: complete clinical cases approved for the dataset, waiting for approval, or left out."""
+    repo = get_case_review_repo()
+    clinical = {s.get("review_case_id") for s in repo.list_sections(section="cardiology")
+                if s.get("is_clinical") and s.get("status") != "archived"}
+    counts = {"approved": 0, "waiting": 0, "left_out": 0}
+    for rc in repo.list_review_cases(status="complete"):
+        if rc["id"] in clinical:
+            decision = rc.get("dataset_status") or "waiting"
+            counts[decision if decision in counts else "waiting"] += 1
+    return counts
 
 
 def build_export(model_version: Optional[str] = None) -> Dict[str, Any]:
