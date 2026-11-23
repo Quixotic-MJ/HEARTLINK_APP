@@ -21,7 +21,9 @@ export const CHOLESTEROL_LIMIT_MG = 200;
 export const LIMITS_NOTE =
   "These follow the latest evidence-based guidelines from accredited health organizations (American Heart Association, Philippine Heart Association). They're fixed so they can't be raised.";
 
-export const MOVEMENT_GOAL = { min: 10, max: 120, step: 5, fallback: 30 };
+export type GoalRange = { min: number; max: number; step: number; fallback: number };
+
+export const MOVEMENT_GOAL: GoalRange = { min: 10, max: 120, step: 5, fallback: 30 };
 
 export function limitRows(t: DailyTargets): { label: string; value: string; target: DailyTarget }[] {
   const n = (v: number) => Math.round(v).toLocaleString("en-US");
@@ -34,10 +36,14 @@ export function limitRows(t: DailyTargets): { label: string; value: string; targ
 }
 
 /** Keeps a movement goal in range, on a 5-minute step. */
-export function clampGoal(minutes: number): number {
-  const { min, max, step } = MOVEMENT_GOAL;
+export function clampGoal(minutes: number, goal: GoalRange = MOVEMENT_GOAL): number {
+  const { min, max, step } = goal;
   return Math.min(max, Math.max(min, Math.round(minutes / step) * step));
 }
+
+/** HL-163: the daily step goal, for encouragement only (it never changes the score). 7,000 by default: about
+ * 6,000-8,000+ steps a day was linked with lower risk in adults (Paluch et al., Lancet Public Health, 2022). */
+export const STEPS_GOAL = { min: 1000, max: 30000, step: 500, fallback: 7000 };
 
 /** The food diary's saturated fat line: today's total against the patient's own limit, or the total alone until the
  * limit has loaded (2026-11-19: it was "of 20 g" for everyone, which didn't match Goals & limits). */

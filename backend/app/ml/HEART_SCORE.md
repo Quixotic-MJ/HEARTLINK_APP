@@ -72,6 +72,21 @@ The AHA counts moderate or harder activity, with vigorous minutes double.
 
 Abandoned workouts don't count. Exercise logs don't store intensity, so it comes from the exercise library.
 
+**Steps from the phone (HL-163, 2026-11-23).** On Android, the patient can let HeartLink read the steps their phone
+already counts in Health Connect. The AHA table scores minutes, not steps, so:
+
+| From the phone | Counts as |
+|---|---|
+| The day's step total | Not counted. Shown on the Steps card against the patient's own step goal (7,000 by default) |
+| A stretch of at least a minute walked at 100 or more steps a minute | Moderate minutes, in full |
+| The part of a brisk stretch that overlaps an exercise logged in HeartLink | Not counted again |
+
+About 100 steps a minute is the moderate-intensity walking pace for adults (Tudor-Locke et al., CADENCE-Adults,
+2019-2020). A long Health Connect record that averages under 100 a minute doesn't count, even if part of it was brisk,
+so the rule can undercount but never overcounts. The 7,000-step default goal follows Paluch et al. (Lancet Public
+Health, 2022): about 6,000-8,000+ steps a day was linked with lower risk in adults; it's for encouragement only.
+Code: `app/services/step_minutes.py` (server) and `services/stepTracker.ts` (phone).
+
 ### Nicotine details (HeartLink's choices)
 
 - The AHA gives 25 points for inhaled nicotine devices. Setup asks about cigarettes, vapes and other tobacco together,

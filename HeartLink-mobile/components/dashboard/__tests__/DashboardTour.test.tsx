@@ -3,13 +3,23 @@ import { Text, View } from "react-native";
 import { render, screen, userEvent } from "@testing-library/react-native";
 import { TourSpot, TourTarget, useDashboardTour } from "../DashboardTour";
 
-const TARGETS: TourTarget[] = ["score", "missions", "note", "vitals", "summary", "care"];
+const TARGETS: TourTarget[] = ["score", "missions", "steps", "note", "vitals", "summary", "care"];
 
 // A stand-in dashboard: seven sections, and the tour starts straight away. A critical score hides the picks, as
 // the real dashboard does; care tools stay.
-function Dashboard({ critical = false, hasNote = true, onFinish = jest.fn() }: { critical?: boolean; hasNote?: boolean; onFinish?: () => void }) {
+function Dashboard({
+  critical = false,
+  hasNote = true,
+  hasSteps = false,
+  onFinish = jest.fn(),
+}: {
+  critical?: boolean;
+  hasNote?: boolean;
+  hasSteps?: boolean;
+  onFinish?: () => void;
+}) {
   const { tour, start } = useDashboardTour({
-    shown: { score: true, note: hasNote, missions: true, vitals: true, summary: !critical, care: true },
+    shown: { score: true, note: hasNote, missions: true, steps: hasSteps, vitals: true, summary: !critical, care: true },
     onFinish,
     onShown: jest.fn(),
   });
@@ -26,6 +36,16 @@ function Dashboard({ critical = false, hasNote = true, onFinish = jest.fn() }: {
 }
 
 describe("Dashboard tour", () => {
+  it("explains the Steps card after the check-ins when it's on the dashboard (HL-163)", async () => {
+    const user = userEvent.setup();
+    await render(<Dashboard hasSteps />);
+    expect(screen.getByText("1 of 7")).toBeOnTheScreen();
+    await user.press(screen.getByRole("button", { name: "Next" }));
+    expect(screen.getByText("Today's check-ins")).toBeOnTheScreen();
+    await user.press(screen.getByRole("button", { name: "Next" }));
+    expect(screen.getByText("Steps today")).toBeOnTheScreen();
+  });
+
   it("skips a section that isn't shown and finishes on the last step", async () => {
     const user = userEvent.setup();
     const onFinish = jest.fn();

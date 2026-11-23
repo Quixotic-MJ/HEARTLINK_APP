@@ -13,13 +13,17 @@ import { DsScreen, InfoNote } from "../../../components/onboarding/QuestionLayou
 import { PageHeader } from "../../../components/family/FamilyBits";
 import AnimatedButton from "../../../components/ui/AnimatedButton";
 import { Skeleton } from "../../../components/ui/Skeleton";
-import { DailyTargets, LIMITS_NOTE, MOVEMENT_GOAL, clampGoal, limitRows } from "../../../services/dailyLimits";
+import { DailyTargets, GoalRange, LIMITS_NOTE, MOVEMENT_GOAL, STEPS_GOAL, clampGoal, limitRows } from "../../../services/dailyLimits";
 
 // HL-016 / HL-017, HL-156: Settings › Health targets and limits. The daily limits are read-only: they come from the
 // guidelines (the Cardiologist asked for strict sodium and cholesterol limits), and only the care team can set a stricter
-// one. The patient sets their daily movement goal, which the Dashboard and Trends use.
+// one. The patient sets their daily movement goal, which the Dashboard and Trends use, and (HL-163) their daily step
+// goal for the Steps card, which never changes the score.
 
-type Analytics = { targets?: DailyTargets | null; thresholds?: { active_minutes_goal?: number | null } | null };
+type Analytics = {
+  targets?: DailyTargets | null;
+  thresholds?: { active_minutes_goal?: number | null; daily_steps_goal?: number | null } | null;
+};
 
 function LimitsCard({ targets }: { targets: DailyTargets }) {
   const { c } = useDs();
@@ -40,13 +44,25 @@ function LimitsCard({ targets }: { targets: DailyTargets }) {
   );
 }
 
-function GoalStepper({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+function GoalStepper({
+  value,
+  onChange,
+  range,
+  format,
+  what,
+}: {
+  value: number;
+  onChange: (n: number) => void;
+  range: GoalRange;
+  format: (n: number) => string;
+  what: string;
+}) {
   const { c } = useDs();
   const button = (icon: "minus" | "plus", to: number, disabled: boolean, label: string) => (
     <AnimatedButton
       onPress={() => {
         Haptics.selectionAsync();
-        onChange(clampGoal(to));
+        onChange(clampGoal(to, range));
       }}
       disabled={disabled}
       accessibilityRole="button"
@@ -67,11 +83,11 @@ function GoalStepper({ value, onChange }: { value: number; onChange: (n: number)
   );
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-      {button("minus", value - MOVEMENT_GOAL.step, value <= MOVEMENT_GOAL.min, "Lower the goal by 5 minutes")}
-      <Text accessibilityLiveRegion="polite" style={{ minWidth: 110, textAlign: "center", fontSize: 20, fontWeight: "600", color: c.ink }}>
-        {`${value} min`}
+      {button("minus", value - range.step, value <= range.min, `Lower the goal by ${what}`)}
+      <Text accessibilityLiveRegion="polite" style={{ minWidth: 130, textAlign: "center", fontSize: 20, fontWeight: "600", color: c.ink }}>
+        {format(value)}
       </Text>
-      {button("plus", value + MOVEMENT_GOAL.step, value >= MOVEMENT_GOAL.max, "Raise the goal by 5 minutes")}
+      {button("plus", value + range.step, value >= range.max, `Raise the goal by ${what}`)}
     </View>
   );
 }
@@ -84,6 +100,7 @@ export default function GoalsThresholdsScreen() {
   const queryClient = useQueryClient();
   // The saved goal, until the patient changes it here
   const [edited, setEdited] = useState<number | null>(null);
+  const [editedSteps, setEditedSteps] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
 
   const data = useQuery({
@@ -98,23 +115,35 @@ export default function GoalsThresholdsScreen() {
   });
   const savedGoal = clampGoal(Number(data.data?.thresholds?.active_minutes_goal) || MOVEMENT_GOAL.fallback);
   const goal = edited ?? savedGoal;
+  const savedSteps = clampGoal(Number(data.data?.thresholds?.daily_steps_goal) || STEPS_GOAL.fallback, STEPS_GOAL);
+  const stepsGoal = editedSteps ?? savedSteps;
+  const changed = goal !== savedGoal || stepsGoal !== savedSteps;
 
   const save = async () => {
     setSaving(true);
     try {
       const res = await apiFetch(`/api/analytics/${userId}/thresholds`, {
         method: "PUT",
-        body: JSON.stringify({ active_minutes_goal: goal }),
+        body: JSON.stringify({
+          ...(goal !== savedGoal ? { active_minutes_goal: goal } : {}),
+          ...(stepsGoal !== savedSteps ? { daily_steps_goal: stepsGoal } : {}),
+        }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
         throw new Error(typeof body?.detail === "string" ? body.detail : "Please try again.");
       }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      showToast({ title: "Movement goal saved", message: `${goal} active minutes a day`, type: "success" });
+      showToast({
+        title: "Goals saved",
+        message: `${goal} active minutes and ${stepsGoal.toLocaleString("en-US")} steps a day`,
+        type: "success",
+      });
       await queryClient.invalidateQueries({ queryKey: ["healthTargets", userId] });
       setEdited(null);
+      setEditedSteps(null);
       queryClient.invalidateQueries({ queryKey: ["dashboard", userId] });
+      queryClient.invalidateQueries({ queryKey: ["steps", "week", userId] });
     } catch (e) {
       showToast({ title: "Couldn't save your goal", message: e instanceof Error ? e.message : "Please try again.", type: "error" });
     } finally {
@@ -124,7 +153,7 @@ export default function GoalsThresholdsScreen() {
 
   const targets = data.data?.targets;
   const footer = data.data ? (
-    <DsButton label="Save movement goal" onPress={save} loading={saving} disabled={goal === savedGoal} block />
+    <DsButton label="Save goals" onPress={save} loading={saving} disabled={!changed} block />
   ) : null;
 
   return (
@@ -168,7 +197,23 @@ export default function GoalsThresholdsScreen() {
             <Text style={{ fontSize: 14, lineHeight: 20, color: c.slate, marginTop: 4, marginBottom: 14 }}>
               Active minutes you aim for each day. The Dashboard and Trends show your progress toward it.
             </Text>
-            <GoalStepper value={goal} onChange={setEdited} />
+            <GoalStepper value={goal} onChange={setEdited} range={MOVEMENT_GOAL} format={(n) => `${n} min`} what="5 minutes" />
+          </View>
+
+          <View>
+            <Text accessibilityRole="header" style={{ fontSize: 18, fontWeight: "600", color: c.ink }}>
+              Daily step goal
+            </Text>
+            <Text style={{ fontSize: 14, lineHeight: 20, color: c.slate, marginTop: 4, marginBottom: 14 }}>
+              {"Steps you aim for each day, shown on the Steps card. It's for your own tracking and doesn't change your score; brisk walking does."}
+            </Text>
+            <GoalStepper
+              value={stepsGoal}
+              onChange={setEditedSteps}
+              range={STEPS_GOAL}
+              format={(n) => n.toLocaleString("en-US")}
+              what="500 steps"
+            />
           </View>
         </View>
       )}

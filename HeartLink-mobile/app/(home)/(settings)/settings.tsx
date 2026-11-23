@@ -15,6 +15,7 @@ import { SquareIconButton } from "../../../components/exercise/ExerciseBits";
 import { useIsPremium } from "../../../hooks/usePremium";
 import { isFamilyAccount } from "../../../services/family";
 import { pushStatusText, registerForPush, usePushStatus } from "../../../services/pushNotifications";
+import { isStepTrackingAvailable, useStepTrackingSetting } from "../../../services/stepTracker";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -171,7 +172,14 @@ export default function SettingsScreen() {
         .catch(() => {});
     }, [])
   );
-  const { logout, user } = useUser();
+  const { logout, user, userId } = useUser();
+  // HL-163: step tracking from Health Connect (only in the installed Android app)
+  const steps = useStepTrackingSetting(userId);
+  const stepsSubtitle = !isStepTrackingAvailable()
+    ? "Works in the installed Android app"
+    : steps.on
+      ? "On: from Health Connect"
+      : "Count steps from your phone";
   const isPremium = useIsPremium();
   const [soundsOn, setSoundsOn] = useSoundsSetting();
   // HL-087: an account made only to follow family members has no health set-up, so those rows are left out
@@ -320,10 +328,19 @@ export default function SettingsScreen() {
               <SettingsRow
                 icon="target"
                 label="Health targets and limits"
-                subtitle="Daily limits and movement goal"
+                subtitle="Daily limits, movement and step goals"
                 iconBg={isDark ? "rgba(16, 185, 129, 0.16)" : "#ECFDF5"}
                 iconColor={isDark ? "#34D399" : "#059669"}
                 onPress={() => router.push("/(home)/(health)/goals-thresholds")}
+              />
+              <SettingsRow
+                icon="walk"
+                iconType="material"
+                label="Step tracking"
+                subtitle={stepsSubtitle}
+                iconBg={isDark ? c.surfaceAlt : c.mint}
+                iconColor={isDark ? c.steel : c.charcoal}
+                onPress={() => router.push("/(home)/(health)/steps")}
               />
               <SettingsRow
                 icon="droplet"

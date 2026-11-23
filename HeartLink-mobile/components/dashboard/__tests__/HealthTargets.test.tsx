@@ -4,7 +4,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { apiFetch } from "../../../lib/api";
 import GoalsThresholdsScreen from "../../../app/(home)/(health)/goals-thresholds";
 import { createTestQueryClient, queryClientWrapper } from "../../../test-utils/reactQuery";
-import { clampGoal, limitRows } from "../../../services/dailyLimits";
+import { STEPS_GOAL, clampGoal, limitRows } from "../../../services/dailyLimits";
 
 // HL-156: Settings › Health targets and limits. The daily limits are read-only (strict, from the guidelines); only the
 // movement goal can be changed.
@@ -65,10 +65,26 @@ describe("Health targets and limits (HL-156)", () => {
     await renderScreen();
     await user.press(await screen.findByRole("button", { name: "Raise the goal by 5 minutes" }));
     expect(screen.getByText("35 min")).toBeOnTheScreen();
-    await user.press(screen.getByRole("button", { name: "Save movement goal" }));
+    await user.press(screen.getByRole("button", { name: "Save goals" }));
     const put = (apiFetch as jest.Mock).mock.calls.find((call) => call[1]?.method === "PUT");
     expect(put[0]).toBe("/api/analytics/user-1/thresholds");
     expect(JSON.parse(put[1].body)).toEqual({ active_minutes_goal: 35 });
+  });
+
+  it("saves only the step goal when that's all that changed (HL-163)", async () => {
+    (apiFetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ targets: TARGETS, thresholds: { active_minutes_goal: 30, daily_steps_goal: 7000 } }),
+    });
+    const user = userEvent.setup();
+    await renderScreen();
+    expect(await screen.findByText("7,000")).toBeOnTheScreen();
+    await user.press(screen.getByRole("button", { name: "Raise the goal by 500 steps" }));
+    expect(screen.getByText("7,500")).toBeOnTheScreen();
+    await user.press(screen.getByRole("button", { name: "Save goals" }));
+    const put = (apiFetch as jest.Mock).mock.calls.find((call) => call[1]?.method === "PUT");
+    expect(JSON.parse(put[1].body)).toEqual({ daily_steps_goal: 7500 });
   });
 });
 
@@ -86,5 +102,11 @@ describe("daily limit helpers", () => {
     expect(clampGoal(5)).toBe(10);
     expect(clampGoal(33)).toBe(35);
     expect(clampGoal(200)).toBe(120);
+  });
+
+  it("keeps the step goal between 1,000 and 30,000, in 500-step steps", () => {
+    expect(clampGoal(400, STEPS_GOAL)).toBe(1000);
+    expect(clampGoal(7240, STEPS_GOAL)).toBe(7000);
+    expect(clampGoal(50000, STEPS_GOAL)).toBe(30000);
   });
 });

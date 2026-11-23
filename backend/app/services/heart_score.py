@@ -18,6 +18,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from app.services.coach_note import _alive, _day, _local_now
 from app.services.feature_transform import _bmi, _weekly
 from app.services.hss_service import _sodium_limit, determine_tier, is_emergency_reading
+from app.services.step_minutes import brisk_minutes_by_day, load_step_days
 from app.utils.time import utc_now
 
 logger = logging.getLogger(__name__)
@@ -270,6 +271,7 @@ def score_from(
     routines: Optional[List[Dict[str, Any]]] = None,
     sodium_limit: float = 1500.0,
     lab_results: Optional[List[Dict[str, Any]]] = None,
+    step_days: Optional[List[Dict[str, Any]]] = None,
     now: Optional[datetime] = None,
 ) -> Optional[Dict[str, Any]]:
     """The score from a patient's data, or None if no area has data yet."""
@@ -317,6 +319,10 @@ def score_from(
         for e in exercise_logs
         if _alive(e) and e.get("status", "completed") != "abandoned" and _day(e.get("logged_at")) in week
     )
+    # HL-163: brisk walking from the phone's steps counts as moderate minutes (step_minutes.py), minus logged exercise
+    phone = brisk_minutes_by_day(step_days or [], exercise_logs)
+    phone_minutes = sum(minutes for day, minutes in phone.items() if day in week)
+    logged += phone_minutes
     setup_minutes = _setup_minutes(baseline) if (first_week and baseline) else None
     from_setup = setup_minutes is not None and setup_minutes > logged
     if baseline or logged:
@@ -326,6 +332,8 @@ def score_from(
             "goal": ACTIVITY_GOAL_MINUTES,
             "from": "setup" if from_setup else "logs",
         }
+        if phone_minutes:
+            areas["activity"]["phone_minutes"] = _round(phone_minutes)
 
     # Sleep: the average of the nights logged this week; the setup answer during the first week
     nights: Dict[Any, float] = {}
@@ -452,6 +460,7 @@ def score_for_user(user_id: str) -> Optional[Dict[str, Any]]:
         routines=routines,
         sodium_limit=_sodium_limit(user_id),
         lab_results=lab_results,
+        step_days=load_step_days(user_id),
     )
     if result is not None:
         result["risk"] = _risk(profile, baseline, health_logs, sleep_logs, lab_results)
