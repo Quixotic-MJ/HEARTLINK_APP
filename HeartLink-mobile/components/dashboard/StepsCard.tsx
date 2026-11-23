@@ -12,6 +12,19 @@ import { useDs } from "../onboarding/useDs";
 import type { StepDay, StepWeek } from "../../hooks/useSteps";
 import { light, dark } from "../../constants/theme";
 import { PageTitle } from "./TodayCard";
+import { lastDays } from "../../services/stepTracker";
+
+const SAMPLE_STEPS = [5200, 8100, 3900, 7400, 6600, 9300, 4870];
+const SAMPLE_BRISK = [6, 22, 0, 15, 9, 31, 12];
+
+/** Made-up numbers for Expo Go, which can't read steps (see showsSampleSteps). Ends today, so the bars look current. */
+export function sampleStepWeek(now: Date = new Date()): StepWeek {
+  return {
+    goal: 7000,
+    last_synced_at: null,
+    days: lastDays(now).map((day, i) => ({ day, steps: SAMPLE_STEPS[i], brisk_minutes: SAMPLE_BRISK[i], synced: true })),
+  };
+}
 
 // HL-163: "Steps today", a page of the dashboard's swipe card (owner's choice 2026-11-23, was a card under the check-ins). The step total is for the patient's own tracking
 // (a goal they set, 7,000 by default); brisk walking is what adds movement minutes to the Habit score.
@@ -118,7 +131,13 @@ function StepRing({ steps, goal, size }: { steps: number; goal: number; size: nu
  * Tracking is on: a page of the dashboard's swipe card (after the habits score). Today's steps as a ring toward the
  * goal, what's left, the brisk minutes that count toward the Habit score, and the week's bars.
  */
-export function StepsPage({ week, loading, onOpen }: { week?: StepWeek; loading: boolean; onOpen: () => void }) {
+export function StepsPage({ week, loading, onOpen, sample = false }: {
+  week?: StepWeek;
+  loading: boolean;
+  onOpen: () => void;
+  /** Expo Go: the numbers are made up, and the page says so */
+  sample?: boolean;
+}) {
   const { c, isDark } = useDs();
   const t = isDark ? dark : light;
   const today = week?.days[week.days.length - 1];
@@ -129,7 +148,7 @@ export function StepsPage({ week, loading, onOpen }: { week?: StepWeek; loading:
 
   // A light buzz the first time today's steps pass the goal
   useEffect(() => {
-    if (!today || !reached) return;
+    if (sample || !today || !reached) return;
     const key = `@steps_goal_cheered_${today.day}`;
     AsyncStorage.getItem(key)
       .then((seen) => {
@@ -138,7 +157,7 @@ export function StepsPage({ week, loading, onOpen }: { week?: StepWeek; loading:
         return AsyncStorage.setItem(key, "1");
       })
       .catch(() => {});
-  }, [today, reached]);
+  }, [sample, today, reached]);
 
   return (
     <View style={{ flex: 1, gap: 10 }}>
@@ -165,7 +184,7 @@ export function StepsPage({ week, loading, onOpen }: { week?: StepWeek; loading:
         <View style={{ flex: 1, justifyContent: "center", gap: 12 }}>
           <View
             accessible
-            accessibilityLabel={`${stepsText(steps)} of ${stepsText(goal)} steps today. ${reached ? "Goal reached." : `${stepsText(goal - steps)} to go.`}`}
+            accessibilityLabel={`${sample ? "Sample numbers. " : ""}${stepsText(steps)} of ${stepsText(goal)} steps today. ${reached ? "Goal reached." : `${stepsText(goal - steps)} to go.`}`}
             style={{ alignItems: "center", gap: 8 }}
           >
             <StepRing steps={steps} goal={goal} size={150} />
@@ -187,7 +206,16 @@ export function StepsPage({ week, loading, onOpen }: { week?: StepWeek; loading:
           {week ? <WeekBars days={week.days} goal={goal} /> : null}
         </View>
       )}
-      <Text style={{ fontSize: 12, color: c.steel, textAlign: "center" }}>From Health Connect · The step total isn&apos;t scored</Text>
+      {sample ? (
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 }}>
+          <View style={{ paddingVertical: 2, paddingHorizontal: 8, borderRadius: 999, backgroundColor: t.warningTint }}>
+            <Text style={{ fontSize: 11.5, fontWeight: "700", color: t.warningText }}>Sample</Text>
+          </View>
+          <Text style={{ flexShrink: 1, fontSize: 12, color: c.steel }}>Real steps need the installed Android app</Text>
+        </View>
+      ) : (
+        <Text style={{ fontSize: 12, color: c.steel, textAlign: "center" }}>From Health Connect · The step total isn&apos;t scored</Text>
+      )}
     </View>
   );
 }
