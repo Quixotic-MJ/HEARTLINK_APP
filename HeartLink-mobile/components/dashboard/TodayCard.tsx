@@ -77,7 +77,7 @@ export function TodayCard({ pages }: { pages: TodayPage[] }) {
   );
 }
 
-function PageTitle({ title, right }: { title: string; right?: React.ReactNode }) {
+export function PageTitle({ title, right }: { title: string; right?: React.ReactNode }) {
   const { c } = useDs();
   return (
     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 28 }}>

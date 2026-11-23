@@ -22,7 +22,7 @@ export const TOUR_STEPS: TourStep[] = [
   {
     target: "score",
     title: "Your heart health habits",
-    body: "A score out of 100 for your blood pressure, activity, sleep, nicotine, body weight and diet over the last week, plus cholesterol and blood sugar if you add lab results. Higher is better. Tap the i to see every habit's points. Swipe this card (or tap the dots) to see today's habits and your heart risk: your chance of a heart attack or stroke in the next 10 years (AHA PREVENT), lower is better. The risk is an estimate to discuss with your doctor, not a diagnosis.",
+    body: "A score out of 100 for your blood pressure, activity, sleep, nicotine, body weight and diet over the last week, plus cholesterol and blood sugar if you add lab results. Higher is better. Tap the i to see every habit's points. Swipe this card (or tap the dots) to see your steps (when step tracking is on), today's habits and your heart risk: your chance of a heart attack or stroke in the next 10 years (AHA PREVENT), lower is better. The risk is an estimate to discuss with your doctor, not a diagnosis.",
   },
   {
     target: "missions",
@@ -31,8 +31,8 @@ export const TOUR_STEPS: TourStep[] = [
   },
   {
     target: "steps",
-    title: "Steps today",
-    body: "On Android, HeartLink can read the steps your phone already counts (Health Connect). The bar shows today against your step goal. Brisk walking, about 100 steps a minute, adds movement minutes to your Habit score; the step total is for your own tracking.",
+    title: "Count your steps",
+    body: "On Android, HeartLink can read the steps your phone already counts (Health Connect). Turn it on and your steps show as a page of the card at the top, with a ring toward your step goal. Brisk walking, about 100 steps a minute, adds movement minutes to your Habit score; the step total is for your own tracking.",
   },
   {
     target: "note",

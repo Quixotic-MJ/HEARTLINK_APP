@@ -1,9 +1,9 @@
 import React from "react";
 import { render, screen, userEvent } from "@testing-library/react-native";
-import { StepsCard, StepsInvite, briskLine, weekdayLetter } from "../StepsCard";
+import { StepsPage, StepsInvite, briskLine, goalShare, weekdayLetter } from "../StepsCard";
 import type { StepWeek } from "../../../hooks/useSteps";
 
-// HL-163: the dashboard's Steps card and the invite shown while step tracking is off.
+// HL-163: the Steps page of the dashboard's score card, and the invite shown while step tracking is off.
 
 const WEEK: StepWeek = {
   goal: 7000,
@@ -19,23 +19,31 @@ const WEEK: StepWeek = {
   ],
 };
 
-describe("Steps card", () => {
-  it("shows today's steps against the goal, the brisk minutes and the week", async () => {
-    await render(<StepsCard week={WEEK} loading={false} onPress={jest.fn()} />);
+describe("Steps page of the score card", () => {
+  it("shows today's steps against the goal, what's left, the brisk minutes and the week", async () => {
+    await render(<StepsPage week={WEEK} loading={false} onOpen={jest.fn()} />);
     expect(screen.getByText("4,210")).toBeOnTheScreen();
     expect(screen.getByText("of 7,000 steps")).toBeOnTheScreen();
+    expect(screen.getByText("2,790 steps to go")).toBeOnTheScreen();
     expect(screen.getByText("12 brisk min counted toward your Habit score")).toBeOnTheScreen();
     expect(screen.queryByText("Goal reached")).not.toBeOnTheScreen();
   });
 
-  it("says when today's goal is reached, and opens the Steps screen when tapped", async () => {
+  it("says when today's goal is reached, and opens the Steps screen", async () => {
     const user = userEvent.setup();
-    const onPress = jest.fn();
+    const onOpen = jest.fn();
     const days = [...WEEK.days.slice(0, 6), { day: "2026-11-20", steps: 9100, brisk_minutes: 30, synced: true }];
-    await render(<StepsCard week={{ ...WEEK, days }} loading={false} onPress={onPress} />);
+    await render(<StepsPage week={{ ...WEEK, days }} loading={false} onOpen={onOpen} />);
     expect(screen.getByText("Goal reached")).toBeOnTheScreen();
-    await user.press(screen.getByRole("button", { name: /Steps today: 9,100 of 7,000/ }));
-    expect(onPress).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(/to go/)).not.toBeOnTheScreen();
+    await user.press(screen.getByRole("button", { name: "See your steps this week" }));
+    expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it("fills the ring toward the goal, never past it", () => {
+    expect(goalShare(3500, 7000)).toBe(0.5);
+    expect(goalShare(9100, 7000)).toBe(1);
+    expect(goalShare(0, 0)).toBe(0);
   });
 
   it("explains how to earn minutes when there's no brisk walking yet", () => {

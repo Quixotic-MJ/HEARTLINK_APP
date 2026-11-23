@@ -36,14 +36,14 @@ function Dashboard({
 }
 
 describe("Dashboard tour", () => {
-  it("explains the Steps card after the check-ins when it's on the dashboard (HL-163)", async () => {
+  it("explains the step tracking invite after the check-ins when it's on the dashboard (HL-163)", async () => {
     const user = userEvent.setup();
     await render(<Dashboard hasSteps />);
     expect(screen.getByText("1 of 7")).toBeOnTheScreen();
     await user.press(screen.getByRole("button", { name: "Next" }));
     expect(screen.getByText("Today's check-ins")).toBeOnTheScreen();
     await user.press(screen.getByRole("button", { name: "Next" }));
-    expect(screen.getByText("Steps today")).toBeOnTheScreen();
+    expect(screen.getByText("Count your steps")).toBeOnTheScreen();
   });
 
   it("skips a section that isn't shown and finishes on the last step", async () => {
