@@ -22,7 +22,6 @@ const empty = {
   days_over_limit: 0,
   exercise_minutes_per_week: 0,
   sleep_hours: null,
-  medicines_percent: null,
 };
 
 const DATA = {

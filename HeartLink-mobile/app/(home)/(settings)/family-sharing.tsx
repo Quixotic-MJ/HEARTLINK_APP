@@ -202,7 +202,7 @@ export default function FamilySharingScreen() {
                 <View style={{ borderTopWidth: 1, borderTopColor: c.hairlineSoft, padding: 16 }}>
                   <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>A summary every Sunday</Text>
                   <Text style={{ fontSize: 14, lineHeight: 20, color: c.slate, marginTop: 2 }}>
-                    Your week in a few words: readings, days logged and medicine taken.
+                    Your week in a few words: readings and days logged.
                   </Text>
                 </View>
               </Card>

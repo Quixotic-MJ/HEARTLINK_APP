@@ -513,16 +513,7 @@ def _get_today_activity(user_id: str) -> dict:
     burned, not_counted = calories_burned(exercises_today, get_content_repo().list_routines()) if exercises_today else (0, 0)
     total_sleep_hours = sum((s.get("duration_hours") or 0) for s in sleeps_today)
 
-    # Meds adherence today
-    meds_taken = any(l.get("medication_taken") for l in vitals_today)
-    # For the dashboard's medicine tile: "I don't take any" is saved as null, so the latest answer decides "none"
-    latest_answer = max(daily_health_logs, key=lambda l: _safe_datetime(l.get("logged_at")), default=None)
-    if meds_taken:
-        medication_status = "taken"
-    elif latest_answer is not None and latest_answer.get("medication_taken") is None:
-        medication_status = "none"
-    else:
-        medication_status = "not_yet"
+    # HL-167 (panel revision): the check-in no longer asks about medicine, so the dashboard doesn't send an answer
 
     # Context, Severe Symptoms, Weight Gain, Blood Sugar
     vitals_context = vitals_today[0].get("context") if vitals_today else None
@@ -549,8 +540,6 @@ def _get_today_activity(user_id: str) -> dict:
         "brisk_minutes_today": brisk_today,
         "total_movement_minutes": round(total_exercise_min + brisk_today),
         "total_sleep_hours": total_sleep_hours,
-        "medication_taken": meds_taken,
-        "medication_status": medication_status,
         "vitals_context": vitals_context,
         "severe_symptom_count": severe_symptom_count,
         "latest_blood_sugar": blood_sugar,
@@ -958,7 +947,7 @@ def get_7_day_wrap_up_data(user_id: str, local_date_str: str = None) -> Dict[str
                 "diastolic": l.get("diastolic_bp"),
                 "bpm": l.get("heart_rate_bpm"),
                 "weight_kg": l.get("weight_kg"),
-                "medication": l.get("medication_taken")
+                "spo2": l.get("spo2_percent"),  # HL-166
             })
 
     sleep_records = []

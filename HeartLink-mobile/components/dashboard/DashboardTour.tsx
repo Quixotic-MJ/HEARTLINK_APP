@@ -33,7 +33,7 @@ export const TOUR_STEPS: TourStep[] = [
   {
     target: "missions",
     title: "Today's check-ins",
-    body: "Blood pressure (with your medicine answer), meals, movement and sleep. Each tile shows where it stands today; tap one to log it.",
+    body: "Blood pressure, meals, movement and sleep. Each tile shows where it stands today; tap one to log it.",
   },
   {
     target: "steps",

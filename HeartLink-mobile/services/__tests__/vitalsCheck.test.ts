@@ -1,4 +1,15 @@
-import { BREATH, CHEST, FAINTED, completeReading, isHypertensiveCrisis, isSevereHypotension, isSymptomEmergency } from "../vitalsCheck";
+import {
+  BREATH,
+  CHEST,
+  FAINTED,
+  completeReading,
+  completeSpo2,
+  isHypertensiveCrisis,
+  isLowOxygenEmergency,
+  isOxygenLow,
+  isSevereHypotension,
+  isSymptomEmergency,
+} from "../vitalsCheck";
 
 describe("completeReading", () => {
   it("waits for both numbers before judging a reading", () => {
@@ -43,5 +54,24 @@ describe("emergency thresholds (unchanged)", () => {
   it("flags fainting or nearly fainting on its own, with no strength or 'when' needed", () => {
     expect(isSymptomEmergency([FAINTED], {}, null)).toBe(true);
     expect(isSymptomEmergency(["Dizziness / Lightheadedness"], { "Dizziness / Lightheadedness": 10 }, null)).toBe(false);
+  });
+});
+
+// HL-166 (panel revision): the optional oxygen reading. Proposed thresholds, pending the cardiologist.
+describe("oxygen (SpO2)", () => {
+  it("waits for a whole number from 50 to 100", () => {
+    expect(completeSpo2("9")).toBeNull();
+    expect(completeSpo2("97")).toBe(97);
+    expect(completeSpo2("101")).toBeNull();
+    expect(completeSpo2("")).toBeNull();
+  });
+
+  it("is an emergency under 90%, a 'get checked' note from 90 to 94%, and fine from 95%", () => {
+    expect(isLowOxygenEmergency(89)).toBe(true);
+    expect(isLowOxygenEmergency(90)).toBe(false);
+    expect(isOxygenLow(92)).toBe(true);
+    expect(isOxygenLow(89)).toBe(false);
+    expect(isOxygenLow(95)).toBe(false);
+    expect(isLowOxygenEmergency(null) || isOxygenLow(null)).toBe(false);
   });
 });

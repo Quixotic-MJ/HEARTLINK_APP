@@ -120,9 +120,16 @@ logic out of screen files.
   is because another form has it.
 
 ### Incomplete health logs
-If the user saves a health log with core fields blank (blood pressure, medications), show a soft
-warning with `ConfirmDialog` and let them confirm. Don't save silently, and don't block them.
-Reference: `showIncompleteWarning` in `log-symptoms.tsx`.
+If the user saves a health log without a blood pressure reading, show a soft warning with `ConfirmDialog`
+and let them confirm. Don't save silently, and don't block them. Reference: `showIncompleteWarning` in
+`log-symptoms.tsx`. (HL-167, panel revision: the daily "Medicines today" question was removed, so it is no
+longer part of this check. The medicine that matters for the Heart risk is asked in setup and Settings ›
+Heart answers.)
+
+### Blood oxygen (HL-166)
+The check-in has an optional oxygen reading (SpO2 %). Under 90% goes through `isEmergency` like the
+blood pressure emergencies; 90 to 94% shows a "get checked" note. It is never scored. The thresholds
+(`services/vitalsCheck.ts`, backend `review_rules.LOW_SPO2`) are proposals pending the cardiologist.
 
 ### Secrets and auth
 - Auth tokens live only in SecureStore, through `lib/secureTokenStore.ts`. Never put them in

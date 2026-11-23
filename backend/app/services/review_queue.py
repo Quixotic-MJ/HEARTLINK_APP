@@ -106,6 +106,9 @@ def urgent_reason(user_id: str, status: Dict[str, Any], now=None) -> Optional[st
             return f"BP {sys_bp}/{dia_bp} logged {when}"
         if (sys_bp and sys_bp < rules.LOW_SYSTOLIC) or (dia_bp and dia_bp < rules.LOW_DIASTOLIC):
             return f"Low BP {sys_bp}/{dia_bp} logged {when}"
+        spo2 = log.get("spo2_percent")  # HL-166
+        if spo2 and spo2 < rules.LOW_SPO2:
+            return f"Oxygen {spo2}% logged {when}"
         symptoms = log.get("symptoms") or []
         severity = (log.get("severity_map") or {}).get(rules.CHEST_SYMPTOM) or 0
         if rules.CHEST_SYMPTOM in symptoms and severity >= rules.CHEST_SEVERITY_AT_LEAST:

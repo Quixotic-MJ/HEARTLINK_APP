@@ -32,7 +32,7 @@ def add_health_log(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You may only record your own health logs.",
         )
-    for k in ["systolic_bp", "diastolic_bp", "heart_rate_bpm", "weight_kg", "blood_sugar"]:
+    for k in ["systolic_bp", "diastolic_bp", "heart_rate_bpm", "weight_kg", "blood_sugar", "spo2_percent"]:
         if data.get(k) == "":
             data[k] = None
 
@@ -83,7 +83,19 @@ def add_health_log(
         if weight < 20 or weight > 400:
             raise HTTPException(status_code=400, detail="Weight must be between 20 and 400 kg.")
 
-    # true = taken, false = not yet, null = takes no regular medicines (migration 033)
+    # HL-166 (panel revision): optional blood oxygen from a pulse oximeter, 50 to 100 % (never scored)
+    spo2 = data.get("spo2_percent")
+    if spo2 is None:
+        data.pop("spo2_percent", None)  # saved only when given
+    else:
+        if not isinstance(spo2, (int, float)) or isinstance(spo2, bool):
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Oxygen must be a number.")
+        if spo2 < 50 or spo2 > 100:
+            raise HTTPException(status_code=400, detail="Oxygen must be between 50 and 100 %.")
+        data["spo2_percent"] = round(spo2)
+
+    # HL-167: the app no longer asks about medicine. Older builds still send it, so it's still checked and saved,
+    # but nothing reads it. (true = taken, false = not yet, null = takes no regular medicines; migration 033)
     medication = data.get("medication_taken")
     if medication is not None and not isinstance(medication, bool):
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Medication answer must be true, false or empty.")

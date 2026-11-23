@@ -179,8 +179,8 @@ def test_the_sunday_summary_says_the_week_in_plain_words(world):
     w = world(SUNDAY_8PM, logs)
     assert fa.run_once(SUNDAY_8PM)["digests"] == 2
     digest = next(n for n in w.notes.sent if n["title"] == "Ana R.'s week")
-    assert digest["message"] == ("Ana R.'s week: 3 readings, average 128/82, highest 141/90 on Tuesday; logged on 3 of 7 days; "
-                                 "medicine taken at 2 of 3 check-ins.")
+    # HL-167: the medicine answers are no longer in the summary
+    assert digest["message"] == "Ana R.'s week: 3 readings, average 128/82, highest 141/90 on Tuesday; logged on 3 of 7 days."
     # Once a week: the next hourly run on Sunday sends nothing
     assert fa.run_once(SUNDAY_8PM + timedelta(hours=1))["digests"] == 0
 

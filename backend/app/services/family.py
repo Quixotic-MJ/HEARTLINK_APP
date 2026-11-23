@@ -27,6 +27,8 @@ from app.db.repositories import (
 from app.services.health_report import TZ, _day, _live, _local, _number, bp_category
 from app.services.heart_risk import summary as risk_summary
 from app.services.premium import PREMIUM_REQUIRED, is_premium
+# HL-166: the same oxygen threshold as the app and case review (pending the cardiologist's confirmation)
+from app.services.review_rules import LOW_SPO2
 from app.services.review_rules import FAINTED_SYMPTOM
 from app.utils.time import parse_utc, to_local_date, utc_now
 
@@ -252,16 +254,6 @@ def send_reminder(user_id: str, patient_id: str) -> Dict[str, Any]:
     return {"sent": True, "reminded_today": True}
 
 
-def _medicine(logs: List[Dict[str, Any]], today: date) -> Dict[str, Any]:
-    """HL-154: the patient's own medicine answers: today's latest (None if not answered yet) and the last 7 days."""
-    answered = [l for l in logs if l.get("medication_taken") in (True, False)]
-    todays = [l for l in answered if _day(l.get("logged_at")) == today]
-    week = [l for l in answered if (_day(l.get("logged_at")) or today) > today - timedelta(days=7)]
-    return {
-        "today": todays[-1]["medication_taken"] if todays else None,
-        "week": {"taken": sum(1 for l in week if l["medication_taken"]), "answered": len(week)},
-    }
-
 
 TABLE_DAYS = 7
 
@@ -273,8 +265,8 @@ def _bp_of(log: Dict[str, Any]) -> Dict[str, Any]:
 
 def _week_table(logs: List[Dict[str, Any]], today: date) -> Dict[str, Any]:
     """HL-161: the last 7 days for the family view, newest first, in plain terms. Each day shows its highest blood
-    pressure reading (the one a carer most needs to see) with its AHA category, the last pulse, the medicine answer and
-    whether anything was logged. Only what the patient logged; nothing here diagnoses."""
+    pressure reading (the one a carer most needs to see) with its AHA category, the last pulse and whether anything was
+    logged. Only what the patient logged; nothing here diagnoses. HL-167: the medicine answer was removed."""
     days: List[Dict[str, Any]] = []
     week_readings: List[Dict[str, Any]] = []
     for offset in range(TABLE_DAYS):
@@ -283,12 +275,10 @@ def _week_table(logs: List[Dict[str, Any]], today: date) -> Dict[str, Any]:
         readings = [l for l in day_logs if _number(l.get("systolic_bp")) and _number(l.get("diastolic_bp"))]
         top = max(readings, key=lambda r: (_number(r["systolic_bp"]), _number(r["diastolic_bp"]))) if readings else None
         pulses = [l for l in day_logs if _number(l.get("heart_rate_bpm"))]
-        answers = [l["medication_taken"] for l in day_logs if l.get("medication_taken") in (True, False)]
         days.append({
             "date": d.isoformat(),
             "bp": {**_bp_of(top), "readings": len(readings)} if top else None,
             "pulse": round(_number(pulses[-1]["heart_rate_bpm"])) if pulses else None,
-            "medicine": answers[-1] if answers else None,
             "logged": bool(day_logs),
         })
         week_readings += [{**_bp_of(r), "date": d.isoformat()} for r in readings]
@@ -357,8 +347,6 @@ def summary(user_id: str, patient_id: str) -> Dict[str, Any]:
         # HL-139: the Heart risk, which family followers see too (decided 2026-11-11)
         "heart_risk": risk_summary(latest_score),
         "last_check_in": latest_log.get("logged_at") if latest_log else None,
-        # HL-154: "took medicine today" for carers, only the patient's own answer
-        "medicine": _medicine(logs, today),
         # HL-161: the last 7 days as a table, in plain words on the phone
         "week": _week_table(logs, today),
         # HL-162: the follower's "Send a reminder" button
@@ -377,9 +365,12 @@ def summary(user_id: str, patient_id: str) -> Dict[str, Any]:
 def is_emergency(data: Dict[str, Any]) -> bool:
     """The app's emergency rules (log-symptoms.tsx, companionService.ts), unchanged: blood pressure at 180/120 or
     more, or under 90/60; chest discomfort rated 7 or more; shortness of breath while resting; fainting or nearly
-    fainting."""
+    fainting; HL-166: blood oxygen under 90%."""
     sys_bp, dia_bp = _number(data.get("systolic_bp")), _number(data.get("diastolic_bp"))
     if sys_bp is not None and dia_bp is not None and (sys_bp >= 180 or dia_bp >= 120 or sys_bp < 90 or dia_bp < 60):
+        return True
+    spo2 = _number(data.get("spo2_percent"))
+    if spo2 is not None and spo2 < LOW_SPO2:
         return True
     symptoms = data.get("symptoms") or []
     severity = data.get("severity_map") or {}

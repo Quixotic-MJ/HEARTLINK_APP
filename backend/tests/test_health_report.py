@@ -17,15 +17,15 @@ def ago(days, hour_utc):
 
 CHECKINS = [
     # 7:00 AM Manila (23:00 UTC the day before): morning
-    {"logged_at": ago(10, 23), "systolic_bp": 150, "diastolic_bp": 95, "heart_rate_bpm": 80, "medication_taken": True,
+    {"logged_at": ago(10, 23), "systolic_bp": 150, "diastolic_bp": 95, "heart_rate_bpm": 80, "spo2_percent": 93,
      "symptoms": ["Chest discomfort"]},
     # 7:00 PM Manila (11:00 UTC): evening
-    {"logged_at": ago(9, 11), "systolic_bp": 118, "diastolic_bp": 76, "heart_rate_bpm": 70, "medication_taken": False,
+    {"logged_at": ago(9, 11), "systolic_bp": 118, "diastolic_bp": 76, "heart_rate_bpm": 70, "spo2_percent": 98,
      "symptoms": ["None (Feeling fine)"]},
-    {"logged_at": ago(5, 23), "systolic_bp": 132, "diastolic_bp": 84, "heart_rate_bpm": None, "medication_taken": True,
+    {"logged_at": ago(5, 23), "systolic_bp": 132, "diastolic_bp": 84, "heart_rate_bpm": None,
      "symptoms": ["Chest discomfort", "Dizzy"]},
-    # "I don't take any": left out of the medicine share
-    {"logged_at": ago(2, 3), "systolic_bp": None, "diastolic_bp": None, "medication_taken": None, "symptoms": None},
+    # A check-in without a reading (an older app's medicine answer is ignored, HL-167)
+    {"logged_at": ago(2, 3), "systolic_bp": None, "diastolic_bp": None, "medication_taken": True, "symptoms": None},
     {"logged_at": ago(1, 3), "systolic_bp": 200, "diastolic_bp": 100, "deleted_at": ago(1, 4)},
 ]
 MEALS = [
@@ -86,7 +86,9 @@ def test_the_report_sums_up_the_period(data):
     assert r["pulse"] == {"average": 75, "readings": 2}
     assert r["score"] == {"start": 64, "end": 71, "change": 7}
     assert r["heart_risk"] == {"start": None, "end": None, "band": None, "kind": None}  # no risk saved on these scores
-    assert r["medicines"] == {"answered": 3, "taken": 2, "percent": 67}
+    # HL-166: oxygen readings; HL-167: no medicine answers any more
+    assert r["oxygen"] == {"readings": 2, "lowest": 93, "average": 95.5}
+    assert "medicines" not in r
     assert r["sodium"] == {"days_with_meals": 2, "average_mg": 1150, "limit_mg": 1500, "days_over_limit": 1}
     assert r["exercise"] == {"sessions": 2, "minutes": 75, "minutes_per_week": 18}
     assert r["sleep"] == {"average_hours": 6.5, "nights": 2}
@@ -113,12 +115,12 @@ def test_the_daily_log_lists_every_check_in_with_that_days_habits(data):
     first = next(d for d in daily if any(r["systolic"] == 150 for r in d["readings"]))
     reading = first["readings"][0]
     assert reading == {"time": "07:00", "systolic": 150, "diastolic": 95, "category": "stage_2", "pulse": 80,
-                       "medication_taken": True, "symptoms": ["Chest discomfort"]}
+                       "spo2": 93, "symptoms": ["Chest discomfort"]}
     salty = next(d for d in daily if d["sodium_mg"] == 1700)
     assert salty["over_sodium_limit"] is True and salty["meals"] == 2
     assert any(d["exercise_minutes"] == 30 for d in daily)  # the abandoned 20 minutes don't count
     assert any(d["sleep_hours"] == 7 for d in daily)
-    # A check-in without blood pressure still shows (its medicine answer was "I don't take any")
+    # A check-in without blood pressure still shows
     assert any(r["systolic"] is None for d in daily for r in d["readings"])
     # The deleted 200/100 reading is left out
     assert not any(r["systolic"] == 200 for d in daily for r in d["readings"])
@@ -132,7 +134,8 @@ def test_the_header_has_age_sex_and_the_health_answers(data):
 def test_an_empty_period_still_gives_a_report(monkeypatch, data):
     monkeypatch.setattr("app.services.health_logs.get_health_logs", lambda uid, cutoff=None: [])
     r = build_report("pat", 90)
-    assert r["blood_pressure"] == {"readings": 0} and r["medicines"]["percent"] is None and r["days"] == 90
+    assert r["blood_pressure"] == {"readings": 0} and r["oxygen"] == {"readings": 0, "lowest": None, "average": None}
+    assert r["days"] == 90
 
 
 # --- the endpoint -------------------------------------------------------------------------------------------

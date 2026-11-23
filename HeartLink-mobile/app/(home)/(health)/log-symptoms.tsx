@@ -5,10 +5,9 @@ import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as Haptics from "expo-haptics";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "../../../contexts/UserContext";
 import { useToast } from "../../../contexts/ToastContext";
-import { useLogVitals, wasQueued, medicationTaken, Medicine, VitalsPayload } from "../../../hooks/useLogVitals";
+import { useLogVitals, wasQueued, VitalsPayload } from "../../../hooks/useLogVitals";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import AnimatedButton from "../../../components/ui/AnimatedButton";
 import DsButton from "../../../components/onboarding/DsButton";
@@ -20,20 +19,23 @@ import {
   CHEST,
   FAINTED,
   completeReading,
+  completeSpo2,
   isHypertensiveCrisis as crisisFor,
+  isLowOxygenEmergency,
+  isOxygenLow,
   isSevereHypotension as lowFor,
   isSymptomEmergency,
 } from "../../../services/vitalsCheck";
 import { apiFetch } from "../../../lib/api";
-import { loadHeartAnswers } from "../../../services/heartScore";
-import { startsWithNoMedicines } from "../../../services/medicineDefault";
 
 // Wait, buzz 0.5 s, pause 0.25 s, three times (Android follows the pattern; iPhones give one long buzz).
 const EMERGENCY_BUZZ = [0, 500, 250, 500, 250, 500];
 
-// The daily check-in: blood pressure (and pulse), medicines, how the patient feels, and weight if they like.
+// The daily check-in: blood pressure (and pulse), how the patient feels, and weight and oxygen if they like.
 // Safety: a complete blood pressure reading of 180/120 or more, or under 90/60, chest discomfort rated 7 or
-// more, or shortness of breath while resting opens the emergency guidance (services/vitalsCheck.ts).
+// more, shortness of breath while resting, fainting, or (HL-166) oxygen under 90% opens the emergency guidance
+// (services/vitalsCheck.ts). HL-167 (panel revision): the "Medicines today" question was removed; the medicine that
+// matters for the Heart risk is asked in setup and Settings › Heart answers.
 
 const FINE = "None (Feeling fine)";
 // Stored names (the backend and the score use them) and the words shown.
@@ -52,11 +54,6 @@ const CONTEXTS: { id: string; label: string; stored: string }[] = [
   { id: "After eating", label: "After eating", stored: "after_eating" },
 ];
 
-const MEDICINES: { id: Medicine; label: string }[] = [
-  { id: "taken", label: "I took them" },
-  { id: "not_yet", label: "Not yet" },
-  { id: "none", label: "I don't take any" },
-];
 
 function strengthTag(n: number, c: DsColors) {
   if (n <= 3) return { text: "Mild", bg: c.mint, fg: c.charcoal };
@@ -85,7 +82,9 @@ export default function LogSymptomsScreen() {
   const [pulseWhen, setPulseWhen] = useState<"resting" | "after_exercise">(fromExercise ? "after_exercise" : "resting");
   const [weight, setWeight] = useState("");
   const [showWeight, setShowWeight] = useState(false);
-  const [medicine, setMedicine] = useState<Medicine | null>(null);
+  // HL-166: optional blood oxygen from a pulse oximeter
+  const [spo2Text, setSpo2Text] = useState("");
+  const [showSpo2, setShowSpo2] = useState(false);
   const [symptoms, setSymptoms] = useState<string[]>([FINE]);
   const [strength, setStrength] = useState<Record<string, number>>({});
   // Nothing is chosen for the patient, except after an exercise, where we know it was during activity.
@@ -100,7 +99,6 @@ export default function LogSymptomsScreen() {
   const diastolicRef = useRef<TextInput>(null);
   const scrollRef = useRef<ScrollView>(null);
   const [symptomsY, setSymptomsY] = useState(0);
-  const noMedsKey = userId ? `@no_regular_meds_${userId}` : null;
 
   // ── Safety checks (complete readings only) ──
   const reading = completeReading(systolic, diastolic);
@@ -108,7 +106,9 @@ export default function LogSymptomsScreen() {
   const isSevereHypotension = lowFor(reading);
   const hasRealSymptoms = !symptoms.includes(FINE) && symptoms.length > 0;
   const symptomEmergency = hasRealSymptoms && isSymptomEmergency(symptoms, strength, context);
-  const isEmergency = isHypertensiveCrisis || isSevereHypotension || symptomEmergency;
+  const spo2 = completeSpo2(spo2Text);
+  const lowOxygen = isLowOxygenEmergency(spo2);
+  const isEmergency = isHypertensiveCrisis || isSevereHypotension || symptomEmergency || lowOxygen;
 
   // The emergency warning opens the moment the reading or symptoms call for it (once per check-in).
   if (isEmergency && !hasInterrupted) {
@@ -139,7 +139,6 @@ export default function LogSymptomsScreen() {
           if (last.systolic_bp) setSystolic(String(last.systolic_bp));
           if (last.diastolic_bp) setDiastolic(String(last.diastolic_bp));
           if (last.heart_rate_bpm) setPulse(String(last.heart_rate_bpm));
-          if (last.medication_taken === true) setMedicine("taken");
         }
         if (last.systolic_bp && last.diastolic_bp) {
           const when = sameDay(at, new Date()) ? "earlier today" : at.toLocaleDateString("en-US", { weekday: "long" });
@@ -155,25 +154,6 @@ export default function LogSymptomsScreen() {
       alive = false;
     };
   }, [userId, token]);
-
-  // Someone who said they take no regular medicines isn't asked again each day. Before they've answered here, setup's
-  // answers decide (no BP or cholesterol medicine, no diabetes): the question starts on "I don't take any" (2026-11-19).
-  useEffect(() => {
-    if (!noMedsKey || !userId) return;
-    let alive = true;
-    (async () => {
-      try {
-        const saved = await AsyncStorage.getItem(noMedsKey);
-        const answers = saved === null ? await loadHeartAnswers(userId).catch(() => null) : null;
-        if (alive && startsWithNoMedicines(saved, answers)) setMedicine((m) => m ?? "none");
-      } catch {
-        // The question just starts unanswered.
-      }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [noMedsKey, userId]);
 
   useEffect(() => {
     if (fromExercise && symptomsY > 0) {
@@ -193,11 +173,6 @@ export default function LogSymptomsScreen() {
     setSymptoms(next.length ? next : [FINE]);
   };
 
-  const pickMedicine = (m: Medicine) => {
-    Haptics.selectionAsync();
-    setMedicine(m);
-    if (noMedsKey) AsyncStorage.setItem(noMedsKey, m === "none" ? "true" : "false").catch(() => {});
-  };
 
   const unrated = hasRealSymptoms ? symptoms.filter((s) => s !== FAINTED && !strength[s]) : [];
   const needsWhen = hasRealSymptoms && !context;
@@ -223,6 +198,7 @@ export default function LogSymptomsScreen() {
     const dia = toInt(diastolic);
     const hr = toInt(pulse);
     const w = weight.trim() ? Number(weight.trim()) : null;
+    const ox = toInt(spo2Text);
 
     if (sys !== null && (isNaN(sys) || sys < 50 || sys > 300)) {
       showToast({ title: "Check the top number", message: "It's usually between 50 and 300 mmHg. Please check your reading.", type: "error" });
@@ -240,6 +216,10 @@ export default function LogSymptomsScreen() {
       showToast({ title: "Check your weight", message: "Please enter a weight between 20 and 400 kg.", type: "error" });
       return;
     }
+    if (ox !== null && (isNaN(ox) || ox < 50 || ox > 100)) {
+      showToast({ title: "Check your oxygen", message: "Oxygen is a percentage between 50 and 100. Please check your reading.", type: "error" });
+      return;
+    }
     if ((sys === null) !== (dia === null)) {
       showToast({ title: "Both numbers needed", message: "Enter the top and the bottom number of your blood pressure.", type: "error" });
       return;
@@ -255,14 +235,14 @@ export default function LogSymptomsScreen() {
       }
     }
 
-    const hasAnything = (sys !== null && dia !== null) || hr !== null || w !== null || hasRealSymptoms || medicine !== null;
+    const hasAnything = (sys !== null && dia !== null) || hr !== null || w !== null || ox !== null || hasRealSymptoms;
     if (!hasAnything) {
-      showToast({ title: "Nothing to save yet", message: "Add your blood pressure, your medicines or how you feel.", type: "info" });
+      showToast({ title: "Nothing to save yet", message: "Add your blood pressure or how you feel.", type: "info" });
       return;
     }
 
-    // Soft warning for a check-in without blood pressure or the medicine answer (it can still be saved).
-    if (!bypassIncompleteCheck && (sys === null || medicine === null)) {
+    // Soft warning for a check-in without blood pressure (it can still be saved).
+    if (!bypassIncompleteCheck && sys === null) {
       setShowIncompleteWarning(true);
       return;
     }
@@ -275,7 +255,7 @@ export default function LogSymptomsScreen() {
       diastolic_bp: dia,
       heart_rate_bpm: hr,
       weight_kg: w,
-      medication_taken: medicationTaken(medicine),
+      spo2_percent: ox,
       symptoms,
       severity_map: hasRealSymptoms ? Object.fromEntries(symptoms.filter((s) => s !== FAINTED).map((s) => [s, strength[s]])) : {},
       context: hasRealSymptoms || fromExercise ? CONTEXTS.find((x) => x.id === context)?.stored ?? null : hr ? pulseWhen : null,
@@ -302,6 +282,8 @@ export default function LogSymptomsScreen() {
         showToast({ title: "Very low blood pressure", message: "Your reading is under 90/60 mmHg. Sit or lie down, drink some water, and get medical help if you feel faint.", type: "error", duration: 8000 });
       } else if (isHypertensiveCrisis) {
         showToast({ title: "Very high blood pressure", message: "Your reading is 180/120 mmHg or higher. Please get emergency medical care.", type: "error", duration: 8000 });
+      } else if (lowOxygen) {
+        showToast({ title: "Very low oxygen", message: `Your oxygen is ${spo2}%. Under 90% needs medical help now. Call 911 or go to the nearest hospital.`, type: "error", duration: 8000 });
       } else {
         showToast({ title: "Please get checked now", message: "What you logged can be a sign of a heart problem. Emergency medical care is recommended.", type: "error", duration: 6000 });
       }
@@ -372,7 +354,7 @@ export default function LogSymptomsScreen() {
             <Text accessibilityRole="header" style={{ fontSize: 26, lineHeight: 32, fontWeight: "600", color: c.ink }}>
               {"Today's check-in"}
             </Text>
-            <Text style={{ fontSize: 15, lineHeight: 22, color: c.slate }}>Your blood pressure, medicines and how you feel. Takes about a minute.</Text>
+            <Text style={{ fontSize: 15, lineHeight: 22, color: c.slate }}>Your blood pressure and how you feel. Takes about a minute.</Text>
           </View>
 
           {/* ── Blood pressure ── */}
@@ -479,31 +461,6 @@ export default function LogSymptomsScreen() {
                 })}
               </View>
             ) : null}
-          </View>
-
-          {/* ── Medicines ── */}
-          <View style={{ gap: 12 }}>
-            <Text accessibilityRole="header" style={{ fontSize: 18, fontWeight: "600", color: c.ink }}>
-              Medicines today
-            </Text>
-            <View accessibilityRole="radiogroup" style={{ gap: 8 }}>
-              {MEDICINES.map((m) => {
-                const on = medicine === m.id;
-                return (
-                  <AnimatedButton
-                    key={m.id}
-                    onPress={() => pickMedicine(m.id)}
-                    accessibilityRole="radio"
-                    accessibilityState={{ checked: on }}
-                    accessibilityLabel={m.label}
-                    style={radioRow(on)}
-                  >
-                    <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 16, color: on ? c.onTint : c.ink }}>{m.label}</Text>
-                    {radioDot(on)}
-                  </AnimatedButton>
-                );
-              })}
-            </View>
           </View>
 
           {/* ── How do you feel ── */}
@@ -667,6 +624,61 @@ export default function LogSymptomsScreen() {
               <Text style={{ fontSize: 15, color: c.slate }}>{lastReading?.weight ? `Last ${lastReading.weight} kg` : ""}</Text>
             </AnimatedButton>
           )}
+
+          {/* ── HL-166: oxygen (optional), from a pulse oximeter. Never scored; under 90% is an emergency. ── */}
+          {showSpo2 ? (
+            <View style={{ gap: 10 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", height: 52, paddingHorizontal: 14, borderWidth: lowOxygen ? 1.5 : 1, borderColor: lowOxygen ? c.danger : c.hairlineStrong, borderRadius: 10 }}>
+                <Text style={{ fontSize: 15, color: c.charcoal }}>Oxygen (SpO2)</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <TextInput
+                    value={spo2Text}
+                    onChangeText={(v) => setSpo2Text(v.replace(/[^0-9]/g, ""))}
+                    keyboardType="number-pad"
+                    maxLength={3}
+                    autoFocus
+                    placeholder="98"
+                    placeholderTextColor={c.muted}
+                    accessibilityLabel="Blood oxygen in percent"
+                    style={{ minWidth: 56, height: 44, fontSize: 17, fontWeight: "600", color: c.ink, textAlign: "right" }}
+                  />
+                  <Text style={{ fontSize: 13, color: c.slate }}>%</Text>
+                </View>
+              </View>
+              {lowOxygen ? (
+                <EmergencyCard
+                  c={c}
+                  title="Your oxygen is very low"
+                  body={`${spo2}% is under 90%. This needs medical help now. Call 911 or go to the nearest hospital.`}
+                  onCall={call911}
+                  onClinic={findClinic}
+                />
+              ) : isOxygenLow(spo2) ? (
+                <View accessibilityRole="alert" style={{ flexDirection: "row", gap: 10, padding: 14, borderRadius: 12, backgroundColor: c.peach }}>
+                  <Feather name="alert-circle" size={18} color={c.warmText} style={{ marginTop: 1 }} />
+                  <Text style={{ flex: 1, fontSize: 14, lineHeight: 20, color: c.ink }}>
+                    {`${spo2}% is lower than usual. If you're short of breath, dizzy or have chest discomfort, get checked today. Some lung conditions run lower; follow your doctor's target.`}
+                  </Text>
+                </View>
+              ) : (
+                <Text style={{ fontSize: 13, lineHeight: 18, color: c.slate }}>
+                  From a pulse oximeter (the finger clip). Sit still for a minute first, with warm hands and no nail polish.
+                </Text>
+              )}
+            </View>
+          ) : (
+            <AnimatedButton
+              onPress={() => setShowSpo2(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Add your oxygen, optional"
+              style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", height: 52, paddingHorizontal: 14, borderWidth: 1, borderColor: c.hairline, borderRadius: 10 }}
+            >
+              <Text style={{ fontSize: 15, color: c.ink }}>
+                Add your oxygen <Text style={{ color: c.steel }}>(optional)</Text>
+              </Text>
+              <Text style={{ fontSize: 15, color: c.slate }}>SpO2 %</Text>
+            </AnimatedButton>
+          )}
         </ScrollView>
 
         <View style={{ paddingHorizontal: 20, paddingTop: 12, gap: 8, backgroundColor: c.canvas, borderTopWidth: 1, borderTopColor: c.hairline, paddingBottom: Math.max(insets.bottom, 16) + 8 }}>
@@ -690,7 +702,9 @@ export default function LogSymptomsScreen() {
                 ? "Your blood pressure reading is very low (under 90/60 mmHg)."
                 : isHypertensiveCrisis
                   ? "Your blood pressure reading is very high (180/120 mmHg or higher)."
-                  : symptoms.includes(CHEST) && (strength[CHEST] ?? 0) >= 7
+                  : lowOxygen
+                    ? `Your oxygen level is very low (${spo2}%, under 90%).`
+                    : symptoms.includes(CHEST) && (strength[CHEST] ?? 0) >= 7
                     ? `You rated your chest discomfort ${strength[CHEST]} out of 10. This can be a sign of a heart attack.`
                     : symptoms.includes(FAINTED)
                       ? "You fainted or nearly fainted. This can be a sign of a heart problem."
@@ -739,14 +753,8 @@ export default function LogSymptomsScreen() {
           setShowIncompleteWarning(false);
           handleSubmit(true);
         }}
-        title="Save without everything?"
-        message={
-          reading === null && medicine === null
-            ? "You haven't added your blood pressure or answered about your medicines. Save what you have?"
-            : reading === null
-              ? "You haven't added your blood pressure. Save what you have?"
-              : "You haven't answered about your medicines. Save what you have?"
-        }
+        title="Save without your blood pressure?"
+        message="You haven't added your blood pressure. Save what you have?"
         confirmLabel="Save anyway"
         variant="warning"
         icon="alert-circle"

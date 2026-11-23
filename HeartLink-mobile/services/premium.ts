@@ -49,7 +49,7 @@ export const PREMIUM_FEATURES: PremiumFeature[] = [
     icon: "account-heart-outline",
     tint: "peach",
     title: "Family sharing",
-    text: "Let someone you trust see your readings and whether you took your medicine. They're told about an emergency-level reading or 2 days without a check-in, and get a summary every Sunday.",
+    text: "Let someone you trust see your readings. They're told about an emergency-level reading or 2 days without a check-in, and get a summary every Sunday.",
     ready: true,
   },
   {

@@ -1,6 +1,6 @@
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { QueryClient, onlineManager } from '@tanstack/react-query';
-import { useLogVitals, wasQueued, medicationTaken, VitalsPayload } from '../useLogVitals';
+import { useLogVitals, wasQueued, VitalsPayload } from '../useLogVitals';
 import { queueHealthLogForSync } from '../../services/SyncService';
 import { createTestQueryClient, queryClientWrapper } from '../../test-utils/reactQuery';
 
@@ -13,7 +13,7 @@ const CHECK_IN: VitalsPayload = {
   diastolic_bp: 82,
   heart_rate_bpm: 70,
   weight_kg: null,
-  medication_taken: null,
+  spo2_percent: null,
   symptoms: ['None (Feeling fine)'],
   severity_map: {},
   context: null,
@@ -57,8 +57,9 @@ describe('useLogVitals', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect((global.fetch as jest.Mock).mock.calls[0][0]).toMatch(/\/api\/health-logs\/user-1$/);
-    // "I don't take any" is sent as null, not false.
-    expect(sentBody().medication_taken).toBeNull();
+    // HL-167: the medicine answer is no longer sent; HL-166: the optional oxygen reading is
+    expect(sentBody()).not.toHaveProperty("medication_taken");
+    expect(sentBody().spo2_percent).toBeNull();
     const dashboard = queryClient.getQueryData(['dashboard', 'user-1']) as typeof BEFORE;
     expect(dashboard.today_activity).toEqual({ vitals_logged: true, meals_count: 2 });
     expect(dashboard.latest_vitals).toEqual({ bp: '128/82', bpm: 70, trend: 'stable' });
@@ -129,15 +130,5 @@ describe('useLogVitals', () => {
     expect(wasQueued(result.current.error)).toBe(false);
     expect(queueHealthLogForSync).not.toHaveBeenCalled();
     expect(queryClient.getQueryData(['dashboard', 'user-1'])).toEqual(BEFORE);
-  });
-});
-
-describe('medicationTaken', () => {
-  it('saves "I don\'t take any" as null and the other answers as yes/no', () => {
-    expect(medicationTaken('none')).toBeNull();
-    expect(medicationTaken('taken')).toBe(true);
-    expect(medicationTaken('not_yet')).toBe(false);
-    // Left blank (the patient confirmed the incomplete check-in): not taken, as before.
-    expect(medicationTaken(null)).toBe(false);
   });
 });

@@ -2,7 +2,7 @@ import {
   HealthReport,
   dayLabel,
   doctorHighlights,
-  medicinesLine,
+  oxygenLine,
   periodLabel,
   readiness,
   reportFlags,
@@ -34,7 +34,7 @@ const REPORT: HealthReport = {
   },
   pulse: { average: 75, readings: 2 },
   score: { start: 64, end: 71, change: 7 },
-  medicines: { answered: 3, taken: 2, percent: 67 },
+  oxygen: { readings: 2, lowest: 93, average: 95.5 },
   sodium: { days_with_meals: 2, average_mg: 1150, limit_mg: 1500, days_over_limit: 1 },
   exercise: { sessions: 2, minutes: 75, minutes_per_week: 18 },
   sleep: { average_hours: 6.5, nights: 2 },
@@ -44,13 +44,14 @@ const REPORT: HealthReport = {
 };
 
 describe("health report wording", () => {
-  it("describes the period, score and medicines plainly", () => {
+  it("describes the period, score and oxygen plainly", () => {
     expect(periodLabel(REPORT)).toBe("Sep 27, 2026 – Oct 27, 2026");
     expect(scoreLine(REPORT.score)).toBe("64 → 71 (+7)");
     expect(scoreLine({ start: 70, end: 70, change: 0 })).toBe("70 (no change)");
     expect(scoreLine({ start: null, end: null, change: null })).toBe("No score yet");
-    expect(medicinesLine(REPORT.medicines)).toBe("67% of check-ins (2 of 3)");
-    expect(medicinesLine({ answered: 0, taken: 0, percent: null })).toBe("Not answered");
+    expect(oxygenLine(REPORT.oxygen)).toBe("Lowest 93%, average 95.5% (2 readings)");
+    expect(oxygenLine({ readings: 0, lowest: null, average: null })).toBe("Not logged");
+    expect(oxygenLine(undefined)).toBe("Not logged");
   });
 });
 
@@ -66,7 +67,7 @@ const CLINIC: HealthReport = {
   daily: [
     {
       date: "2026-10-18",
-      readings: [{ time: "19:30", systolic: 118, diastolic: 76, category: "normal", pulse: 70, medication_taken: true, symptoms: [] }],
+      readings: [{ time: "19:30", systolic: 118, diastolic: 76, category: "normal", pulse: 70, spo2: 98, symptoms: [] }],
       sodium_mg: 1700,
       meals: 2,
       over_sodium_limit: true,
@@ -76,8 +77,8 @@ const CLINIC: HealthReport = {
     {
       date: "2026-10-17",
       readings: [
-        { time: "07:00", systolic: 150, diastolic: 95, category: "stage_2", pulse: 80, medication_taken: false, symptoms: ["Chest discomfort"] },
-        { time: "12:15", systolic: null, diastolic: null, category: null, pulse: null, medication_taken: null, symptoms: [] },
+        { time: "07:00", systolic: 150, diastolic: 95, category: "stage_2", pulse: 80, spo2: 93, symptoms: ["Chest discomfort"] },
+        { time: "12:15", systolic: null, diastolic: null, category: null, pulse: null, spo2: null, symptoms: [] },
       ],
       sodium_mg: null,
       meals: 0,
@@ -95,7 +96,7 @@ describe("reportHtml", () => {
     expect(html).toContain("133/85 mmHg (3 readings)");
     expect(html).toContain("No evening readings");
     expect(html).toContain("1 of 2 days (limit 1,500 mg)");
-    expect(html).toContain("67% of check-ins (2 of 3)");
+    expect(html).toContain("Lowest 93%, average 95.5% (2 readings)");
     expect(html).toContain("not a diagnosis");
   });
 
@@ -142,11 +143,12 @@ describe("the Visit summary for clinics (AMA/AHA Target: BP log)", () => {
     expect(html).toContain("<svg");
   });
 
-  it("lists every check-in with its time, medicine and symptoms, then the day's habits", () => {
+  it("lists every check-in with its time, oxygen and symptoms, then the day's habits", () => {
     expect(html).toContain("7:30 pm");
     expect(html).toContain("12:15 pm");
-    expect(html).toContain("✗ Not taken");
-    expect(html).toContain("✓ Taken");
+    expect(html).toContain("<th>Oxygen</th>");
+    expect(html).toContain('<td class="num">93%</td>');
+    expect(html).not.toContain("Medicine</th>");
     expect(html).toContain("2 meals, sodium 1,700 mg ⚠ over the limit · exercise 30 min · sleep 7 h");
     expect(html).toContain("No readings · 1 meal, sodium 600 mg · no exercise logged · sleep 6.5 h");
     expect(html).toContain('rowspan="3"');
@@ -158,7 +160,7 @@ describe("the Visit summary for clinics (AMA/AHA Target: BP log)", () => {
     const flags = reportFlags(CLINIC);
     expect(flags).toEqual([
       { date: "2026-10-26", time: null, text: "Health alert: Hypertensive Crisis" },
-      { date: "2026-10-17", time: "07:00", text: "150/95 (Stage 2) · Chest discomfort · medicine not taken" },
+      { date: "2026-10-17", time: "07:00", text: "150/95 (Stage 2) · oxygen 93% · Chest discomfort" },
     ]);
     expect(html).toContain("Sat, Oct 17, 7:00 am");
   });
@@ -174,12 +176,12 @@ describe("PDF helpers", () => {
 });
 
 describe("reportSections (HL-096)", () => {
-  it("uses the same order as the portal: BP, heart rate, medicine, sleep, symptoms, food, exercise", () => {
+  it("uses the same order as the portal: BP, heart rate, oxygen, sleep, symptoms, food, exercise", () => {
     expect(reportSections(REPORT).map((s) => s.title)).toEqual([
       "Heart risk",
       "Blood pressure",
       "Heart rate",
-      "Medicine",
+      "Oxygen",
       "Sleep",
       "Symptoms",
       "Food",
@@ -223,7 +225,7 @@ describe("Heart risk in the report (HL-145)", () => {
 describe("the Visit summary screen (2026-11-12)", () => {
   const day = (date: string, times: string[]) => ({
     date,
-    readings: times.map((time) => ({ time, systolic: 128, diastolic: 82, category: "stage_1", pulse: 70, medication_taken: true, symptoms: [] })),
+    readings: times.map((time) => ({ time, systolic: 128, diastolic: 82, category: "stage_1", pulse: 70, symptoms: [] })),
     sodium_mg: null,
     meals: 0,
     over_sodium_limit: false,
@@ -254,10 +256,10 @@ describe("the Visit summary screen (2026-11-12)", () => {
     expect(doctorHighlights(CLINIC)).toEqual([
       { label: "Blood pressure", value: "133/85 average, 3 readings" },
       { label: "At or above 130/80", value: "1 of 3 readings" },
-      { label: "Medicine taken", value: "2 of 3 check-ins" },
+      { label: "Blood oxygen", value: "Lowest 93%, average 95.5% (2 readings)" },
       { label: "Days with something logged", value: "21 of 30" },
     ]);
-    expect(doctorHighlights({ ...REPORT, blood_pressure: { readings: 0 }, medicines: { answered: 0, taken: 0, percent: null } })[0]).toEqual({
+    expect(doctorHighlights({ ...REPORT, blood_pressure: { readings: 0 }, oxygen: undefined })[0]).toEqual({
       label: "Blood pressure",
       value: "No readings in this period",
     });

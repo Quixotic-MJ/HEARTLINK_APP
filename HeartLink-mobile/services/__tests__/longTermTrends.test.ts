@@ -15,7 +15,6 @@ const stretch = (over: Partial<LongTermStretch> = {}): LongTermStretch => ({
   days_over_limit: 0,
   exercise_minutes_per_week: 0,
   sleep_hours: null,
-  medicines_percent: null,
   ...over,
 });
 
@@ -51,7 +50,7 @@ describe("buckets", () => {
 describe("this month vs last", () => {
   it("shows both sides and how it moved", () => {
     const rows = monthCompareRows({
-      this: stretch({ systolic: 128, diastolic: 82, pulse: 72, sleep_hours: 6.5, exercise_minutes_per_week: 90, medicines_percent: 80 }),
+      this: stretch({ systolic: 128, diastolic: 82, pulse: 72, sleep_hours: 6.5, exercise_minutes_per_week: 90 }),
       last: stretch({ systolic: 132, diastolic: 85, pulse: 72, sleep_hours: 7, exercise_minutes_per_week: 60 }),
     });
     const byKey = Object.fromEntries(rows.map((r) => [r.key, r]));
@@ -60,17 +59,15 @@ describe("this month vs last", () => {
     expect(byKey.sleep.change).toBe("Down 0.5 h");
     expect(byKey.exercise.change).toBe("Up 30 min");
     // nothing logged on one side: no change line, and "--" rather than a made-up number
-    expect(byKey.medicines).toMatchObject({ now: "80%", before: "--", change: "" });
     expect(byKey.sodium).toMatchObject({ now: "--", before: "--", change: "" });
   });
 });
 
 describe("pattern notes", () => {
   it("say what they are based on", () => {
-    const note = (key: "sodium" | "exercise" | "medicines", a: number, b: number) =>
+    const note = (key: "sodium" | "exercise", a: number, b: number) =>
       patternBasis({ key, text: "", difference: 0, with: { label: "", systolic: 0, days: a }, without: { label: "", systolic: 0, days: b } });
     expect(note("sodium", 6, 9)).toBe("Based on 6 days over your limit and 9 days under it.");
     expect(note("exercise", 5, 12)).toBe("Based on 5 exercise days and 12 rest days.");
-    expect(note("medicines", 20, 5)).toBe("Based on 20 days you took them and 5 days you missed them.");
   });
 });

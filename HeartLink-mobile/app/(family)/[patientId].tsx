@@ -14,7 +14,7 @@ import { PageHeader } from "../../components/family/FamilyBits";
 import { BpChip, WeekTable } from "../../components/family/WeekTable";
 import { useToast } from "../../contexts/ToastContext";
 import { useFamilySummary, useSendReminder, useStopFollowing } from "../../hooks/useFamily";
-import { agoLine, BP_LEGEND, bpCategory, medicineToday, summaryChart, weekSentence } from "../../services/family";
+import { agoLine, BP_LEGEND, bpCategory, summaryChart, weekSentence } from "../../services/family";
 
 // HL-087: what a follower sees: any open health alert, the last 7 days in plain words (HL-161), the latest readings
 // with what each one means, and a 30-day blood pressure chart on request. Read-only, and only what the patient logged;
@@ -211,14 +211,6 @@ export default function FollowedPersonScreen() {
               hint="Out of 100, from movement, food, sleep and other habits. Higher is better."
             />
             <Tile label="Last check-in" value={agoLine(s.last_check_in)} note="Any check-in" />
-            {/* HL-154: the patient's own answer from their check-in */}
-            {s.medicine ? (
-              <Tile
-                label="Medicine today"
-                value={medicineToday(s.medicine.today)}
-                note={s.medicine.week.answered ? `Taken at ${s.medicine.week.taken} of ${s.medicine.week.answered} check-ins this week` : "No answers this week"}
-              />
-            ) : null}
           </View>
         </View>
 

@@ -7,15 +7,12 @@ import { light, dark } from "../../constants/theme";
 import type { MissionId } from "./MissionList";
 import { playSound } from "../../services/sounds";
 
-/** What the backend says about today's medicine; older servers send only medication_taken. */
-export type MedicineStatus = "taken" | "not_yet" | "none";
-
 export type CheckinTile = {
   id: MissionId;
   title: string;
   /** The main value, e.g. "118/76", "1,240 mg" or "Not yet" */
   value: string;
-  /** One short line under it, e.g. "Medicine taken" */
+  /** One short line under it, e.g. "Pulse 72 bpm" */
   sub: string;
   done: boolean;
   /** 0 to 1 for a progress bar (meals against the sodium limit, movement against the goal); none for the others */

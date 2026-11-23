@@ -1,4 +1,4 @@
-import { agoLine, cleanCode, expiresLine, familyCanOpen, inviteMessage, isFamilyAccount, medicineToday, showCode, summaryChart } from "../family";
+import { agoLine, cleanCode, expiresLine, familyCanOpen, inviteMessage, isFamilyAccount, showCode, summaryChart } from "../family";
 
 // HL-087: family sharing helpers.
 
@@ -75,24 +75,14 @@ describe("the 30-day charts", () => {
   });
 });
 
-describe("medicine today (HL-154)", () => {
-  it("says the patient's own answer plainly", () => {
-    expect(medicineToday(true)).toBe("Taken");
-    expect(medicineToday(false)).toBe("Not taken");
-    expect(medicineToday(null)).toBe("Not answered");
-    expect(medicineToday(undefined)).toBe("Not answered");
-  });
-});
-
 // HL-161: the last 7 days in plain words for family members
 describe("the week for family members", () => {
   const { bpCategory, weekSentence, weekDayLabel, BP_WORDS } = jest.requireActual("../family") as typeof import("../family");
   const NOW = new Date(2026, 10, 17, 12, 0);
-  const day = (date: string, bp: [number, number] | null, medicine: boolean | null = null, logged = !!bp) => ({
+  const day = (date: string, bp: [number, number] | null, _unused: boolean | null = null, logged = !!bp) => ({
     date,
     bp: bp ? { systolic: bp[0], diastolic: bp[1], category: bpCategory(bp[0], bp[1]), readings: 1 } : null,
     pulse: null,
-    medicine,
     logged,
   });
 

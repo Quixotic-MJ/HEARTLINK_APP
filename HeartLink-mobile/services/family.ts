@@ -35,8 +35,6 @@ export type FamilySummary =
       last_check_in: string | null;
       days: SummaryDay[];
       open_alerts: { type: string; severity: string | null; at: string }[];
-      // HL-154: the patient's own medicine answers (older servers leave it out)
-      medicine?: { today: boolean | null; week: { taken: number; answered: number } };
       // HL-161: the last 7 days as a table (older servers leave it out)
       week?: WeekTable;
       // HL-162: the "Send a reminder" button (older servers leave it out)
@@ -53,7 +51,6 @@ export type WeekDay = {
   /** The day's highest reading */
   bp: { systolic: number; diastolic: number; category: BpCategory; readings: number } | null;
   pulse: number | null;
-  medicine: boolean | null;
   logged: boolean;
 };
 
@@ -122,16 +119,6 @@ export function weekSentence(name: string, week: WeekTable, now = new Date()): s
     `${first} ${pattern} ` +
     `The highest was ${h.systolic}/${h.diastolic} (${BP_WORDS[h.category].label}) ${when === "Today" || when === "Yesterday" ? when.toLowerCase() : `on ${when}`}.`
   );
-}
-
-/** The medicine column. */
-export function medicineMark(taken: boolean | null): string {
-  return taken === true ? "Taken" : taken === false ? "Not taken" : "Not answered";
-}
-
-/** HL-154: the "Medicine today" tile. */
-export function medicineToday(today: boolean | null | undefined): string {
-  return today === true ? "Taken" : today === false ? "Not taken" : "Not answered";
 }
 
 export type AccountKind = "patient" | "family";

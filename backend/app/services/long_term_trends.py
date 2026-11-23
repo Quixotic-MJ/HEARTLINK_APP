@@ -82,8 +82,6 @@ def _period(start: date, end: date, data: Dict[str, Any], limit_mg: Optional[flo
     span = (end - start).days + 1
     minutes = sum(_number(e.get("duration_minutes")) or 0 for e in data["exercise"] if _in(_day(e.get("logged_at")), start, end))
     hours = [h for s in data["sleep"] if _in(_day(s.get("logged_at")), start, end) for h in [_number(s.get("duration_hours"))] if h]
-    meds = [c.get("medication_taken") for c in data["checkins"]
-            if c.get("medication_taken") in (True, False) and _in(_day(c.get("logged_at")), start, end)]
     return {
         "start": start.isoformat(),
         "end": end.isoformat(),
@@ -95,7 +93,6 @@ def _period(start: date, end: date, data: Dict[str, Any], limit_mg: Optional[flo
         "days_over_limit": sum(1 for mg in sodium if limit_mg and mg > limit_mg),
         "exercise_minutes_per_week": round(minutes * 7 / span),
         "sleep_hours": _avg(hours, 1),
-        "medicines_percent": round(100 * sum(1 for m in meds if m) / len(meds)) if meds else None,
     }
 
 
@@ -156,21 +153,7 @@ def _patterns(data: Dict[str, Any], start: date, limit_mg: Optional[float]) -> L
     rested = [next_day[d] for d in logged - exercised if d >= start and d in next_day]
     notes.append(_note("exercise", "Exercise days", "Rest days", moved, rested, compare("days you exercised", "rest days")))
 
-    taken: Dict[date, List[float]] = {}
-    missed: Dict[date, List[float]] = {}
-    for c in data["checkins"]:
-        when, sys_bp = _local(c.get("logged_at")), _number(c.get("systolic_bp"))
-        if when and sys_bp and c.get("medication_taken") in (True, False) and when.date() >= start:
-            (taken if c["medication_taken"] else missed).setdefault(when.date(), []).append(sys_bp)
-
-    def same_day(diff, a, b):
-        if abs(diff) < SAME:
-            return f"On average, your top number was about the same on days you took your medicines as on days you missed them ({a} and {b})."
-        return (f"On average, your top number was {abs(diff)} {'higher' if diff > 0 else 'lower'} on days you took your "
-                f"medicines than on days you missed them ({a} and {b}).")
-
-    notes.append(_note("medicines", "Taken", "Missed", [sum(v) / len(v) for v in taken.values()],
-                       [sum(v) / len(v) for v in missed.values()], same_day))
+    # HL-167 (panel revision): the medicine answer was removed, so there's no taken-vs-missed note any more
     return [n for n in notes if n]
 
 

@@ -25,7 +25,8 @@ export interface DailyReading {
   diastolic: number | null;
   category: string | null;
   pulse: number | null;
-  medication_taken: boolean | null;
+  /** HL-166: blood oxygen % (older servers leave it out) */
+  spo2?: number | null;
   symptoms: string[];
 }
 // One day of the daily log: its check-ins, then that day's meals, sodium, exercise and sleep
@@ -63,7 +64,8 @@ export interface HealthReport {
   score: { start: number | null; end: number | null; change: number | null };
   // HL-139: the Heart risk at the start and end of the period (older servers leave it out)
   heart_risk?: { start: number | null; end: number | null; band: string | null; kind: "calculated" | "estimated" | null };
-  medicines: { answered: number; taken: number; percent: number | null };
+  // HL-166: oxygen readings (older servers leave it out). HL-167: the medicine answers were removed.
+  oxygen?: { readings: number; lowest: number | null; average: number | null };
   sodium: { days_with_meals: number; average_mg: number | null; limit_mg: number | null; days_over_limit: number };
   exercise: { sessions: number; minutes: number; minutes_per_week: number };
   sleep: { average_hours: number | null; nights: number };
@@ -128,9 +130,14 @@ export function scoreLine(s: HealthReport["score"]): string {
   return `${s.start} → ${s.end} (${s.change > 0 ? "+" : ""}${s.change})`;
 }
 
-export function medicinesLine(m: HealthReport["medicines"]): string {
-  return m.percent === null ? "Not answered" : `${m.percent}% of check-ins (${m.taken} of ${m.answered})`;
+/** HL-166: "Lowest 93%, average 97% (4 readings)" */
+export function oxygenLine(o: HealthReport["oxygen"]): string {
+  if (!o || !o.readings || o.lowest === null) return "Not logged";
+  return `Lowest ${o.lowest}%, average ${o.average}% (${o.readings} reading${o.readings === 1 ? "" : "s"})`;
 }
+
+/** Under 95% is lower than usual (HL-166; pending the cardiologist's confirmation). */
+export const OXYGEN_FLAG_BELOW = 95;
 
 function escapeHtml(value: unknown): string {
   return String(value ?? "")
@@ -143,7 +150,7 @@ function escapeHtml(value: unknown): string {
 
 /**
  * HL-096: the report's sections, in the same order the portal groups a patient's records: blood pressure, heart rate,
- * medicine, sleep, symptoms, food, exercise, then the habits score, lab results and alerts, after the Heart risk (HL-145).
+ * oxygen, sleep, symptoms, food, exercise, then the habits score, lab results and alerts, after the Heart risk (HL-145).
  * The screen and the PDF both use it.
  */
 export function reportSections(r: HealthReport): ReportSection[] {
@@ -188,7 +195,7 @@ export function reportSections(r: HealthReport): ReportSection[] {
         : [row("Readings", "No blood pressure logged in this period")],
     },
     { title: "Heart rate", rows: [row("Average pulse", r.pulse.average === null ? "Not logged" : `${r.pulse.average} bpm (${r.pulse.readings} readings)`)] },
-    { title: "Medicine", rows: [row("Taken", medicinesLine(r.medicines))] },
+    { title: "Oxygen", rows: [row("Blood oxygen (SpO2)", oxygenLine(r.oxygen))] },
     { title: "Sleep", rows: [row("Average sleep", r.sleep.average_hours === null ? "Not logged" : `${r.sleep.average_hours} hours (${r.sleep.nights} nights)`)] },
     {
       title: "Symptoms",
@@ -244,8 +251,9 @@ export function dayLabel(iso: string): string {
 }
 
 const yesNo = (v: boolean | null | undefined) => (v === true ? "Yes" : v === false ? "No" : "Not answered");
-const medicineMark = (v: boolean | null) => (v === true ? "✓ Taken" : v === false ? "✗ Not taken" : "—");
-const isFlagged = (x: DailyReading) => (x.category !== null && FLAG_CATEGORIES.includes(x.category)) || x.symptoms.length > 0;
+const lowOxygen = (x: DailyReading) => typeof x.spo2 === "number" && x.spo2 < OXYGEN_FLAG_BELOW;
+const isFlagged = (x: DailyReading) =>
+  (x.category !== null && FLAG_CATEGORIES.includes(x.category)) || x.symptoms.length > 0 || lowOxygen(x);
 
 export interface ReportFlag {
   date: string;
@@ -253,8 +261,8 @@ export interface ReportFlag {
   text: string;
 }
 
-/** What a doctor should look at first, newest first: high, very high or low readings and symptoms (with "medicine not
- * taken" when that was the answer), then health alerts. */
+/** What a doctor should look at first, newest first: high, very high or low readings, low oxygen and symptoms, then
+ * health alerts. */
 export function reportFlags(r: HealthReport): ReportFlag[] {
   const flags: ReportFlag[] = [];
   for (const day of r.daily ?? []) {
@@ -264,8 +272,8 @@ export function reportFlags(r: HealthReport): ReportFlag[] {
       if (x.systolic && x.diastolic) {
         parts.push(`${x.systolic}/${x.diastolic}${x.category ? ` (${CATEGORY_LABEL[x.category] ?? x.category})` : ""}`);
       }
+      if (lowOxygen(x)) parts.push(`oxygen ${x.spo2}%`);
       if (x.symptoms.length) parts.push(x.symptoms.join(", "));
-      if (x.medication_taken === false) parts.push("medicine not taken");
       flags.push({ date: day.date, time: x.time, text: parts.join(" · ") });
     }
   }
@@ -341,12 +349,12 @@ export function reportHtml(r: HealthReport, patientName: string): string {
       (flags.length > shown.length ? `<tr><td colspan="2" class="muted">and ${flags.length - shown.length} more in the daily log</td></tr>` : "")
     : `<tr><td colspan="2" class="muted">Nothing flagged: no stage 2, very high or low readings, symptoms or health alerts in this period.</td></tr>`;
 
-  // Page 1: medicine, habits and risk (the same wording as the screen)
+  // Page 1: habits and risk (the same wording as the screen)
   const sections = reportSections(r);
   const pick = (title: string) => sections.find((s) => s.title === title)?.rows ?? [];
   const habitRows = [
     ...pick("Heart risk"),
-    { label: "Medicine taken", value: medicinesLine(r.medicines) },
+    { label: "Blood oxygen (SpO2)", value: oxygenLine(r.oxygen) },
     { label: "Symptoms reported", value: r.symptoms.length ? r.symptoms.map((s) => `${s.name} (${s.times})`).join(", ") : "None" },
     ...pick("Food"),
     ...pick("Exercise"),
@@ -371,7 +379,7 @@ export function reportHtml(r: HealthReport, patientName: string): string {
     `<tr${isFlagged(x) ? ' class="flag"' : ""}>${dateCell}<td>${esc(time12(x.time))}</td>` +
     `<td class="num">${x.systolic && x.diastolic ? `${x.systolic}/${x.diastolic}` : "—"}</td>` +
     `<td>${esc(x.category ? CATEGORY_LABEL[x.category] ?? x.category : "")}</td>` +
-    `<td class="num">${x.pulse ?? "—"}</td><td>${esc(medicineMark(x.medication_taken))}</td>` +
+    `<td class="num">${x.pulse ?? "—"}</td><td class="num">${typeof x.spo2 === "number" ? `${x.spo2}%` : "—"}</td>` +
     `<td>${esc(x.symptoms.join(", ") || "—")}</td></tr>`;
   const daily = r.daily ?? [];
   const logRows = daily.length
@@ -419,7 +427,7 @@ export function reportHtml(r: HealthReport, patientName: string): string {
     <h2>Things to look at</h2>
     <table>${flagRows}</table>
 
-    <h2>Medicine, habits and risk</h2>
+    <h2>Habits and risk</h2>
     <table>${habitRows}</table>
 
     <div class="note">${esc(r.disclaimer)} Home readings are entered by the patient. The daily log follows the AMA/AHA
@@ -427,10 +435,10 @@ export function reportHtml(r: HealthReport, patientName: string): string {
 
     <div class="log">
       <div class="top"><h1>Daily log</h1><span class="muted">${esc(patientName)} · ${esc(periodLabel(r))}</span></div>
-      <p class="muted">Every check-in as logged, newest day first. Highlighted rows: stage 2, very high or low readings, or
+      <p class="muted">Every check-in as logged, newest day first. Highlighted rows: stage 2, very high or low readings, oxygen under 95%, or
       symptoms. The grey line under each day shows that day's meals and sodium, exercise and sleep.</p>
       <table>
-        <thead><tr><th>Date</th><th>Time</th><th>BP (mmHg)</th><th>Level</th><th>Pulse</th><th>Medicine</th><th>Symptoms</th></tr></thead>
+        <thead><tr><th>Date</th><th>Time</th><th>BP (mmHg)</th><th>Level</th><th>Pulse</th><th>Oxygen</th><th>Symptoms</th></tr></thead>
         <tbody>${logRows}</tbody>
       </table>
     </div>
@@ -508,7 +516,7 @@ export function doctorHighlights(r: HealthReport): ReportRow[] {
   } else {
     rows.push({ label: "Blood pressure", value: "No readings in this period" });
   }
-  if (r.medicines.percent !== null) rows.push({ label: "Medicine taken", value: `${r.medicines.taken} of ${r.medicines.answered} check-ins` });
+  if (r.oxygen?.readings) rows.push({ label: "Blood oxygen", value: oxygenLine(r.oxygen) });
   if (r.heart_risk && r.heart_risk.end !== null) {
     rows.push({ label: "10-year heart risk", value: `${r.heart_risk.end}%${r.heart_risk.kind === "estimated" ? " (estimated)" : ""}` });
   }

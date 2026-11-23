@@ -1,4 +1,5 @@
-"""Migration 033: "I don't take any medicines" is saved as null and scores like "not taken"."""
+"""Migration 033: the old medicine answer is still accepted from older app builds (HL-167: nothing shows it); HL-166:
+the optional oxygen reading; HL-156: the latest weight."""
 import pytest
 from fastapi.testclient import TestClient
 
@@ -66,12 +67,31 @@ class Empty:
         return lambda *a, **k: []
 
 
-@pytest.mark.parametrize("medication, expected", [(True, True), (False, False), (None, False)])
-def test_dashboard_counts_no_medicines_as_not_taken(monkeypatch, medication, expected):
-    monkeypatch.setattr(health_log_service, "get_health_logs", lambda uid, **k: [_today_log(medication)])
+def test_the_dashboard_ignores_old_medicine_answers(monkeypatch):
+    """HL-167: older app builds may still send the answer; it's saved but nothing shows it."""
+    monkeypatch.setattr(health_log_service, "get_health_logs", lambda uid, **k: [_today_log(True)])
     for name in ("get_meals_repo", "get_exercises_repo", "get_sleep_repo"):
         monkeypatch.setattr(dashboard, name, lambda: Empty())
-    assert dashboard._get_today_activity(PATIENT_ID)["medication_taken"] is expected
+    assert "medication_taken" not in dashboard._get_today_activity(PATIENT_ID)
+
+
+# --- HL-166: the optional oxygen reading ---------------------------------------------------------------
+
+def test_an_oxygen_reading_is_saved_as_a_whole_percent(saved):
+    assert _post({"spo2_percent": 96.4, "symptoms": ["None (Feeling fine)"]}).status_code == 200
+    assert saved[0]["spo2_percent"] == 96
+
+
+def test_no_oxygen_reading_sends_no_column(saved):
+    """So check-ins keep working on a database without the column yet."""
+    assert _post({"spo2_percent": None, "symptoms": ["None (Feeling fine)"]}).status_code == 200
+    assert "spo2_percent" not in saved[0]
+
+
+@pytest.mark.parametrize("value, code", [(49, 400), (101, 400), ("97", 422), (True, 422)])
+def test_an_oxygen_reading_outside_50_to_100_is_refused(saved, value, code):
+    assert _post({"spo2_percent": value}).status_code == code
+    assert saved == []
 
 
 # --- HL-156: the latest weight ------------------------------------------------------------------------

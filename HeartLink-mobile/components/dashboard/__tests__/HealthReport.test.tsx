@@ -29,7 +29,6 @@ const REPORT = {
   },
   pulse: { average: 75, readings: 2 },
   score: { start: 64, end: 71, change: 7 },
-  medicines: { answered: 0, taken: 0, percent: null },
   sodium: { days_with_meals: 0, average_mg: null, limit_mg: 1500, days_over_limit: 0 },
   exercise: { sessions: 0, minutes: 0, minutes_per_week: 0 },
   sleep: { average_hours: null, nights: 0 },
@@ -75,7 +74,7 @@ describe("Visit summary (the doctor-ready report, 2026-11-12)", () => {
     const daily = [
       {
         date: "2026-10-26",
-        readings: [{ time: "07:00", systolic: 150, diastolic: 95, category: "stage_2", pulse: 80, medication_taken: false, symptoms: ["Headache"] }],
+        readings: [{ time: "07:00", systolic: 150, diastolic: 95, category: "stage_2", pulse: 80, spo2: 97, symptoms: ["Headache"] }],
         sodium_mg: null,
         meals: 0,
         over_sodium_limit: false,
@@ -88,7 +87,7 @@ describe("Visit summary (the doctor-ready report, 2026-11-12)", () => {
     expect(await screen.findByText("Readings on 1 of the last 7 days")).toBeOnTheScreen();
     expect(screen.getByText("Mornings: 1")).toBeOnTheScreen();
     expect(screen.getByRole("button", { name: "Log a reading" })).toBeOnTheScreen();
-    expect(screen.getByText("150/95 (Stage 2) · Headache · medicine not taken")).toBeOnTheScreen();
+    expect(screen.getByText("150/95 (Stage 2) · Headache")).toBeOnTheScreen();
   });
 
   it("shows 1 and 3 months as Premium for a free patient", async () => {
