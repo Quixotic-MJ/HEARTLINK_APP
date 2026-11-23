@@ -23,21 +23,23 @@ class FakeRepo:
         self.cases, self.sections = [], []
 
     def add(self, n, status="complete", band="borderline", clinical=True, features=None, snapshot=None,
-            section_status="submitted", created_at="2026-10-01T08:00:00Z", older=False):
+            section_status="submitted", created_at="2026-10-01T08:00:00Z", older=False, dataset="approved", note=None):
         rid = f"r{len(self.cases)}"
         self.cases.append({"id": rid, "patient_id": f"patient-{rid}", "case_code": f"HL-{rid}", "lane": "sample",
                            "status": status, "app_score": 70, "app_tier": "Moderate", "app_scorer": "bp_rules",
                            "model_version": "starting-score-2", "created_at": created_at,
                            "app_risk_band": "borderline", "app_risk_percent": 4.2, "app_risk_kind": "estimated",
                            "model_features": SAVED_INPUTS if features is None else features,
-                           "input_snapshot": snapshot or {}})
+                           "input_snapshot": snapshot or {},
+                           # HL-165: the Cardiologist's decision for the dataset
+                           "dataset_status": dataset, "dataset_note": note})
         self.sections.append({"review_case_id": rid, "section": "cardiology", "status": section_status,
                               "is_clinical": clinical, "confidence": "high",
                               **({"expert_tier": "Critical"} if older else {"expert_risk_band": band, "expert_risk_percent": 6.0}),
                               "reasons": ["bp_trend"], "checkup_flag": "within_2_weeks", "notes": "Seen at clinic",
                               "reviewer_name": "Dr. Cruz", "created_at": "2026-10-02T08:00:00Z"})
         for _ in range(n - 1):
-            self.add(1, status, band, clinical, features, snapshot, section_status, created_at, older)
+            self.add(1, status, band, clinical, features, snapshot, section_status, created_at, older, dataset, note)
         return self
 
     def list_sections(self, review_case_id=None, section=None, include_archived=False):
@@ -159,3 +161,18 @@ def test_only_admins_see_model_check(repo, signed_in, monkeypatch):
 
     signed_in("admin")
     assert client.get("/api/admin/model-check").status_code == 200
+
+
+def test_only_cases_the_cardiologist_approved_are_used(repo):
+    """HL-165 (panel revision): the Cardiologist approves the data and feedback before a case joins the dataset."""
+    repo.add(30, band="borderline")
+    repo.add(2, dataset="waiting").add(1, dataset=None).add(1, dataset="left_out", note="Readings look like a faulty cuff")
+    export = clinical_dataset.build_export()
+    assert export["counts"]["rows"] == 30
+    reasons = sorted(e["reason"] for e in export["excluded"])
+    assert reasons == ["Left out by the Cardiologist: Readings look like a faulty cuff"] + ["Waiting for the Cardiologist's approval"] * 3
+
+
+def test_approval_counts_for_model_check(repo):
+    repo.add(3).add(2, dataset="waiting").add(1, dataset="left_out", note="x").add(1, clinical=False).add(1, status="open")
+    assert clinical_dataset.approval_counts() == {"approved": 3, "waiting": 2, "left_out": 1}

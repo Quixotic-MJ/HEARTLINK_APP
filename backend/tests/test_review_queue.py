@@ -122,6 +122,7 @@ def log(days_ago=1, **fields):
     (log(systolic_bp=85, diastolic_bp=70), "Low BP 85/70"),
     (log(symptoms=["Chest Discomfort / Tightness"], severity_map={"Chest Discomfort / Tightness": 7}), "Chest discomfort, severity 7"),
     (log(symptoms=["Shortness of Breath"], context="resting"), "Shortness of breath at rest"),
+    (log(spo2_percent=88), "Oxygen 88%"),  # HL-166
 ])
 def test_urgent_triggers(world, entry, expected):
     world["logs"] = Logs({"p1": [entry]})
@@ -133,6 +134,7 @@ def test_urgent_triggers(world, entry, expected):
     log(systolic_bp=90, diastolic_bp=60),
     log(symptoms=["Chest Discomfort / Tightness"], severity_map={"Chest Discomfort / Tightness": 6}),
     log(symptoms=["Shortness of Breath"], context="after_exercise"),
+    log(spo2_percent=90),
     log(days_ago=rules.SYMPTOM_WINDOW_DAYS + 1, systolic_bp=190, diastolic_bp=125),
 ])
 def test_not_urgent(world, entry):

@@ -224,20 +224,19 @@ const TABLES = {
             dash
           ),
       ],
+      // HL-167 (panel revision): the medicine column was removed with the question. HL-166: the optional oxygen
+      // reading; under 90% is an emergency in the app (pending the cardiologist's confirmation).
       [
-        "meds",
-        "Medicine taken",
-        (r) => (
-          <span
-            className={`${TAG} ${
-              r.medication_taken
-                ? "border-cal-success/25 bg-cal-success/10 text-cal-ink"
-                : "border-cal-hairline bg-cal-surface-card text-cal-muted"
-            }`}
-          >
-            {r.medication_taken ? "Yes" : r.medication_taken === null ? "Doesn't take any" : "No"}
-          </span>
-        ),
+        "spo2",
+        "Oxygen",
+        (r) =>
+          r.spo2_percent != null ? (
+            <span className={`font-cal-mono tabular-nums ${r.spo2_percent < 90 ? "font-semibold text-cal-error" : "text-cal-ink"}`}>
+              {r.spo2_percent}%
+            </span>
+          ) : (
+            dash
+          ),
       ],
       [
         "symptoms",

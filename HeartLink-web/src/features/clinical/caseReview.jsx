@@ -457,6 +457,10 @@ const Cases = () => {
             <li>
               The Dietitian and Physical Therapist check the recommended content. Only reviews by verified clinicians count toward Model Check measures.
             </li>
+            <li>
+              When all three parts are in, the {SECTION_EXPERT.cardiology} approves the case for the dataset or leaves it out with a reason.
+              Only approved cases are exported.
+            </li>
           </ol>
         </details>
 

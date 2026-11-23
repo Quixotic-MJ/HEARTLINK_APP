@@ -225,13 +225,11 @@ def test_followers_see_a_read_only_summary(world):
     assert len(s["days"]) == 30 and s["days"][-2]["systolic"] == 138 and s["days"][-2]["score"] == 71
     assert s["open_alerts"][0]["type"] == "Hypertensive Crisis"
     assert set(s) == {"id", "name", "paused", "latest_bp", "latest_pulse", "score", "heart_risk", "last_check_in", "days",
-                      "open_alerts", "medicine", "week", "reminder"}
+                      "open_alerts", "week", "reminder"}
     assert s["reminder"] == {"allowed": True, "sent_today": False}
     # HL-161: the last 7 days, newest first; the deleted 200/130 is left out of the table too
     assert len(s["week"]["days"]) == 7 and s["week"]["readings"] == 2
     assert (s["week"]["highest"]["systolic"], s["week"]["highest"]["category"]) == (150, "stage_2")
-    # HL-154: the patient's own medicine answers for carers (today's, and the last 7 days)
-    assert set(s["medicine"]) == {"today", "week"} and set(s["medicine"]["week"]) == {"taken", "answered"}
     assert s["heart_risk"] is None  # these test scores have no Heart risk saved
 
 
@@ -295,6 +293,9 @@ def test_account_kind_is_patient_or_family(world):
     ({"symptoms": ["Shortness of Breath"], "context": "after_exercise"}, False),
     ({"symptoms": ["Fainted or Nearly Fainted"]}, True),
     ({"symptoms": ["Dizziness / Lightheadedness"], "severity_map": {"Dizziness / Lightheadedness": 10}}, False),
+    # HL-166: oxygen under 90% is an emergency; 90 isn't
+    ({"spo2_percent": 89}, True),
+    ({"spo2_percent": 90}, False),
     ({}, False),
 ])
 def test_emergency_rules_match_the_app(data, emergency):
@@ -402,8 +403,8 @@ def test_week_table_shows_each_days_highest_reading_in_plain_terms():
     days = table["days"]
     assert [d["date"] for d in days][:2] == ["2026-11-17", "2026-11-16"] and len(days) == 7
     assert days[0]["bp"] == {"systolic": 142, "diastolic": 90, "category": "stage_2", "readings": 2}
-    assert (days[0]["pulse"], days[0]["medicine"], days[0]["logged"]) == (75, False, True)
-    assert days[1] == {"date": "2026-11-16", "bp": None, "pulse": None, "medicine": None, "logged": False}
+    assert (days[0]["pulse"], days[0]["logged"]) == (75, True) and "medicine" not in days[0]  # HL-167
+    assert days[1] == {"date": "2026-11-16", "bp": None, "pulse": None, "logged": False}
     assert days[2]["bp"]["category"] == "normal"
     assert days[3]["bp"] is None and days[3]["logged"] is True  # a sleep log only
     assert table["readings"] == 3 and table["highest"] == {"systolic": 142, "diastolic": 90, "category": "stage_2",

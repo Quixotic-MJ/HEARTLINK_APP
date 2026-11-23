@@ -19,7 +19,6 @@ export type LongTermStretch = {
   days_over_limit: number;
   exercise_minutes_per_week: number;
   sleep_hours: number | null;
-  medicines_percent: number | null;
 };
 
 export type LongTermBucket = LongTermStretch & { label: string };
@@ -27,7 +26,7 @@ export type LongTermBucket = LongTermStretch & { label: string };
 export type TimeOfDay = { key: string; label: string; hours: string; systolic: number | null; diastolic: number | null; readings: number };
 
 export type PatternNote = {
-  key: "sodium" | "exercise" | "medicines";
+  key: "sodium" | "exercise";
   text: string;
   with: { label: string; systolic: number; days: number };
   without: { label: string; systolic: number; days: number };
@@ -59,8 +58,7 @@ export const spanName = (days: number) => (days === 365 ? "year" : `${days} days
 export function patternBasis(p: PatternNote): string {
   const d = (n: number) => `${n} ${n === 1 ? "day" : "days"}`;
   if (p.key === "sodium") return `Based on ${d(p.with.days)} over your limit and ${d(p.without.days)} under it.`;
-  if (p.key === "exercise") return `Based on ${p.with.days} exercise ${p.with.days === 1 ? "day" : "days"} and ${p.without.days} rest ${p.without.days === 1 ? "day" : "days"}.`;
-  return `Based on ${d(p.with.days)} you took them and ${d(p.without.days)} you missed them.`;
+  return `Based on ${p.with.days} exercise ${p.with.days === 1 ? "day" : "days"} and ${p.without.days} rest ${p.without.days === 1 ? "day" : "days"}.`;
 }
 
 /** "2026-10-21" as that calendar day on the phone (not midnight UTC, which can be the day before). */
@@ -124,13 +122,6 @@ export function monthCompareRows(m: LongTermTrends["month_compare"]): CompareRow
       now: show(m.this.sleep_hours, " h"),
       before: show(m.last.sleep_hours, " h"),
       change: change(m.this.sleep_hours, m.last.sleep_hours, " h"),
-    },
-    {
-      key: "medicines",
-      label: "Medicines taken",
-      now: show(m.this.medicines_percent, "%"),
-      before: show(m.last.medicines_percent, "%"),
-      change: change(m.this.medicines_percent, m.last.medicines_percent, " points"),
     },
   ];
 }

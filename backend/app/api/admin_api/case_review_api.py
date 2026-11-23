@@ -116,6 +116,22 @@ def submit_exercise_review(round_id: str, payload: dict, current_user: dict = De
     return {"status": "success", "section": saved, "case": review_sections.case_detail(round_id, current_user)}
 
 
+@router.post("/review-queue/{round_id}/dataset")
+def decide_dataset_use(round_id: str, payload: dict, current_user: dict = Depends(get_current_admin_user)):
+    """HL-165: a verified Cardiologist approves a case for the dataset, or leaves it out with a reason."""
+    saved = review_sections.decide_dataset(round_id, payload or {}, current_user)
+    from app.utils.activity_helper import record_admin_activity
+    approved = saved.get("dataset_status") == "approved"
+    record_admin_activity(
+        admin_user_id=current_user.get("user_id"),
+        action="approved a case for the dataset" if approved else "left a case out of the dataset",
+        target_type="case",
+        target_id=round_id,
+        target_name=saved.get("case_code"),
+    )
+    return {"status": "success", "case": review_sections.case_detail(round_id, current_user)}
+
+
 # --- HL-058: Model Check (replaces Calibration History) ---------------------------------------------
 from app.services import model_check as model_check_service
 

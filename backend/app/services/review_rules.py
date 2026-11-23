@@ -18,6 +18,8 @@ CRISIS_SYSTOLIC = 180
 CRISIS_DIASTOLIC = 120
 LOW_SYSTOLIC = 90
 LOW_DIASTOLIC = 60
+# HL-166 (panel revision): blood oxygen under 90% is an emergency in the app; PROPOSED, pending the cardiologist
+LOW_SPO2 = 90
 SYMPTOM_WINDOW_DAYS = 7
 CHEST_SYMPTOM = "Chest Discomfort / Tightness"
 CHEST_SEVERITY_AT_LEAST = 7

@@ -1,4 +1,4 @@
-"""The redesigned dashboard's medicine tile and "since yesterday" line."""
+"""The redesigned dashboard's check-in tile and "since yesterday" line."""
 from datetime import timedelta
 
 import pytest
@@ -19,28 +19,13 @@ def _log(medication, days_ago=0):
     return {"logged_at": (utc_now() - timedelta(days=days_ago)).isoformat(), "medication_taken": medication, "symptoms": []}
 
 
-def _status(monkeypatch, logs):
-    monkeypatch.setattr(health_log_service, "get_health_logs", lambda uid, **k: logs)
+def test_the_dashboard_no_longer_sends_a_medicine_answer(monkeypatch):
+    """HL-167 (panel revision): the check-in's medicine question was removed, so the tile shows the reading only."""
+    monkeypatch.setattr(health_log_service, "get_health_logs", lambda uid, **k: [_log(True)])
     for name in ("get_meals_repo", "get_exercises_repo", "get_sleep_repo"):
         monkeypatch.setattr(dashboard, name, lambda: Empty())
-    return dashboard._get_today_activity(PATIENT_ID)["medication_status"]
-
-
-@pytest.mark.parametrize("medication, expected", [(True, "taken"), (False, "not_yet"), (None, "none")])
-def test_medicine_status_follows_todays_answer(monkeypatch, medication, expected):
-    assert _status(monkeypatch, [_log(medication)]) == expected
-
-
-def test_no_medicines_answered_on_an_earlier_day_still_counts_today(monkeypatch):
-    assert _status(monkeypatch, [_log(None, days_ago=2), _log(False, days_ago=5)]) == "none"
-
-
-def test_taking_medicine_again_after_saying_none(monkeypatch):
-    assert _status(monkeypatch, [_log(None, days_ago=3), _log(True)]) == "taken"
-
-
-def test_nothing_logged_yet(monkeypatch):
-    assert _status(monkeypatch, []) == "not_yet"
+    today = dashboard._get_today_activity(PATIENT_ID)
+    assert "medication_taken" not in today and "medication_status" not in today
 
 
 def _score(days_ago, hours_ago=0):

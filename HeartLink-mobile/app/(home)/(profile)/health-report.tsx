@@ -151,7 +151,7 @@ function SummaryBody({ report }: { report: HealthReport }) {
         <InfoNote
           icon="file-text"
           title="In the PDF"
-          text="Everything above, plus your morning and evening averages, medicine, food, exercise, sleep, lab results and a day-by-day log of every check-in."
+          text="Everything above, plus your morning and evening averages, oxygen, food, exercise, sleep, lab results and a day-by-day log of every check-in."
         />
       </View>
       <View style={{ marginTop: 12 }}>

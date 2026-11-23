@@ -8,7 +8,13 @@ export type Pressure = { sys: number; dia: number };
 
 type Dated = { logged_at?: string | null; computed_at?: string | null };
 export type ScoreRow = Dated & { score?: number | null; source?: string | null; contributing_factors?: Record<string, unknown> | null };
-export type VitalsRow = Dated & { systolic_bp?: number | null; diastolic_bp?: number | null; heart_rate_bpm?: number | null };
+export type VitalsRow = Dated & {
+  systolic_bp?: number | null;
+  diastolic_bp?: number | null;
+  heart_rate_bpm?: number | null;
+  /** HL-166: optional blood oxygen % */
+  spo2_percent?: number | null;
+};
 export type MealRow = Dated & { sodium_mg?: number | null };
 export type ExerciseRow = Dated & { duration_minutes?: number | null };
 export type SleepRow = Dated & { duration_hours?: number | null };
@@ -72,6 +78,18 @@ export function pressureByDay(days: TrendDay[], vitals: VitalsRow[]): (Pressure 
 
 export function pulseByDay(days: TrendDay[], vitals: VitalsRow[]): (number | null)[] {
   return lastPerDay(days, vitals, (v) => (num(v.heart_rate_bpm) > 0 ? num(v.heart_rate_bpm) : null));
+}
+
+/** HL-166: the lowest oxygen reading each day (the one that matters for safety); null on a day without one. */
+export function oxygenByDay(days: TrendDay[], vitals: VitalsRow[]): (number | null)[] {
+  const lowest: Record<string, number> = {};
+  for (const v of vitals) {
+    const key = keyOf(v);
+    const value = num(v.spo2_percent);
+    if (!key || value <= 0) continue;
+    lowest[key] = key in lowest ? Math.min(lowest[key], value) : value;
+  }
+  return days.map((d) => (d.key in lowest ? Math.round(lowest[d.key]) : null));
 }
 
 /** Total sodium per day; null on a day with no meals logged. */

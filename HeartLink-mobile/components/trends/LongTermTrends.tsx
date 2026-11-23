@@ -311,7 +311,7 @@ function TimeOfDayCard({ data }: { data: Data }) {
 
 function Patterns({ data }: { data: Data }) {
   const { c } = useDs();
-  const tint = { sodium: c.peach, exercise: c.mint, medicines: c.lavender } as const;
+  const tint = { sodium: c.peach, exercise: c.mint } as const;
   return (
     <View style={{ gap: 12 }}>
       {sectionTitle(c, "Worth noticing")}

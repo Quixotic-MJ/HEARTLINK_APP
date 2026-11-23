@@ -82,7 +82,7 @@ def test_this_month_against_last(data):
     m = build_long_term("pat", 365)["month_compare"]
     assert (m["this"]["systolic"], m["this"]["readings"], m["this"]["pulse"]) == (135, 10, 75)
     assert (m["last"]["systolic"], m["last"]["readings"]) == (132, 3)
-    assert m["this"]["medicines_percent"] == 50 and m["last"]["medicines_percent"] is None
+    assert "medicines_percent" not in m["this"]  # HL-167
     assert m["this"]["exercise_minutes_per_week"] == 35  # 150 minutes over 30 days; the abandoned session is left out
 
 
@@ -93,11 +93,10 @@ def test_blood_pressure_by_time_of_day(data):
 
 def test_pattern_notes_compare_the_next_day_and_say_on_average(data):
     notes = {n["key"]: n for n in build_long_term("pat", 90)["patterns"]}
-    assert set(notes) == {"sodium", "exercise", "medicines"}
+    assert set(notes) == {"sodium", "exercise"}  # HL-167: no medicine note
     assert (notes["sodium"]["with"]["systolic"], notes["sodium"]["without"]["systolic"], notes["sodium"]["difference"]) == (140, 130, 10)
     assert notes["sodium"]["text"].startswith("On average, your top number the next day was 10 higher after days over your sodium limit")
     assert notes["exercise"]["with"]["days"] == 5 and notes["exercise"]["without"]["days"] == 5
-    assert notes["medicines"]["text"].startswith("On average, your top number was 10 lower on days you took your medicines")
     for n in notes.values():
         assert "diagnos" not in n["text"] and "cause" not in n["text"]
 

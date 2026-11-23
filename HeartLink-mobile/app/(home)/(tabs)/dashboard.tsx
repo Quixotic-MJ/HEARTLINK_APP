@@ -51,7 +51,7 @@ import { HeartRiskCard } from "../../../components/dashboard/HeartRiskCard";
 import { riskOf } from "../../../services/heartRisk";
 import { ScoreExplanationModal } from "../../../components/dashboard/ScoreExplanationModal";
 import { TodayCard, ScorePage, HabitsPage, sleepText } from "../../../components/dashboard/TodayCard";
-import { CheckinGrid, type CheckinTile, type MedicineStatus } from "../../../components/dashboard/TodayTiles";
+import { CheckinGrid, type CheckinTile } from "../../../components/dashboard/TodayTiles";
 import { StepsPage, StepsInvite, sampleStepWeek } from "../../../components/dashboard/StepsCard";
 import { useStepSync, useStepTracking, useStepWeek } from "../../../hooks/useSteps";
 import { hideStepInvite, showsSampleSteps } from "../../../services/stepTracker";
@@ -438,16 +438,14 @@ export default function DashboardScreen() {
     [safeNavigate, setActiveRec]
   );
 
-  // The four check-in tiles; each opens its own log. Medicine is answered in the blood pressure check-in.
-  const medicineStatus: MedicineStatus =
-    data?.today_activity?.medication_status ?? (data?.today_activity?.medication_taken ? "taken" : "not_yet");
+  // The four check-in tiles; each opens its own log. HL-167: the medicine answer was removed from the check-in.
   const mealsCount = data?.today_activity?.meals_count || 0;
   const checkinTiles: CheckinTile[] = [
     {
       id: "vitals",
       title: "Blood pressure",
       value: vitalsLogged && latestSbp && latestDbp ? `${latestSbp}/${latestDbp}` : "Not yet",
-      sub: medicineStatus === "taken" ? "Medicine taken" : medicineStatus === "none" ? "No medicine" : "Medicine: not yet",
+      sub: vitalsLogged ? (latestBpm ? `Pulse ${latestBpm} bpm` : "Logged today") : "Tap to log your reading",
       done: vitalsLogged,
     },
     {
@@ -1018,7 +1016,7 @@ export default function DashboardScreen() {
         </Reanimated.View>
         ) : null}
 
-        {/* ── Today's check-ins: blood pressure (with medicine), meals, movement, sleep ── */}
+        {/* ── Today's check-ins: blood pressure, meals, movement, sleep ── */}
         <Reanimated.View entering={FadeInDown.delay(180).duration(260)}>
           <TourSpot target="missions" tour={tour}>
             <CheckinGrid

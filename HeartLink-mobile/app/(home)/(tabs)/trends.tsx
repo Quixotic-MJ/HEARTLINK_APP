@@ -38,6 +38,7 @@ import {
   periodDays,
   pressureByDay,
   pulseByDay,
+  oxygenByDay,
   riskByDay, scoreByDay,
   scoreChange,
   scoreRangeByDay,
@@ -51,12 +52,13 @@ import {
 // HL-086: 90 days and 1 year are Premium (components/trends/LongTermTrends.tsx); on a free account they open the
 // pricing screen.
 
-type Metric = "risk" | "score" | "bp" | "pulse" | "sodium";
+type Metric = "risk" | "score" | "bp" | "pulse" | "oxygen" | "sodium";
 const METRICS: { id: Metric; label: string }[] = [
   { id: "risk", label: "Heart risk" },
   { id: "score", label: "Habits score" },
   { id: "bp", label: "Blood pressure" },
   { id: "pulse", label: "Pulse" },
+  { id: "oxygen", label: "Oxygen" },
   { id: "sodium", label: "Sodium" },
 ];
 const PERIODS = [7, 14, 30, 90, 365] as const;
@@ -142,13 +144,14 @@ export default function TrendsTabScreen() {
     const ranges = scoreRangeByDay(days, history);
     const pressure = pressureByDay(days, vitals);
     const pulse = pulseByDay(days, vitals);
+    const oxygen = oxygenByDay(days, vitals);
     const sodium = sodiumByDay(days, data?.meal_logs ?? []);
     const summary = summarize(
       days,
       { meals: data?.meal_logs ?? [], exercises: data?.exercise_logs ?? [], sleep: data?.sleep_logs ?? [], vitals },
       { sodiumMg: sodiumLimit, movementMin: movementGoal }
     );
-    return { days, history, scores, risks, ranges, pressure, pulse, sodium, summary };
+    return { days, history, scores, risks, ranges, pressure, pulse, oxygen, sodium, summary };
   }, [data, period, sodiumLimit, movementGoal]);
 
   const onRefresh = async () => {
@@ -300,14 +303,16 @@ export default function TrendsTabScreen() {
         </ScrollView>
 
         <View style={{ paddingHorizontal: 20, gap: 22 }}>
-          {long && metric === "risk" ? (
-            // HL-145: the long views summarise on the server, which doesn't hold the Heart risk yet
+          {long && (metric === "risk" || metric === "oxygen") ? (
+            // HL-145 / HL-166: the long views summarise on the server, which doesn't hold the Heart risk or oxygen yet
             <View style={{ padding: 20, borderRadius: 12, backgroundColor: c.surface, gap: 6 }}>
-              <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>Heart risk covers up to 30 days for now</Text>
+              <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>
+                {metric === "risk" ? "Heart risk" : "Oxygen"} covers up to 30 days for now
+              </Text>
               <Text style={{ fontSize: 14.5, lineHeight: 21, color: c.charcoal }}>Pick 7, 14 or 30 days to see it.</Text>
             </View>
           ) : long ? (
-            <LongTermTrends days={period} metric={metric as Exclude<Metric, "risk">} />
+            <LongTermTrends days={period} metric={metric as Exclude<Metric, "risk" | "oxygen">} />
           ) : query.isLoading ? (
             <Skeleton style={{ height: 300, borderRadius: 12 }} />
           ) : (query.isError || offline) && !data ? (
@@ -434,6 +439,7 @@ type TrendData = {
   ranges: ReturnType<typeof scoreRangeByDay>;
   pressure: ReturnType<typeof pressureByDay>;
   pulse: (number | null)[];
+  oxygen: (number | null)[];
   sodium: (number | null)[];
   summary: ReturnType<typeof summarize>;
 };
@@ -680,6 +686,29 @@ function MetricCard({
           accessibilityLabel={`Pulse over the last ${period} days. Latest ${latest.value} beats per minute.`}
         />
         {coverage(values.length, "a pulse reading")}
+      </View>
+    );
+  }
+
+  if (metric === "oxygen") {
+    // HL-166: optional readings from a pulse oximeter. Never scored; under 90% is an emergency in the check-in.
+    const latest = lastOf(t.oxygen);
+    if (!latest) return empty(`No oxygen readings in the last ${period} days`, "If you have a pulse oximeter, add your oxygen when you do your check-in, and your trend will show here.", "Do a check-in", logBp);
+    const values = t.oxygen.filter((p): p is number => p !== null);
+    const lowest = Math.min(...values);
+    return (
+      <View style={card}>
+        {head(`${latest.value}%`, `lowest that day, ${dayName(t.days[latest.index])}`, lowest < 95 ? `Lowest ${lowest}%: under 95% is lower than usual` : `Lowest ${lowest}%`)}
+        <TrendChart
+          kind="line"
+          days={t.days}
+          values={t.oxygen}
+          yMin={Math.min(85, Math.floor((lowest - 3) / 5) * 5)}
+          yMax={100}
+          ticks={[90, 95]}
+          accessibilityLabel={`Blood oxygen over the last ${period} days. Latest ${latest.value} percent, lowest ${lowest} percent.`}
+        />
+        {coverage(values.length, "an oxygen reading")}
       </View>
     );
   }

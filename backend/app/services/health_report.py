@@ -2,14 +2,15 @@
 HL-085: the doctor-ready report, the app's Visit summary. A summary of the last 7 days (free), or 30 or 90 days
 (Premium), for the patient to show at a
 checkup: blood pressure (averages, highest and lowest, morning vs evening, reading categories), pulse, the heart score
-from start to end, medicines, sodium against the patient's own limit, exercise, sleep, symptoms and health alerts.
+from start to end, blood oxygen (HL-166), sodium against the patient's own limit, exercise, sleep, symptoms and health alerts.
 
 It only summarises what the patient logged. Blood pressure categories follow the American Heart Association's chart
 (the same thresholds the app uses everywhere); the report never diagnoses, and says so.
 
 2026-11-12, for clinics: the layout follows the AMA/AHA Target: BP 7-day home blood pressure log (every reading with its
 date and time, morning and evening, and the average), and the ESH 2021 home BP guidance (an average without the first day,
-whose readings tend to run high). `daily` is that log, with each day's medicine, symptoms, sodium, exercise and sleep.
+whose readings tend to run high). `daily` is that log, with each reading's oxygen and symptoms, and each day's sodium,
+exercise and sleep. HL-167 (panel revision): the daily medicine answer was removed.
 """
 import zoneinfo
 from collections import Counter
@@ -120,11 +121,10 @@ def _blood_pressure(checkins: List[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
-def _medicines(checkins: List[Dict[str, Any]]) -> Dict[str, Any]:
-    # null means "I don't take any" (or left blank), so it's left out of the share
-    answered = [c.get("medication_taken") for c in checkins if c.get("medication_taken") in (True, False)]
-    taken = sum(1 for a in answered if a)
-    return {"answered": len(answered), "taken": taken, "percent": round(100 * taken / len(answered)) if answered else None}
+def _oxygen(checkins: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """HL-166: the optional oxygen readings (SpO2 %), lowest and average. Never scored."""
+    values = [v for c in checkins for v in [_number(c.get("spo2_percent"))] if v]
+    return {"readings": len(values), "lowest": round(min(values)) if values else None, "average": _avg(values, 1)}
 
 
 def _sodium(meals: List[Dict[str, Any]], limit_mg: Optional[float]) -> Dict[str, Any]:
@@ -143,7 +143,7 @@ def _sodium(meals: List[Dict[str, Any]], limit_mg: Optional[float]) -> Dict[str,
 
 
 def _daily(checkins, meals, exercise, sleep, limit_mg: Optional[float]) -> List[Dict[str, Any]]:
-    """The day-by-day log, newest day first: every check-in (time, blood pressure, pulse, medicine, symptoms), then that
+    """The day-by-day log, newest day first: every check-in (time, blood pressure, pulse, oxygen, symptoms), then that
     day's sodium, exercise and sleep. Days with nothing logged are left out."""
     days: Dict[date, Dict[str, Any]] = {}
 
@@ -165,7 +165,7 @@ def _daily(checkins, meals, exercise, sleep, limit_mg: Optional[float]) -> List[
             "diastolic": round(dia_bp) if dia_bp else None,
             "category": bp_category(sys_bp, dia_bp) if sys_bp and dia_bp else None,
             "pulse": round(_number(c.get("heart_rate_bpm"))) if _number(c.get("heart_rate_bpm")) else None,
-            "medication_taken": c.get("medication_taken") if c.get("medication_taken") in (True, False) else None,
+            "spo2": round(_number(c.get("spo2_percent"))) if _number(c.get("spo2_percent")) else None,
             "symptoms": [s for s in (c.get("symptoms") or []) if s and s != NO_SYMPTOM],
         })
     for m in meals:
@@ -279,7 +279,7 @@ def build_report(user_id: str, days: int) -> Dict[str, Any]:
         },
         # HL-139: the Heart risk at the start and end of the period (records that have one)
         "heart_risk": _risk_change(scores),
-        "medicines": _medicines(checkins),
+        "oxygen": _oxygen(checkins),
         "sodium": _sodium(meals, sodium_limit),
         "exercise": {"sessions": len(exercise), "minutes": round(minutes), "minutes_per_week": round(minutes * 7 / days)},
         "sleep": {"average_hours": _avg(hours, 1), "nights": len(hours)},

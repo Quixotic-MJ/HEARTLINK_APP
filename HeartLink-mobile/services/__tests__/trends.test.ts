@@ -4,6 +4,7 @@ import {
   peak,
   periodDays,
   pressureByDay,
+  oxygenByDay,
   pulseByDay,
   scoreByDay,
   scoreChange,
@@ -40,6 +41,16 @@ describe("daily series", () => {
     expect(pressureByDay(days, vitals)[1]).toEqual({ sys: 128, dia: 82 });
     expect(pulseByDay(days, vitals)[1]).toBe(72);
     expect(pressureByDay(days, vitals)[0]).toBeNull();
+  });
+
+  it("takes the day's lowest oxygen reading (HL-166)", () => {
+    const vitals = [
+      { spo2_percent: 97, logged_at: at(1, 8) },
+      { spo2_percent: 93, logged_at: at(1, 12) },
+      { spo2_percent: 98, logged_at: at(1, 20) },
+      { systolic_bp: 120, diastolic_bp: 80, logged_at: at(2, 8) },
+    ];
+    expect(oxygenByDay(days, vitals)).toEqual([null, 93, null, null, null, null, null]);
   });
 
   it("adds up sodium per day", () => {

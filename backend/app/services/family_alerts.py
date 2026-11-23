@@ -6,7 +6,7 @@ Every hour the backend checks each family link:
   reading, or from when the follow started if that's later), each follower is told once. Nothing more is sent until the
   patient logs a reading again. The patient can turn this off (profiles.family_nudges_enabled).
 - **Weekly summary.** On Sunday from 7 PM Manila time, each follower gets the patient's week in plain words: readings,
-  average and highest blood pressure, days logged and medicine taken.
+  average and highest blood pressure and days logged (HL-167: the medicine answer was removed).
 
 Each message is "claimed" on the link first (last_nudge_at / last_digest_at), so two servers sharing the database (staging
 and live) never send it twice. Emergency alerts are separate (family.notify_followers) and unchanged. Nothing here
@@ -76,9 +76,6 @@ def digest_message(name: str, week_logs: List[Dict[str, Any]]) -> str:
     else:
         parts.append("no blood pressure readings")
     parts.append(f"logged on {len(days)} of 7 days")
-    answered = [l.get("medication_taken") for l in week_logs if l.get("medication_taken") in (True, False)]
-    if answered:
-        parts.append(f"medicine taken at {sum(1 for a in answered if a)} of {len(answered)} check-ins")
     text = "; ".join(parts)
     return f"{name}'s week: {text[0].upper()}{text[1:]}."
 

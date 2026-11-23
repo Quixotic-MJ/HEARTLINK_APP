@@ -8,22 +8,13 @@ export interface VitalsPayload {
   diastolic_bp: number | null;
   heart_rate_bpm: number | null;
   weight_kg: number | null;
-  /** true = took them, false = not yet, null = takes no regular medicines */
-  medication_taken: boolean | null;
+  /** HL-166: blood oxygen from a pulse oximeter, 50 to 100 (optional, never scored) */
+  spo2_percent: number | null;
   symptoms: string[];
   severity_map: Record<string, number>;
   context: string | null;
   triggered_by_exercise_id: string | null;
   notes: string;
-}
-
-/** The check-in's medicine answers. */
-export type Medicine = "taken" | "not_yet" | "none";
-
-/** What is saved for the medicine answer: null for "I don't take any", and false when left blank (as before). */
-export function medicationTaken(answer: Medicine | null): boolean | null {
-  if (answer === "none") return null;
-  return answer === "taken";
 }
 
 type LogError =Error & { status?: number; isNetworkError?: boolean };

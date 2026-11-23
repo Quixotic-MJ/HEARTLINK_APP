@@ -128,10 +128,10 @@ describe("What a follower sees", () => {
   };
   const WEEK = {
     days: [
-      { date: iso(0), bp: { systolic: 142, diastolic: 90, category: "stage_2", readings: 2 }, pulse: 75, medicine: false, logged: true },
-      { date: iso(1), bp: null, pulse: null, medicine: null, logged: false },
-      { date: iso(2), bp: { systolic: 118, diastolic: 76, category: "normal", readings: 1 }, pulse: null, medicine: true, logged: true },
-      ...[3, 4, 5, 6].map((n) => ({ date: iso(n), bp: null, pulse: null, medicine: null, logged: false })),
+      { date: iso(0), bp: { systolic: 142, diastolic: 90, category: "stage_2", readings: 2 }, pulse: 75, logged: true },
+      { date: iso(1), bp: null, pulse: null, logged: false },
+      { date: iso(2), bp: { systolic: 118, diastolic: 76, category: "normal", readings: 1 }, pulse: null, logged: true },
+      ...[3, 4, 5, 6].map((n) => ({ date: iso(n), bp: null, pulse: null, logged: false })),
     ],
     readings: 3,
     highest: { systolic: 142, diastolic: 90, category: "stage_2", date: iso(0) },
@@ -155,7 +155,7 @@ describe("What a follower sees", () => {
     await renderScreen(<FollowedPersonScreen />);
     expect(await screen.findByText("The last 7 days")).toBeOnTheScreen();
     expect(screen.getByText(/logged something on 2 of the last 7 days/)).toBeOnTheScreen();
-    expect(screen.getByLabelText(/Today: blood pressure 142 over 90, Very high; medicine not taken/)).toBeOnTheScreen();
+    expect(screen.getByLabelText(/Today: blood pressure 142 over 90, Very high; pulse 75/)).toBeOnTheScreen();
     expect(screen.getAllByLabelText(/nothing logged/).length).toBe(5);
     expect(screen.getByText(/Normal is under 120\/80/)).toBeOnTheScreen();
     // each number says what it means

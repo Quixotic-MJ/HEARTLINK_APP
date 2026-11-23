@@ -2,10 +2,10 @@ import React from "react";
 import { Text, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useDs } from "../onboarding/useDs";
-import { BP_LEGEND, BP_WORDS, BpCategory, medicineMark, WeekDay, weekDayLabel } from "../../services/family";
+import { BP_LEGEND, BP_WORDS, BpCategory, WeekDay, weekDayLabel } from "../../services/family";
 
 // HL-161: the last 7 days for a family member, newest first: each day's highest blood pressure in plain words, and the
-// medicine answer. Only what the patient logged; never a diagnosis.
+// pulse. Only what the patient logged; never a diagnosis. HL-167: the medicine column was removed with the question.
 
 export function BpChip({ category }: { category: BpCategory }) {
   const { c } = useDs();
@@ -29,23 +29,11 @@ export function BpChip({ category }: { category: BpCategory }) {
   );
 }
 
-function MedicineCell({ taken }: { taken: boolean | null }) {
-  const { c } = useDs();
-  const icon = taken === true ? "check" : taken === false ? "x" : "minus";
-  const color = taken === true ? c.success : taken === false ? c.danger : c.muted;
-  return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-      <Feather name={icon} size={14} color={color} />
-      <Text style={{ fontSize: 13.5, color: taken === null ? c.steel : c.charcoal }}>{medicineMark(taken)}</Text>
-    </View>
-  );
-}
-
 function rowLabel(d: WeekDay, now: Date): string {
   const day = weekDayLabel(d.date, now);
   if (!d.logged) return `${day}: nothing logged.`;
   const bp = d.bp ? `blood pressure ${d.bp.systolic} over ${d.bp.diastolic}, ${BP_WORDS[d.bp.category].label}` : "no blood pressure";
-  return `${day}: ${bp}; medicine ${medicineMark(d.medicine).toLowerCase()}.`;
+  return `${day}: ${bp}; ${d.pulse ? `pulse ${d.pulse}` : "no pulse"}.`;
 }
 
 export function WeekTable({ days, now = new Date() }: { days: WeekDay[]; now?: Date }) {
@@ -60,7 +48,7 @@ export function WeekTable({ days, now = new Date() }: { days: WeekDay[]; now?: D
         >
           <Text style={[head, { width: 92 }]}>Day</Text>
           <Text style={[head, { flex: 1 }]}>Blood pressure</Text>
-          <Text style={[head, { width: 104 }]}>Medicine</Text>
+          <Text style={[head, { width: 72 }]}>Pulse</Text>
         </View>
         {days.map((d, i) => (
           <View
@@ -93,9 +81,9 @@ export function WeekTable({ days, now = new Date() }: { days: WeekDay[]; now?: D
                     <Text style={{ fontSize: 13.5, color: c.steel }}>No reading</Text>
                   )}
                 </View>
-                <View style={{ width: 104 }}>
-                  <MedicineCell taken={d.medicine} />
-                </View>
+                <Text style={{ width: 72, fontSize: 13.5, color: d.pulse ? c.charcoal : c.steel, fontVariant: ["tabular-nums"] }}>
+                  {d.pulse ? `${d.pulse} bpm` : "—"}
+                </Text>
               </>
             ) : (
               <Text style={{ flex: 1, fontSize: 13.5, color: c.steel }}>Nothing logged</Text>

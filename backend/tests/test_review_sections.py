@@ -266,3 +266,77 @@ def test_the_review_lists_only_dietitian_approved_recipes(world):
     # HL-037: an unapproved recipe never reaches patients, so the review doesn't list it either.
     ids = [r["id"] for r in review_sections.recommendations_for({"app_tier": "Moderate"})["recipes"]]
     assert "r5" not in ids and set(ids) <= {"r1", "r2"}
+
+
+# --- HL-165 (panel revision): the Cardiologist approves a case for the dataset ---------------------------------------
+
+ONE_EACH = {"recipes": [{"id": "r1", "name": "Garlic tofu"}], "exercises": [{"id": "e1", "name": "Brisk walking"}]}
+
+
+@pytest.fixture
+def ready(world, monkeypatch):
+    """A case with all three parts in: the Cardiologist's review, the food check and the exercise check."""
+    monkeypatch.setattr(review_sections, "recommendations_for", lambda rc: ONE_EACH)
+    monkeypatch.setattr(review_sections, "exercise_check_for", lambda rc: None)
+    review_sections.submit_cardiology(ROUND, GOOD, as_user("cardio"))
+    review_sections.submit_items("nutrition", ROUND, {"items": [{"item_id": "r1", "verdict": "ok"}]}, as_user("diet"))
+    review_sections.submit_items("exercise", ROUND, {"items": [{"item_id": "e1", "verdict": "ok"}]}, as_user("pt"))
+    return world
+
+
+def test_the_cardiologist_approves_a_complete_case_for_the_dataset(ready):
+    assert review_sections.case_detail(ROUND, as_user("cardio"))["dataset"]["can_decide"] is True
+    review_sections.decide_dataset(ROUND, {"decision": "approve"}, as_user("cardio"))
+    rc = ready["cases"].rc
+    assert rc["dataset_status"] == "approved" and rc["dataset_decided_by"] == "cardio" and rc["dataset_decided_at"]
+    view = review_sections.case_detail(ROUND, as_user("admin"))["dataset"]
+    assert (view["status"], view["decided_by_name"], view["can_decide"]) == ("approved", "Dr Cardiologist", False)
+
+
+def test_leaving_a_case_out_needs_a_reason(ready):
+    with pytest.raises(HTTPException) as exc:
+        review_sections.decide_dataset(ROUND, {"decision": "leave_out"}, as_user("cardio"))
+    assert exc.value.status_code == 400
+    review_sections.decide_dataset(ROUND, {"decision": "leave_out", "note": "Cuff readings look wrong"}, as_user("cardio"))
+    assert ready["cases"].rc["dataset_status"] == "left_out" and ready["cases"].rc["dataset_note"] == "Cuff readings look wrong"
+
+
+@pytest.mark.parametrize("who, code", [("diet", 403), ("pt", 403), ("admin", 403)])
+def test_only_the_cardiologist_decides(ready, who, code):
+    with pytest.raises(HTTPException) as exc:
+        review_sections.decide_dataset(ROUND, {"decision": "approve"}, as_user(who))
+    assert exc.value.status_code == code
+
+
+def test_an_unverified_cardiologist_cant_approve(ready):
+    ready["profiles"].people["cardio"]["is_verified_clinician"] = False
+    with pytest.raises(HTTPException) as exc:
+        review_sections.decide_dataset(ROUND, {"decision": "approve"}, as_user("cardio"))
+    assert exc.value.status_code == 403
+
+
+def test_approval_waits_for_the_dietitian_and_the_pt(world, monkeypatch):
+    monkeypatch.setattr(review_sections, "recommendations_for", lambda rc: ONE_EACH)
+    monkeypatch.setattr(review_sections, "exercise_check_for", lambda rc: None)
+    review_sections.submit_cardiology(ROUND, GOOD, as_user("cardio"))
+    view = review_sections.case_detail(ROUND, as_user("cardio"))["dataset"]
+    assert view["waiting_for"] == "the Dietitian and the Physical Therapist" and view["can_decide"] is False
+    with pytest.raises(HTTPException) as exc:
+        review_sections.decide_dataset(ROUND, {"decision": "approve"}, as_user("cardio"))
+    assert exc.value.status_code == 400 and "Dietitian" in exc.value.detail
+
+
+def test_nothing_to_check_doesnt_hold_up_the_approval(world, monkeypatch):
+    monkeypatch.setattr(review_sections, "recommendations_for", lambda rc: {"recipes": [], "exercises": []})
+    monkeypatch.setattr(review_sections, "exercise_check_for", lambda rc: None)
+    review_sections.submit_cardiology(ROUND, GOOD, as_user("cardio"))
+    review_sections.decide_dataset(ROUND, {"decision": "approve"}, as_user("cardio"))
+    assert world["cases"].rc["dataset_status"] == "approved"
+
+
+def test_a_part_that_changes_after_approval_sends_the_case_back_to_waiting(ready):
+    review_sections.decide_dataset(ROUND, {"decision": "approve"}, as_user("cardio"))
+    review_sections.submit_items("exercise", ROUND, {"items": [{"item_id": "e1", "verdict": "changes", "note": "Slower"}]},
+                                 as_user("pt"))
+    rc = ready["cases"].rc
+    assert rc["dataset_status"] == "waiting" and rc["dataset_decided_by"] is None
