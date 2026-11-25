@@ -26,37 +26,18 @@ router = APIRouter(tags=["Case Review & Calibration"])
 # --- HL-054: review queue (rounds in review_cases) -------------------------------------------------
 from app.services import review_queue
 
-QUEUE_REFRESH_SECONDS = 300
-_last_queue_refresh = {"at": None}
-
-
 def _require_admin(current_user: dict = Depends(get_current_admin_user)) -> dict:
     if current_user.get("role") != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access Denied: Admins only")
     return current_user
 
 
-def _refresh_queue_if_stale(force: bool = False) -> dict:
-    now = utc_now()
-    last = _last_queue_refresh["at"]
-    if force or last is None or (now - last).total_seconds() >= QUEUE_REFRESH_SECONDS:
-        result = review_queue.refresh_queue(now)
-        _last_queue_refresh["at"] = now
-        return result
-    return {"opened": [], "upgraded": []}
-
-
 @router.get("/review-queue")
 def get_review_queue(current_user: dict = Depends(get_current_admin_user)):
-    """Open review rounds, urgent first. Also opens any urgent or re-review rounds that are due."""
-    _refresh_queue_if_stale()
-    return {"items": review_queue.list_queue(), "urgent_review_hours": review_queue.rules.URGENT_REVIEW_HOURS}
-
-
-@router.post("/review-queue/refresh")
-def refresh_review_queue(current_user: dict = Depends(get_current_admin_user)):
-    result = _refresh_queue_if_stale(force=True)
-    return {"status": "success", "opened": len(result["opened"]), "upgraded": len(result["upgraded"])}
+    """HL-168: every case with its step (check, approve, done), and the counts on the four steps. Nothing opens by itself:
+    an admin picks the weekly sample."""
+    items = review_queue.list_queue()
+    return {"items": items, "steps": review_queue.queue_summary(items)}
 
 
 @router.post("/review-queue/sample")

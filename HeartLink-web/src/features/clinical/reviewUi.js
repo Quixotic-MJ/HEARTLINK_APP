@@ -1,27 +1,29 @@
 // Shared labels and badge styles for Case Review (HL-054 / HL-055 / HL-056).
 
 export const LANES = {
+  // HL-168: the urgent and re-review lanes were removed; their cases are shown as older
   urgent: {
-    label: "Urgent",
+    label: "Older: urgent",
     className: "bg-cal-error/10 text-cal-ink border-cal-error/25",
     dotClass: "bg-cal-error",
   },
   rereview: {
-    label: "Re-review",
+    label: "Older: re-review",
     className: "bg-cal-badge-violet/15 text-cal-ink border-cal-badge-violet/25",
     dotClass: "bg-cal-badge-violet",
   },
   sample: {
-    label: "Sample",
+    label: "Weekly sample",
     className: "bg-cal-surface-card text-cal-ink border-cal-hairline",
     dotClass: "bg-cal-muted",
   },
 };
 
+// HL-168: plain names for each expert's part
 export const SECTION_LABELS = {
-  cardiology: "Cardiology",
-  nutrition: "Food check",
-  exercise: "Exercise check",
+  cardiology: "Heart risk",
+  nutrition: "Food",
+  exercise: "Exercise",
 };
 
 export const SECTION_EXPERT = {
@@ -58,8 +60,14 @@ export const RISK_KINDS = {
   estimated: "Estimated (machine learning, no lab results)",
 };
 
+// HL-168: the plain reasons first; the older codes still show on earlier reviews
 export const REASONS = [
   { code: "blood_pressure", label: "Blood pressure" },
+  { code: "smoking", label: "Smoking" },
+  { code: "cholesterol", label: "Cholesterol" },
+  { code: "diabetes", label: "Diabetes" },
+  { code: "age", label: "Age" },
+  { code: "lifestyle", label: "Lifestyle (food, activity, sleep)" },
   { code: "heart_rate", label: "Heart rate" },
   { code: "symptoms", label: "Symptoms" },
   { code: "medication", label: "Medication" },
@@ -67,19 +75,20 @@ export const REASONS = [
   { code: "nutrition_sodium", label: "Nutrition and sodium" },
   { code: "sleep", label: "Sleep" },
   { code: "baseline_information", label: "Baseline information" },
-  { code: "other", label: "Other" },
+  { code: "other", label: "Something else" },
 ];
 
 export const CONFIDENCE = [
-  { code: "low", label: "Low" },
-  { code: "medium", label: "Medium" },
-  { code: "high", label: "High" },
+  { code: "low", label: "Not very sure" },
+  { code: "medium", label: "Fairly sure" },
+  { code: "high", label: "Very sure" },
 ];
 
+// For the research only: the person isn't told (HL-168)
 export const CHECKUP = [
-  { code: "not_needed", label: "Not needed" },
-  { code: "within_2_weeks", label: "Within 2 weeks" },
-  { code: "asap", label: "As soon as possible" },
+  { code: "not_needed", label: "No" },
+  { code: "within_2_weeks", label: "Yes, within 2 weeks" },
+  { code: "asap", label: "Yes, as soon as possible" },
 ];
 
 export const SCORERS = {
@@ -92,15 +101,15 @@ export const SCORERS = {
 
 export const AGREEMENT = {
   agree: {
-    label: "Agrees with the app",
+    label: "The app agreed",
     className: "bg-cal-success/10 text-cal-ink border-cal-success/25",
   },
   under: {
-    label: "App too low (under-call)",
+    label: "The app rated lower",
     className: "bg-cal-warning/12 text-cal-ink border-cal-warning/30",
   },
   over: {
-    label: "App too high (over-call)",
+    label: "The app rated higher",
     className: "bg-cal-surface-card text-cal-ink border-cal-hairline",
   },
 };

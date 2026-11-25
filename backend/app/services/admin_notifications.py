@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 VALID_TYPES = {"feedback", "staff", "security", "system", "content", "notes"}
 VALID_SEVERITIES = {"info", "warning"}
 VALID_ROUTES = {"/feedbacks", "/users", "/settings", "/foods", "/exercises"}
-PATIENT_ROUTE = re.compile(r"^/patients/[A-Za-z0-9-]+$")
+PATIENT_ROUTE = re.compile(r"^/(app-users|patients)/[A-Za-z0-9-]+$")
 
 # HL-082: medical experts get notifications too. recipient_roles names an expert type as "expert:<type>".
 EXPERT_TYPES = ("Cardiologist", "Dietitian", "Physical Therapist")
@@ -102,9 +102,9 @@ def notify_waiting_content(kind: str, item: Optional[Dict[str, Any]], approver_i
     name = item.get("name") or item.get("title") or "Untitled"
     if kind == "recipe":
         notify_experts(["Dietitian"], "content", "Recipe waiting for approval",
-                       f"\"{name}\" was added or changed and needs a Dietitian's approval before patients see it.",
+                       f"\"{name}\" was added or changed and needs a Dietitian's approval before users see it.",
                        "/foods", actor_id=actor_id, target_id=item.get("id"))
     else:
         notify_experts(["Physical Therapist"], "content", "Exercise waiting for approval",
-                       f"\"{name}\" was added or changed and needs a Physical Therapist's approval before patients see it.",
+                       f"\"{name}\" was added or changed and needs a Physical Therapist's approval before users see it.",
                        "/exercises", actor_id=actor_id, target_id=item.get("id"))

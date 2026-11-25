@@ -26,36 +26,23 @@ const ACCOUNT = {
   activity: { enabled: true, time: '17:00' },
 };
 // The reminders kept on the phone, at their defaults
-const PHONE = { medicine: DEFAULT_REMINDERS.medicine, bedtime: DEFAULT_REMINDERS.bedtime };
+const PHONE = { bedtime: DEFAULT_REMINDERS.bedtime };
 
 beforeEach(async () => {
   await AsyncStorage.clear();
   global.fetch = jest.fn(async () => ({ ok: true, status: 200, json: async () => ACCOUNT })) as jest.Mock;
 });
 
-describe('medicine reminder', () => {
-  it('is off at 8:00 AM by default', () => {
-    expect(DEFAULT_REMINDERS.medicine).toEqual({ enabled: false, time: '08:00' });
+// 2026-11-24 (panel revision): the "Take your medicines" reminder was removed with the daily medicine question
+describe('removed medicine reminder', () => {
+  it('is no longer offered', () => {
+    expect(Object.keys(DEFAULT_REMINDERS)).not.toContain('medicine');
   });
 
-  it('is kept on the phone, not sent to the account', async () => {
-    await saveReminders('user-1', 'token-123', { ...ACCOUNT, ...PHONE, medicine: { enabled: true, time: '09:15' } });
-
-    const init = (global.fetch as jest.Mock).mock.calls[0][1] as RequestInit;
-    expect(JSON.parse(init.body as string)).toEqual(ACCOUNT);
-    expect(await loadReminders('user-1', 'token-123')).toEqual({ ...ACCOUNT, ...PHONE, medicine: { enabled: true, time: '09:15' } });
-  });
-
-  it('loads as the default when it was never set', async () => {
-    expect((await loadReminders('user-1', 'token-123'))?.medicine).toEqual(DEFAULT_REMINDERS.medicine);
-  });
-
-  it('is scheduled with the others when turned on, and cancelled when off', async () => {
-    await scheduleReminders({ ...ACCOUNT, ...PHONE, medicine: { enabled: true, time: '08:00' } });
-    expect(scheduleDailyReminder).toHaveBeenCalledWith('medicine_reminder', 'Take your medicines', expect.any(String), '08:00');
-
-    await scheduleReminders({ ...ACCOUNT, ...PHONE, medicine: { enabled: false, time: '08:00' } });
+  it('is cancelled on phones that still had it scheduled', async () => {
+    await scheduleReminders({ ...ACCOUNT, ...PHONE });
     expect(cancelReminder).toHaveBeenCalledWith('medicine_reminder');
+    expect(scheduleDailyReminder).not.toHaveBeenCalledWith('medicine_reminder', expect.anything(), expect.anything(), expect.anything());
   });
 });
 

@@ -390,7 +390,7 @@ def verify_user_access(current_user: dict, target_user_id: str) -> None:
             return
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access Denied: Admins manage accounts but don't open patients' health records.",
+            detail="Access Denied: Admins manage accounts but don't open users' health records.",
         )
 
     # 2. Patient access: Strictly self only
@@ -416,7 +416,7 @@ def verify_user_access(current_user: dict, target_user_id: str) -> None:
             if not is_assigned:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Access Denied: You are not assigned to this patient's care team.",
+                    detail="Access Denied: You are not assigned to this user's care team.",
                 )
         except HTTPException:
             raise

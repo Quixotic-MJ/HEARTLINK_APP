@@ -438,6 +438,14 @@ export default function SettingsScreen() {
             onPress={() => router.push("/(home)/(settings)/heart-basics")}
           />
           <SettingsRow
+            icon="file-text"
+            label="For your doctor"
+            subtitle="A page to show or send your doctor"
+            iconBg={isDark ? c.surfaceAlt : "#F1F5F9"}
+            iconColor={isDark ? c.steel : c.slate}
+            onPress={() => router.push("/legal?doc=doctor")}
+          />
+          <SettingsRow
             icon="help-circle"
             label="Help and FAQ"
             subtitle="Questions and user guides"

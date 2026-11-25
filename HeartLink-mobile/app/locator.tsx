@@ -12,6 +12,7 @@ import { ClinicMap } from "../components/clinics/ClinicMap";
 import { ClinicCard } from "../components/clinics/ClinicCard";
 import { useNearbyClinics } from "../hooks/useNearbyClinics";
 import { Clinic, hasEmergencyRoom } from "../services/clinics";
+import NearestBarangayCard from "../components/clinics/NearestBarangayCard";
 
 // HL-078 / HL-088: nearby clinics in Cebu City, emergency rooms first. Opened from the dashboard and from the
 // emergency warning, so it must never depend on a map key: the map is OpenStreetMap, Directions opens the phone's
@@ -32,6 +33,8 @@ export default function LocatorScreen() {
 
   const header = (
     <View style={{ gap: 12, paddingBottom: 4 }}>
+      {/* HL-171 (panel revision): the nearest barangay's emergency contacts */}
+      <NearestBarangayCard />
       {locationDenied ? (
         <View className="flex-row items-center bg-ds-yellow rounded-xl px-4 py-3 gap-3">
           <Feather name="info" size={18} color={c.warmText} />

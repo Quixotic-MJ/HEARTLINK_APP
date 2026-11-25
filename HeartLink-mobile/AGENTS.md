@@ -127,9 +127,10 @@ longer part of this check. The medicine that matters for the Heart risk is asked
 Heart answers.)
 
 ### Blood oxygen (HL-166)
-The check-in has an optional oxygen reading (SpO2 %). Under 90% goes through `isEmergency` like the
-blood pressure emergencies; 90 to 94% shows a "get checked" note. It is never scored. The thresholds
-(`services/vitalsCheck.ts`, backend `review_rules.LOW_SPO2`) are proposals pending the cardiologist.
+The check-in has an optional oxygen reading (SpO2 %). 88% or lower goes through `isEmergency` like the
+blood pressure emergencies; 89 to 92% shows a "contact your doctor" note. It is never scored. The thresholds
+(`services/vitalsCheck.ts`, backend `review_rules.EMERGENCY_SPO2_MAX`) follow MedlinePlus (NIH) and Cleveland Clinic,
+pending the cardiologist's confirmation.
 
 ### Secrets and auth
 - Auth tokens live only in SecureStore, through `lib/secureTokenStore.ts`. Never put them in

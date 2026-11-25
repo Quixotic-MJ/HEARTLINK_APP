@@ -2,8 +2,11 @@
  * Daily reminders: save them and schedule them on the phone.
  * Used by first-run setup (app/(baseline)/reminders.tsx) and Settings (app/(home)/(settings)/daily-reminders.tsx).
  *
- * Morning, activity and evening are saved to the account. The account has no place for the medicine and bedtime
- * reminders yet, so they are kept on this phone, per account.
+ * Morning, activity and evening are saved to the account. The account has no place for the bedtime reminder yet, so
+ * it is kept on this phone, per account.
+ *
+ * 2026-11-24 (panel revision, HL-167 follow-up): the "Take your medicines" reminder was removed with the daily medicine
+ * question. Phones that still had it scheduled get it cancelled (RETIRED_IDS).
  */
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
@@ -25,7 +28,6 @@ export interface Reminders {
   morning: Reminder;
   activity: Reminder;
   evening: Reminder;
-  medicine: Reminder;
   /** HL-161: a nudge to start getting ready for bed */
   bedtime: Reminder;
 }
@@ -34,7 +36,6 @@ export const DEFAULT_REMINDERS: Reminders = {
   morning: { enabled: true, time: "07:30" },
   activity: { enabled: true, time: "17:00" },
   evening: { enabled: false, time: "20:00" },
-  medicine: { enabled: false, time: "08:00" },
   bedtime: { enabled: false, time: "22:00" },
 };
 
@@ -42,7 +43,6 @@ const NOTIFICATION_COPY: Record<keyof Reminders, { id: string; title: string; bo
   morning: { id: "morning_reminder", title: "Morning Check-in", body: "Start your day with a HeartLink check-in." },
   evening: { id: "evening_reminder", title: "Evening Wrap-up", body: "Review your day before bedtime." },
   activity: { id: "activity_reminder", title: "Activity Goal", body: "Get a reminder to stay on track with your movement goal." },
-  medicine: { id: "medicine_reminder", title: "Take your medicines", body: "Time to take your medicines as prescribed." },
   bedtime: {
     id: "bedtime_reminder",
     title: "Time to wind down",
@@ -50,9 +50,11 @@ const NOTIFICATION_COPY: Record<keyof Reminders, { id: string; title: string; bo
   },
 };
 
+/** Reminders that no longer exist; cancelled whenever reminders are set, so an old phone stops sending them. */
+export const RETIRED_IDS = ["medicine_reminder"];
+
 /** The reminders kept on this phone (the account has no place for them yet). */
-const PHONE_KEYS = ["medicine", "bedtime"] as const;
-type PhoneKey = (typeof PHONE_KEYS)[number];
+type PhoneKey = "bedtime";
 const phoneKey = (key: PhoneKey, userId: string) => `@${key}_reminder_${userId}`;
 
 async function loadPhoneReminder(key: PhoneKey, userId: string): Promise<Reminder> {
@@ -77,15 +79,13 @@ export async function loadReminders(userId: string, token: string): Promise<Remi
     morning: data.morning || { enabled: false, time: "08:00" },
     evening: data.evening || { enabled: false, time: "20:00" },
     activity: data.activity || { enabled: false, time: "17:00" },
-    medicine: await loadPhoneReminder("medicine", userId),
     bedtime: await loadPhoneReminder("bedtime", userId),
   };
 }
 
-/** Saves reminders to the account (medicine and bedtime on the phone). Throws if the server refuses. */
+/** Saves reminders to the account (bedtime on the phone). Throws if the server refuses. */
 export async function saveReminders(userId: string, token: string, reminders: Reminders): Promise<void> {
-  const { medicine, bedtime, ...account } = reminders;
-  await AsyncStorage.setItem(phoneKey("medicine", userId), JSON.stringify(medicine));
+  const { bedtime, ...account } = reminders;
   await AsyncStorage.setItem(phoneKey("bedtime", userId), JSON.stringify(bedtime));
   const response = await apiFetch(`/api/users/${userId}/reminders`, {
     method: "PUT",
@@ -110,6 +110,7 @@ export async function scheduleReminders(reminders: Reminders): Promise<boolean> 
 
 /** Schedules the enabled reminders on this phone and cancels the others. Doesn't ask for permission. */
 async function applyReminders(reminders: Reminders): Promise<void> {
+  for (const id of RETIRED_IDS) await cancelReminder(id);
   for (const key of Object.keys(NOTIFICATION_COPY) as (keyof Reminders)[]) {
     const copy = NOTIFICATION_COPY[key];
     if (reminders[key].enabled) {

@@ -23,6 +23,7 @@ import { apiFetch } from "../../../lib/api";
 import { useDs } from "../../../components/onboarding/useDs";
 import DsButton from "../../../components/onboarding/DsButton";
 import { SquareIconButton } from "../../../components/exercise/ExerciseBits";
+import NearestBarangayCard from "../../../components/clinics/NearestBarangayCard";
 
 
 const DOCTOR_PRESETS = ["Cardiologist", "Primary Care Doctor", "Nurse", "Other"];
@@ -279,6 +280,11 @@ export default function CareTeamScreen() {
             EMERGENCY SOS (911)
           </Text>
         </TouchableOpacity>
+
+        {/* HL-171 (panel revision): the nearest barangay's emergency contacts, found by location, not saved */}
+        <View className="mb-6">
+          <NearestBarangayCard />
+        </View>
 
         {/* Contacts Section */}
         <Text className="text-[11px] font-semibold text-ds-steel mb-3 px-1 uppercase tracking-wider">

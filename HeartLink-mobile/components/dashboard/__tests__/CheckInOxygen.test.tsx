@@ -53,13 +53,13 @@ describe("Check-in: oxygen and no medicine question", () => {
     expect(mockMutate.mock.calls[0][0]).not.toHaveProperty("medication_taken");
   });
 
-  it("opens the emergency guidance under 90%", async () => {
+  it("opens the emergency guidance at 88% or lower", async () => {
     const user = userEvent.setup();
     await renderScreen();
     await user.press(screen.getByRole("button", { name: "Add your oxygen, optional" }));
     await user.type(screen.getByLabelText("Blood oxygen in percent"), "88");
     expect(screen.getByText("This may be a medical emergency")).toBeOnTheScreen();
-    expect(screen.getByText("Your oxygen level is very low (88%, under 90%).")).toBeOnTheScreen();
+    expect(screen.getByText("Your oxygen level is very low (88%, 88% or lower).")).toBeOnTheScreen();
     expect(screen.getByText("Your oxygen is very low")).toBeOnTheScreen();
   });
 });

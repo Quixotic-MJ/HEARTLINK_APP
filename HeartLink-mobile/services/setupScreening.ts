@@ -79,3 +79,22 @@ export function needsScreening(d: ScreeningDraft): boolean {
   if (!d.agreed_notice || !d.health_check_done) return true;
   return (d.health_conditions?.length ?? 0) > 0 && d.doctor_cleared !== true;
 }
+
+/** 2026-11-24 (panel revision): HeartLink can't check the doctor's OK, so the tick box says it's the user's word. */
+export const DOCTOR_OK = "I talked to my doctor about my condition, and they said I can use HeartLink.";
+
+/** 2026-11-25 (panel revision): "Is HeartLink for you?" before sign-up (app/(auth)/who-its-for.tsx). */
+export const MADE_FOR: { title: string; body: string }[] = [
+  { title: "Want to keep your heart healthy", body: "Build everyday habits: blood pressure, meals, movement and sleep." },
+  {
+    title: "Are at risk and want to manage it",
+    body: "For example high blood pressure, high cholesterol or a lot of salt in your food. Lab results are optional.",
+  },
+];
+
+/** The conditions HeartLink isn't made for: the same as the health check after sign-up (HL-164). */
+export const NOT_MADE_FOR: { title: string; body?: string }[] = HEALTH_CONDITIONS.map((c) => ({
+  title: c.value === "pregnancy" ? "A pregnancy" : c.label,
+  body: c.desc,
+}));
+

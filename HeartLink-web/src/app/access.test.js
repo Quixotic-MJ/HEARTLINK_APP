@@ -43,13 +43,13 @@ test("experts land in the part of the portal they own", () => {
   assert.equal(homeFor(admin), "/dashboard");
   assert.equal(homeFor(dietitian), "/foods");
   assert.equal(homeFor(physicalTherapist), "/exercises");
-  assert.equal(homeFor(cardiologist), "/patients");
+  assert.equal(homeFor(cardiologist), "/app-users");
   assert.equal(homeFor({ role: "medical_expert", expert_type: null }), "/notifications");
   assert.equal(homeFor({ role: "patient" }), "/");
 });
 
 test("user records are for the care team only; everyone reviews cases; Model Check is Admins only", () => {
-  for (const path of ["/patients", "/patients/p1"]) {
+  for (const path of ["/app-users", "/app-users/p1"]) {
     assert.equal(canAccess(admin, path), false);
     for (const expert of [cardiologist, dietitian, physicalTherapist]) assert.equal(canAccess(expert, path), true);
   }
@@ -57,7 +57,7 @@ test("user records are for the care team only; everyone reviews cases; Model Che
     for (const staff of [admin, cardiologist, dietitian, physicalTherapist]) assert.equal(canAccess(staff, path), true);
   assert.equal(canAccess(admin, "/calibration"), true);
   for (const expert of [cardiologist, dietitian, physicalTherapist]) assert.equal(canAccess(expert, "/calibration"), false);
-  for (const denied of [null, { role: "patient" }]) assert.equal(canAccess(denied, "/patients"), false);
+  for (const denied of [null, { role: "patient" }]) assert.equal(canAccess(denied, "/app-users"), false);
 });
 
 test("unknown staff routes are denied", () => {
@@ -65,7 +65,7 @@ test("unknown staff routes are denied", () => {
   assert.equal(canAccess(admin, "/not-a-portal-page"), false);
   assert.equal(canAccess(admin, "/foods/unknown"), false);
   assert.equal(canAccess(admin, "/users/u1/unknown"), false);
-  assert.equal(canAccess(cardiologist, "/patients/p1/unknown"), false);
+  assert.equal(canAccess(cardiologist, "/app-users/p1/unknown"), false);
   assert.equal(canAccess(admin, "/users/u1"), true);
 });
 
@@ -94,8 +94,10 @@ test("notifications only open an allowlisted route for the current staff member"
   assert.equal(safeNotificationRoute(dietitian, "/foods?search=soup"), "/foods?search=soup");
   assert.equal(safeNotificationRoute(cardiologist, "/settings"), "/settings");
   assert.equal(safeNotificationRoute(dietitian, "/exercises"), null);
-  assert.equal(safeNotificationRoute(admin, "/patients/p1"), null);
-  assert.equal(safeNotificationRoute(dietitian, "/patients/p1"), "/patients/p1");
+  assert.equal(safeNotificationRoute(admin, "/app-users/p1"), null);
+  assert.equal(safeNotificationRoute(dietitian, "/app-users/p1"), "/app-users/p1");
+  // 2026-11-24: older notifications still point at /patients and open the new page
+  assert.equal(safeNotificationRoute(dietitian, "/patients/p1"), "/app-users/p1");
   assert.equal(safeNotificationRoute(admin, "/foods/../patients/p1"), null);
   assert.equal(safeNotificationRoute(admin, "https://example.test/foods"), null);
 });

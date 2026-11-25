@@ -25,7 +25,7 @@ class AccountKindRequest(BaseModel):
 
 def _patient(current_user: dict = Depends(get_current_user)) -> str:
     if current_user.get("role") != "patient":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Family sharing is for patient accounts.")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Family sharing is for HeartLink user accounts.")
     return current_user.get("user_id")
 
 

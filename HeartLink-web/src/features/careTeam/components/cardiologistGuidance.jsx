@@ -48,7 +48,7 @@ export default function CardiologistGuidance({ limit = 3 }) {
             <li key={note.id} className="py-3 first:pt-0 last:pb-0">
               <div className="flex flex-wrap items-baseline gap-x-2 text-[12px] text-cal-muted">
                 <Link
-                  to={`/patients/${note.patient_id}`}
+                  to={`/app-users/${note.patient_id}`}
                   className="font-cal-mono font-semibold text-cal-ink hover:underline"
                 >
                   {formatUserRef(note.patient_id)}

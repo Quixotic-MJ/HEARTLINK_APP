@@ -8,6 +8,7 @@ import {
   Dumbbell,
   Gauge,
   HeartPulse,
+  House,
   ListChecks,
   Megaphone,
   Settings,
@@ -25,7 +26,7 @@ const PAGES = [
     icon: ChartColumn,
   },
   {
-    path: "/patients",
+    path: "/app-users",
     label: "App users",
     section: "Expert workspace",
     icon: HeartPulse,
@@ -61,6 +62,13 @@ const PAGES = [
     label: "Announcements",
     section: "Operations",
     icon: Megaphone,
+  },
+  // HL-171 (panel revision)
+  {
+    path: "/barangays",
+    label: "Barangay contacts",
+    section: "Operations",
+    icon: House,
   },
   {
     path: "/users",

@@ -691,7 +691,7 @@ function MetricCard({
   }
 
   if (metric === "oxygen") {
-    // HL-166: optional readings from a pulse oximeter. Never scored; under 90% is an emergency in the check-in.
+    // HL-166: optional readings from a pulse oximeter. Never scored; 88% or lower is an emergency in the check-in.
     const latest = lastOf(t.oxygen);
     if (!latest) return empty(`No oxygen readings in the last ${period} days`, "If you have a pulse oximeter, add your oxygen when you do your check-in, and your trend will show here.", "Do a check-in", logBp);
     const values = t.oxygen.filter((p): p is number => p !== null);

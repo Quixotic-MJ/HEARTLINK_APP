@@ -206,7 +206,8 @@ def test_dietitian_checks_every_recipe(world):
 @pytest.mark.parametrize("items, code", [
     ([{"item_id": "r1", "verdict": "ok"}], 400),                                                   # one missing
     ([{"item_id": "r1", "verdict": "ok"}, {"item_id": "r2", "verdict": "no"}], 400),               # no reason
-    ([{"item_id": "r1", "verdict": "ok"}, {"item_id": "r2", "verdict": "changes", "note": "x"}], 400),  # PT-only verdict
+    ([{"item_id": "r1", "verdict": "ok"}, {"item_id": "r2", "verdict": "changes"}], 400),          # changes need a note
+    ([{"item_id": "r1", "verdict": "ok"}, {"item_id": "r2", "verdict": "maybe"}], 400),            # not a choice
     ([{"item_id": "r1", "verdict": "ok"}, {"item_id": "r4", "verdict": "ok"}], 400),               # not recommended
 ])
 def test_food_check_validation(world, items, code):
@@ -340,3 +341,72 @@ def test_a_part_that_changes_after_approval_sends_the_case_back_to_waiting(ready
                                  as_user("pt"))
     rc = ready["cases"].rc
     assert rc["dataset_status"] == "waiting" and rc["dataset_decided_by"] is None
+
+
+# --- HL-168: "About this person", nothing sent to the user, plain reasons -------------------------------------------
+
+def test_about_this_person_in_plain_facts():
+    snap = {
+        "setup_at": "2026-11-23T08:00:00+00:00",
+        "onboarding": {"bp_medicine": True, "has_diabetes": False, "ever_smoked": True, "smoke_now": "Every day",
+                       "health_conditions": ["kidney_disease"], "doctor_cleared": True},
+        # the Heart risk's answer fills a question setup didn't answer
+        "heart_risk": {"answers": {"bp_medicine": True, "diabetes": False, "statin": True}},
+        "labs": [{"kind": "cholesterol", "test_date": "2026-10-02", "total_cholesterol": 220, "hdl": 45}],
+        "timeline": [
+            {"type": "Vitals", "data": {"systolic": 152, "diastolic": 94}},
+            {"type": "Vitals", "data": {"systolic": 130, "diastolic": 80}},
+            {"type": "Vitals", "data": {"heart_rate": 70}},
+            {"type": "Symptoms", "data": {"symptoms": ["Dizziness"]}},
+            {"type": "Symptoms", "data": {"symptoms": ["Dizziness", "None of these"]}},
+        ],
+    }
+    about = review_sections.about_person(snap)
+    assert (about["bp_medicine"], about["diabetes"], about["cholesterol_medicine"]) == (True, False, True)
+    assert about["smoking"] == "now"
+    assert about["labs"][0]["total_cholesterol"] == 220
+    assert about["blood_pressure"] == {"readings": 2, "average": "141/87", "highest": "152/94"}
+    assert about["symptoms"] == {"Dizziness": 2}
+    assert about["health_check"] == {"asked": True, "conditions": ["kidney_disease"], "doctor_cleared": True}
+
+
+@pytest.mark.parametrize("snap", [
+    {"onboarding": {}},                                                                   # before the health check
+    {"setup_at": "2026-11-01T00:00:00+00:00", "onboarding": {"health_conditions": []}},  # set up before Nov 23
+])
+def test_the_health_check_wasnt_asked_before_nov_23(snap):
+    assert review_sections.about_person(snap)["health_check"]["asked"] is False
+
+
+def test_the_case_page_has_its_step_and_the_facts(world):
+    detail = review_sections.case_detail(ROUND, as_user("cardio"))
+    assert detail["stage"] == "check" and detail["older"] is True     # the fixture is an older urgent case
+    assert detail["about"]["smoking"] == "used to"
+    assert "overdue" not in detail and "lane" not in detail
+
+
+def test_nothing_from_a_review_reaches_the_user(world, monkeypatch):
+    """HL-168: case review only builds the dataset; the checkup answer and the verdicts aren't sent anywhere."""
+    from app.services import review_feedback
+
+    def boom(*a, **k):
+        raise AssertionError("case review must not send anything to the user")
+
+    monkeypatch.setattr(review_feedback, "notify_checkup", boom)
+    monkeypatch.setattr(review_feedback, "record_not_suitable", boom)
+    review_sections.submit_cardiology(ROUND, GOOD, as_user("cardio"))
+    review_sections.submit_items("exercise", ROUND, {"items": [{"item_id": "e1", "verdict": "ok"},
+                                                              {"item_id": "e2", "verdict": "no", "note": "Too hard"}]}, as_user("pt"))
+
+
+def test_plain_reasons_are_accepted(world):
+    saved = review_sections.submit_cardiology(ROUND, {**GOOD, "reasons": ["smoking", "cholesterol", "age", "lifestyle"]},
+                                              as_user("cardio"))
+    assert saved["reasons"] == ["smoking", "cholesterol", "age", "lifestyle"]
+
+
+def test_the_dietitian_can_say_yes_with_changes(world):
+    """HL-168: like the Physical Therapist, the Dietitian can suggest a recipe with changes."""
+    items = [{"item_id": "r1", "verdict": "ok"}, {"item_id": "r2", "verdict": "changes", "note": "Less soy sauce"}]
+    saved = review_sections.submit_items("nutrition", ROUND, {"items": items}, as_user("diet"))
+    assert saved["item_verdicts"][1]["verdict"] == "changes"

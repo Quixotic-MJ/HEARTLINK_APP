@@ -75,8 +75,9 @@ export default function OnboardingScreen() {
 
   // No server pre-check here: registration reports connection errors on submit,
   // so a slow or sleeping server never blocks a new user at the first tap.
+  // 2026-11-25 (panel revision): "Is HeartLink for you?" comes before the sign-up form
   const handleGetStarted = () => {
-    router.push("/register");
+    router.push("/who-its-for");
   };
 
   return (
@@ -156,7 +157,7 @@ export default function OnboardingScreen() {
           label="Get started"
           onPress={handleGetStarted}
           icon={<Feather name="arrow-right" size={16} color="#FFFFFF" />}
-          accessibilityHint="Opens the registration screen"
+          accessibilityHint="Shows who HeartLink is for, then the sign-up form"
         />
         <View className="flex-row justify-center items-center pt-1">
           <Text style={{ fontSize: 14, color: c.slate }}>Already have an account? </Text>
@@ -168,6 +169,12 @@ export default function OnboardingScreen() {
             accessibilityHint="Opens the login screen"
           />
         </View>
+        <DsButton
+          label="Who is HeartLink for?"
+          variant="link"
+          onPress={() => router.push("/who-its-for?from=welcome")}
+          accessibilityHint="Shows who HeartLink is for and the conditions it isn't made for"
+        />
       </Animated.View>
     </SafeAreaView>
   );

@@ -1,10 +1,13 @@
 """
 HL-054: the case review queue.
 
-A patient enters as a review round (review_cases) through one of three lanes:
-- urgent:   the rules in review_rules.py (app level Critical, a crisis or low BP reading, a severe symptom)
-- rereview: the app's level changed since their last completed round
-- sample:   a random pick across all levels, drawn by an admin
+HL-168 (panel revision, 2026-11-24): one clear flow. An admin picks this week's random sample (draw_sample), and every
+case then goes through three steps:
+- check:   the Cardiologist, the Dietitian and the Physical Therapist each answer their part;
+- approve: every part is in, and the Cardiologist approves it for the dataset or leaves it out;
+- done:    approved, left out, or a practice review (which can't be used).
+Nobody monitors users, so nothing opens a case by itself any more: the urgent and re-review lanes were removed. Older
+cases from those lanes stay and are marked as older.
 
 Each round stores what the app said at that moment and the 37 inputs the baseline model reads,
 so later comparisons and datasets use exactly what the reviewers saw.
@@ -19,8 +22,8 @@ from typing import Any, Dict, List, Optional
 from app.db.repositories import (
     get_baseline_repo,
     get_case_review_repo,
-    get_health_logs_repo,
     get_hss_repo,
+    get_lab_results_repo,
     get_profile_repo,
 )
 from app.services import review_rules as rules
@@ -31,15 +34,7 @@ logger = logging.getLogger(__name__)
 
 SCORERS = ("heart_score", "baseline_model", "bp_rules", "lifestyle_points", "unknown")
 SECTIONS = ("cardiology", "nutrition", "exercise")
-_MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
-
-
-def _day(value: Any) -> str:
-    dt = parse_utc(value)
-    if not dt:
-        return "recently"
-    d = to_local_date(dt)
-    return f"{_MONTHS[d.month - 1]} {d.day}"
+OLDER_LANES = ("urgent", "rereview")
 
 
 def _json_safe(value: Any) -> Any:
@@ -89,51 +84,14 @@ def current_app_status(user_id: str) -> Dict[str, Any]:
     return {"score": None, "tier": None, "scorer": "unknown", "heart_risk": None}
 
 
-def urgent_reason(user_id: str, status: Dict[str, Any], now=None) -> Optional[str]:
-    """Why this patient belongs in the urgent lane, or None. The newest trigger wins."""
-    now = now or utc_now()
-    # HL-139: a High Heart risk (10% or more over 10 years) also asks for an expert's look. Never an emergency.
-    risk = status.get("heart_risk") or {}
-    if risk.get("urgent"):
-        kind = "estimated " if risk.get("kind") == "estimated" else ""
-        return f"High {kind}heart risk: {risk.get('ascvd_10')}% over 10 years"
-
-    cutoff = (now - timedelta(days=rules.SYMPTOM_WINDOW_DAYS)).isoformat()
-    for log in get_health_logs_repo().list_user_logs(user_id, cutoff=cutoff):
-        sys_bp, dia_bp = log.get("systolic_bp"), log.get("diastolic_bp")
-        when = _day(log.get("logged_at"))
-        if (sys_bp and sys_bp >= rules.CRISIS_SYSTOLIC) or (dia_bp and dia_bp >= rules.CRISIS_DIASTOLIC):
-            return f"BP {sys_bp}/{dia_bp} logged {when}"
-        if (sys_bp and sys_bp < rules.LOW_SYSTOLIC) or (dia_bp and dia_bp < rules.LOW_DIASTOLIC):
-            return f"Low BP {sys_bp}/{dia_bp} logged {when}"
-        spo2 = log.get("spo2_percent")  # HL-166
-        if spo2 and spo2 < rules.LOW_SPO2:
-            return f"Oxygen {spo2}% logged {when}"
-        symptoms = log.get("symptoms") or []
-        severity = (log.get("severity_map") or {}).get(rules.CHEST_SYMPTOM) or 0
-        if rules.CHEST_SYMPTOM in symptoms and severity >= rules.CHEST_SEVERITY_AT_LEAST:
-            return f"Chest discomfort, severity {severity}, logged {when}"
-        if rules.BREATH_SYMPTOM in symptoms and log.get("context") in rules.BREATH_URGENT_CONTEXTS:
-            return f"Shortness of breath at rest logged {when}"
-        if rules.FAINTED_SYMPTOM in symptoms:
-            return f"Fainted or nearly fainted, logged {when}"
-    return None
-
-
 def risk_band_of(status: Dict[str, Any]) -> Optional[str]:
     """HL-153: the app's Heart risk band now, or None (under 30, over 79, or not worked out yet)."""
     band = (status.get("heart_risk") or {}).get("band")
     return band if band in rules.RISK_BANDS else None
 
 
-def rereview_reason(user_id: str, status: Dict[str, Any]) -> Optional[str]:
-    """HL-153: a re-review is due when the app's Heart risk band changed since the last completed round."""
-    rounds = get_case_review_repo().list_patient_cases(user_id)
-    last = next((r for r in rounds if r.get("status") == "complete"), None)
-    band = risk_band_of(status)
-    if last and last.get("app_risk_band") and band and last["app_risk_band"] != band:
-        return "Heart risk band changed since the last review"
-    return None
+LAB_FIELDS = ("kind", "test_date", "total_cholesterol", "hdl", "ldl", "egfr", "creatinine", "fasting_glucose", "hba1c",
+              "has_diabetes", "cholesterol_medicine")
 
 
 def build_snapshot(profile: Dict[str, Any]) -> Dict[str, Any]:
@@ -153,6 +111,11 @@ def build_snapshot(profile: Dict[str, Any]) -> Dict[str, Any]:
 
     meta = get_model_metadata()
     onboarding_shown = {k: v for k, v in onboarding.items() if k not in ("id", "user_id", "created_at", "updated_at")}
+    try:
+        labs = get_lab_results_repo().list(user_id)
+    except Exception as e:
+        logger.warning("Lab results unavailable for a review round: %s", type(e).__name__)
+        labs = []
     input_snapshot = {
         "sex": profile.get("sex"),
         "date_of_birth": profile.get("date_of_birth"),
@@ -161,6 +124,10 @@ def build_snapshot(profile: Dict[str, Any]) -> Dict[str, Any]:
         "onboarding": onboarding_shown,
         "clinical": get_clinical_baseline_data(user_id),
         "timeline": get_recent_telemetry_timeline(user_id),
+        # HL-168: when setup was done (the health check is only asked since 2026-11-23) and the lab results, so the
+        # Cardiologist sees everything the Heart risk uses
+        "setup_at": onboarding.get("created_at"),
+        "labs": [{k: lab.get(k) for k in LAB_FIELDS if lab.get(k) is not None} for lab in labs],
     }
     return {
         "model_features": _json_safe(model_features),
@@ -195,30 +162,6 @@ def open_round(profile: Dict[str, Any], lane: str, reason: str, status: Dict[str
         # HL-139: the expert sees the Heart risk next to the habits score; it doesn't change what they're asked
         record["input_snapshot"] = {**record["input_snapshot"], "heart_risk": _json_safe(status["heart_risk"])}
     return repo.create_review_case(record)
-
-
-def refresh_queue(now=None) -> Dict[str, List[str]]:
-    """Opens urgent and re-review rounds; an open sample round that turns urgent moves lanes."""
-    repo = get_case_review_repo()
-    opened, upgraded = [], []
-    for profile in _eligible_patients():
-        status = current_app_status(profile["id"])
-        reason = urgent_reason(profile["id"], status, now)
-        existing = repo.get_open_case_for_patient(profile["id"])
-        if existing:
-            if reason and existing.get("lane") != "urgent":
-                repo.update_review_case(existing["id"], {"lane": "urgent", "reason": reason})
-                upgraded.append(existing["id"])
-            continue
-        lane = "urgent" if reason else None
-        if not reason:
-            reason = rereview_reason(profile["id"], status)
-            lane = "rereview" if reason else None
-        if lane:
-            created = open_round(profile, lane, reason, status)
-            if created:
-                opened.append(created.get("id"))
-    return {"opened": opened, "upgraded": upgraded}
 
 
 def draw_sample(created_by: Optional[str], now=None, rng: Optional[random.Random] = None) -> List[Dict[str, Any]]:
@@ -278,11 +221,22 @@ def section_progress(rc: Dict[str, Any], done: set, recommendations: Dict[str, L
     return progress
 
 
+def case_stage(rc: Dict[str, Any], sections: Dict[str, Dict[str, Any]], progress: Dict[str, str]) -> Dict[str, Any]:
+    """HL-168: which step a case is at, and for a finished one, what happened to it."""
+    if rc.get("status") == "open" or "waiting" in progress.values():
+        return {"stage": "check", "outcome": None}
+    if not (sections.get("cardiology") or {}).get("is_clinical"):
+        return {"stage": "done", "outcome": "practice"}
+    decided = rc.get("dataset_status") or "waiting"
+    if decided in ("approved", "left_out"):
+        return {"stage": "done", "outcome": decided}
+    return {"stage": "approve", "outcome": None}
+
+
 def list_queue(now=None) -> List[Dict[str, Any]]:
     """
-    Rounds that still need someone: every open round (waiting for the Cardiologist), plus complete rounds
-    whose food or exercise check is still waiting. A round counts for Model Check as soon as the Cardiologist
-    submits, but stays here until all three parts are done. The app's level is left out.
+    HL-168: every case that wasn't archived, with its step (check, approve, done) and each part's progress. The app's
+    own answer is left out, so the list can't influence a reviewer.
     """
     from app.services.review_sections import recommendations_for
 
@@ -296,26 +250,35 @@ def list_queue(now=None) -> List[Dict[str, Any]]:
         key = (rc.get("app_tier"), rc.get("patient_id"))
         if key not in recs_by_tier:
             recs_by_tier[key] = recommendations_for(rc)
-        done = {s.get("section") for s in repo.list_sections(review_case_id=rc["id"])}
-        progress = section_progress(rc, done, recs_by_tier[key])
-        if rc.get("status") == "complete" and "waiting" not in progress.values():
-            continue  # every part is done: the case leaves the queue
-        opened_at = parse_utc(rc.get("created_at")) or now
-        hours = max(0, int((now - opened_at).total_seconds() // 3600))
+        sections = {s.get("section"): s for s in repo.list_sections(review_case_id=rc["id"])}
+        progress = section_progress(rc, set(sections), recs_by_tier[key])
         patient = profiles.get_by_id(rc["patient_id"]) or {}
         items.append({
             "id": rc["id"],
             "case_code": rc.get("case_code"),
-            "lane": rc.get("lane"),
-            "reason": rc.get("reason"),
+            "older": rc.get("lane") in OLDER_LANES,
             "status": rc.get("status"),
             "opened_at": rc.get("created_at"),
-            "waiting_hours": hours,
-            "overdue": rc.get("status") == "open" and rc.get("lane") == "urgent" and hours > rules.URGENT_REVIEW_HOURS,
             "age": _age(patient.get("date_of_birth"), now),
             "sex": patient.get("sex"),
             "sections": progress,
+            **case_stage(rc, sections, progress),
         })
-    # Cases still waiting for the Cardiologist first, then those waiting only for food/exercise checks
-    items.sort(key=lambda i: (i["status"] != "open", rules.LANE_ORDER.get(i["lane"], 9), i["opened_at"] or ""))
+    order = {stage: i for i, stage in enumerate(rules.STAGES)}
+    # Step by step; within checking, cases still waiting for the Cardiologist first; oldest first
+    items.sort(key=lambda i: (order[i["stage"]], i["status"] != "open", i["opened_at"] or ""))
     return items
+
+
+def queue_summary(items: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """HL-168: the counts on the four steps, and when cases were last picked."""
+    repo = get_case_review_repo()
+    picked = [r.get("created_at") for r in repo.list_review_cases(lane="sample") if r.get("status") != "archived"]
+    return {
+        "picked": len(items),
+        "check": sum(1 for i in items if i["stage"] == "check"),
+        "approve": sum(1 for i in items if i["stage"] == "approve"),
+        "approved": sum(1 for i in items if i["outcome"] == "approved"),
+        "done": sum(1 for i in items if i["stage"] == "done"),
+        "last_picked_at": max(picked) if picked else None,
+    }

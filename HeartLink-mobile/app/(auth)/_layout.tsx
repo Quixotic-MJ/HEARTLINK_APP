@@ -27,6 +27,7 @@ export default function AuthLayout() {
           animation: "slide_from_right", // Premium native slide-in animation
         }}
       >
+        <Stack.Screen name="who-its-for" />
         <Stack.Screen name="login" />
         <Stack.Screen name="register" />
         <Stack.Screen name="verify-otp" />

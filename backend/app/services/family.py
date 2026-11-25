@@ -28,7 +28,7 @@ from app.services.health_report import TZ, _day, _live, _local, _number, bp_cate
 from app.services.heart_risk import summary as risk_summary
 from app.services.premium import PREMIUM_REQUIRED, is_premium
 # HL-166: the same oxygen threshold as the app and case review (pending the cardiologist's confirmation)
-from app.services.review_rules import LOW_SPO2
+from app.services.review_rules import EMERGENCY_SPO2_MAX
 from app.services.review_rules import FAINTED_SYMPTOM
 from app.utils.time import parse_utc, to_local_date, utc_now
 
@@ -289,7 +289,7 @@ def _week_table(logs: List[Dict[str, Any]], today: date) -> Dict[str, Any]:
 def set_account_kind(user_id: str, kind: str) -> Dict[str, Any]:
     profile = _patient_profile(user_id)
     if kind not in ACCOUNT_KINDS:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Choose patient or family.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Choose an account type: a HeartLink user or a family member.")
     if not get_profile_repo().update(profile["id"], {"account_kind": kind}):
         raise HTTPException(status_code=500, detail="Couldn't save that. Try again.")
     return {"account_kind": kind}
@@ -365,12 +365,12 @@ def summary(user_id: str, patient_id: str) -> Dict[str, Any]:
 def is_emergency(data: Dict[str, Any]) -> bool:
     """The app's emergency rules (log-symptoms.tsx, companionService.ts), unchanged: blood pressure at 180/120 or
     more, or under 90/60; chest discomfort rated 7 or more; shortness of breath while resting; fainting or nearly
-    fainting; HL-166: blood oxygen under 90%."""
+    fainting; HL-166: blood oxygen of 88% or lower."""
     sys_bp, dia_bp = _number(data.get("systolic_bp")), _number(data.get("diastolic_bp"))
     if sys_bp is not None and dia_bp is not None and (sys_bp >= 180 or dia_bp >= 120 or sys_bp < 90 or dia_bp < 60):
         return True
     spo2 = _number(data.get("spo2_percent"))
-    if spo2 is not None and spo2 < LOW_SPO2:
+    if spo2 is not None and spo2 <= EMERGENCY_SPO2_MAX:
         return True
     symptoms = data.get("symptoms") or []
     severity = data.get("severity_map") or {}

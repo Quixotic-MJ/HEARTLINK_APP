@@ -430,7 +430,7 @@ export function reportHtml(r: HealthReport, patientName: string): string {
     <h2>Habits and risk</h2>
     <table>${habitRows}</table>
 
-    <div class="note">${esc(r.disclaimer)} Home readings are entered by the patient. The daily log follows the AMA/AHA
+    <div class="note">${esc(r.disclaimer)} Home readings are entered by the person. The daily log follows the AMA/AHA
     Target: BP home blood pressure log.</div>
 
     <div class="log">

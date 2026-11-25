@@ -33,7 +33,7 @@ const EMERGENCY_BUZZ = [0, 500, 250, 500, 250, 500];
 
 // The daily check-in: blood pressure (and pulse), how the patient feels, and weight and oxygen if they like.
 // Safety: a complete blood pressure reading of 180/120 or more, or under 90/60, chest discomfort rated 7 or
-// more, shortness of breath while resting, fainting, or (HL-166) oxygen under 90% opens the emergency guidance
+// more, shortness of breath while resting, fainting, or (HL-166) oxygen of 88% or lower opens the emergency guidance
 // (services/vitalsCheck.ts). HL-167 (panel revision): the "Medicines today" question was removed; the medicine that
 // matters for the Heart risk is asked in setup and Settings › Heart answers.
 
@@ -283,7 +283,7 @@ export default function LogSymptomsScreen() {
       } else if (isHypertensiveCrisis) {
         showToast({ title: "Very high blood pressure", message: "Your reading is 180/120 mmHg or higher. Please get emergency medical care.", type: "error", duration: 8000 });
       } else if (lowOxygen) {
-        showToast({ title: "Very low oxygen", message: `Your oxygen is ${spo2}%. Under 90% needs medical help now. Call 911 or go to the nearest hospital.`, type: "error", duration: 8000 });
+        showToast({ title: "Very low oxygen", message: `Your oxygen is ${spo2}%. 88% or lower needs medical help now. Call 911 or go to the nearest hospital.`, type: "error", duration: 8000 });
       } else {
         showToast({ title: "Please get checked now", message: "What you logged can be a sign of a heart problem. Emergency medical care is recommended.", type: "error", duration: 6000 });
       }
@@ -625,7 +625,7 @@ export default function LogSymptomsScreen() {
             </AnimatedButton>
           )}
 
-          {/* ── HL-166: oxygen (optional), from a pulse oximeter. Never scored; under 90% is an emergency. ── */}
+          {/* ── HL-166: oxygen (optional), from a pulse oximeter. Never scored; 88% or lower is an emergency. ── */}
           {showSpo2 ? (
             <View style={{ gap: 10 }}>
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", height: 52, paddingHorizontal: 14, borderWidth: lowOxygen ? 1.5 : 1, borderColor: lowOxygen ? c.danger : c.hairlineStrong, borderRadius: 10 }}>
@@ -649,7 +649,7 @@ export default function LogSymptomsScreen() {
                 <EmergencyCard
                   c={c}
                   title="Your oxygen is very low"
-                  body={`${spo2}% is under 90%. This needs medical help now. Call 911 or go to the nearest hospital.`}
+                  body={`${spo2}% is very low. This needs medical help now. Call 911 or go to the nearest hospital.`}
                   onCall={call911}
                   onClinic={findClinic}
                 />
@@ -657,7 +657,7 @@ export default function LogSymptomsScreen() {
                 <View accessibilityRole="alert" style={{ flexDirection: "row", gap: 10, padding: 14, borderRadius: 12, backgroundColor: c.peach }}>
                   <Feather name="alert-circle" size={18} color={c.warmText} style={{ marginTop: 1 }} />
                   <Text style={{ flex: 1, fontSize: 14, lineHeight: 20, color: c.ink }}>
-                    {`${spo2}% is lower than usual. If you're short of breath, dizzy or have chest discomfort, get checked today. Some lung conditions run lower; follow your doctor's target.`}
+                    {`${spo2}% is lower than usual. Contact your doctor, and get checked today if you're short of breath, dizzy or have chest discomfort. Some lung conditions run lower; follow your doctor's target.`}
                   </Text>
                 </View>
               ) : (
@@ -703,7 +703,7 @@ export default function LogSymptomsScreen() {
                 : isHypertensiveCrisis
                   ? "Your blood pressure reading is very high (180/120 mmHg or higher)."
                   : lowOxygen
-                    ? `Your oxygen level is very low (${spo2}%, under 90%).`
+                    ? `Your oxygen level is very low (${spo2}%, 88% or lower).`
                     : symptoms.includes(CHEST) && (strength[CHEST] ?? 0) >= 7
                     ? `You rated your chest discomfort ${strength[CHEST]} out of 10. This can be a sign of a heart attack.`
                     : symptoms.includes(FAINTED)

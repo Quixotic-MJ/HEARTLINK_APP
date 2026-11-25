@@ -91,7 +91,7 @@ def test_guidance_goes_to_dietitians_and_pts_and_replies_to_everyone_but_the_wri
     patient_notes.add_note(PATIENT, "guidance", "Keep sodium low this week.", {"user_id": CARDIO, "role": "medical_expert"})
     g = sent.rows[-1]
     assert g["recipient_roles"] == ["expert:Dietitian", "expert:Physical Therapist"]
-    assert g["type"] == "notes" and g["route"] == f"/patients/{PATIENT}" and g["actor_id"] == CARDIO
+    assert g["type"] == "notes" and g["route"] == f"/app-users/{PATIENT}" and g["actor_id"] == CARDIO
 
     patient_notes.add_note(PATIENT, "message", "Swapped the dinner recipe.", {"user_id": DIET, "role": "medical_expert"})
     m = sent.rows[-1]
