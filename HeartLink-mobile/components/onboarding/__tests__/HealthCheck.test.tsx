@@ -7,11 +7,12 @@ import HealthCheckScreen from "../../../app/(baseline)/health-check";
 // use the app; the person can sign out, or go on only with their doctor's OK.
 
 const mockReplace = jest.fn();
+const mockPush = jest.fn();
 const mockUpdate = jest.fn();
 const mockLogout = jest.fn(() => Promise.resolve());
 
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ replace: mockReplace, push: jest.fn(), back: jest.fn() }),
+  useRouter: () => ({ replace: mockReplace, push: mockPush, back: jest.fn() }),
 }));
 jest.mock("../../../contexts/UserContext", () => ({ useUser: () => ({ logout: mockLogout }) }));
 jest.mock("../../../contexts/BaselineContext", () => ({
@@ -36,6 +37,7 @@ const checkbox = (name: RegExp) => screen.getByRole("checkbox", { name });
 describe("Health check before setup", () => {
   beforeEach(() => {
     mockReplace.mockReset();
+    mockPush.mockReset();
     mockUpdate.mockReset();
     mockLogout.mockClear();
   });
@@ -64,7 +66,9 @@ describe("Health check before setup", () => {
 
     const goOn = screen.getByRole("button", { name: "Continue with my doctor's OK" });
     expect(goOn).toBeDisabled();
-    await user.press(checkbox(/My doctor said I can use HeartLink/));
+    // 2026-11-24: the app can't check the doctor's OK, and says so
+    expect(screen.getByText(/HeartLink can't check this\. We trust your answer\./)).toBeOnTheScreen();
+    await user.press(checkbox(/I talked to my doctor about my condition, and they said I can use HeartLink/));
     await user.press(goOn);
     expect(mockUpdate).toHaveBeenCalledWith({
       health_check_done: true,
@@ -72,6 +76,16 @@ describe("Health check before setup", () => {
       doctor_cleared: true,
     });
     expect(mockReplace).toHaveBeenCalledWith("/(baseline)/plan");
+  });
+
+  it("opens a page to show the doctor", async () => {
+    const user = userEvent.setup();
+    await renderScreen();
+    await user.press(checkbox(/^Stroke/));
+    await user.press(screen.getByRole("button", { name: "Continue" }));
+    await user.press(screen.getByRole("link", { name: /What to show your doctor/ }));
+    expect(mockPush).toHaveBeenCalledWith("/legal?doc=doctor");
+    expect(mockUpdate).not.toHaveBeenCalled();
   });
 
   it("signs out without saving anything", async () => {

@@ -26,7 +26,7 @@ def _app_user(current_user: dict = Depends(get_current_user)) -> str:
     """Buying Premium happens in the app. 2026-11-20: an app session acts as a user for every account, staff included
     (security.APP_ROLE), so a staff member can buy it there for themselves; a portal session can't."""
     if current_user.get("role") != APP_ROLE:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
     return current_user.get("user_id")
 
 

@@ -1,4 +1,4 @@
-"""HL-054: review queue lanes, triggers, sampling and ordering."""
+"""HL-054 / HL-168: the weekly sample and the steps a case goes through (check, approve, done)."""
 import random
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -36,15 +36,6 @@ class Hss:
         return [row] if row else []
 
 
-class Logs:
-    def __init__(self, logs):
-        self.logs = logs
-
-    def list_user_logs(self, user_id, cutoff=None):
-        rows = [l for l in self.logs.get(user_id, []) if not cutoff or l["logged_at"] >= cutoff]
-        return sorted(rows, key=lambda l: l["logged_at"], reverse=True)
-
-
 class Cases:
     def __init__(self):
         self.rounds, self.sections = [], []
@@ -79,10 +70,9 @@ def patient(pid, **extra):
 
 @pytest.fixture
 def world(monkeypatch):
-    state = {"profiles": Profiles([]), "hss": Hss({}), "logs": Logs({}), "cases": Cases()}
+    state = {"profiles": Profiles([]), "hss": Hss({}), "cases": Cases()}
     monkeypatch.setattr(review_queue, "get_profile_repo", lambda: state["profiles"])
     monkeypatch.setattr(review_queue, "get_hss_repo", lambda: state["hss"])
-    monkeypatch.setattr(review_queue, "get_health_logs_repo", lambda: state["logs"])
     monkeypatch.setattr(review_queue, "get_case_review_repo", lambda: state["cases"])
     monkeypatch.setattr(review_queue, "build_snapshot", lambda profile: {"model_features": {"RIDAGEYR": 58}, "input_snapshot": {}})
     # Each level recommends 2 recipes and 2 exercises, except Stable, which recommends no exercises
@@ -110,44 +100,7 @@ def test_no_score_yet(world):
     assert review_queue.current_app_status("p1") == {"score": None, "tier": None, "scorer": "unknown", "heart_risk": None}
 
 
-# --- urgent triggers (proposed values, pending the cardiologist) ------------------------------------
-
-def log(days_ago=1, **fields):
-    return {"logged_at": iso(NOW - timedelta(days=days_ago)), **fields}
-
-
-@pytest.mark.parametrize("entry, expected", [
-    (log(systolic_bp=182, diastolic_bp=100), "BP 182/100"),
-    (log(systolic_bp=150, diastolic_bp=121), "BP 150/121"),
-    (log(systolic_bp=85, diastolic_bp=70), "Low BP 85/70"),
-    (log(symptoms=["Chest Discomfort / Tightness"], severity_map={"Chest Discomfort / Tightness": 7}), "Chest discomfort, severity 7"),
-    (log(symptoms=["Shortness of Breath"], context="resting"), "Shortness of breath at rest"),
-    (log(spo2_percent=88), "Oxygen 88%"),  # HL-166
-])
-def test_urgent_triggers(world, entry, expected):
-    world["logs"] = Logs({"p1": [entry]})
-    assert review_queue.urgent_reason("p1", {"tier": "Moderate"}, NOW).startswith(expected)
-
-
-@pytest.mark.parametrize("entry", [
-    log(systolic_bp=179, diastolic_bp=119),
-    log(systolic_bp=90, diastolic_bp=60),
-    log(symptoms=["Chest Discomfort / Tightness"], severity_map={"Chest Discomfort / Tightness": 6}),
-    log(symptoms=["Shortness of Breath"], context="after_exercise"),
-    log(spo2_percent=90),
-    log(days_ago=rules.SYMPTOM_WINDOW_DAYS + 1, systolic_bp=190, diastolic_bp=125),
-])
-def test_not_urgent(world, entry):
-    world["logs"] = Logs({"p1": [entry]})
-    assert review_queue.urgent_reason("p1", {"tier": "Moderate"}, NOW) is None
-
-
-def test_a_low_habits_score_is_not_urgent(world):
-    """HL-153: poor habits aren't urgent; a High Heart risk, a crisis or low reading, or a serious symptom is."""
-    assert review_queue.urgent_reason("p1", {"tier": "Critical"}, NOW) is None
-
-
-# --- HL-139: a High Heart risk is urgent, and the expert sees the risk ----------------------------------
+# --- HL-139: the expert sees the Heart risk ----------------------------------
 
 RISK = {"available": True, "kind": "calculated", "ascvd_10": 12.4, "band": "high", "urgent": True}
 
@@ -158,67 +111,20 @@ def with_risk(band, percent, tier="Moderate", score=70):
     return {"source": "telemetry", "score": score, "tier": tier, "contributing_factors": {"source": "heart_score", "risk": risk}}
 
 
-def test_high_heart_risk_is_urgent(world):
-    assert review_queue.urgent_reason("p1", {"tier": "Moderate", "heart_risk": RISK}, NOW) == "High heart risk: 12.4% over 10 years"
-    estimated = {**RISK, "kind": "estimated"}
-    assert review_queue.urgent_reason("p1", {"tier": "Moderate", "heart_risk": estimated}, NOW).startswith("High estimated heart risk")
-    lower = {**RISK, "ascvd_10": 7.0, "band": "intermediate", "urgent": False}
-    assert review_queue.urgent_reason("p1", {"tier": "Moderate", "heart_risk": lower}, NOW) is None
-
-
 def test_the_expert_sees_the_heart_risk(world):
     world["hss"] = Hss({"p1": {"source": "telemetry", "score": 61, "tier": "Moderate",
                               "contributing_factors": {"source": "heart_score", "risk": RISK}}})
     status = review_queue.current_app_status("p1")
     assert status["heart_risk"] == RISK
-    created = review_queue.open_round(patient("p1"), "urgent", "test", status)
+    created = review_queue.open_round(patient("p1"), "sample", "test", status)
     assert created["input_snapshot"]["heart_risk"] == RISK
     # HL-153: saved on the round, for the comparison with the Cardiologist's band
     assert (created["app_risk_band"], created["app_risk_percent"], created["app_risk_kind"]) == ("high", 12.4, "calculated")
 
 
 def test_a_round_without_a_heart_risk_has_none_saved(world):
-    created = review_queue.open_round(patient("p1"), "urgent", "test", {"tier": "Moderate", "score": 60, "scorer": "heart_score"})
+    created = review_queue.open_round(patient("p1"), "sample", "test", {"tier": "Moderate", "score": 60, "scorer": "heart_score"})
     assert created["app_risk_band"] is None and created["app_risk_percent"] is None
-
-
-# --- refresh: urgent and re-review rounds ------------------------------------------------------------
-
-def test_refresh_opens_urgent_and_rereview_once(world):
-    world["profiles"] = Profiles([patient("urgent"), patient("changed"), patient("calm")])
-    world["hss"] = Hss({"urgent": {"source": "telemetry", "score": 52, "tier": "Elevated Risk"},
-                        "changed": with_risk("borderline", 4.1),
-                        "calm": with_risk("low", 1.2, tier="Stable", score=85)})
-    world["logs"] = Logs({"urgent": [log(systolic_bp=184, diastolic_bp=118)]})
-    # HL-153: a re-review is due when the Heart risk band changed (low then, borderline now); the habits level doesn't count
-    world["cases"].rounds += [
-        {"id": "old", "patient_id": "changed", "status": "complete", "app_tier": "Moderate", "app_risk_band": "low",
-         "lane": "sample", "created_at": iso(NOW - timedelta(days=40))},
-        {"id": "old2", "patient_id": "calm", "status": "complete", "app_tier": "Moderate", "app_risk_band": "low",
-         "lane": "sample", "created_at": iso(NOW - timedelta(days=40))},
-    ]
-
-    first = review_queue.refresh_queue(NOW)
-    second = review_queue.refresh_queue(NOW)
-
-    open_rounds = world["cases"].list_review_cases(status="open")
-    assert {(r["patient_id"], r["lane"]) for r in open_rounds} == {("urgent", "urgent"), ("changed", "rereview")}
-    assert len(first["opened"]) == 2 and second["opened"] == []
-    urgent = next(r for r in open_rounds if r["lane"] == "urgent")
-    assert urgent["app_tier"] == "Elevated Risk" and urgent["app_scorer"] == "bp_rules"
-    assert urgent["model_features"] == {"RIDAGEYR": 58}
-    assert urgent["case_code"].startswith("CASE-")
-
-
-def test_open_sample_round_moves_to_urgent(world):
-    world["profiles"] = Profiles([patient("p1")])
-    world["hss"] = Hss({"p1": with_risk("high", 11.0)})
-    world["cases"].rounds.append({"id": "r1", "patient_id": "p1", "status": "open", "lane": "sample",
-                                  "reason": "Weekly random sample", "created_at": iso(NOW)})
-    result = review_queue.refresh_queue(NOW)
-    assert result["upgraded"] == ["r1"]
-    assert world["cases"].rounds[0]["lane"] == "urgent"
-    assert len(world["cases"].rounds) == 1
 
 
 # --- weekly sample -------------------------------------------------------------------------------------
@@ -267,59 +173,60 @@ def test_archived_rounds_do_not_block_the_sample(world):
 
 # --- queue listing -----------------------------------------------------------------------------------
 
-def test_queue_order_progress_and_blinding(world):
-    world["profiles"] = Profiles([patient("a"), patient("b"), patient("c")])
-    cases = world["cases"]
-    cases.rounds += [
-        {"id": "s", "patient_id": "a", "status": "open", "lane": "sample", "reason": "Weekly random sample", "case_code": "CASE-0001", "app_tier": "Stable", "created_at": iso(NOW - timedelta(hours=100))},
-        {"id": "u", "patient_id": "b", "status": "open", "lane": "urgent", "reason": "BP 182/121 logged Oct 12", "case_code": "CASE-0002", "app_tier": "Moderate", "created_at": iso(NOW - timedelta(hours=50))},
-        {"id": "r", "patient_id": "c", "status": "open", "lane": "rereview", "reason": "App level changed since the last review", "case_code": "CASE-0003", "app_tier": "Moderate", "created_at": iso(NOW - timedelta(hours=5))},
-    ]
-    cases.sections.append({"review_case_id": "u", "section": "nutrition"})
-
-    items = review_queue.list_queue(NOW)
-
-    assert [i["id"] for i in items] == ["u", "r", "s"]
-    assert items[0]["overdue"] is True and items[1]["overdue"] is False
-    assert items[0]["sections"] == {"cardiology": "waiting", "nutrition": "done", "exercise": "waiting"}
-    assert items[2]["sections"]["exercise"] == "not_needed"       # Stable: nothing to check
-    assert items[0]["age"] == 58
-    assert all("app_tier" not in i and "app_score" not in i for i in items)
-
-
 def round_(rid, status, lane="sample", tier="Moderate", hours=10, pid=None):
     return {"id": rid, "patient_id": pid or rid, "status": status, "lane": lane, "reason": "x",
             "case_code": f"CASE-{rid}", "app_tier": tier, "created_at": iso(NOW - timedelta(hours=hours))}
 
 
-def test_complete_case_stays_until_food_and_exercise_checks_are_done(world):
-    world["profiles"] = Profiles([patient("waiting-food"), patient("all-done"), patient("open")])
+def section(rid, name, clinical=True):
+    return {"review_case_id": rid, "section": name, "is_clinical": clinical}
+
+
+def test_cases_move_through_check_approve_and_done(world):
+    """HL-168: every case is listed with its step; nothing leaves the list when it's finished."""
+    people = ["open", "waiting-food", "ready", "approved", "left", "practice", "stable"]
+    world["profiles"] = Profiles([patient(p) for p in people])
     cases = world["cases"]
-    cases.rounds += [round_("waiting-food", "complete", hours=60), round_("all-done", "complete", hours=60),
-                     round_("open", "open", hours=2)]
-    cases.sections += [
-        {"review_case_id": "waiting-food", "section": "cardiology"},
-        {"review_case_id": "waiting-food", "section": "exercise"},
-        {"review_case_id": "all-done", "section": "cardiology"},
-        {"review_case_id": "all-done", "section": "nutrition"},
-        {"review_case_id": "all-done", "section": "exercise"},
-    ]
+    cases.rounds += [round_("open", "open", hours=2), round_("waiting-food", "complete", hours=60),
+                     round_("ready", "complete", hours=50), round_("approved", "complete", hours=40),
+                     round_("left", "complete", hours=30), round_("practice", "complete", hours=20),
+                     round_("stable", "complete", tier="Stable", hours=10)]
+    cases.rounds[3]["dataset_status"] = "approved"
+    cases.rounds[4]["dataset_status"] = "left_out"
+    for rid in ("ready", "approved", "left"):
+        cases.sections += [section(rid, "cardiology"), section(rid, "nutrition"), section(rid, "exercise")]
+    cases.sections += [section("waiting-food", "cardiology"), section("waiting-food", "exercise"),
+                       section("practice", "cardiology", clinical=False), section("practice", "nutrition"),
+                       section("practice", "exercise"),
+                       section("stable", "cardiology"), section("stable", "nutrition")]
 
     items = review_queue.list_queue(NOW)
+    by_id = {i["id"]: i for i in items}
 
-    assert [i["id"] for i in items] == ["open", "waiting-food"]      # waiting for the Cardiologist comes first
-    waiting = items[1]
-    assert waiting["status"] == "complete"
-    assert waiting["sections"] == {"cardiology": "done", "nutrition": "waiting", "exercise": "done"}
-    assert waiting["overdue"] is False                               # the urgent deadline is for the Cardiologist
+    assert [(i["id"], i["stage"]) for i in items] == [
+        ("open", "check"), ("waiting-food", "check"),          # waiting for the Cardiologist first
+        ("ready", "approve"), ("stable", "approve"),          # Stable: no exercise to check, so it's ready
+        ("approved", "done"), ("left", "done"), ("practice", "done"),
+    ]
+    assert by_id["waiting-food"]["sections"] == {"cardiology": "done", "nutrition": "waiting", "exercise": "done"}
+    assert (by_id["approved"]["outcome"], by_id["left"]["outcome"], by_id["practice"]["outcome"]) == (
+        "approved", "left_out", "practice")
+    assert by_id["open"]["age"] == 58 and by_id["open"]["older"] is False
+    assert all("app_tier" not in i and "app_score" not in i and "overdue" not in i for i in items)
+
+    steps = review_queue.queue_summary(items)
+    assert {k: steps[k] for k in ("picked", "check", "approve", "approved", "done")} == {
+        "picked": 7, "check": 2, "approve": 2, "approved": 1, "done": 3}
+    assert steps["last_picked_at"] == iso(NOW - timedelta(hours=2))
 
 
-def test_check_with_nothing_recommended_counts_as_done(world):
-    world["profiles"] = Profiles([patient("stable")])
-    world["cases"].rounds.append(round_("stable", "complete", tier="Stable"))
-    world["cases"].sections += [{"review_case_id": "stable", "section": "cardiology"},
-                                {"review_case_id": "stable", "section": "nutrition"}]
-    assert review_queue.list_queue(NOW) == []                        # exercise was not needed, so it leaves
+def test_older_urgent_cases_are_kept_and_marked(world):
+    """HL-168: the urgent and re-review lanes were removed, but their cases stay, marked as older."""
+    world["profiles"] = Profiles([patient("u")])
+    world["cases"].rounds.append(round_("u", "open", lane="urgent"))
+    [item] = review_queue.list_queue(NOW)
+    assert item["older"] is True and item["stage"] == "check"
+    assert not hasattr(review_queue, "refresh_queue") and not hasattr(review_queue, "urgent_reason")
 
 
 # --- API -----------------------------------------------------------------------------------------------

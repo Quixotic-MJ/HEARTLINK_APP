@@ -13,6 +13,7 @@ import Landing from "../features/landing/landing.jsx";
 import SetPassword from "../features/auth/setPassword.jsx";
 import ActivityLog from "../features/activity/activityPage.jsx";
 import Premium from "../features/premium/premiumPage.jsx";
+import Barangays from "../features/barangays/barangaysPage.jsx";
 import Cases from "../features/clinical/caseReview.jsx";
 import CaseReviewDetail from "../features/clinical/caseReviewDetail.jsx";
 import Calibrations from "../features/clinical/calibrationHistory.jsx";
@@ -26,6 +27,12 @@ import { Navigate, useLocation } from "react-router-dom";
 import { Toaster, toast } from "sonner";
 import { canAccess, homeFor } from "./access.js";
 import { MotionConfig } from "framer-motion";
+
+// 2026-11-24 (panel revision): app users' pages moved from /patients to /app-users
+const OldUserLink = () => {
+  const { pathname } = useLocation();
+  return <Navigate to={pathname.replace(/^\/patients/, "/app-users")} replace />;
+};
 
 // HL-034: every page is checked against the shared rules in access.js (role and expert type).
 const RoleRoute = ({ children }) => {
@@ -70,6 +77,8 @@ const router = createBrowserRouter(createRoutesFromElements(
           <Route path="/users/:id" element={<RoleRoute><Navigate to="/users" replace /></RoleRoute>} />
           <Route path="/feedbacks" element={<RoleRoute><Feedbacks /></RoleRoute>} />
           <Route path="/premium" element={<RoleRoute><Premium /></RoleRoute>} />
+          {/* HL-171: barangay emergency contacts (admins) */}
+          <Route path="/barangays" element={<RoleRoute><Barangays /></RoleRoute>} />
           <Route path="/broadcasts" element={<RoleRoute><Broadcasts /></RoleRoute>} />
           <Route path="/notifications" element={<RoleRoute><Notifications /></RoleRoute>} />
           <Route path="/settings" element={<RoleRoute><Settings /></RoleRoute>} />
@@ -79,8 +88,11 @@ const router = createBrowserRouter(createRoutesFromElements(
           <Route path="/cases" element={<RoleRoute><Cases /></RoleRoute>} />
           <Route path="/cases/:roundId" element={<RoleRoute><CaseReviewDetail /></RoleRoute>} />
           <Route path="/calibration" element={<RoleRoute><Calibrations /></RoleRoute>} />
-          <Route path="/patients" element={<RoleRoute><Patients /></RoleRoute>} />
-          <Route path="/patients/:id" element={<RoleRoute><PatientDetail /></RoleRoute>} />
+          <Route path="/app-users" element={<RoleRoute><Patients /></RoleRoute>} />
+          <Route path="/app-users/:id" element={<RoleRoute><PatientDetail /></RoleRoute>} />
+          {/* Older links (notifications, bookmarks) */}
+          <Route path="/patients" element={<Navigate to="/app-users" replace />} />
+          <Route path="/patients/:id" element={<OldUserLink />} />
 
           {/* Unknown paths go to the home page */}
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -21,6 +21,8 @@ export const PAGE_ACCESS = {
   // Optional Premium access and read-only demo configuration
   "/premium": ADMINS,
   "/broadcasts": ADMINS,
+  // HL-171 (panel revision): barangay emergency hotlines the app shows by location
+  "/barangays": ADMINS,
   // Experts use notifications for content, account, and security work assigned to them.
   "/notifications": ALL_STAFF,
   // Own account/password only; this does not grant system or staff management.
@@ -33,11 +35,16 @@ export const PAGE_ACCESS = {
   // so it can't sway their next review (2026-11-15)
   "/calibration": ADMINS,
   // HL-039/040, HL-107/136: patient records and care-team notes are for the care team (experts) only, not Admins
-  "/patients": { roles: [], expertTypes: EXPERT_TYPES },
+  "/app-users": { roles: [], expertTypes: EXPERT_TYPES },
 };
 
-/** Pages with a detail page under them, e.g. "/patients/123" (one level only). */
-const DETAIL_PAGES = ["/users", "/cases", "/patients"];
+/** Pages with a detail page under them, e.g. "/app-users/123" (one level only). */
+const DETAIL_PAGES = ["/users", "/cases", "/app-users"];
+
+/** 2026-11-24 (panel revision): the app users' pages were at /patients; old links and notifications still work. */
+export function currentPath(pathname) {
+  return typeof pathname === "string" ? pathname.replace(/^\/patients(?=\/|$)/, "/app-users") : pathname;
+}
 
 /** The rule for a path, matching "/users/123" to "/users". */
 export function ruleFor(pathname) {
@@ -67,7 +74,7 @@ export function safeNotificationRoute(user, route) {
   if (typeof route !== "string" || !route.startsWith("/") || route.startsWith("//")) return null;
   try {
     const origin = "https://portal.heartlink.invalid";
-    const parsed = new URL(route, origin);
+    const parsed = new URL(currentPath(route), origin);
     if (parsed.origin !== origin || !ruleFor(parsed.pathname) || !canAccess(user, parsed.pathname)) {
       return null;
     }
@@ -102,6 +109,6 @@ export function homeFor(user) {
   if (user?.expert_type === "Dietitian") return "/foods";
   if (user?.expert_type === "Physical Therapist") return "/exercises";
   // HL-039: the Cardiologist dashboard
-  if (user?.expert_type === "Cardiologist") return "/patients";
+  if (user?.expert_type === "Cardiologist") return "/app-users";
   return "/notifications";
 }

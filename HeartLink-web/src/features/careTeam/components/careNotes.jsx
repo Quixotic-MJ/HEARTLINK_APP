@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { HeartPulse, MessagesSquare, Trash2 } from "lucide-react";
+import { EyeOff, HeartPulse, MessagesSquare, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { apiFetch } from "../../../lib/api.js";
 import { useApiQuery } from "../../../hooks/useApiQuery.js";
@@ -205,6 +205,12 @@ export default function CareNotes({ patientId, expertType }) {
 
   return (
     <div className="space-y-5 font-cal-sans text-cal-ink">
+      {/* 2026-11-24 (panel revision): who sees these notes, said plainly */}
+      <p className="flex items-center gap-2 rounded-[10px] border border-cal-hairline bg-cal-surface-soft px-4 py-3 text-[13px] font-medium text-cal-body">
+        <EyeOff size={15} className="shrink-0 text-cal-muted" aria-hidden="true" />
+        <span>Care team notes: only the care team sees these. The user doesn&apos;t.</span>
+      </p>
+
       {/* ─── 1. CARDIOLOGIST GUIDANCE ──────────────────────────────────────── */}
       <section
         aria-labelledby="guidance-title"

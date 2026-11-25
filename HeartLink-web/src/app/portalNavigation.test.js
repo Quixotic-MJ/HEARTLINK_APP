@@ -46,10 +46,10 @@ test("portal navigation and record-search shortcuts stay role-scoped", () => {
       role: "medical_expert",
       expert_type: "Cardiologist",
     }).map((page) => page.path),
-    ["/patients", "/cases", "/notifications", "/settings"],
+    ["/app-users", "/cases", "/notifications", "/settings"],
   );
   // HL-136: Admins run case review and Model Check but can't open patient records
   const adminPages = portalNavigationFor({ role: "admin" }).map((page) => page.path);
   assert.ok(adminPages.includes("/cases") && adminPages.includes("/calibration"));
-  assert.ok(!adminPages.includes("/patients"));
+  assert.ok(!adminPages.includes("/app-users"));
 });

@@ -15,8 +15,11 @@ A review counts as clinical only if the reviewer is a verified clinician when th
 
 HL-165 (panel revision): before a case can be used as a dataset, a verified Cardiologist approves it (or leaves it out,
 with a reason) once every part is in: their own review and the Dietitian's and PT's checks (when there was anything to
-check). A part that changes afterwards sends the case back to waiting. This only affects the dataset; feedback to the
-patient (hidden items, the checkup reminder) works as before.
+check). A part that changes afterwards sends the case back to waiting.
+
+HL-168 (panel revision, 2026-11-24): case review only builds the dataset. Nothing is sent to the user: the checkup answer
+and the "not suitable" verdicts are kept for the dataset only (review_feedback is no longer called from here). The case
+page also gets an "about" block in plain facts, including the health check (HL-164).
 """
 import logging
 from typing import Any, Dict, List, Optional
@@ -24,8 +27,8 @@ from typing import Any, Dict, List, Optional
 from fastapi import HTTPException, status
 
 from app.db.repositories import get_case_review_repo, get_content_repo, get_health_logs_repo, get_profile_repo
-from app.services import review_feedback, review_rules as rules
-from app.services.review_queue import _age, section_progress
+from app.services import review_rules as rules
+from app.services.review_queue import _age, case_stage, section_progress
 from app.services.exercises import is_visible_to_patients
 from app.services.recipes import is_visible_to_patients as recipe_visible
 from app.utils.time import parse_utc, utc_now
@@ -33,11 +36,13 @@ from app.utils.time import parse_utc, utc_now
 logger = logging.getLogger(__name__)
 
 SECTION_EXPERT_TYPE = {"cardiology": "Cardiologist", "nutrition": "Dietitian", "exercise": "Physical Therapist"}
-REASONS = ("blood_pressure", "heart_rate", "symptoms", "medication", "activity",
-           "nutrition_sodium", "sleep", "baseline_information", "other")
+# HL-168: smoking, cholesterol, diabetes, age and lifestyle added in plain words; the older codes stay valid
+REASONS = ("blood_pressure", "smoking", "cholesterol", "diabetes", "age", "symptoms", "lifestyle",
+           "heart_rate", "medication", "activity", "nutrition_sodium", "sleep", "baseline_information", "other")
 CONFIDENCE = ("low", "medium", "high")
 CHECKUP = ("not_needed", "within_2_weeks", "asap")
-VERDICTS = {"nutrition": ("ok", "no"), "exercise": ("ok", "changes", "no")}
+# HL-168: the Dietitian can also say "yes, with changes", like the Physical Therapist
+VERDICTS = {"nutrition": ("ok", "changes", "no"), "exercise": ("ok", "changes", "no")}
 RECIPES_SHOWN = 2
 EXERCISES_SHOWN = 3
 MAX_NOTE = 2000
@@ -146,21 +151,20 @@ def case_detail(round_id: str, current_user: Dict[str, Any]) -> Dict[str, Any]:
     sections = {s["section"]: s for s in get_case_review_repo().list_sections(review_case_id=rc["id"])}
     snap = rc.get("input_snapshot") or {}
     now = utc_now()
-    opened = parse_utc(rc.get("created_at")) or now
-    hours = max(0, int((now - opened).total_seconds() // 3600))
     cardiology_done = "cardiology" in sections
     recommendations = recommendations_for(rc)
     viewer = _viewer(current_user, rc)
     timeline = snap.get("timeline") or []
+    progress = section_progress(rc, set(sections), recommendations)
     return {
         "id": rc["id"],
         "case_code": rc.get("case_code"),
-        "lane": rc.get("lane"),
-        "reason": rc.get("reason"),
+        "older": rc.get("lane") in ("urgent", "rereview"),
         "status": rc.get("status"),
         "opened_at": rc.get("created_at"),
-        "waiting_hours": hours,
-        "overdue": rc.get("lane") == "urgent" and rc.get("status") == "open" and hours > rules.URGENT_REVIEW_HOURS,
+        **case_stage(rc, sections, progress),
+        # HL-168: the facts a reviewer needs, in plain terms (the page writes them as sentences)
+        "about": about_person(snap),
         "patient": {"age": _age(snap.get("date_of_birth"), now), "sex": snap.get("sex"),
                     "height_cm": snap.get("height_cm"), "weight_kg": snap.get("weight_kg")},
         "onboarding": snap.get("onboarding") or {},
@@ -171,7 +175,7 @@ def case_detail(round_id: str, current_user: Dict[str, Any]) -> Dict[str, Any]:
         # 2026-11-12: what the PAR-Q+ allows today, shown with the Physical Therapist's exercise list
         "exercise_check": exercise_check_for(rc),
         "sections": {name: _section_view(sections.get(name)) for name in SECTION_EXPERT_TYPE},
-        "progress": section_progress(rc, set(sections), recommendations),
+        "progress": progress,
         # Kept from reviewers until the Cardiologist has given their own level. HL-146: the Heart risk saved when the
         # round opened (None for older rounds) is shown with it, as extra information
         "app": {"tier": rc.get("app_tier"), "score": rc.get("app_score"), "scorer": rc.get("app_scorer"),
@@ -183,6 +187,74 @@ def case_detail(round_id: str, current_user: Dict[str, Any]) -> Dict[str, Any]:
         "viewer": viewer,
         # HL-165: whether the case may be used for the dataset, and who can decide
         "dataset": dataset_view(rc, sections, recommendations, viewer),
+    }
+
+
+# --- HL-168: "About this person" ------------------------------------------------------------------------------------
+
+HEALTH_CHECK_FROM = "2026-11-23"  # HL-164: the health check is asked of people who set up from this day
+
+
+def _yes_no(value: Any) -> Optional[bool]:
+    return None if value is None else bool(value)
+
+
+def _smoking(onboarding: Dict[str, Any]) -> Optional[str]:
+    if onboarding.get("ever_smoked") is None:
+        return None
+    if not onboarding.get("ever_smoked"):
+        return "never"
+    now = onboarding.get("smoke_now")
+    return "used to" if now in (None, "Not at all") else "now"
+
+
+def _blood_pressure(timeline: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    readings = [t.get("data") or {} for t in timeline if t.get("type") == "Vitals"]
+    pairs = [(r["systolic"], r["diastolic"]) for r in readings if r.get("systolic") and r.get("diastolic")]
+    if not pairs:
+        return None
+    highest = max(pairs)
+    return {"readings": len(pairs),
+            "average": f"{round(sum(p[0] for p in pairs) / len(pairs))}/{round(sum(p[1] for p in pairs) / len(pairs))}",
+            "highest": f"{highest[0]}/{highest[1]}"}
+
+
+def _symptoms(timeline: List[Dict[str, Any]]) -> Dict[str, int]:
+    counts: Dict[str, int] = {}
+    for t in timeline:
+        if t.get("type") != "Symptoms":
+            continue
+        for name in (t.get("data") or {}).get("symptoms") or []:
+            if name and not str(name).startswith("None"):
+                counts[name] = counts.get(name, 0) + 1
+    return counts
+
+
+def _health_check(snap: Dict[str, Any], onboarding: Dict[str, Any]) -> Dict[str, Any]:
+    """HL-164: what the user ticked at the health check. Not asked of people who set up before it existed."""
+    setup_at = str(snap.get("setup_at") or "")
+    if "health_conditions" not in onboarding or (setup_at and setup_at[:10] < HEALTH_CHECK_FROM):
+        return {"asked": False, "conditions": [], "doctor_cleared": False}
+    return {"asked": True, "conditions": list(onboarding.get("health_conditions") or []),
+            "doctor_cleared": bool(onboarding.get("doctor_cleared"))}
+
+
+def about_person(snap: Dict[str, Any]) -> Dict[str, Any]:
+    """HL-168: the facts on the case page, frozen when the case was picked. The medicines and diabetes are the setup
+    answers, or what the Heart risk used when setup didn't say."""
+    onboarding = snap.get("onboarding") or {}
+    risk_answers = ((snap.get("heart_risk") or {}).get("answers")) or {}
+    timeline = snap.get("timeline") or []
+    pick = lambda key, fallback: _yes_no(onboarding.get(key)) if onboarding.get(key) is not None else _yes_no(risk_answers.get(fallback))
+    return {
+        "bp_medicine": pick("bp_medicine", "bp_medicine"),
+        "diabetes": pick("has_diabetes", "diabetes"),
+        "cholesterol_medicine": pick("cholesterol_medicine", "statin"),
+        "smoking": _smoking(onboarding),
+        "labs": snap.get("labs") or [],
+        "blood_pressure": _blood_pressure(timeline),
+        "symptoms": _symptoms(timeline),
+        "health_check": _health_check(snap, onboarding),
     }
 
 
@@ -331,7 +403,6 @@ def submit_cardiology(round_id: str, payload: Dict[str, Any], current_user: Dict
     _reopen_dataset(rc)  # HL-165
     if rc.get("status") == "open":
         repo.update_review_case(rc["id"], {"status": "complete", "completed_at": utc_now().isoformat()})
-    review_feedback.notify_checkup(rc, checkup)  # HL-057: only while the setting is on
     return saved
 
 
@@ -360,5 +431,4 @@ def submit_items(section: str, round_id: str, payload: Dict[str, Any], current_u
             "notes": _clean_note(payload.get("notes")), "status": "submitted"}
     saved = get_case_review_repo().save_section(rc["id"], section, data)
     _reopen_dataset(rc)  # HL-165
-    review_feedback.record_not_suitable(rc, verdicts)  # HL-056 records; HL-057 hides them once switched on
     return saved

@@ -293,9 +293,9 @@ def test_account_kind_is_patient_or_family(world):
     ({"symptoms": ["Shortness of Breath"], "context": "after_exercise"}, False),
     ({"symptoms": ["Fainted or Nearly Fainted"]}, True),
     ({"symptoms": ["Dizziness / Lightheadedness"], "severity_map": {"Dizziness / Lightheadedness": 10}}, False),
-    # HL-166: oxygen under 90% is an emergency; 90 isn't
-    ({"spo2_percent": 89}, True),
-    ({"spo2_percent": 90}, False),
+    # HL-166: oxygen of 88% or lower is an emergency; 89 isn't (MedlinePlus, Cleveland Clinic)
+    ({"spo2_percent": 88}, True),
+    ({"spo2_percent": 89}, False),
     ({}, False),
 ])
 def test_emergency_rules_match_the_app(data, emergency):

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { AlertTriangle, ArrowLeft, Info, ShieldCheck } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Check, Info, ShieldCheck } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import AdminLayout from "../../components/layouts/adminLayout.jsx";
@@ -14,8 +14,6 @@ import {
   AGREEMENT,
   CHECKUP,
   CONFIDENCE,
-  DONE_CHIP,
-  LANES,
   PROGRESS,
   REASONS,
   RISK_BANDS,
@@ -23,8 +21,19 @@ import {
   SECTION_EXPERT,
   SECTION_LABELS,
   labelOf,
-  waitingText,
 } from "./reviewUi.js";
+import { STEPS, shortDate, stageLabel } from "./reviewFlow.js";
+import { CardiologyWizard, ItemsWizard } from "./reviewForms.jsx";
+import { resultSentence } from "./reviewQuestions.js";
+import {
+  CONDITION_NOTE,
+  bloodPressureLine,
+  healthCheckView,
+  labLines,
+  medicineLine,
+  personLine,
+  symptomsLine,
+} from "./aboutPerson.js";
 import { ExerciseLogPanel, FoodLogPanel } from "./caseReviewLogPanels.jsx";
 import { datasetStatusView, verdictSummary } from "./caseDataset.js";
 import { itemFacts } from "./caseReviewLogs.js";
@@ -80,18 +89,53 @@ function Snapshot({ data }) {
   ]);
   const p = data.patient || {};
 
+  const about = data.about || {};
+  const healthCheck = healthCheckView(about);
+
   return (
     <section
-      aria-label="User snapshot"
+      aria-label="About this person"
       className="flex flex-col gap-5 rounded-[12px] border border-cal-hairline bg-cal-canvas p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
     >
       <div>
-        <h2 className="text-[16px] font-semibold text-cal-ink">What every reviewer sees</h2>
+        <h2 className="text-[16px] font-semibold text-cal-ink">About this person</h2>
         <p className="mt-0.5 text-[13px] text-cal-muted">
-          Frozen anonymized baseline and 30-day clinical telemetry
+          As it was when this case was picked. Names and contact details are hidden.
         </p>
       </div>
 
+      {/* HL-168: the facts in plain sentences */}
+      <div className="flex flex-col gap-2 text-[14.5px] leading-relaxed text-cal-ink">
+        <p className="font-semibold">{personLine(p)}</p>
+        <p>{medicineLine(about)}</p>
+        {labLines(about).map((line) => (
+          <p key={line}>{line}</p>
+        ))}
+        <p>{bloodPressureLine(about)}</p>
+        <p>{symptomsLine(about)}</p>
+      </div>
+
+      {/* HL-164 / HL-168: the health check */}
+      <div
+        className={`rounded-[10px] border px-4 py-3 text-[13.5px] ${
+          healthCheck.flag ? "border-cal-warning/35 bg-cal-warning/10" : "border-cal-hairline bg-cal-surface-soft"
+        }`}
+      >
+        <div className="font-semibold text-cal-ink">Health check</div>
+        <p className="mt-0.5 text-cal-body">{healthCheck.text}</p>
+        {healthCheck.flag && (
+          <p className="mt-1.5 flex items-start gap-1.5 font-medium text-cal-ink">
+            <AlertTriangle size={14} className="mt-0.5 shrink-0 text-cal-warning" aria-hidden="true" />
+            <span>{CONDITION_NOTE}</span>
+          </p>
+        )}
+      </div>
+
+      <details className="group rounded-[10px] border border-cal-hairline px-4 py-3">
+        <summary className="cursor-pointer select-none text-[13.5px] font-semibold text-cal-ink">
+          See all answers and readings
+        </summary>
+        <div className="mt-4 flex flex-col gap-5">
       {/* Baseline & Onboarding Facts */}
       <div className="grid grid-cols-2 gap-2.5">
         <Fact label="Age" value={p.age != null ? `${p.age}` : null} />
@@ -197,213 +241,13 @@ function Snapshot({ data }) {
           </span>
         ))}
       </div>
+        </div>
+      </details>
 
       <p className="border-t border-cal-hairline pt-3.5 text-[12px] leading-relaxed text-cal-muted">
-        Frozen when the case opened. The app&apos;s Heart risk stays hidden until the Cardiologist submits.
+        The app&apos;s own heart risk stays hidden until the Cardiologist answers, so it can&apos;t sway them.
       </p>
     </section>
-  );
-}
-
-function CardiologyForm({ caseId, existing, onSaved }) {
-  const [band, setBand] = useState(existing?.expert_risk_band || "");
-  const [percent, setPercent] = useState(existing?.expert_risk_percent ?? "");
-  const [reasons, setReasons] = useState(existing?.reasons || []);
-  const [confidence, setConfidence] = useState(existing?.confidence || "");
-  const [checkup, setCheckup] = useState(existing?.checkup_flag || "");
-  const [notes, setNotes] = useState(existing?.notes || "");
-  const [tried, setTried] = useState(false);
-  const [saving, setSaving] = useState(false);
-
-  const valid = band && confidence && checkup && reasons.length > 0;
-  const toggle = (code) =>
-    setReasons((r) => (r.includes(code) ? r.filter((x) => x !== code) : [...r, code]));
-
-  const submit = async () => {
-    setTried(true);
-    if (!valid) return;
-    setSaving(true);
-    try {
-      const res = await apiFetch(`/api/admin/review-queue/${caseId}/cardiology`, {
-        method: "POST",
-        body: JSON.stringify({
-          expert_risk_band: band,
-          expert_risk_percent: percent === "" ? null : Number(percent),
-          reasons,
-          confidence,
-          checkup_flag: checkup,
-          notes,
-        }),
-      });
-      toast.success("Review submitted.");
-      onSaved(res.case);
-    } catch (e) {
-      toast.error(e?.data?.detail || "Couldn't submit the review.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="flex flex-col gap-6">
-      {/* HL-153: the Heart risk band the Cardiologist would give */}
-      <fieldset className="m-0 border-0 p-0">
-        <legend className="mb-1 text-[13.5px] font-semibold text-cal-ink">
-          Heart risk band you would give <span className="font-normal text-cal-muted">(required)</span>
-        </legend>
-        <p className="mb-2.5 text-[12.5px] text-cal-muted">
-          The chance of a heart attack or stroke in the next 10 years, in the AHA PREVENT bands.
-        </p>
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-          {RISK_BANDS.map((b) => {
-            const active = band === b.code;
-            return (
-              <button
-                key={b.code}
-                type="button"
-                aria-pressed={active}
-                onClick={() => setBand(b.code)}
-                className={`flex min-h-[52px] flex-col items-center justify-center rounded-[8px] border px-3 py-1.5 transition-colors cursor-pointer ${
-                  active
-                    ? "border-cal-primary bg-cal-primary text-cal-on-primary"
-                    : "border-cal-hairline bg-cal-canvas text-cal-ink hover:bg-cal-surface-soft"
-                }`}
-              >
-                <span className="text-[13.5px] font-semibold">{b.label}</span>
-                <span className={`text-[11.5px] ${active ? "text-cal-on-primary" : "text-cal-muted"}`}>{b.range}</span>
-              </button>
-            );
-          })}
-        </div>
-      </fieldset>
-
-      {/* Optional: their own 10-year risk estimate */}
-      <div className="flex max-w-[320px] flex-col gap-1.5">
-        <label htmlFor="expert-percent" className="text-[13.5px] font-semibold text-cal-ink">
-          Your 10-year risk estimate, %{" "}
-          <span className="font-normal text-cal-muted">(optional, if confident)</span>
-        </label>
-        <input
-          id="expert-percent"
-          type="number"
-          min="0.1"
-          max="100"
-          step="0.1"
-          value={percent}
-          onChange={(e) => setPercent(e.target.value)}
-          className={`${inputClass} font-cal-mono`}
-          placeholder="e.g. 6.5"
-        />
-      </div>
-
-      {/* Main Reasons Checklist */}
-      <fieldset className="m-0 border-0 p-0">
-        <legend className="mb-2.5 text-[13.5px] font-semibold text-cal-ink">
-          Main reasons <span className="font-normal text-cal-muted">(select at least one)</span>
-        </legend>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {REASONS.map((r) => {
-            const checked = reasons.includes(r.code);
-            return (
-              <label
-                key={r.code}
-                className={`flex min-h-[40px] items-center gap-2.5 rounded-[8px] border px-3 py-2 text-[13.5px] transition-colors cursor-pointer ${
-                  checked
-                    ? "border-cal-ink bg-cal-surface-soft font-medium text-cal-ink"
-                    : "border-cal-hairline bg-cal-canvas text-cal-body hover:bg-cal-surface-soft"
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={() => toggle(r.code)}
-                  className="h-4 w-4 rounded accent-cal-primary"
-                />
-                <span>{r.label}</span>
-              </label>
-            );
-          })}
-        </div>
-      </fieldset>
-
-      {/* Confidence */}
-      <fieldset className="m-0 border-0 p-0">
-        <legend className="mb-2.5 text-[13.5px] font-semibold text-cal-ink">
-          Confidence <span className="font-normal text-cal-muted">(required)</span>
-        </legend>
-        <div className="flex flex-wrap gap-2">
-          {CONFIDENCE.map((c) => (
-            <button
-              key={c.code}
-              type="button"
-              aria-pressed={confidence === c.code}
-              onClick={() => setConfidence(c.code)}
-              className={choicePill(confidence === c.code)}
-            >
-              {c.label}
-            </button>
-          ))}
-        </div>
-      </fieldset>
-
-      {/* In-Person Checkup */}
-      <fieldset className="m-0 border-0 p-0">
-        <legend className="mb-2.5 text-[13.5px] font-semibold text-cal-ink">
-          In-person checkup <span className="font-normal text-cal-muted">(required)</span>
-        </legend>
-        <div className="flex flex-wrap gap-2">
-          {CHECKUP.map((c) => (
-            <button
-              key={c.code}
-              type="button"
-              aria-pressed={checkup === c.code}
-              onClick={() => setCheckup(c.code)}
-              className={choicePill(checkup === c.code)}
-            >
-              {c.label}
-            </button>
-          ))}
-        </div>
-        <p className="mt-2 text-[12px] text-cal-muted">
-          Recorded with this review.
-        </p>
-      </fieldset>
-
-      {/* Internal Note */}
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="expert-notes" className="text-[13.5px] font-semibold text-cal-ink">
-          Internal note <span className="font-normal text-cal-muted">(staff only)</span>
-        </label>
-        <textarea
-          id="expert-notes"
-          rows={3}
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          className={textareaClass}
-          placeholder="What stood out in this case"
-        />
-      </div>
-
-      {tried && !valid && (
-        <p
-          role="alert"
-          className="rounded-[8px] border border-cal-error/25 bg-cal-error/5 px-3.5 py-2.5 text-[13px] font-medium text-cal-error"
-        >
-          Choose a Heart risk band, at least one reason, a confidence level, and a checkup option.
-        </p>
-      )}
-
-      <div>
-        <button
-          type="button"
-          onClick={submit}
-          disabled={saving}
-          className="inline-flex h-10 items-center justify-center rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-5 text-[14px] font-semibold text-cal-on-primary transition-colors cursor-pointer disabled:bg-cal-primary-disabled disabled:text-cal-muted"
-        >
-          {saving ? "Submitting…" : existing ? "Update review" : "Submit review"}
-        </button>
-      </div>
-    </div>
   );
 }
 
@@ -413,6 +257,12 @@ function CardiologyResult({ section, app, canEdit, onEdit }) {
   const agreement = AGREEMENT[older ? section.tier_agreement : section.risk_agreement];
   return (
     <div className="flex flex-col gap-5">
+      {/* HL-168: what the app said, in one plain sentence */}
+      {!older && (
+        <p className="rounded-[10px] border border-cal-hairline bg-cal-surface-soft px-4 py-3.5 text-[15px] font-medium leading-relaxed text-cal-ink">
+          {resultSentence(section.expert_risk_band, app?.risk)}
+        </p>
+      )}
       {/* 3-Up Comparison Cards */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="rounded-[12px] border border-cal-hairline bg-cal-surface-soft p-4">
@@ -591,6 +441,22 @@ function ItemsSection({ caseId, section, items, saved, canSubmit, onSaved }) {
   }
 
   const showForm = canSubmit && editing;
+  // HL-168: one recipe or exercise per screen, then "Check your answers"
+  if (showForm) {
+    return (
+      <ItemsWizard
+        caseId={caseId}
+        section={section}
+        items={items}
+        saved={saved}
+        onSaved={(fresh) => {
+          setEditing(false);
+          onSaved(fresh);
+        }}
+        onCancel={saved ? () => setEditing(false) : undefined}
+      />
+    );
+  }
   return (
     <div className="flex flex-col gap-3.5">
       <p className="text-[13.5px] text-cal-muted">
@@ -720,6 +586,41 @@ function ItemsSection({ caseId, section, items, saved, canSubmit, onSaved }) {
   );
 }
 
+// HL-168: where this case is in the four steps (pick, check, approve, results)
+function CaseSteps({ stage, outcome }) {
+  const current = stage === "check" ? 1 : stage === "approve" ? 2 : 3;
+  return (
+    <ol aria-label="Where this case is" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      {STEPS.map((s, i) => {
+        const done = i < current || (i === 3 && stage === "done");
+        const here = i === current && stage !== "done";
+        const label = i === 3 && stage === "done" ? stageLabel({ stage, outcome }) : s.label;
+        return (
+          <li
+            key={s.key}
+            aria-current={here ? "step" : undefined}
+            className={`flex items-center gap-2.5 rounded-[10px] border px-3.5 py-2.5 text-[13.5px] ${
+              here ? "border-cal-primary bg-cal-primary/10 font-semibold text-cal-ink" : "border-cal-hairline bg-cal-canvas text-cal-muted"
+            }`}
+          >
+            <span
+              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold ${
+                done ? "bg-cal-success text-white" : here ? "bg-cal-primary text-cal-on-primary" : "bg-cal-surface-card text-cal-ink"
+              }`}
+            >
+              {done ? <Check size={13} aria-hidden="true" /> : s.number}
+            </span>
+            <span>
+              {label}
+              {here ? <span className="sr-only"> (this case is here)</span> : null}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 const CaseReviewDetail = () => {
   const { roundId } = useParams();
   const navigate = useNavigate();
@@ -763,7 +664,7 @@ const CaseReviewDetail = () => {
             className="inline-flex h-9 items-center gap-1.5 rounded-[8px] border border-cal-hairline bg-cal-canvas px-3.5 text-[13px] font-semibold text-cal-ink hover:bg-cal-surface-card transition-colors cursor-pointer"
           >
             <ArrowLeft size={14} />
-            <span>Back to queue</span>
+            <span>Back to cases</span>
           </button>
         </div>
 
@@ -789,49 +690,29 @@ const CaseReviewDetail = () => {
             <div>
               <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-cal-hairline bg-cal-canvas px-3 py-1 text-[12px] font-medium text-cal-muted">
                 <ShieldCheck size={13.5} className="text-cal-ink" />
-                <span>Clinical evaluation round</span>
+                <span>Case review</span>
               </div>
 
               <div className="flex flex-wrap items-center gap-2.5">
                 <h1 className="font-cal-display text-[28px] sm:text-[32px] font-semibold tracking-[-0.8px] leading-[1.15] text-cal-ink">
                   {data.case_code}
                 </h1>
-
-                <span
-                  className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[12px] font-medium ${
-                    LANES[data.lane]?.className || "border-cal-hairline bg-cal-surface-card text-cal-ink"
-                  }`}
-                >
-                  {LANES[data.lane]?.dotClass && (
-                    <span className={`h-1.5 w-1.5 rounded-full ${LANES[data.lane].dotClass}`} />
-                  )}
-                  {LANES[data.lane]?.label || data.lane}
+                <span className="inline-flex items-center rounded-full border border-cal-hairline bg-cal-surface-card px-2.5 py-0.5 text-[12px] font-medium text-cal-ink">
+                  {stageLabel(data)}
                 </span>
-
-                {data.overdue && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-cal-error/30 bg-cal-error/10 px-2.5 py-0.5 text-[12px] font-semibold text-cal-error">
-                    <AlertTriangle size={12} aria-hidden="true" />
-                    <span>Overdue</span>
-                  </span>
-                )}
-
-                {data.status === "complete" && (
-                  <span
-                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[12px] font-medium ${DONE_CHIP}`}
-                  >
-                    <span className="h-1.5 w-1.5 rounded-full bg-cal-success" />
-                    <span>Complete</span>
+                {data.older && (
+                  <span className="inline-flex items-center rounded-full border border-cal-hairline bg-cal-surface-soft px-2.5 py-0.5 text-[12px] font-medium text-cal-muted">
+                    Older case
                   </span>
                 )}
               </div>
 
               <p className="mt-1.5 text-[14px] text-cal-muted">
-                {data.reason} · waiting{" "}
-                <span className="font-cal-mono font-medium text-cal-ink">
-                  {waitingText(data.waiting_hours)}
-                </span>
+                {shortDate(data.opened_at) ? `Picked ${shortDate(data.opened_at)}` : "Picked for review"}
               </p>
             </div>
+
+            <CaseSteps stage={data.stage} outcome={data.outcome} />
 
             {/* Practice / Admin Callouts */}
             {isExpert && !viewer.verified_clinician && (
@@ -846,7 +727,7 @@ const CaseReviewDetail = () => {
             {isAdmin && (
               <div className="flex items-center gap-2.5 rounded-[10px] border border-cal-hairline bg-cal-canvas px-4 py-3 text-[13px] text-cal-muted">
                 <Info size={15} className="shrink-0 text-cal-muted" aria-hidden="true" />
-                <span>Admins can follow multi-disciplinary progress here, while clinical scoring is submitted by medical experts.</span>
+                <span>Admins can follow each case here. Only the Cardiologist, the Dietitian and the Physical Therapist answer.</span>
               </div>
             )}
 
@@ -920,7 +801,12 @@ const CaseReviewDetail = () => {
                 <div className="p-6">
                   {tab === "cardiology" &&
                     (viewer.can_submit?.cardiology && (!cardio || editingCardio) ? (
-                      <CardiologyForm caseId={data.id} existing={cardio} onSaved={onSaved} />
+                      <CardiologyWizard
+                        caseId={data.id}
+                        existing={cardio}
+                        onSaved={onSaved}
+                        onCancel={cardio ? () => setEditingCardio(false) : undefined}
+                      />
                     ) : cardio ? (
                       <CardiologyResult
                         section={cardio}
@@ -1039,6 +925,14 @@ function DatasetPanel({ data, onSaved }) {
         <span className={`${TAG} ${DATASET_TONE[view.tone]}`}>{view.label}</span>
       </div>
       <p className="mt-1.5 text-[13.5px] text-cal-muted">{view.detail}</p>
+      {dataset.can_decide && healthCheckView(data.about).flag && (
+        <p className="mt-3 flex items-start gap-2 rounded-[10px] border border-cal-warning/35 bg-cal-warning/10 px-4 py-3 text-[13.5px] font-medium text-cal-ink">
+          <AlertTriangle size={15} className="mt-0.5 shrink-0 text-cal-warning" aria-hidden="true" />
+          <span>
+            {healthCheckView(data.about).text} {CONDITION_NOTE}
+          </span>
+        </p>
+      )}
 
       {dataset.can_decide ? (
         <div className="mt-4 flex flex-col gap-4">

@@ -66,12 +66,14 @@ describe("oxygen (SpO2)", () => {
     expect(completeSpo2("")).toBeNull();
   });
 
-  it("is an emergency under 90%, a 'get checked' note from 90 to 94%, and fine from 95%", () => {
-    expect(isLowOxygenEmergency(89)).toBe(true);
-    expect(isLowOxygenEmergency(90)).toBe(false);
+  // 2026-11-25: matches MedlinePlus (NIH) and Cleveland Clinic: 88% or lower = immediate care, 92% or lower = doctor
+  it("is an emergency at 88% or lower, a 'contact your doctor' note from 89 to 92%, and no note from 93%", () => {
+    expect(isLowOxygenEmergency(88)).toBe(true);
+    expect(isLowOxygenEmergency(89)).toBe(false);
+    expect(isOxygenLow(89)).toBe(true);
     expect(isOxygenLow(92)).toBe(true);
-    expect(isOxygenLow(89)).toBe(false);
-    expect(isOxygenLow(95)).toBe(false);
+    expect(isOxygenLow(88)).toBe(false);
+    expect(isOxygenLow(93)).toBe(false);
     expect(isLowOxygenEmergency(null) || isOxygenLow(null)).toBe(false);
   });
 });

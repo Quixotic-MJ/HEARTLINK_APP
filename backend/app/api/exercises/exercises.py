@@ -165,7 +165,7 @@ def add_exercise_log(user_id: str, data: Dict[str, Any], current_user: dict = De
     if caller_role != "patient" or not caller_uuid or caller_uuid != target_uuid:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only the patient account owner may record their own exercise logs.",
+            detail="You can only record your own exercise logs.",
         )
 
     if "duration_seconds" in data and data["duration_seconds"] is not None:
@@ -224,7 +224,7 @@ def delete_log(user_id: str, log_id: str, current_user: dict = Depends(get_curre
     if caller_role != "patient" or not caller_uuid or caller_uuid != target_uuid:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only the patient account owner may delete their own exercise logs.",
+            detail="You can only delete your own exercise logs.",
         )
     success, message, status_code = delete_exercise_log(user_id, log_id)
     if not success:

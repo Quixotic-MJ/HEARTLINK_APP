@@ -244,8 +244,8 @@ const ModelCheck = () => {
       <div className="workspace workspace--operations workspace--refined workspace--graphite review-workspace model-workspace mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
         <WorkspaceHeader
           icon={History}
-          title="Model Check"
-          description="Compare app results with cardiologist reviews. Measures include verified clinical reviews only."
+          title="Step 4: Results (Model Check)"
+          description="How often the app's heart risk agreed with the Cardiologist, on the reviewed cases. Only reviews by verified clinicians count."
         >
           {isAdmin && (
             <button

@@ -13,13 +13,14 @@ import { DsScreen, IconBadge } from "../../components/onboarding/QuestionLayout"
 import { useDs } from "../../components/onboarding/useDs";
 import { useBaseline } from "../../contexts/BaselineContext";
 import { useUser } from "../../contexts/UserContext";
-import { HEALTH_CONDITIONS, NO_CONDITION, conditionsSentence } from "../../services/setupScreening";
+import { DOCTOR_OK, HEALTH_CONDITIONS, NO_CONDITION, conditionsSentence } from "../../services/setupScreening";
 
 const OPTIONS = [...HEALTH_CONDITIONS, { value: NO_CONDITION, label: "None of these" }];
 
 /**
  * HL-164 (panel revision): before setup, the conditions HeartLink isn't made for. A tick shows the advice not to use the
- * app: the person can sign out, or go on only after saying their doctor OK'd it.
+ * app: the person can sign out, or go on only after saying their doctor OK'd it. "What to show your doctor" opens a page
+ * (app/legal.tsx?doc=doctor) they can show or send their doctor.
  */
 export default function HealthCheckScreen() {
   const router = useRouter();
@@ -100,7 +101,7 @@ export default function HealthCheckScreen() {
               onPress={() => setCleared((v) => !v)}
               accessibilityRole="checkbox"
               accessibilityState={{ checked: cleared }}
-              accessibilityLabel="My doctor said I can use HeartLink"
+              accessibilityLabel={DOCTOR_OK}
               style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 48, paddingVertical: 4 }}
             >
               <View
@@ -117,7 +118,20 @@ export default function HealthCheckScreen() {
               >
                 {cleared ? <Feather name="check" size={14} color="#ffffff" /> : null}
               </View>
-              <Text style={{ flex: 1, fontSize: 14.5, lineHeight: 21, color: c.ink }}>My doctor said I can use HeartLink</Text>
+              <Text style={{ flex: 1, fontSize: 14.5, lineHeight: 21, color: c.ink }}>{DOCTOR_OK}</Text>
+            </AnimatedButton>
+            <Text style={{ fontSize: 13.5, lineHeight: 20, color: c.slate }}>
+              HeartLink can&apos;t check this. We trust your answer. If you haven&apos;t asked your doctor yet, please do
+              before you use the app.
+            </Text>
+            <AnimatedButton
+              onPress={() => router.push("/legal?doc=doctor")}
+              accessibilityRole="link"
+              accessibilityHint="Opens a page you can show or send to your doctor"
+              style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44 }}
+            >
+              <Feather name="file-text" size={16} color={c.primary} />
+              <Text style={{ fontSize: 14.5, fontWeight: "600", color: c.primary }}>What to show your doctor</Text>
             </AnimatedButton>
             <AnimatedButton
               onPress={() => setAdvice(false)}

@@ -31,7 +31,8 @@ const SECTIONS = [
   ["sleep", "Sleep"],
   // HL-146: each record holds the Heart risk and the habits score worked out together
   ["scores", "Heart risk and habits"],
-  ["alerts", "Alerts"],
+  // 2026-11-24: the emergency readings the app answered (it showed the 911 guidance); nobody here follows them up
+  ["alerts", "Emergency readings"],
   // HL-138: lab results the patient added themselves (read-only here)
   ["lab_results", "Lab results"],
 ];
@@ -225,13 +226,13 @@ const TABLES = {
           ),
       ],
       // HL-167 (panel revision): the medicine column was removed with the question. HL-166: the optional oxygen
-      // reading; under 90% is an emergency in the app (pending the cardiologist's confirmation).
+      // reading; 88% or lower is an emergency in the app (MedlinePlus, Cleveland Clinic; pending the cardiologist).
       [
         "spo2",
         "Oxygen",
         (r) =>
           r.spo2_percent != null ? (
-            <span className={`font-cal-mono tabular-nums ${r.spo2_percent < 90 ? "font-semibold text-cal-error" : "text-cal-ink"}`}>
+            <span className={`font-cal-mono tabular-nums ${r.spo2_percent <= 88 ? "font-semibold text-cal-error" : "text-cal-ink"}`}>
               {r.spo2_percent}%
             </span>
           ) : (
@@ -411,7 +412,7 @@ const TABLES = {
     ],
   },
   alerts: {
-    empty: "No alerts.",
+    empty: "No emergency readings.",
     columns: [
       when,
       [
@@ -482,7 +483,6 @@ export default function PatientDetail() {
   const band = latestBp ? bpBand(latestBp.systolic_bp, latestBp.diastolic_bp) : null;
   const latestScore = data?.scores?.[0];
   const latestRisk = riskOfRecord(latestScore);
-  const openAlerts = (data?.alerts || []).filter((a) => a.status === "Under Review").length;
 
   return (
     <AdminLayout>
@@ -491,7 +491,7 @@ export default function PatientDetail() {
         <div>
           <button
             type="button"
-            onClick={() => navigate("/patients")}
+            onClick={() => navigate("/app-users")}
             className="inline-flex h-9 items-center gap-1.5 rounded-[8px] border border-cal-hairline bg-cal-canvas px-3.5 text-[13px] font-medium text-cal-body hover:bg-cal-surface-card hover:text-cal-ink transition-colors cursor-pointer"
           >
             <ArrowLeft size={14.5} />
@@ -512,7 +512,7 @@ export default function PatientDetail() {
             </p>
             <button
               type="button"
-              onClick={() => navigate("/patients")}
+              onClick={() => navigate("/app-users")}
               className="mt-5 inline-flex h-10 items-center justify-center rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-5 text-[14px] font-semibold text-cal-on-primary transition-colors cursor-pointer"
             >
               Back to app users
@@ -550,7 +550,7 @@ export default function PatientDetail() {
                 </p>
               </div>
 
-              <dl className="grid min-w-0 grid-cols-1 gap-px overflow-hidden rounded-[10px] border border-cal-hairline bg-cal-hairline sm:grid-cols-2 lg:min-w-[560px] xl:grid-cols-4 xl:min-w-[720px]">
+              <dl className="grid min-w-0 grid-cols-1 gap-px overflow-hidden rounded-[10px] border border-cal-hairline bg-cal-hairline sm:grid-cols-2 lg:min-w-[560px] xl:grid-cols-3 xl:min-w-[600px]">
                 <div className="bg-cal-canvas px-4 py-3.5">
                   <dt className="text-[12px] font-medium text-cal-muted">Latest blood pressure</dt>
                   <dd className="mt-1.5 flex flex-wrap items-center gap-2">
@@ -623,22 +623,6 @@ export default function PatientDetail() {
                   </dd>
                 </div>
 
-                <div className="bg-cal-canvas px-4 py-3.5">
-                  <dt className="text-[12px] font-medium text-cal-muted">Open alerts</dt>
-                  <dd className="mt-1.5">
-                    {data === null ? (
-                      <Skeleton className="h-6 w-12 rounded-[6px] bg-cal-surface-strong/60" />
-                    ) : (
-                      <span
-                        className={`font-cal-display text-[22px] font-semibold tracking-[-0.5px] leading-none tabular-nums ${
-                          openAlerts > 0 ? "text-cal-error" : "text-cal-muted"
-                        }`}
-                      >
-                        {openAlerts}
-                      </span>
-                    )}
-                  </dd>
-                </div>
               </dl>
             </div>
 

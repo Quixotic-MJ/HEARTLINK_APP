@@ -56,7 +56,11 @@ const features = [
 const questions = [
   [
     "What is HeartLink?",
-    "A heart-health companion for adults, including people at risk of heart disease. It brings blood pressure, meals, movement and sleep into one app to help you track your heart health and work on prevention. It's a CTU capstone project.",
+    "A heart-health companion for adults, including people at risk of heart disease. It brings blood pressure, meals, movement and sleep into one app to help you track your heart health and work on prevention. It isn't made for people with heart disease, a past stroke, kidney disease or a pregnancy. It's a CTU capstone project.",
+  ],
+  [
+    "Does anyone watch my readings?",
+    "No. HeartLink's experts look at a small random sample of cases with names hidden, for research only, and nothing is sent back to you. When a reading is an emergency, the app itself tells you to call 911.",
   ],
   [
     "Does HeartLink diagnose or treat a condition?",

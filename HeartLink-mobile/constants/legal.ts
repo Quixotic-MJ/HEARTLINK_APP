@@ -4,7 +4,7 @@
  * DRAFT: written by the team in plain English and pending the adviser's review. Not legal advice.
  */
 
-export type LegalDocId = "terms" | "privacy";
+export type LegalDocId = "terms" | "privacy" | "doctor";
 
 export interface LegalSection {
   heading: string;
@@ -143,7 +143,7 @@ export const PRIVACY: LegalDoc = {
         "Account: your name, email address, mobile number and password. Your password is kept by our sign-in service, and the team can't see it.",
         "Profile: date of birth, sex, height and weight.",
         "Setup answers: activity, sleep, smoking, diet, allergies, and whether you take blood pressure or cholesterol medicine or have diabetes.",
-        "Health logs: blood pressure, pulse, weight, medicines, symptoms, meals, exercise and sleep.",
+        "Health logs: blood pressure, pulse, weight, blood oxygen (optional), symptoms, meals, exercise and sleep.",
         "Lab results you choose to add, and your PAR-Q+ answers.",
         "Family sharing links, saved recipes and exercises, reminders, and feedback you send.",
         "Your phone's notification token, so we can send you notifications.",
@@ -236,6 +236,83 @@ export const PRIVACY: LegalDoc = {
   ],
 };
 
+/**
+ * 2026-11-24 (panel revision): HeartLink can't check that a user's doctor OK'd it (HL-164's tick box is the user's
+ * word). This page is something to show or send the doctor, so the doctor can give a real answer. Keep it in step with
+ * what the app does: the limits in services/dailyLimits.ts, the emergencies in services/vitalsCheck.ts and
+ * log-symptoms.tsx, and the Heart risk in services/heartRisk.ts.
+ */
+export const DOCTOR: LegalDoc = {
+  title: "For your doctor",
+  updated: "24 November 2026",
+  intro:
+    "Your patient would like to use HeartLink. It isn't made for people with heart disease, a past stroke, kidney disease or a pregnancy, so we ask them to check with you first. This page explains what the app does, so you can decide.",
+  sections: [
+    {
+      heading: "What HeartLink is",
+      paragraphs: [
+        "A heart-health tracking and prevention app for adults, made by students of Cebu Technological University as a capstone project. It is not a medical device. It doesn't diagnose, treat or replace a doctor.",
+        "Nobody monitors the readings. No doctor or nurse watches the app or answers alerts.",
+      ],
+    },
+    {
+      heading: "What the user does in the app",
+      bullets: [
+        "Logs home blood pressure and pulse, and optionally weight, blood oxygen and symptoms.",
+        "Logs meals (the app counts sodium), sleep, exercise and steps.",
+        "Answers setup questions: blood pressure and cholesterol medicine, diabetes, smoking, activity, sleep and diet.",
+      ],
+    },
+    {
+      heading: "What the app gives back",
+      bullets: [
+        "A daily habits score.",
+        "A 10-year heart risk estimate from the American Heart Association's PREVENT equations (ages 30 to 79). These equations are for people without heart disease or stroke, so they may not apply to your patient.",
+        "Fixed daily limits: sodium 1,500 mg and cholesterol 200 mg. The user can't raise them.",
+        "Recipes approved by a dietitian, and exercises approved by a physical therapist. The PAR-Q+ exercise safety questionnaire decides which exercises are offered.",
+      ],
+    },
+    {
+      heading: "Safety messages",
+      paragraphs: [
+        "The app tells the user to call 911 or go to the nearest hospital when they log any of these:",
+      ],
+      bullets: [
+        "Blood pressure of 180 systolic or more, or 120 diastolic or more.",
+        "Blood pressure under 90 systolic or under 60 diastolic.",
+        "Chest discomfort rated 7 out of 10 or more, shortness of breath at rest, or fainting or nearly fainting.",
+        "Blood oxygen of 88% or lower.",
+      ],
+      after: ["The app never tells the user to start, stop or change a medicine."],
+    },
+    {
+      heading: "Questions to talk about",
+      bullets: [
+        "Is it safe for this patient to use HeartLink?",
+        "Is a 1,500 mg sodium limit right for them?",
+        "Should they avoid any kind of exercise?",
+        "Is their blood pressure target different from the usual one?",
+      ],
+      after: [
+        "HeartLink can't check whether you said yes. If the app doesn't suit your patient, please tell them not to use it.",
+      ],
+    },
+  ],
+};
+
 export function legalDoc(id: string | undefined): LegalDoc {
+  if (id === "doctor") return DOCTOR;
   return id === "privacy" ? PRIVACY : TERMS;
+}
+
+/** A page as plain text, for sharing (the "For your doctor" page has a Share button). */
+export function docAsText(doc: LegalDoc): string {
+  const parts = [doc.title, doc.intro];
+  for (const s of doc.sections) {
+    parts.push(
+      [s.heading, ...(s.paragraphs ?? []), ...(s.bullets ?? []).map((b) => `- ${b}`), ...(s.after ?? [])].join("\n")
+    );
+  }
+  parts.push(`HeartLink, updated ${doc.updated}`);
+  return parts.join("\n\n");
 }

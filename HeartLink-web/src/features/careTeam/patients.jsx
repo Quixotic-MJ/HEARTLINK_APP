@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  AlertTriangle,
   ChevronRight,
   HeartPulse,
   Search,
@@ -20,11 +19,11 @@ import { TAG, bpBand, riskBand, riskPercent, tierClass, tierDotClass } from "./v
 import { formatNoteTime } from "./noteTime.js";
 import { WorkspaceHeader } from "../../components/ui/workspaceHeader.jsx";
 
-// HL-039: every patient's latest blood pressure, Heart risk (HL-146), habits score and open alerts. Cardiologists land here;
-// Dietitians and PTs use it to reach a patient's care-team notes.
+// HL-039: every app user's latest blood pressure, Heart risk (HL-146) and habits score, for reference while reviewing.
+// 2026-11-24 (panel revision): nobody monitors users here, so the "open alerts" count (which nobody could close) and the
+// "Cardiologist dashboard" title were removed.
 const FILTERS = [
   ["all", "All"],
-  ["alerts", "Open alerts"],
   ["bp", "High or low blood pressure"],
 ];
 
@@ -68,13 +67,12 @@ export default function Patients() {
 
   const counts = {
     all: rows.length,
-    alerts: rows.filter((r) => r.open_alerts > 0).length,
     bp: rows.filter((r) => r.band?.attention).length,
   };
   const needle = query.trim().toUpperCase();
   const shown = rows
     .filter((r) =>
-      filter === "alerts" ? r.open_alerts > 0 : filter === "bp" ? r.band?.attention : true
+      filter === "bp" ? r.band?.attention : true
     )
     .filter((r) => !needle || r.ref.includes(needle));
 
@@ -95,12 +93,10 @@ export default function Patients() {
       <div className="workspace workspace--operations mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
         <WorkspaceHeader
           icon={HeartPulse}
-          title={isCardiologist ? "Cardiologist dashboard" : "App users"}
-          description={
-            isCardiologist
-              ? "Every user's latest blood pressure, heart risk, habits score and open alerts. Open a user to read their logs and leave guidance for the dietitians and physical therapists."
-              : "Open a user to read the cardiologist's guidance and coordinate in the shared care-team thread."
-          }
+          title="App users"
+          description={`For reference while reviewing. Nobody monitors users here, and users don't see the care team's notes.${
+            isCardiologist ? " Open a user to read their logs and leave guidance for the dietitians and physical therapists." : ""
+          }`}
         />
 
         {/* ─── 2. CLINICAL GOVERNANCE & PRIVACY BAR (HL-039) ────────────────── */}
@@ -114,7 +110,7 @@ export default function Patients() {
         </div>
 
         {/* ─── 3. KPI SUMMARY STRIP ─────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
             <div className="flex items-center justify-between gap-2">
               <span className="text-[12.5px] font-medium text-cal-muted">App users</span>
@@ -126,23 +122,6 @@ export default function Patients() {
               {loading ? "—" : counts.all}
             </div>
             <div className="mt-2 text-[12px] text-cal-muted">Anonymized care-team profiles</div>
-          </div>
-
-          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[12.5px] font-medium text-cal-muted">With open alerts</span>
-              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-error/25 bg-cal-error/10 text-cal-error">
-                <AlertTriangle size={14.5} aria-hidden="true" />
-              </span>
-            </div>
-            <div
-              className={`mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none ${
-                !loading && counts.alerts > 0 ? "text-cal-error" : "text-cal-ink"
-              }`}
-            >
-              {loading ? "—" : counts.alerts}
-            </div>
-            <div className="mt-2 text-[12px] text-cal-muted">Flagged telemetry under review</div>
           </div>
 
           <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
@@ -236,7 +215,7 @@ export default function Patients() {
 
           {/* Data Table */}
           <div className="w-full overflow-x-auto">
-            <table className="w-full min-w-[920px] border-collapse text-left">
+            <table className="w-full min-w-[800px] border-collapse text-left">
               <thead className="border-b border-cal-hairline bg-cal-surface-soft">
                 <tr>
                   <th scope="col" className="px-5 py-3 text-[12px] font-medium text-cal-muted">
@@ -251,9 +230,6 @@ export default function Patients() {
                   <th scope="col" className="px-5 py-3 text-[12px] font-medium text-cal-muted">
                     Habits score
                   </th>
-                  <th scope="col" className="px-5 py-3 text-[12px] font-medium text-cal-muted">
-                    Open alerts
-                  </th>
                   <th
                     scope="col"
                     className="px-5 py-3 text-right text-[12px] font-medium text-cal-muted"
@@ -267,20 +243,20 @@ export default function Patients() {
                 {loading ? (
                   [0, 1, 2, 3].map((i) => (
                     <tr key={i}>
-                      <td colSpan={6} className="px-5 py-4">
+                      <td colSpan={5} className="px-5 py-4">
                         <Skeleton className="h-9 w-full rounded-[8px] bg-cal-surface-strong/60" />
                       </td>
                     </tr>
                   ))
                 ) : patients.isError ? (
                   <tr>
-                    <td colSpan={6}>
+                    <td colSpan={5}>
                       <LoadError what="app users" onRetry={patients.refetch} className="py-12" />
                     </td>
                   </tr>
                 ) : shown.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-5 py-14 text-center">
+                    <td colSpan={5} className="px-5 py-14 text-center">
                       <p className="text-[14px] font-semibold text-cal-ink">
                         {rows.length === 0
                           ? "No users yet"
@@ -308,7 +284,7 @@ export default function Patients() {
                   shown.map((p) => (
                     <tr
                       key={p.id}
-                      onClick={() => navigate(`/patients/${p.id}`)}
+                      onClick={() => navigate(`/app-users/${p.id}`)}
                       className="group hover:bg-cal-surface-soft/80 transition-colors cursor-pointer"
                     >
                       <td className="px-5 py-3.5">
@@ -321,7 +297,7 @@ export default function Patients() {
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                navigate(`/patients/${p.id}`);
+                                navigate(`/app-users/${p.id}`);
                               }}
                               className="font-cal-mono text-[13.5px] font-semibold text-cal-ink group-hover:underline cursor-pointer whitespace-nowrap"
                             >
@@ -393,20 +369,6 @@ export default function Patients() {
                           </div>
                         ) : (
                           <span className="text-[13px] text-cal-muted">No score yet</span>
-                        )}
-                      </td>
-
-                      <td className="px-5 py-3.5">
-                        {p.open_alerts > 0 ? (
-                          <span
-                            className={`${TAG} border-cal-error/25 bg-cal-error/10 text-cal-ink`}
-                          >
-                            <span className="h-1.5 w-1.5 rounded-full bg-cal-error" />
-                            <span className="font-cal-mono tabular-nums">{p.open_alerts}</span>
-                            <span>open</span>
-                          </span>
-                        ) : (
-                          <span className="text-[13px] text-cal-muted">None</span>
                         )}
                       </td>
 

@@ -5,8 +5,9 @@
  * - hypertensive crisis: systolic 180 or more, or diastolic 120 or more
  * - severe hypotension: systolic under 90, or diastolic under 60
  * - chest discomfort rated 7 or more, shortness of breath while resting, or fainting or nearly fainting
- * - HL-166: blood oxygen (SpO2) under 90%. 90 to 94% gets a "get checked" note, not the emergency guidance.
- *   PROPOSED values, pending the cardiologist's confirmation (also in backend review_rules.py and family.py).
+ * - HL-166: blood oxygen (SpO2) of 88% or lower. 89 to 92% gets a "get checked" note, not the emergency guidance.
+ *   2026-11-25: these match MedlinePlus (NIH) and Cleveland Clinic (call your provider at 92% or lower; seek immediate
+ *   care at 88% or lower; normal 95 to 100%). Pending the cardiologist's confirmation. Also in backend review_rules.py.
  *
  * A blood pressure is only judged once it is a complete reading (both numbers, each in the range the
  * backend accepts), so typing "1" on the way to "128" never sets off the emergency guidance.
@@ -43,8 +44,10 @@ export function isSevereHypotension(r: Reading | null): boolean {
 
 // HL-166 (panel revision): an optional oxygen reading from a pulse oximeter. Never scored.
 export const SPO2_RANGE = [50, 100] as const;
-export const SPO2_EMERGENCY_BELOW = 90;
-export const SPO2_NORMAL_FROM = 95;
+/** 88% or lower: seek immediate care. Sources: MedlinePlus (NIH), medlineplus.gov/lab-tests/pulse-oximetry; Cleveland Clinic, my.clevelandclinic.org/health/diagnostics/22447-blood-oxygen-level */
+export const SPO2_EMERGENCY_MAX = 88;
+/** 92% or lower: contact your doctor (same sources). */
+export const SPO2_CHECK_MAX = 92;
 
 /** A whole number from 50 to 100, else null (so typing "9" on the way to "97" is never judged). */
 export function completeSpo2(text: string): number | null {
@@ -54,12 +57,12 @@ export function completeSpo2(text: string): number | null {
 }
 
 export function isLowOxygenEmergency(spo2: number | null): boolean {
-  return spo2 !== null && spo2 < SPO2_EMERGENCY_BELOW;
+  return spo2 !== null && spo2 <= SPO2_EMERGENCY_MAX;
 }
 
-/** 90 to 94%: lower than usual, worth a check if they feel unwell. */
+/** 89 to 92%: lower than usual, talk to a doctor. */
 export function isOxygenLow(spo2: number | null): boolean {
-  return spo2 !== null && spo2 >= SPO2_EMERGENCY_BELOW && spo2 < SPO2_NORMAL_FROM;
+  return spo2 !== null && spo2 > SPO2_EMERGENCY_MAX && spo2 <= SPO2_CHECK_MAX;
 }
 
 export const CHEST = "Chest Discomfort / Tightness";

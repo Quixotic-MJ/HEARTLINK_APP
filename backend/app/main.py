@@ -54,6 +54,7 @@ from app.api import family_api
 from app.api import meal_plan_api
 from app.api import reports_api
 from app.api import steps_api
+from app.api import barangays_api  # HL-171
 from app.api.companion import companion
 
 is_production = os.getenv("ENVIRONMENT", "").lower() == "production"
@@ -143,6 +144,7 @@ app.include_router(family_api.router)
 app.include_router(meal_plan_api.router)
 app.include_router(reports_api.router)
 app.include_router(steps_api.router)
+app.include_router(barangays_api.router)
 app.include_router(admin_premium_api.router)
 app.include_router(companion.router)
 

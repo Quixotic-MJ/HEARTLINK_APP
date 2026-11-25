@@ -23,7 +23,7 @@ def _forbidden(detail: str) -> HTTPException:
 def get_patient_or_404(patient_id: str) -> Dict[str, Any]:
     patient = get_profile_repo().get_by_id(patient_id)
     if not patient or patient.get("role") != "patient":
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
     return patient
 
 
@@ -106,12 +106,12 @@ def _notify_care_team(patient_id: str, kind: str, author_id: Optional[str]) -> N
     from app.services.admin_notifications import notify_experts
     if kind == "guidance":
         notify_experts(["Dietitian", "Physical Therapist"], "notes", "New Cardiologist guidance",
-                       "A Cardiologist added guidance on a patient. Open the patient to read it before approving.",
-                       f"/patients/{patient_id}", actor_id=author_id, target_id=patient_id)
+                       "A Cardiologist added guidance on an app user. Open the user to read it before approving.",
+                       f"/app-users/{patient_id}", actor_id=author_id, target_id=patient_id)
     else:
-        notify_experts(["Cardiologist", "Dietitian", "Physical Therapist"], "notes", "New reply in a patient's notes",
-                       "Someone on the care team replied in a patient's notes. Open the patient to read it.",
-                       f"/patients/{patient_id}", actor_id=author_id, target_id=patient_id)
+        notify_experts(["Cardiologist", "Dietitian", "Physical Therapist"], "notes", "New reply in an app user's notes",
+                       "Someone on the care team replied in an app user's notes. Open the user to read it.",
+                       f"/app-users/{patient_id}", actor_id=author_id, target_id=patient_id)
 
 
 def delete_note(patient_id: str, note_id: str, current_user: dict) -> None:

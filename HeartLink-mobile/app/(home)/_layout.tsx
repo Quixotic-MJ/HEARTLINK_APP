@@ -29,6 +29,9 @@ export default function HomeLayout() {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen
         name="(profile)/profile"
+        // 2026-11-25: a quick double tap on the header button opened this screen twice (Back then went to the
+        // same screen again); reuse the one already open instead
+        dangerouslySingular
         options={{
           animation: "slide_from_right",
           presentation: "card",
@@ -36,6 +39,9 @@ export default function HomeLayout() {
       />
       <Stack.Screen
         name="(profile)/notifications"
+        // 2026-11-25: a quick double tap on the header button opened this screen twice (Back then went to the
+        // same screen again); reuse the one already open instead
+        dangerouslySingular
         options={{
           animation: "slide_from_right",
           presentation: "card",
@@ -43,6 +49,9 @@ export default function HomeLayout() {
       />
       <Stack.Screen
         name="(settings)/settings"
+        // 2026-11-25: a quick double tap on the header button opened this screen twice (Back then went to the
+        // same screen again); reuse the one already open instead
+        dangerouslySingular
         options={{
           animation: "slide_from_right",
           presentation: "card",

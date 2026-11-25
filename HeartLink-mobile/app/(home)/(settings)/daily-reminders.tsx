@@ -121,7 +121,6 @@ export default function DailyRemindersScreen() {
     morning: { enabled: false, time: "08:00" },
     evening: { enabled: false, time: "20:00" },
     activity: { enabled: false, time: "17:00" },
-    medicine: DEFAULT_REMINDERS.medicine,
     bedtime: DEFAULT_REMINDERS.bedtime,
   };
   const [reminders, setReminders] = useState<Reminders>(fallback);
@@ -256,17 +255,6 @@ export default function DailyRemindersScreen() {
             time={reminders.morning.time}
             onToggle={() => toggleReminder("morning")}
             onTimePress={() => setPickerConfig({ visible: true, key: "morning" })}
-          />
-          <ReminderToggle
-            title="Take Your Medicines"
-            description="A daily reminder to take your medicines as prescribed."
-            mcIcon="pill"
-            iconBg={c.peach}
-            iconColor={c.charcoal}
-            enabled={reminders.medicine.enabled}
-            time={reminders.medicine.time}
-            onToggle={() => toggleReminder("medicine")}
-            onTimePress={() => setPickerConfig({ visible: true, key: "medicine" })}
           />
           <ReminderToggle
             title="Evening Wrap-up"

@@ -150,7 +150,7 @@ export default function AboutScreen() {
         </View>
 
         <Text className="text-[13px] text-ds-steel text-center px-4 leading-relaxed">
-          HeartLink helps people track their blood pressure, symptoms and habits, and share their readings with their own doctor.
+          HeartLink helps adults track blood pressure, symptoms and habits, and share a summary with their own doctor. It isn&apos;t a diagnosis, and nobody monitors your readings.
         </Text>
         <Text className="text-[12px] text-ds-steel text-center mt-4 mb-8">
           © 2026 HeartLink Inc. All rights reserved.

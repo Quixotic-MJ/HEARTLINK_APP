@@ -415,9 +415,9 @@ def get_system_staff(current_user: dict = Depends(get_current_admin_only)):
             # HL-136: what each expert does in the portal (backend EXPERT_PERMISSIONS)
             role_label = "Authorized Medical Expert"
             perms = {
-                "Dietitian": ["Write and approve recipes", "Patient records and care-team notes", "Case review"],
-                "Physical Therapist": ["Write and approve exercises", "Patient records and care-team notes", "Case review"],
-                "Cardiologist": ["Patient records and guidance", "Case review"],
+                "Dietitian": ["Write and approve recipes", "App user records and care-team notes", "Case review"],
+                "Physical Therapist": ["Write and approve exercises", "App user records and care-team notes", "Case review"],
+                "Cardiologist": ["App user records and guidance", "Case review"],
             }.get(normalize_expert_type(s.get("expert_type")), ["No specialty assigned"])
             
         result.append({
@@ -808,7 +808,7 @@ def delete_user_or_staff(user_id: str, current_user: dict = Depends(get_current_
     # 4. Record admin activity
     admin_id = current_user.get("user_id") if current_user else "admin"
     target_type = "staff" if user_role in ["admin", "medical_expert"] else "user"
-    role_label = "staff" if target_type == "staff" else "patient"
+    role_label = "staff" if target_type == "staff" else "app user"
     record_admin_activity(
         admin_user_id=admin_id,
         action=f"Deleted {role_label} account for {user_name}",

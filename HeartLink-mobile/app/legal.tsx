@@ -1,14 +1,17 @@
 import React from "react";
-import { ScrollView, Text, View } from "react-native";
+import { ScrollView, Share, Text, View } from "react-native";
+import { Feather } from "@expo/vector-icons";
+import DsButton from "../components/onboarding/DsButton";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useDs } from "../components/onboarding/useDs";
 import { SquareIconButton } from "../components/exercise/ExerciseBits";
-import { legalDoc } from "../constants/legal";
+import { docAsText, legalDoc } from "../constants/legal";
 
 // The Terms of Service (?doc=terms) and Privacy Policy (?doc=privacy), inside the app so they open without a website
 // (2026-11-18). Reachable signed in or out: sign-up links here, and so does Settings › About HeartLink.
+// 2026-11-24: also "For your doctor" (?doc=doctor), with a Share button, from the health check and Settings.
 export default function LegalScreen() {
   const { c, isDark } = useDs();
   const router = useRouter();
@@ -59,6 +62,15 @@ export default function LegalScreen() {
             ))}
           </View>
         ))}
+
+        {doc === "doctor" ? (
+          <DsButton
+            label="Share with my doctor"
+            icon={<Feather name="share" size={16} color="#FFFFFF" />}
+            accessibilityHint="Opens your phone's share options, to send this page by message or email"
+            onPress={() => Share.share({ message: docAsText(page) }).catch(() => undefined)}
+          />
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );
